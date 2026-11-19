@@ -4,6 +4,11 @@ import re
 from arm64.vm.specialize import _replace_exact, sha
 
 
+def _tls_fast_inc(source, rel_path, old_decl, new_decl):
+    text = (source / rel_path).read_text(encoding="utf-8")
+    return _replace_exact(text, old_decl, new_decl, 1, f"{rel_path} TLS isolation")
+
+
 def _specialize_c_owners(source, output):
     updated = {}
 
@@ -38,14 +43,42 @@ def _specialize_c_owners(source, output):
     )
     if n_lit != 1:
         raise ValueError(f"Expected 1 JS_LinuxLiteralEnter anchor, got {n_lit}")
+    fast_ctor_inc = _tls_fast_inc(
+        source,
+        "src/common/kernel/fast-construct.inc",
+        "static FastCtorMeta fast_ctor_cache[64];",
+        "static _Thread_local FastCtorMeta fast_ctor_cache[64];",
+    )
+    instof_inc = _tls_fast_inc(
+        source,
+        "src/common/value/instanceof-fast.inc",
+        "static FastInstOfEntry fast_instof_cache[16];",
+        "static _Thread_local FastInstOfEntry fast_instof_cache[16];",
+    )
+    fg_inc = _tls_fast_inc(
+        source,
+        "src/common/property/fast-get-field.inc",
+        "static FastGetFieldCache fg_cache[32];",
+        "static _Thread_local FastGetFieldCache fg_cache[32];",
+    )
+    cl_inc = _tls_fast_inc(
+        source,
+        "src/common/call/compound-leaf.inc",
+        "static CLCacheEntry cl_cache[64];",
+        "static _Thread_local CLCacheEntry cl_cache[64];",
+    )
     fast_includes = (
         "\n#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
         "#define QJS_FAST_INSTANCEOF_STATE_ENTRY\n"
         "#define QJS_EMIT_FAST_CORE_BUILTINS\n"
-        '#include "src/common/kernel/fast-construct.inc"\n'
-        '#include "src/common/value/instanceof-fast.inc"\n'
-        '#include "src/common/property/fast-get-field.inc"\n'
-        '#include "src/common/call/compound-leaf.inc"\n'
+        + fast_ctor_inc.rstrip()
+        + "\n"
+        + instof_inc.rstrip()
+        + "\n"
+        + fg_inc.rstrip()
+        + "\n"
+        + cl_inc.rstrip()
+        + "\n"
         "#undef QJS_EMIT_FAST_CORE_BUILTINS\n"
         "#undef QJS_FAST_INSTANCEOF_STATE_ENTRY\n"
         "#endif\n"
@@ -152,14 +185,18 @@ def _specialize_c_owners(source, output):
     updated["call_leaves"] = sha(cl_path)
 
     # 4. Wire common virtual-arguments cache + JS_FastArrayFrom + arguments fast guard.
+    va_fast_inc = _tls_fast_inc(
+        source,
+        "src/common/linux/virtual-arguments-fast.inc",
+        "    static struct {",
+        "    static _Thread_local struct {",
+    )
     va_path = output / "quickjs-linux-virtual-arguments.c"
     va_path.write_text(
         '#include "quickjs-linux-virtual-arguments-private.h"\n'
         "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
         '#include "src/common/linux/interpreter-virtual-arguments.inc"\n'
-        "#else\n"
-        '#include "src/common/linux/virtual-arguments-fast.inc"\n'
-        '#include "src/common/kernel/fast-array-from.inc"\n'
+        "#else\n" + va_fast_inc.rstrip() + '\n#include "src/common/kernel/fast-array-from.inc"\n'
         "#endif\n"
         '__attribute__((visibility("hidden"))) FRAME_CODE\n'
         "int JS_LinuxVirtualArgumentsStep(JSFrameRegisterState *state)\n"
@@ -183,8 +220,8 @@ def _specialize_c_owners(source, output):
     arg_text += (
         "\n#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
         "#define QJS_DEFINE_ARGUMENTS_CONSTRUCT_FAST_OK\n"
-        '#include "src/common/linux/virtual-arguments-fast.inc"\n'
-        "#undef QJS_DEFINE_ARGUMENTS_CONSTRUCT_FAST_OK\n"
+        + va_fast_inc.rstrip()
+        + "\n#undef QJS_DEFINE_ARGUMENTS_CONSTRUCT_FAST_OK\n"
         "#endif\n"
     )
     arg_path.write_text(arg_text)

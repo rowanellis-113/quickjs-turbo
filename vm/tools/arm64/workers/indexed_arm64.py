@@ -1522,8 +1522,9 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldr x4, [x0, #ARM_OFF_JSObject_shape]
     lsr x5, x4, #6
     and x5, x5, #3
-    adrp x6, .Lfast_ta_len_ic
-    add x6, x6, :lo12:.Lfast_ta_len_ic
+    mrs x6, tpidr_el0
+    add x6, x6, :tprel_hi12:.Lfast_ta_len_ic
+    add x6, x6, :tprel_lo12_nc:.Lfast_ta_len_ic
     add x6, x6, x5, lsl #5
     ldp x7, x8, [x6]
     cmp x7, x4
@@ -1560,8 +1561,9 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldr x15, [x14, #ARM_OFF_JSRuntime_property_ic_epoch]
     lsr x5, x4, #6
     and x5, x5, #3
-    adrp x6, .Lfast_ta_len_ic
-    add x6, x6, :lo12:.Lfast_ta_len_ic
+    mrs x6, tpidr_el0
+    add x6, x6, :tprel_hi12:.Lfast_ta_len_ic
+    add x6, x6, :tprel_lo12_nc:.Lfast_ta_len_ic
     add x6, x6, x5, lsl #5
     stp x4, x15, [x6]
     str x12, [x6, #16]

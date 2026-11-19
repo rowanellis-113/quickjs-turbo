@@ -406,12 +406,6 @@ def specialize(source, output, enabled, vm_receipt):
     .zero 2048
 .Lfast_dirty_ptrs:
     .zero 2048
-.Lfast_leaf_ic:
-    .zero 2048
-.Lfast_arr_proto_ic:
-    .zero 64
-.Lfast_ta_len_ic:
-    .zero 128
 .p2align 2
 .Lfast_vm_ext_env:
     .zero 4
@@ -419,6 +413,16 @@ def specialize(source, output, enabled, vm_receipt):
 .p2align 2
 .Lfast_vm_leaf_env:
     .zero 4
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+.section .tbss.qjs_aarch64_fast_vm,"awT",%nobits
+.p2align 4
+.Lfast_leaf_ic:
+    .zero 2048
+.Lfast_arr_proto_ic:
+    .zero 64
+.Lfast_ta_len_ic:
+    .zero 128
+#endif
 """
     text = _replace_exact(text, stack_note, env_sections + stack_note, 1, "GNU-stack anchor")
     text = _unify_publication_release(text, output, op_ids)

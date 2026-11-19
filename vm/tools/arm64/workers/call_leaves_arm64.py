@@ -2151,8 +2151,9 @@ def _specialize_call_leaves(text):
     b.hi .Lrel_leaf_ic_skip
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     ldp x10, x12, [x11]
     cmp x10, x7
@@ -2487,8 +2488,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_getter9
     add x12, x12, :lo12:.Lrel_exec_getter9
@@ -2575,8 +2577,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_setter10
     add x12, x12, :lo12:.Lrel_exec_setter10
@@ -2849,8 +2852,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_size10
     add x12, x12, :lo12:.Lrel_exec_size10
@@ -2947,8 +2951,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_at11
     add x12, x12, :lo12:.Lrel_exec_at11
@@ -3055,8 +3060,9 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_mark_inline_only
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_cmp14
     add x12, x12, :lo12:.Lrel_exec_cmp14
@@ -3315,8 +3321,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_inline_only
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_len8
     add x12, x12, :lo12:.Lrel_exec_len8
@@ -3395,8 +3402,9 @@ def _specialize_call_leaves(text):
     ldr w13, [x7, #ARM_OFF_JSFunctionBytecode_byte_code_len]
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_c_leaf
     add x12, x12, :lo12:.Lrel_exec_c_leaf
@@ -3434,8 +3442,9 @@ def _specialize_call_leaves(text):
     cbnz w10, .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_rem16
     add x12, x12, :lo12:.Lrel_exec_rem16
@@ -3640,8 +3649,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_add18
     add x12, x12, :lo12:.Lrel_exec_add18
@@ -3851,8 +3861,9 @@ def _specialize_call_leaves(text):
     b.ne .Lrel_fast_leaf_mark_nonleaf
     lsr x10, x7, #4
     and x10, x10, #63
-    adrp x11, .Lfast_leaf_ic
-    add x11, x11, :lo12:.Lfast_leaf_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_leaf_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_leaf_ic
     add x11, x11, x10, lsl #5
     adrp x12, .Lrel_exec_compound22
     add x12, x12, :lo12:.Lrel_exec_compound22

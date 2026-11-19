@@ -854,8 +854,9 @@ def _specialize_property_ic(text):
     ldr x4, [x3, #ARM_OFF_JSObject_shape]
     eor w10, w8, w8, lsr #2
     and w10, w10, #3
-    adrp x11, .Lfast_arr_proto_ic
-    add x11, x11, :lo12:.Lfast_arr_proto_ic
+    mrs x11, tpidr_el0
+    add x11, x11, :tprel_hi12:.Lfast_arr_proto_ic
+    add x11, x11, :tprel_lo12_nc:.Lfast_arr_proto_ic
     add x11, x11, x10, lsl #4
     ldr x12, [x11]
     cmp x12, x4
