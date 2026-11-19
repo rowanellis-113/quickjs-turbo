@@ -141,6 +141,7 @@ $result | ConvertTo-Json
                 FRAME_FIXTURE_SHARED="1" if shared else "0",
                 FRAME_FIXTURE_PRODUCTS="1" if include_products else "0",
             )
+            environment.pop("PSModulePath", None)
             return subprocess.run(
                 [powershell, "-NoProfile", "-Command", script],
                 env=environment,

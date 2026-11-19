@@ -340,6 +340,7 @@ jobs:
 
             python -B vm/tests/x86/win64/test_vm_core_routes.py
             if ($LASTEXITCODE -ne 0) { throw "test_vm_core_routes.py failed" }
+            Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
             python -B vm/tests/x86/win64/test_vm_build.py --cmake $cmake
             if ($LASTEXITCODE -ne 0) { throw "test_vm_build.py failed" }
           }

@@ -230,6 +230,11 @@ if(QJS_ENABLE_UBSAN)
     message(STATUS "Building with UBSan")
     add_compile_options(-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer)
     add_link_options(-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+        # Upstream quickjs.c casts void *(JSContext *, void *, size_t) to DynBufReallocFunc *.
+        add_compile_options(-fno-sanitize=function)
+        add_link_options(-fno-sanitize=function)
+    endif()
 endif()
 
 # QuickJS library
