@@ -158,14 +158,21 @@ static void buffers(unsigned limit)
     }
     CHECK(FramePoolDestroy(p) == 0);
 }
+#if defined(__APPLE__)
+#define POOL_OVERHEAD 0
+#else
+#define POOL_OVERHEAD 8
+#endif
 static void accounting(JSRuntime *rt, FramePool *p)
 {
     JSMemoryUsage usage;
     FramePoolStats stats;
+    size_t expected;
     JS_ComputeMemoryUsage(rt, &usage);
     FramePoolGetStats(p, &stats);
+    expected = stats.live_capacity + stats.live_blocks * POOL_OVERHEAD;
     CHECK(usage.malloc_count == (int64_t)stats.live_blocks);
-    CHECK(usage.malloc_size == (int64_t)(stats.live_capacity + stats.live_blocks * 8));
+    CHECK(usage.malloc_size == (int64_t)expected);
 }
 static void runtime(unsigned limit)
 {

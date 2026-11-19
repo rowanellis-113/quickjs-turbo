@@ -211,23 +211,12 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Failed to initialize test262 submodule" }
           }
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          pacboy: >-
-            cmake:p
-            ninja:p
-            toolchain:p
-
-      - name: Locate MSYS2 tools
+      - name: Install pinned Win64 MinGW GCC 13.1.0 & COFF binutils
         id: tools
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
-          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
-          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
-          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
+          python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
       - name: Build WIN64 MSVC & run Test262
         shell: pwsh
@@ -280,31 +269,18 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "Failed to initialize test262 submodule" }
           }
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          pacboy: >-
-            cmake:p
-            ninja:p
-            toolchain:p
-
-      - name: Locate MSYS2 tools
+      - name: Install pinned Win64 MinGW GCC 13.1.0 & COFF binutils
         id: tools
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
-          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
-          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
-          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
-          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
-          echo "ucrt_bin=$(cygpath -aw /ucrt64/bin)" >> "$GITHUB_OUTPUT"
+          python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
       - name: Build WIN64 MinGW & run Test262
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+          $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
           ./vm/tools/x86/win64/build/build-baseline.ps1 `
             -Toolchain mingw `
             -Backend WIN64 `

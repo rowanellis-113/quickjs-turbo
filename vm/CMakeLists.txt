@@ -201,7 +201,7 @@ if(CMAKE_BUILD_TYPE MATCHES "Debug")
     xcheck_add_c_compiler_flag(/Od)
     xcheck_add_c_compiler_flag(-O0)
     xcheck_add_c_compiler_flag(-ggdb)
-    xcheck_add_c_compiler_flag(-fno-omit-interpreter-pointer)
+    xcheck_add_c_compiler_flag(-fno-omit-frame-pointer)
 endif()
 
 if(BUILD_SHARED_LIBS)
@@ -210,27 +210,26 @@ endif()
 
 if(QJS_ENABLE_ASAN)
     message(STATUS "Building with ASan")
-    add_compile_options(-fsanitize=address -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
-    add_link_options(-fsanitize=address -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
+    add_compile_options(-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=address -fno-sanitize-recover=all -fno-omit-frame-pointer)
 endif()
 
 if(QJS_ENABLE_MSAN)
     message(STATUS "Building with MSan")
-    add_compile_options(-fsanitize=memory -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
-    add_link_options(-fsanitize=memory -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
+    add_compile_options(-fsanitize=memory -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=memory -fno-sanitize-recover=all -fno-omit-frame-pointer)
 endif()
 
 if(QJS_ENABLE_TSAN)
     message(STATUS "Building with TSan")
-    add_compile_options(-fsanitize=thread -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
-    add_link_options(-fsanitize=thread -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
+    add_compile_options(-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=thread -fno-sanitize-recover=all -fno-omit-frame-pointer)
 endif()
 
 if(QJS_ENABLE_UBSAN)
     message(STATUS "Building with UBSan")
-    add_compile_options(-fsanitize=undefined -fno-sanitize-recover=all
-                        -fno-omit-interpreter-pointer)
-    add_link_options(-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-interpreter-pointer)
+    add_compile_options(-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=undefined -fno-sanitize-recover=all -fno-omit-frame-pointer)
 endif()
 
 # QuickJS library
@@ -253,6 +252,35 @@ endmacro()
 
 set(qjs_sources "${QJS_UPSTREAM_DIR}/dtoa.c" "${QJS_UPSTREAM_DIR}/libregexp.c"
                 "${QJS_UPSTREAM_DIR}/libunicode.c" "${QJS_UPSTREAM_DIR}/quickjs.c")
+
+if(QJS_ENABLE_UBSAN)
+    set(qjs_ubsan_copy_old "memcpy(cr->points, cr1->points, sizeof(cr->points[0]) * cr1->len);")
+    set(qjs_ubsan_copy_new
+        "if (cr1->len > 0) memcpy(cr->points, cr1->points, sizeof(cr->points[0]) * cr1->len);")
+    set(qjs_ubsan_norm_old "memcpy(buf, src, src_len * sizeof(int));")
+    set(qjs_ubsan_norm_new "if (src_len > 0) memcpy(buf, src, src_len * sizeof(int));")
+    set(qjs_ubsan_libunicode_in "${CMAKE_CURRENT_BINARY_DIR}/generated/ubsan-libunicode.c.in")
+    set(qjs_ubsan_libunicode_out "${CMAKE_CURRENT_BINARY_DIR}/generated/ubsan-libunicode.c")
+    file(READ "${QJS_UPSTREAM_DIR}/libunicode.c" qjs_ubsan_libunicode)
+    string(FIND "${qjs_ubsan_libunicode}" "${qjs_ubsan_copy_old}" qjs_ubsan_copy_pos)
+    string(FIND "${qjs_ubsan_libunicode}" "${qjs_ubsan_norm_old}" qjs_ubsan_norm_pos)
+    if(qjs_ubsan_copy_pos EQUAL -1 OR qjs_ubsan_norm_pos EQUAL -1)
+        message(FATAL_ERROR "Expected empty-buffer memcpy sites missing in upstream libunicode.c")
+    endif()
+    string(REPLACE "${qjs_ubsan_copy_old}" "${qjs_ubsan_copy_new}" qjs_ubsan_libunicode
+                   "${qjs_ubsan_libunicode}")
+    string(REPLACE "${qjs_ubsan_norm_old}" "${qjs_ubsan_norm_new}" qjs_ubsan_libunicode
+                   "${qjs_ubsan_libunicode}")
+    file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/generated")
+    file(WRITE "${qjs_ubsan_libunicode_in}" "${qjs_ubsan_libunicode}")
+    configure_file("${qjs_ubsan_libunicode_in}" "${qjs_ubsan_libunicode_out}" COPYONLY)
+    set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS "${QJS_UPSTREAM_DIR}/libunicode.c")
+    list(REMOVE_ITEM qjs_sources "${QJS_UPSTREAM_DIR}/libunicode.c")
+    list(APPEND qjs_sources "${qjs_ubsan_libunicode_out}")
+endif()
 
 if((QJS_BACKPORT_PORTABLE_REGEXP OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
    AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
@@ -290,9 +318,11 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
 endif()
 
 # try to find libm
-find_library(M_LIBRARIES m)
-if(M_LIBRARIES OR CMAKE_C_COMPILER_ID STREQUAL "TinyCC")
-    list(APPEND qjs_libs m)
+if(NOT MSVC)
+    find_library(M_LIBRARIES m)
+    if(M_LIBRARIES OR CMAKE_C_COMPILER_ID STREQUAL "TinyCC")
+        list(APPEND qjs_libs m)
+    endif()
 endif()
 
 if(QJS_ENABLE_INTERP_FRAME)

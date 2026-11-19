@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import io
 import json
 import os
 from pathlib import Path
@@ -11,8 +12,10 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import install_win64_mingw
 import verify_pe_imports
 import verify_test262
 
@@ -237,6 +240,55 @@ class VerifyTest262Tests(unittest.TestCase):
                 text=True,
             )
             self.assertEqual(fail_proc.returncode, 1)
+
+
+class InstallWin64MinGWTests(unittest.TestCase):
+    def test_rejects_checksum_mismatch_and_cleans_partial_archive(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            dest = Path(td) / "winlibs"
+            archive = dest / install_win64_mingw.ARCHIVE_NAME
+
+            class _Resp(io.BytesIO):
+                def __enter__(self):
+                    return self
+
+                def __exit__(self, *args):
+                    self.close()
+
+            with patch.object(
+                install_win64_mingw.urllib.request,
+                "urlopen",
+                side_effect=lambda req, timeout=180: _Resp(b"corrupt-archive-bytes"),
+            ):
+                with self.assertRaisesRegex(RuntimeError, "Checksum mismatch"):
+                    install_win64_mingw.ensure_toolchain(dest)
+            self.assertFalse(archive.exists())
+
+    def test_writes_github_output_when_tools_already_extracted(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td).resolve()
+            dest = root / "winlibs"
+            bin_dir = dest / "mingw64/bin"
+            bin_dir.mkdir(parents=True)
+            for exe in ("gcc.exe", "g++.exe", "objdump.exe", "as.exe", "ninja.exe"):
+                (bin_dir / exe).write_bytes(b"")
+            fake_cmake = root / "cmake.exe"
+            fake_cmake.write_bytes(b"")
+            gh_out = root / "github_output.txt"
+
+            with patch.object(install_win64_mingw.shutil, "which", return_value=str(fake_cmake)):
+                rc = install_win64_mingw.main(["--dest", str(dest), "--github-output", str(gh_out)])
+
+            self.assertEqual(rc, 0)
+            parsed = dict(
+                line.split("=", 1) for line in gh_out.read_text(encoding="utf-8").splitlines()
+            )
+            self.assertEqual(
+                set(parsed), {"cmake", "ninja", "gcc", "gxx", "objdump", "as", "mingw_bin"}
+            )
+            self.assertEqual(parsed["cmake"], fake_cmake.as_posix())
+            self.assertEqual(parsed["gcc"], (bin_dir / "gcc.exe").as_posix())
+            self.assertEqual(parsed["mingw_bin"], str(bin_dir))
 
 
 if __name__ == "__main__":

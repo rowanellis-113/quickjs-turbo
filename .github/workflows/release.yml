@@ -103,26 +103,12 @@ jobs:
 
       - uses: actions/checkout@v7
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          pacboy: >-
-            cmake:p
-            ninja:p
-            toolchain:p
-
-      - name: Locate MSYS2 UCRT64 tools
+      - name: Install pinned Win64 MinGW GCC 13.1.0 & COFF binutils
         id: tools
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
-          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
-          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
-          echo "gxx=$(cygpath -am "$(command -v g++)")" >> "$GITHUB_OUTPUT"
-          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
-          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
-          echo "ucrt_bin=$(cygpath -aw /ucrt64/bin)" >> "$GITHUB_OUTPUT"
+          python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
       - name: Build, CTest & package SDK
         shell: pwsh
@@ -132,7 +118,7 @@ jobs:
           $ninja = '${{ steps.tools.outputs.ninja }}'
           $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
           if ('${{ matrix.toolchain }}' -eq 'mingw') {
-            $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+            $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
           }
 
           $buildDir = "build/${{ matrix.slug }}"

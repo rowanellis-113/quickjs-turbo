@@ -25,13 +25,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip
           cache-dependency-path: vm/tools/common/format/requirements.txt
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: "22"
           cache: npm
@@ -63,7 +63,6 @@ jobs:
           python -B vm/tests/common/test_target_runner.py
           python -B vm/tests/x86/common/test_vm_abi.py
           python -B vm/tests/x86/win64/test_vm_private.py
-          python -B vm/tests/x86/win64/test_vm_core_routes.py
           python -B vm/tests/arm64/test_publication_directive.py
           python -B vm/tests/x86/linux/test_elf_machine_x86.py
           python -B vm/tests/arm64/test_elf_machine_arm64.py
@@ -188,7 +187,7 @@ jobs:
             toolchain: msvc
             runtime: MT
           - slug: mingw
-            label: MinGW UCRT64
+            label: MinGW GCC 13.1
             toolchain: mingw
             runtime: ""
     steps:
@@ -200,33 +199,19 @@ jobs:
 
       - uses: actions/checkout@v7
 
-      - uses: msys2/setup-msys2@v2
-        with:
-          msystem: UCRT64
-          update: true
-          pacboy: >-
-            cmake:p
-            ninja:p
-            toolchain:p
-
-      - name: Locate MSYS2 UCRT64 tools
+      - name: Install pinned Win64 MinGW GCC 13.1.0 & COFF binutils
         id: tools
-        shell: msys2 {0}
+        shell: pwsh
         run: |
-          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
-          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
-          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
-          echo "gxx=$(cygpath -am "$(command -v g++)")" >> "$GITHUB_OUTPUT"
-          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
-          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
-          echo "ucrt_bin=$(cygpath -aw /ucrt64/bin)" >> "$GITHUB_OUTPUT"
+          python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
+          if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
       - name: Build, CTest & verify WIN64 native backend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           if ('${{ matrix.toolchain }}' -eq 'mingw') {
-            $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+            $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
           }
           python -B vm/tests/common/validate_layout.py --require-native
           if ($LASTEXITCODE -ne 0) { throw "validate_layout.py failed" }
@@ -325,7 +310,7 @@ jobs:
               if (-not (Test-Path "$libSdk/lib/qjs.lib")) { throw "QJS_BUILD_CLI=OFF did not install qjs.lib" }
             }
           } else {
-            $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+            $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
             & $cmake -S vm/tests/common/consumer -B build/consumer-mingw -G Ninja `
               "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}" `
               "-DCMAKE_CXX_COMPILER=${{ steps.tools.outputs.gxx }}" `
@@ -353,6 +338,8 @@ jobs:
               throw "Shared AUTO did not select PORTABLE fallback"
             }
 
+            python -B vm/tests/x86/win64/test_vm_core_routes.py
+            if ($LASTEXITCODE -ne 0) { throw "test_vm_core_routes.py failed" }
             python -B vm/tests/x86/win64/test_vm_build.py --cmake $cmake
             if ($LASTEXITCODE -ne 0) { throw "test_vm_build.py failed" }
           }
