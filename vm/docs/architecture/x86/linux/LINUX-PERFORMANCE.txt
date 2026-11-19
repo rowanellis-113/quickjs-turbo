@@ -1,0 +1,254 @@
+Historical original Linux delivery measurements
+Current8c archive/SDK screens and residual costs:LINUX-FINAL-REVIEW.txt.
+Do not treat the old image hashes below as current artifacts.
+
+Linux x86-64 measured development runtime: performance and cost review
+=====================================================================
+
+The runtime is4d8363a,documented at1109aa0 and qualified at90e3bf3. Independent
+canonical LF archive builds produce complete native and PORTABLE CLI,Test262
+runner and static-library bytes identical to the qualified/measured images.
+These scores bind to those installed Linux images;they are not new benchmark
+runs. Stock is unmodified NG0.15.1 bf8988f,not Bellard2026. LINUX-RELEASE.txt
+records current qualification and hashes.
+
+All three images used original immutable calibration/workloads, CPU2 serial
+forward/reverse pairs, normal PIE/ASLR and allocator setting256. No PGO, image
+base selection, padding or address search was used. This first complete screen
+is a filter, not a confidence interval or a guarantee for every application.
+The JetStream column is the retained17-case subset, not an official total score.
+
+Material original-body confirmations (four additional balanced blocks):
+                         stock       PORTABLE       native      native vs stock
+lazy-collections ms       68.983        70.363        95.959        +39.1%
+prettier-wtb ms          858.542       812.973       909.678         +6.0%
+int_to_string ns/op       67.000        48.555        78.735        +17.5%
+These costs remain documented. A same-image frame-OFF control restores the
+two applications close to PORTABLE; register-OFF alone restores little of lazy
+and part of prettier. Actual software profiles and original measured-caller
+observations identify generator/legacy/native boundaries and slow-path/reload
+costs as investigation areas. Self-samples are not call counts or removable-time
+estimates. Repeated profile bodies do not replace original calibrated scores.
+
+prop_delete has multiple populations: selected native43.94..111.6ns/op with
+different final calibration N. Do not turn its first117% screen delta into an
+intrinsic delete-opcode regression or blame ASLR. float_to_string's initial
+PORTABLE86.2ns sample did not recur in selected confirmation (330.335ns median);
+native367.585 vs stock363.0 is not a stable fourfold regression. string_concat1's
+apparent PORTABLE regression also did not persist. All original samples remain
+in the external audit, including negative results and final calibration N.
+
+Bounded Linux opportunity decisions
+----------------------------------
+SysV aggregate return/arguments and helper preservation are already implemented
+using actual compiler types; there is no missing Win64 hidden-result-pointer
+conversion to optimize. Current engine calls are direct/local with zero engine
+function JUMP_SLOT relocations. No PLT-bypass experiment was justified.
+
+A measured short-callback policy was tested on a separate branch62f5fb2:
+small normal callbacks under legacy synchronous generators retained original C
+execution. Same-image ON/OFF and natural original-caller observations proved
+the intended route, and927CTest, three fullTC modes and public GC/reentry/
+capture/exception/cleanup checks passed. Complete original suite screening gave
+lazy~8.2%better, micro overall+0.22%time and JetStream-0.08%time (effectively flat),
+while cdjs/richards added~4.6/5.0%. V8's quick+2.90%time change was uncertain
+because the accepted DeltaBlue scores included1785/1221 modes. The candidate
+did not demonstrate enough net benefit to justify a new heuristic/control, and
+is NOT integrated. No candidate runtime source/cache/control remains in product.
+
+Native generator execution and broader fast-opcode coverage remain possible
+future features with a larger implementation/maintenance cost. This bounded
+decision is not proof of an architectural ceiling. Default-active GNU transfer
+coverage is closed independently of performance. Individual historical bests
+are not release requirements; price each change by both prior and stock time.
+
+The table below preserves the original complete screen and memory definitions.
+The raw images, corpus/calibration hashes, actual PIDs/maps and paired samples
+are retained outside tracked product source. Ordinary builds do not need them.
+
+Linux whole-suite first quick screen
+Source: 1109aa0fd65e851ad88df568ffbda6f3b239f742
+Stock: unmodified QuickJS-NG0.15.1 bf8988fc401e737f9946cd10a3463b48aab0fd7e (not Bellard2026)
+Linux CPU2 serial forward/reverse pairs; unchanged calibration; normal ASLR; no PGO; no cross-OS timing claim
+Columns: case | stock NG0.15.1 | current PORTABLE | current native | native time change vs stock % | vs PORTABLE % | added cost as % of stock time
+Negative time changes/costs are improvements. Quick screen:material anomalies require confirmation.
+
+micro57:original ns/op,lower is better
+empty_loop | 12.185 | 12.155 | 5.180 | -57.49 | -57.38 | -57.24
+date_now | 63.225 | 57.400 | 48.100 | -23.92 | -16.20 | -14.71
+prop_read | 16.585 | 15.315 | 5.600 | -66.23 | -63.43 | -58.58
+prop_write | 11.970 | 21.565 | 5.495 | -54.09 | -74.52 | -134.25
+prop_create | 96.440 | 55.875 | 54.565 | -43.42 | -2.34 | -1.36
+prop_delete | 51.485 | 55.465 | 111.900 | +117.34 | +101.75 | +109.61
+array_read | 17.480 | 17.335 | 5.440 | -68.88 | -68.62 | -68.05
+array_write | 26.300 | 7.825 | 4.555 | -82.68 | -41.79 | -12.43
+array_prop_create | 22.765 | 13.750 | 12.400 | -45.53 | -9.82 | -5.93
+array_length_decr | 25.575 | 23.835 | 31.990 | +25.08 | +34.21 | +31.89
+array_hole_length_decr | 36.350 | 35.455 | 42.380 | +16.59 | +19.53 | +19.05
+array_push | 42.200 | 41.280 | 37.400 | -11.37 | -9.40 | -9.19
+array_pop | 92.800 | 78.760 | 44.300 | -52.26 | -43.75 | -37.13
+typed_array_read | 17.180 | 15.005 | 5.595 | -67.43 | -62.71 | -54.77
+typed_array_write | 32.185 | 12.250 | 5.475 | -82.99 | -55.31 | -21.05
+global_read | 5.685 | 5.530 | 3.600 | -36.68 | -34.90 | -33.95
+global_write | 5.750 | 5.815 | 3.360 | -41.57 | -42.22 | -42.70
+global_write_strict | 5.650 | 5.825 | 3.360 | -40.53 | -42.32 | -43.63
+local_destruct | 44.500 | 47.580 | 50.580 | +13.66 | +6.31 | +6.74
+global_destruct | 58.750 | 60.440 | 66.005 | +12.35 | +9.21 | +9.47
+global_destruct_strict | 58.565 | 59.940 | 66.000 | +12.70 | +10.11 | +10.35
+func_call | 27.755 | 27.190 | 15.550 | -43.97 | -42.81 | -41.94
+closure_var | 28.550 | 28.750 | 20.325 | -28.81 | -29.30 | -29.51
+int_arith | 12.190 | 12.140 | 9.870 | -19.03 | -18.70 | -18.62
+float_arith | 21.645 | 24.320 | 15.520 | -28.30 | -36.18 | -40.66
+map_set | 272.600 | 252.950 | 259.500 | -4.81 | +2.59 | +2.40
+map_delete | 292.500 | 251.800 | 255.500 | -12.65 | +1.47 | +1.26
+weak_map_set | 176.925 | 62.630 | 91.020 | -48.55 | +45.33 | +16.05
+weak_map_delete | 366.500 | 233.400 | 236.250 | -35.54 | +1.22 | +0.78
+array_for | 17.725 | 17.125 | 10.100 | -43.02 | -41.02 | -39.63
+array_for_in | 84.750 | 73.850 | 78.200 | -7.73 | +5.89 | +5.13
+array_for_of | 24.125 | 32.900 | 27.475 | +13.89 | -16.49 | -22.49
+math_min | 44.450 | 42.375 | 38.375 | -13.67 | -9.44 | -9.00
+object_null | 62.700 | 55.400 | 68.700 | +9.57 | +24.01 | +21.21
+regexp_ascii | 425.250 | 286.800 | 292.250 | -31.28 | +1.90 | +1.28
+regexp_utf16 | 394.050 | 286.150 | 291.700 | -25.97 | +1.94 | +1.41
+string_build1 | 97.405 | 89.110 | 80.330 | -17.53 | -9.85 | -9.01
+string_build2 | 103.925 | 90.140 | 101.100 | -2.72 | +12.16 | +10.55
+string_concat0 | 47.905 | 73.210 | 48.795 | +1.86 | -33.35 | -50.97
+string_concat1 | 108.075 | 61.350 | 86.450 | -20.01 | +40.91 | +23.22
+string_concat2 | 386.200 | 363.250 | 307.000 | -20.51 | -15.49 | -14.56
+string_concat3 | 2310.500 | 2167.000 | 1883.000 | -18.50 | -13.11 | -12.29
+string_slice1 | 83.450 | 81.610 | 75.140 | -9.96 | -7.93 | -7.75
+string_slice2 | 120.150 | 137.400 | 127.425 | +6.05 | -7.26 | -8.30
+string_slice3 | 83.630 | 74.770 | 66.950 | -19.94 | -10.46 | -9.35
+sort_bench | 1.605 | 1.675 | 0.400 | -75.08 | -76.12 | -79.44
+int_to_string | 67.000 | 52.285 | 79.235 | +18.26 | +51.54 | +40.22
+int_toString | 79.000 | 59.315 | 89.165 | +12.87 | +50.32 | +37.78
+float_to_string | 361.415 | 208.665 | 366.915 | +1.52 | +75.84 | +43.79
+float_toString | 374.750 | 346.670 | 373.665 | -0.29 | +7.79 | +7.20
+float_toFixed | 165.830 | 133.750 | 158.665 | -4.32 | +18.63 | +15.02
+float_toPrecision | 183.635 | 154.000 | 169.665 | -7.61 | +10.17 | +8.53
+float_toExponential | 183.665 | 156.170 | 172.665 | -5.99 | +10.56 | +8.98
+string_to_int | 116.500 | 122.500 | 84.525 | -27.45 | -31.00 | -32.60
+string_to_float | 163.000 | 159.100 | 77.050 | -52.73 | -51.57 | -50.34
+bigint64_arith | 63.340 | 73.200 | 95.350 | +50.54 | +30.26 | +34.97
+bigint256_arith | 154.300 | 130.200 | 155.400 | +0.71 | +19.35 | +16.33
+
+JetStream17:original warm body milliseconds,lower is better
+Air | 69.680 | 51.949 | 52.034 | -25.32 | +0.16 | +0.12
+delta-blue | 158.400 | 197.506 | 104.863 | -33.80 | -46.91 | -58.49
+Babylon | 96.518 | 99.564 | 76.323 | -20.92 | -23.34 | -24.08
+cdjs | 544.866 | 540.982 | 329.883 | -39.46 | -39.02 | -38.74
+FlightPlanner | 76.023 | 47.520 | 40.978 | -46.10 | -13.77 | -8.61
+pdfjs | 310.891 | 290.276 | 189.765 | -38.96 | -34.63 | -32.33
+typescript-octane | 2825.641 | 3199.149 | 2362.562 | -16.39 | -26.15 | -29.61
+crypto | 144.741 | 136.537 | 78.526 | -45.75 | -42.49 | -40.08
+richards | 233.290 | 345.134 | 124.006 | -46.84 | -64.07 | -94.79
+json-parse-inspector | 132.490 | 75.551 | 38.579 | -70.88 | -48.94 | -27.91
+json-stringify-inspector | 128.505 | 107.436 | 23.643 | -81.60 | -77.99 | -65.21
+acorn-wtb | 3272.069 | 2425.266 | 1921.001 | -41.29 | -20.79 | -15.41
+prettier-wtb | 862.169 | 811.771 | 905.103 | +4.98 | +11.50 | +10.83
+async-fs | 341.128 | 236.081 | 194.517 | -42.98 | -17.61 | -12.18
+lazy-collections | 69.126 | 70.693 | 96.079 | +38.99 | +35.91 | +36.72
+js-tokens | 227.165 | 158.491 | 172.200 | -24.20 | +8.65 | +6.03
+bigint-noble-ed25519 | 302.407 | 250.873 | 269.525 | -10.87 | +7.43 | +6.17
+
+V8-v7:original scores,higher is better
+Richards | 745.147 | 513.102 | 1397.263 | -46.67 | -63.28 | -91.90
+DeltaBlue | 830.178 | 677.628 | 1208.144 | -31.29 | -43.91 | -53.79
+Crypto | 857.981 | 929.431 | 1591.060 | -45.97 | -41.46 | -38.26
+RayTrace | 1356.476 | 1419.317 | 1576.043 | -13.87 | -9.88 | -9.44
+EarleyBoyer | 1762.857 | 2064.594 | 1759.124 | +0.16 | +17.23 | +14.72
+RegExp | 253.900 | 1661.506 | 1687.992 | -84.96 | -1.56 | -0.24
+Splay | 2423.161 | 2725.874 | 2956.621 | -18.03 | -7.78 | -6.92
+NavierStokes | 1195.795 | 1413.716 | 2041.934 | -41.65 | -30.77 | -25.93
+
+V8-v7 original suite total score: 991.197 | 1252.534 | 1717.680
+Median of the two original suite scores;not recomputed from median case scores
+
+Memory:KiB.Whole-suite peaks cannot identify per-case allocation cost.
+micro57: 9024 | 10410 | 6820 ; GNU time actual engine child full-57-process peak;excludes Python launcher
+v8: 163036 | 181718 | 182510 ; GNU time actual engine child complete suite and validation peak;excludes Python launcher
+JetStream per-workload VmHWM before supplemental validation:
+Air | 5448 | 6574 | 7186
+delta-blue | 3520 | 4992 | 5632
+Babylon | 10228 | 12480 | 13040
+cdjs | 6272 | 7360 | 8064
+FlightPlanner | 65994 | 67728 | 68400
+pdfjs | 18666 | 19934 | 20876
+typescript-octane | 143716 | 153218 | 150032
+crypto | 3584 | 5184 | 5632
+richards | 3136 | 4992 | 5376
+json-parse-inspector | 79802 | 85820 | 72476
+json-stringify-inspector | 44284 | 47352 | 47900
+acorn-wtb | 47126 | 52612 | 53336
+prettier-wtb | 34774 | 38686 | 38242
+async-fs | 8320 | 9536 | 10048
+lazy-collections | 3456 | 5248 | 5824
+js-tokens | 3200 | 5120 | 5568
+bigint-noble-ed25519 | 9276 | 11136 | 11904
+
+Geometric mean of normalized elapsed time (each original case has equal weight):
+micro57:native vs stock -26.94%;vs PORTABLE -16.56%
+jetstream:native vs stock -37.58%;vs PORTABLE -29.27%
+v8:native vs stock -42.30%;vs PORTABLE -27.07%
+
+Screen flags for follow-up;not established regressions:
+{
+  "micro57": {
+    "native_slower_than_stock_over_3pct": [
+      "prop_delete",
+      "array_length_decr",
+      "array_hole_length_decr",
+      "local_destruct",
+      "global_destruct",
+      "global_destruct_strict",
+      "array_for_of",
+      "object_null",
+      "string_slice2",
+      "int_to_string",
+      "int_toString",
+      "bigint64_arith"
+    ],
+    "native_slower_than_portable_over_3pct": [
+      "prop_delete",
+      "array_length_decr",
+      "array_hole_length_decr",
+      "local_destruct",
+      "global_destruct",
+      "global_destruct_strict",
+      "weak_map_set",
+      "array_for_in",
+      "object_null",
+      "string_build2",
+      "string_concat1",
+      "int_to_string",
+      "int_toString",
+      "float_to_string",
+      "float_toString",
+      "float_toFixed",
+      "float_toPrecision",
+      "float_toExponential",
+      "bigint64_arith",
+      "bigint256_arith"
+    ]
+  },
+  "jetstream": {
+    "native_slower_than_stock_over_3pct": [
+      "prettier-wtb",
+      "lazy-collections"
+    ],
+    "native_slower_than_portable_over_3pct": [
+      "prettier-wtb",
+      "lazy-collections",
+      "js-tokens",
+      "bigint-noble-ed25519"
+    ]
+  },
+  "v8": {
+    "native_slower_than_stock_over_3pct": [],
+    "native_slower_than_portable_over_3pct": [
+      "EarleyBoyer"
+    ]
+  }
+}
+
+Current image equivalence and platform qualification are recorded in LINUX-RELEASE.txt;the bundled manifest/audit identifies final source/SDK delivery.

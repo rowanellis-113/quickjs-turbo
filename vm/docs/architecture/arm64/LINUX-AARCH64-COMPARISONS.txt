@@ -1,0 +1,86 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 complete native GNU comparison family
+====================================================
+
+The original GNU source factory supplies complete normalized Clean/Dirty
+loose, strict and reference kernels. Its source hashes, constructor profile,
+actual string bitfields and retained strict C fallback body are checked.
+COMPARISONS-ORIGINAL-ALGORITHMS.json retains every original semantic row.
+The target implementation uses actual AAPCS64 types and inline JSValue16,
+string24, slice parent0/start8. No private struct or Win/SysV ABI is copied.
+
+The register VM preserves its existing integer/number fast paths. Non-numeric
+misses enter the complete added family. Strict strings preserve alias and
+nonlast guards, different-length rejection, the original eight-character
+bound, flat/slice/indirect views and narrow/wide/mixed comparisons. Loads stay
+within the original content bounds. Heap decrements occur only after all
+guards succeed; distinct owners require both counts greater than one, and
+aliases require a count greater than two. Last references retain the original
+C owner, finalizer order, coherent publication and complete cleanup.
+
+The strict numeric supplement retains float/mixed-number false lanes and
+NaN/-0 semantics. Object/Symbol identity uses the original independent
+reference control. Loose equality preserves string delegation, null/undefined,
+immediate/short-BigInt/float lanes and ordinary-object HTMLDDA checks. Coercion,
+unsupported descriptors/tags, throws and last owners keep original C steps.
+
+The independent ordinary C strict helper retains its original body. Only the
+two original core calls and two generated strict opcode calls are routed.
+The typed AAPCS64 identity leaf receives ctx=x0, sp=x1 and Boolean neq=w2,
+consumes both slots only when their references stay positive, replaces slot0
+and leaves popping to its original caller. A miss tail-enters the retained
+actual-signature C fallback without changing its arguments. The leaf has no
+physical frame and complete CFI. Never free the stale consumed second slot.
+
+The two exact environment/atomic initializers are explicitly pure helpers.
+Read-only natural nested-JS observations prove both execute in Dirty children
+with runtime SF still denoting the parent. All x19-x29 and SP, private168bytes
+and the Dirty token remain unchanged after each actual C call; backtraces cross
+helper, VM, AArch64 bridge and JS_RunFrame. A public zero-iteration warmup
+prepares the existing child route; the unprepared first call correctly uses
+the inherited coherent route. No debugger memory/register writes force entry.
+Original seven observing boundaries and frame128/state168 remain unchanged.
+
+Compile QJS_INTERP_FRAME_COMPARISONS=OFF to restore the predecessor118-handler
+VM. Its21704instruction bytes,312semantic relocations and complete VM-object
+CFI are identical to92d7cf6. Independent global-family OFF still supports the
+comparison family and its single shared typed reference initializer.
+The complete process disable controls use presence, including value0:
+ QJS_DISABLE_LINUX_COMPARISONS
+ QJS_DISABLE_LINUX_STRICT_COMPARE
+ QJS_DISABLE_LINUX_LOOSE_COMPARE
+ QJS_DISABLE_LINUX_C_IDENTITY
+ QJS_DISABLE_FRAME_REFERENCE_EQUALITY
+ QJS_DISABLE_FRAME_LOOSE_EQ
+ QJS_DISABLE_FRAME_LOOSE_EQ_STRINGS
+ QJS_DISABLE_FRAME_LOOSE_EQ_NULL
+ QJS_DISABLE_FRAME_LOOSE_EQ_OBJECT_NULL
+The C identity tier remains independent of the VM reference and register
+controls, as in the original GNU implementation. A reference-only disable
+must not be described as disabling the complete C identity family.
+
+The original optional QJS_OBSERVE_FRAME_LOOSE_EQ uses atomic process counters
+with separate Clean/Dirty banks. A read-only observation after natural main
+return proves exact entries320/192, string delegations128, immediate-null128,
+nonlast-null256 and ordinary-object-null128; the other banks remain zero.
+Default strict mode remains the original readonly3. Extra passive TLS counters
+and their reader exist only in instrumented builds and must be absent in
+release. New logical static data total265bytes; instrumentation adds128TLSbytes.
+No frame/runtime/state field, strong root, allocation or stack lease is added.
+
+33 original public semantic/API/direct/OOM tests cover the25-value differential
+cube, NaN/-0, BigInt, ropes/slices, proxies, finalizer ordering, coercion/GC/
+throws, interrupts and recovery. Fifteen native-control modes cover18cohorts;
+default mode observes64native commits per cohort with zero corresponding C
+opcode steps. Whole targeted results:563ON,559compiled-comparison-OFF,
+563compiled-global-OFF and551compiled-IC-OFF. All public allocator ledgers end
+at zero. Default14x86 generated payloads and actual core .i/.o remain exact.
+
+Installed source ABI, family and original-algorithm receipts accompany this
+document. Fresh frozen full release/instrumented, same81152Test262, noGit SDK,
+qjsc/wire and final P5 gates remain required. Remaining original22families are
+still open. AUTO stays PORTABLE. QEMU qualifies functionality; these records
+do not claim physical ARM speed, peak RSS or a new performance baseline.

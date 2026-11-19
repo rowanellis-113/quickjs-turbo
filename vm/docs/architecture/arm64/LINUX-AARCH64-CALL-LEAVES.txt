@@ -1,0 +1,29 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental AArch64 frame-free call family
+==========================================
+Root constant/add and own-data/Symbol getters;native VM primitive literals,
+argument identity/addition,modular reducer,captured live integer update,
+bounded scalar integer grammar,three-character short-circuit predicate and
+compound Latin1 localeCompare are carried from the accepted source owners.
+The isolated three-bit function classification and ordinary readiness preserve
+core flags and CallLink bit7;live bytecode/values/closure/property guards remain.
+No JS data frame,argument copy,arena charge or strong cache is manufactured on
+a successful leaf. All misses retain ordinary admission and quotas.
+
+This architecture uses an independent compiler-owned AAPCS64 C worker returning
+the real JSValue in x0/x1. It has a physical C activation;this is not a claim of
+the x86 leaf's noncalling machine sequence or physical ARM performance parity.
+No worker can allocate,invoke JS,getters/proxies or release a last owner.
+The real C compiler generates its callee-saved protocol and CFI. Cold policy
+may consult getenv;the compound proof is the existing nonobserving C owner.
+VM PC/SP/state and incoming Clean/Dirty token stay unchanged until success.
+The inherited pending/result/finalizer consumer owns all call-operand cleanup.
+
+Controls retain source spelling and presence semantics,including zero;
+QJS_DISABLE_THIS_FIELD_LEAF alone treats leading '0' as enabled,as before.
+QJS_INTERP_FRAME_CALL_LEAVES=OFF excludes worker/bridge/root routing.
+QEMU evidence establishes functionality only. Whole Test262,installed/no-Git,
+old-platform and final all22/P0-P5 audit are separate pending release gates.

@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "quickjs.c": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+    "src/common/kernel/prepared-callback.inc": "e2a5b646169416e8496b2e0fbcba95ac16a7b905e12a1d1d7ab1338d9e536d8e",
+    "src/common/linux/interpreter-linux-prepared-callback.inc": "dd925087add91ae68d04f1620e6bf7ac4121567ee85145065bed9054a76788b6",
+    "tools/common/c_extract/prepared_callback_c.py": "3ec2fbb7b6339740d548e1d34af4ee19dd46edf2dec325b8870a69ee990c270e",
+    "tools/common/elf/prepared_callbacks.py": "2953a6d9f628d093ac769f0d6e846fd3cc073ac15d69cf23685056e5ad464ca0"
+  },
+  "loops": "Complete original every/reduce families with single prepared-call/scope substitution;all14 Array/TypedArray routes",
+  "ownership": "Original readonly borrowed live prefix and owned writable formal copies;callee retained for activation;original cleanup and exception owners",
+  "types": "Actual common frame/segment/state/anchor aliases;typed fields and compiler-measured scope geometry;no private struct clones",
+  "abi": "Compiler C aggregate calls,compiler ELF TLS,AArch64 SP;blocked VM activation and exact previous anchor restoration",
+  "native_leaf_boundary": "ARM aggregate leaf uses a compiler-owned C activation;retain the accepted prepared-capsule preference instead of importing a foreign-ISA noncalling ChildLeaf exclusion. This is a routing difference, not an absent ARM call-leaf family.",
+  "controls": [
+    "QJS_DISABLE_PREPARED_CALLBACK",
+    "QJS_DISABLE_CALLBACK_WRITE",
+    "QJS_DISABLE_CALLBACK_ARITY",
+    "QJS_DISABLE_SHARED_CALL_BYPASS"
+  ],
+  "hardware_performance_qualified": false
+}

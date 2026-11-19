@@ -1,0 +1,64 @@
+Linux/glibc AArch64 implementation and release boundaries
+========================================================
+Current physical-hardware follow-up:LINUX-AARCH64-HARDWARE.txt and its JSON
+mechanism/test/score record. The initial functional acceptance below retains
+its historical source binding;it is not the final hardware/source package.
+External RELEASE-ACCEPTANCE.json binds the final clean source and SDKs to the
+qualified images. Real ARM speed and engine RSS are now measured on the
+recorded Neoverse-N1 host,with explicit costs and compiler/glibc boundaries.
+
+Upstream:QuickJS-NG0.15.1,bf8988fc401e737f9946cd10a3463b48aab0fd7e.
+The19 pinned upstream source files retain their recorded bytes. AArch64 owned
+code is under asm/aarch64,src/aarch64 and tools/elf/aarch64. Generic algorithms
+retain their original source owners;actual target C types,opcode IDs,bitfields,
+aggregate ABI,quotas and CFI are checked before native execution.
+
+Use tools/build/product-linux-aarch64.sh for native or QEMU cross build/tests/
+install. CMake LINUX_AARCH64 is explicit;PORTABLE and conservative AUTO remain.
+Public quickjs.h and installed qjs CMake consumers retain the upstream ABI.
+
+Native ordinary/method/tail/constructor calls,returns,captures and forwarding
+reuse one physical register VM activation and the original owned data frames.
+Compiler-managed TLS,typed host ABI and Clean/Dirty publication retain original
+GC,realm,interrupt,exception,ownership,reentry and quota protocols. Root/child
+pure call leaves avoid new JS frames but use a compiler-owned C activation;
+this does not claim x86 noncalling machine-code identity or ARM speed parity.
+
+The source-owned22 base scalar/stack/atom/predicate opcodes fill the prior
+dispatch gap. No C call/last release/allocation occurs on their native hits.
+The shared compiler's computed-assignment backport removes ordinary to_propkey
+emission;its documented compileOFF profile supplies a natural producer for that
+remaining opcode. All other new destinations have natural default producers.
+No debugger-written state/register/control is used to force a path.
+
+Original all22 mechanism/P0-P5 gates require source-bound full corpus identity,
+component controls,actual ELF/CFI,installed and noGit consumers,wire exchanges,
+source pins and old-platform checks. Passing one test panel is not this gate.
+The release package acceptance manifest records which source,SDK and complete
+compatibility results have passed;development output alone is not a release.
+
+Initial functional environment:Ubuntu24.04/glibc2.39,GCC13.3,binutils2.42,
+QEMU8.2.2 cortex-a53. That initial functional stage did not qualify physical
+hardware speed,PMU or process memory. The separate hardware follow-up does
+not reinterpret emulator timings/RSS as native measurements.
+Default-OFF optional weak call links,MSVC-only coroutine/method
+learning and ordinary async capability elision retain the GNU baseline boundary.
+
+Source-bound functional acceptance,2026-11-13
+-------------------------------------------
+Qualified engine commit:679573508855891fa56d5b7de29aa98fac393f55
+Full Test262 default AND register-interpreter-OFF:81152 tests,65 inherited
+failures,31 fixed,0 new/changed;exact failure/error identities and configuration.
+Pinned corpus:de8e621cdba4f40cff3cf244e6cfb8cb48746b4a
+CTest totals:{"arm-instrumented": 1797, "arm-native": 1249, "arm-noGit": 1249, "arm-portable": 218, "linux-x86_64": 949, "win-mingw": 309, "win-msvc": 294}
+All19 upstream pins exact;all22 accepted GNU mechanism families mapped,
+including21 implementations and the original MSVC-only architectural boundary.
+All141 accepted base native destinations are present,161 native total.
+Fresh noGit native and common portable builds/install,9wire reader/writer
+pairs,installed qjsc-to-C execution and relocated public consumers pass.
+The relocated native static-library consumer naturally unwinds through the VM
+during a public callback with GC and JS reentry. No debugger state is forced.
+Existing Linux x86-64 CLI/qjsc/library remain byte-identical to the accepted
+product;old Windows SDK payloads are retained separately with their provenance.
+This release records functional ARM coverage only;physical hardware performance
+and older glibc baselines still require their own qualification.

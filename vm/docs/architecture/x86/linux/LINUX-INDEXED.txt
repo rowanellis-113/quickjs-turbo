@@ -1,0 +1,74 @@
+Native indexed access and instanceof on Linux x86_64
+==================================================
+
+tools/elf/indexed_ops.py derives all three accepted indexed-own assembly
+kernels from indexed_own_native.py and the complete indexed/instanceof narrow
+C workers plus pure leaf from slow-direct.py and publish-boundary.py. Actual
+Linux core types and compiler-produced SysV bridges replace PE imports. No
+upstream source, public API, JSFrame128 or state168 grows; no ASM/C file copy
+is introduced. The existing dense/typed/string lanes and all original misses
+remain. Source hashes and INDEXED/INDEXED-VM receipts bind normal generation.
+
+Sparse integer-own get/get2/put walks live Array shape slots with integer atoms,
+normal-data/writability/range and non-final-release guards. It caches no pointer,
+allocates nothing, changes no array length and makes no C call on success.
+Reference-valued old stores and last releases retain the complete C path.
+The three narrow C steps retain original dense/typed/generic opcode semantics,
+readonly append checks, exceptions and the full checkpoint/varargs unwinder.
+Unselected operations retain Linux's literal/checkpoint-aware base selector.
+
+Each narrow entry publishes its actual saved_sp/cur_sp and decoded PC before
+typed allocation, callbacks or GC. Consumed property keys and RHS values leave
+the published VM window before core calls; results are published before receiver
+release. instanceof preserves operand release order and publishes consumed slots
+before finalizers. The initial r1 passed728CTest but a bounded GC observer caught
+its missing initial instanceof cursor publication. That failed image/observer
+is retained; only the corrected current image qualifies this mechanism.
+
+The source-owned instanceof leaf keeps exact builtin/magic/arity/type checks,
+bounded live prototype walks, the original poll debit, and strict non-final
+reference checks. Aliased operands require more than two references and consume
+two. Its actual C ABI is int(JSContext*,JSValue*); a compiler-checked two-argument
+SysV bridge preserves VM RSI/RDI and CFI. It neither allocates nor observes a
+published frame, so Dirty dispatch keeps the original publication token until
+the proof rejects. The normal publication factory derives the Dirty copies.
+
+Source guards matter: C constructors such as TypeError remain original misses;
+native class13 leaf positives are proved separately. The public coercion host
+proves the new narrow C/GC path, not a fictitious leaf hit. A bounded public
+two-realm test compares real context-counter deltas with leaf OFF and the prior
+engine without writing runtime state. Its native successes retain exact poll
+behavior; no new realm restriction was guessed from a C signature alone.
+
+Controls are by presence including0 in fresh processes:
+QJS_DISABLE_FRAME_SLOW_DIRECT controls the narrow selector/instance leaf;
+QJS_DISABLE_FRAME_INDEXED_STEP controls the three narrow C indexed steps;
+QJS_DISABLE_FRAME_INDEXED_OWN independently controls native sparse-own access;
+QJS_DISABLE_FRAME_INSTANCEOF_STEP and QJS_DISABLE_FRAME_INSTANCEOF_LEAF control
+the instanceof step/leaf. Existing QJS_DISABLE_FRAME_INSTANCEOF and observation
+also decline the pure proof. QJS_OBSERVE_FRAME_SLOW_DIRECT counts with a real
+atomic uint64_t operation; its ABI stays16 bytes. No new heap cache or strong
+root is added. Runtime peak RSS/stack and actual code-layout cost still require
+whole-suite measurement; unchanged types do not imply performance neutrality.
+
+Current strict normal tests include758CTest and13 JS component modes, the prior
+and stock NG reference, and direct/coercion variants of the existing public C
+owner fixture. Hosts verify66 cyclic native resources,132 probes,66 cross-realm
+GC reentries,three interrupts,backtraces and zero complete allocator ledgers.
+Current default/coercion fault sweeps cover16/24 points versus15/23 frame-OFF
+and17/27 stock. Native observations separately prove get/get2/put commits,
+instanceof/alias/poll behavior and consumed-key/RHS publication during GC.
+Current full Test262 native-on,indexed-own-off and narrow/leaf-off each test
+81152 cases:65 inherited failures,31fixed,0new/changed,with exact portable
+failure/fix identities. ELF/SDK/standalone reports bind the same final image.
+Counters/debugger observations are correctness evidence, not speed or suite rates.
+
+This completes these indexed/instanceof dependencies, not the entire property
+family or native port. Separate own-bytecode hints, primitive/number/length and
+prototype holder/persistent/direct/live-chain/method-learning routes still need
+complete source/ABI/execution qualification. RegExp/BigInt/compiler supplements
+and all six LINUX-PORT gates remain. Weak VM lifetime linking stays defaultOFF.
+The earlier isolated slow-array observation has no natural commit on its three
+bounded fixtures; it does not prove global unreachability and is not called a
+completed native optimization. Complete active mechanisms before local tuning.
+No PGO, fixed address, padding search or new performance baseline is introduced.

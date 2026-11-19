@@ -1,0 +1,66 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 synchronous iterator checkpoints
+=============================================
+
+Scope:Linux/glibc LE LP64/GCC,AAPCS64,QEMU functional qualification.
+Explicit LINUX_AARCH64 backend;AUTO remains PORTABLE until original P5.
+
+The complete accepted GNU synchronous iterator factory supplies all eight
+typed opcode workers,ordinary same-activation JS-next entry,done/value
+checkpoints,dense-array fast and slow guards,and original close/throw owners.
+The AArch64 module changes actual ISA state-only int(state) boundaries;it
+does not copy SysV register numbers,COFF objects or mirrored private structs.
+Returned values and callbacks retain their actual compiler-owned C signatures.
+
+A paused parent retains its original output top in sf.cur_sp,pending0 and
+checkpoint flag63bit1. The original child initializer owns arity,captures,
+quota,segment growth and polls. Active checkpoint depth reuses original
+state offset164;state168/frame128 and runtime types remain unchanged.
+Every observable C return retains a paused top until done/value consumes it.
+The source-owned exception hook and original backtrace PC adjustment preserve
+close/getter/proxy/primitive-error ordering. Native pop may defer publication;
+its typed observing tail proxy publishes the real parent before entering C.
+
+The by-id result leaf checks live own-data fields;accessors/prototypes/exotics
+use original property operations. Dense-array guards check the current
+iterator and next method,actual builtin identity,representation,length flags
+and live bounds. Completion and misses keep original semantics. Isolated
+native cohorts prove dense fast hits;they do not claim natural slow-array hits.
+The slow helper is retained for the remaining combined varargs owner.
+
+QJS_INTERP_FRAME_ITERATORS and QJS_INTERP_FRAME_CONSTRUCT_CONTINUATION are
+independent compile options. A private complete executor exists iff either
+is ON;constructor OFF never re-enables root3 pushes when iterator is ON.
+The four combinations have explicit source/ABI/path/control evidence.
+Process controls retain presence semantics,including0:
+QJS_DISABLE_FRAME_ITERATOR,QJS_DISABLE_FRAME_ITERATOR_JS_CALL,
+QJS_DISABLE_FRAME_ARRAY_ITERATOR,QJS_DISABLE_FRAME_ARRAY_ITERATOR_SLOW.
+Original publication,host,register and legacy controls remain independent.
+
+tools/arm64/extended_calls.py owns shared generation,while constructors.py
+and iterators.py retain their separate policies,receipts and native handlers.
+The complete C dispatcher inherits every valid target base entry and retains
+the original extended entries. Conflicts fail closed. The image verifier also
+checks this independently:retaining a THIS_FUNC/set_name body without its
+dispatch entry previously caused a rejected full-corpus regression.
+The shared GNU factories and nineteen upstream source pins remain unchanged.
+
+The original7-helper/17-counter publication prefix is retained. Iterator ON
+adds eight actual typed observing boundaries,after the independent constructor
+boundaries. No new frame/state/runtime field,strong root or cache is added.
+128bytes of numeric TLS counters exist only in instrumented images.
+
+Evidence in linux-arm64-iterators-20261113 includes original unchanged semantic,
+public GC/realm/reentry/OOM protocols,a self-contained dispatch regression,
+passive unchanged-caller native cohorts,all compile controls,and natural
+read-only checkpoint/Dirty publication/full VM unwind. A32-value JS cohort
+has33child pushes/33resumes;dense32 has32guard hits. Disabled routes prove
+the independent controls. Counts are functional evidence,not performance.
+Installed AARCH64-ITERATORS.json,ITERATORS.json and EXTENDED-CALLS.json bind
+the actual target/source/generated owners. Full frozen same-corpus/SDK status
+is in the external FINAL.json;targeted checks alone do not establish release
+qualification. Apply/spread/literal/arguments forwarding and original22/P5
+remain separate open mechanisms. No physical ARM speed,PMU or RSS claim follows.

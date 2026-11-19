@@ -1,0 +1,11 @@
+required-version = "==0.14.14"
+target-version = "py310"
+line-length = 100
+indent-width = 4
+extend-exclude = ["build", "test262", "node_modules", "gen"]
+
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+docstring-code-format = false

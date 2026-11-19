@@ -1,0 +1,57 @@
+Linux-specific opportunities and stopping rules
+==============================================
+
+This ledger describes port decisions, not claimed speedups.
+
+L1. SysV JSValue return and helper boundaries
+Evidence: GCC 13.3 public probe receives the two JSValue words in RDI/RSI and
+returns them in RAX/RDX. The callback/GC/reentry probe passes. This removes the
+need to copy the Win64 hidden-result-buffer protocol into public Linux entries.
+Current action: let GCC lower source-derived C entry/semantic helpers to SysV;
+verify the private VM bridge separately.
+Development decision: replace the temporary typed ms_abi bridges with 23
+signature-checked assembly bridges to real SysV C definitions. The VM entry
+itself is SysV; no XMM6..15 preservation is required by a false Win64 boundary.
+Both variants pass 211 CTests. A short reversed screen measures string_concat0
+at about84.2 ns for temporary bridges and66.1 ns for SysV (stock NG64.2 ns).
+This is promising development evidence, not stable/full-suite acceptance.
+
+L2. Real ELF TLS for shared activation state
+Evidence: the Win64 shared path contains PE TLS/GS-specific assembly. Linux
+supports compiler-managed ELF TLS, so that implementation cannot be copied.
+Action: evaluate hidden per-thread state with the correct static/shared TLS
+model when shared native entry is ported.
+Development decision: use a private C11 _Thread_local anchor, letting GCC choose
+ELF TLS for the actual static/PIC build. Common arena/root logic is shared with
+Windows; PE TLS and logical-child extras stay in platform headers. Two threads,
+two independent runtimes,64 observed arena-reuse children each, callback GC,
+both presence-disable values and the retained scoped host all pass. No shared
+DSO or dlopen TLS model has been qualified yet; do not assume initial-exec.
+
+L3. Source-level helper ownership instead of compiler-clone surgery
+Evidence: a source-derived Linux C foundation compiles with the actual private
+types and SysV calls, without editing compiler clone signatures or core ELF
+instruction bytes. Stack quota, callback resize/reentry, interrupt recovery and
+the relinked 211-case suite pass for the public-entry foundation.
+Action: extend core internal routing and measure actual images. The derived TU
+changes the compiler call graph and can change layout; this is an explicit
+tradeoff, not proof of performance neutrality. Retain portable controls.
+
+L4. ELF local visibility, PLT/GOT and PIE
+Evidence: the current foundation is PIE, has a nonexecutable GNU_STACK and no
+TEXTREL. Public ABI probe uses R_X86_64_PLT32. Private VM helpers may use hidden
+local calls where ownership permits, reducing indirection without disabling
+ASLR. Action: inspect linked call sites once the native bridge is present.
+The current private bridges use hidden targets and link to direct local CALLs;
+31 assembly FDE ranges and actual cold-helper unwinds are checked. No broad
+-Bsymbolic or visibility change to public embedding symbols is required.
+
+L5. Linux object layout
+Evidence: actual GCC layouts differ from MinGW/MSVC: JSGCObjectHeader=24,
+JSObject=72 and JSVarRef=48 bytes, with many changed offsets/bitfields.
+Action: preserve the actual ABI and measure memory on real applications.
+Smaller records alone do not prove a proportional speed or RSS benefit.
+
+Completion: each applicable item gets an evidence-based accepted/rejected/
+deferred decision in the final report. Native mechanism coverage and correctness
+come first. Do not turn this ledger into an open-ended local tuning campaign.

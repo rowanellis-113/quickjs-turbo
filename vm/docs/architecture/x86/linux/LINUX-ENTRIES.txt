@@ -1,0 +1,100 @@
+Linux native public/root/child entries (development)
+===================================================
+
+The SysV public entry, zero/equal-arity roots and coherent borrowed native
+children now have real ELF entries. This closes that entry dependency group,
+not the entire call family, Linux port or performance/release qualification.
+The accepted Win64 product and its19 upstream source pins remain unchanged.
+
+Actual ABI and shared algorithms
+--------------------------------
+The independent executable probe uses this build's GCC flags, actual public
+header and expanded private signature. All70checks pass. Context is RDI,
+function RSI/RDX, receiver RCX/R8 and argc R9d. Internal new_target is spilled
+as one complete aggregate at entrySP+8/+16; argv and flags are+24/+32. Public
+argv is+8. Results are RAX/RDX. No Win64 retbuf/shadow-space ABI is assumed.
+
+The existing128-byte JS frame,168-byte state,32-byte segment and24-byte TLS
+anchor remain unchanged. Root/child primitive, own-data getter, Symbol-field
+comparison and captured integer-update leaf algorithms come from unchanged
+root-leaf.py/child-leaf.py factories using measured Linux fields/refcount0.
+Their noncalling scratch fits exactly the128-byte SysV red zone; misses restore
+every original argument before a C/constructor tail. No red-zone value survives
+a C call. Returned references are duplicated before original owners can die.
+
+The public and ordinary root constructors retain a4096-byte nonmoving arena,
+sixteen weak call sites and eight replacement bytes. Their native reservation
+is4936bytes with a page touch and complete CFI. Equal-arity roots cover0..3
+arguments under the inherited bytecode/locals/capture/stack bounds. COPY_ARGV
+owns exactly the formal cells; flags0 retain the original borrowed argv,
+including non-NULL argc0. The caller realm is polled before publication/charge.
+
+Native children retain the original coherent host cursor and borrowed-argv
+proof, with a312-byte native state/barrier reservation. Compiler C owns ELF
+TLS addressing; a typed accessor avoids a guessed TLS model. Shared mode,
+runtime identity, committed charge, class/validation/capture, arity/capacity,
+physical/logical quota and interrupt guards precede reservation/publication.
+Every frame cell and live state field is initialized before runtime/TLS
+publication. The common VM owns captures, native/C normal and exception pop,
+cursor restoration, grown-segment ownership and final result roots.
+
+Controls preserve original semantics
+-------------------------------------
+Presence,including0,disables QJS_DISABLE_NATIVE_ROOT_ENTRY,
+QJS_DISABLE_NATIVE_ROOT_ZERO,QJS_DISABLE_NATIVE_ROOT_ARGS,
+QJS_DISABLE_PUBLIC_ROOT,QJS_DISABLE_NATIVE_CHILD and
+QJS_DISABLE_NATIVE_CHILD_LEAF. QJS_DISABLE_THIS_FIELD_LEAF retains the accepted
+special case: value0 keeps getters enabled; other present values disable them.
+Shared/register/frame controls retain their original fallback. Configuration
+is cached without adding a public API or timing-path counter.
+
+Qualification
+---------------
+The normal Werror build passes469 CTests, ELF/CFI/PIC/CET checks and an installed
+independent public consumer. Full current entry ON/OFF Test262 matches the
+qualified portable product at65/81152 inherited failures,31fixed,0new/changed,
+with exact failure/fix identities. The fixture-only test promotion preserves
+byte-identical qjs,Test262 runner and archive, so that full evidence stays bound.
+
+The new public fixture runs528 checks with cross-realm public/private0/2 ABI,
+GC, cycles, proxy/prototype/getter fallbacks, native callbacks and interrupt
+abort/recovery. Nineteen component modes and nine allocation-fault modes pass;
+all three injected allocation failures recover with complete zero ledgers.
+The same compiled object also passes against stock/prior archives. Stock here
+is unoptimized QuickJS-NG0.15.1 with the same Linux/GCC,not Bellard2026.
+
+Read-only native observations prove all four admitted entry constructors and
+all five successful leaf families, initialized fields, runtime SF/TLS, charge
+and actual live caller/ancestor CFI. Eleven control cases verify original
+fallback; these observations stop after bounded hits and are not suite rates.
+Static cost versus forwarding-r2 is+6336 executable bytes,+11984 file bytes,
+and0 allocated-writable bytes. Legacy CallInternal moves218960->218992(+32)
+and changes37388->37341 bytes(-47). This is not a layout-neutral change. All89
+selected C worker,returning-probe and entry functions have full FDE coverage.
+Whole-process memory/speed remain subject to the final whole-suite gate;no
+speed or general RSS claim is made.
+
+Remaining work and evidence
+----------------------------
+The later LINUX-VM-LEAVES.txt checkpoint closes in-VM primitive/compound/
+character supplements and confirms optional weak VM linking/destinations
+are Windows opt-in(defaultOFF). Complete constructor/root3 continuations,
+deferred dirty/clean publication,apply/
+iterator/spread/close/unwind/literal shape,property/prototype/indexed and the
+remaining string/array/RegExp/scalar kernels. All six LINUX-PORT.txt completion
+gates,stock/portable/native micro57/Jet17/V8-v7 screening,justified stable/profile/
+RSS and final current Windows/configuration/source-package acceptance remain.
+
+Evidence:/home/eros/port-records/linux-x86_64/native-entry-r1,
+/home/eros/port-records/linux-x86_64/test262-native-entry-r3.
+Retain the failed probe missing stddef include,first private macro-scope build
+failure and the build driver that omitted accepted backport options. Neither
+was a passed engine or performance result. Existing OOM negatives in the
+species,original JSON and cold string metadata cases remain separate.
+
+Later constructor checkpoint
+----------------------------
+LINUX-CONSTRUCTORS.txt closes ordinary root3 push/return and complete slow
+cleanup. Earlier remaining-work descriptions above are historical. Specialized
+argument constructors,deferred publication and the other named native families
+still require migration;this is not full-port or performance acceptance.

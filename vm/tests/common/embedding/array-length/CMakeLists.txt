@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.20)
+project(SparseLengthPublicSafety C)
+find_package(qjs CONFIG REQUIRED)
+add_executable(sparse-length-public main.c)
+target_compile_features(sparse-length-public PRIVATE c_std_11)
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    target_compile_options(sparse-length-public PRIVATE -g -gdwarf-4)
+endif()
+target_link_libraries(sparse-length-public PRIVATE qjs)
+
+enable_testing()
+foreach(mode default noic register-c c)
+    set(extra "")
+    if(mode STREQUAL "noic")
+        set(extra "QJS_DISABLE_PROPERTY_IC=1")
+    elseif(mode STREQUAL "register-c")
+        set(extra "QJS_DISABLE_REGISTER_INTERP=1")
+    elseif(mode STREQUAL "c")
+        set(extra
+            "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1"
+        )
+    endif()
+    add_test(NAME sparse-length-${mode} COMMAND sparse-length-public)
+    set_tests_properties(sparse-length-${mode} PROPERTIES ENVIRONMENT
+                                                          "QJS_EXPERIMENT_ALLOCATOR=256;${extra}")
+endforeach()

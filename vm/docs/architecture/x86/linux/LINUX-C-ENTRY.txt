@@ -1,0 +1,109 @@
+Linux numeric, dense-pop and builtin-view entries (development)
+==============================================================
+
+The c-entry-r4 checkpoint extends LINUX-C-INVOKE.txt. This closes one native
+entry/ownership module, not the full Linux port or a performance baseline.
+All six LINUX-PORT.txt gates and the remaining native JS call, property,
+iterator, RegExp and scalar supplements remain mandatory.
+
+Correctness supersession: a later eleven-formal/zero-actual borrowed argv pad
+reproduced a real cached-view transient-owner alias crash in this checkpoint.
+js-call-r2 resets the per-invocation owner on hot and C-cached geometry reuse;
+its current384CTest/fullTC and unchanged failing-fixture proof supersede the
+qualification below. See LINUX-JS-CALLS.txt. Preserve the original negative.
+
+Numeric boundary
+----------------
+Exact f_f/f_f_f descriptors and INT/FLOAT operands enter a96-byte actual C SF
+without argv padding. XMM0/XMM1 carry arguments and the result; accepted bitwise
+double_is_int32 boxing preserves -0, INT32_MIN, NaN and infinities. Actual core
+function types, the caller interrupt poll, SF/anchor publication, active-state
+restoration and quota refresh are retained. The104-byte physical reservation
+needs no extra nonvolatile GPR resaves. The formal*16+368 envelope remains.
+Missing/coercing inputs and rejected numeric calls use the original typed
+switch, never the generic/magic-only direct helper (including C-invoke OFF).
+QJS_DISABLE_NATIVE_NUMERIC_INVOKE selects the C primitive trampoline;
+QJS_DISABLE_NUMERIC_TRAMPOLINE independently disables it. Both present uses
+the original path. All process controls are presence based, including value0.
+
+Builtin frame lifetime
+---------------------
+String.slice and default decimal Number.toString use the accepted semantic
+bodies verbatim from their shared owner. Real live descriptors and typed
+function-pointer identities are checked. Number admits only generic_magic,
+length1,magic0,actual0; radix/locale remain original. No weak JS callee cache or
+guessed compiler-local symbol/COFF alias is used.
+
+The128-byte view contains the real72-byte SF, typed24-byte shared anchor,
+compiler-managed TLS slot, active bit and transient segment owner. It borrows
+actual argv and a stable receiver cell; missing arguments use bounds checks.
+SF/TLS/coherent-anchor publication and restoration precede owning cleanup.
+Mode1 reserves space after declared locals/stack/capture storage only at the
+live segment top. Frame bytes, cursor, usage, quota and cached limits commit
+together; ordinary frame pop/tail cleanup releases the window. Existing
+scratch88..127 holds the cache; no public type or state grows. Byte63 bit0
+marks preparation. All constructors clear it; root entry and generic Slow
+invalidate the owner, preventing a dead frame address from reviving a view.
+
+Mode3 uses a C-stack view. Mode4 reserves and charges128 transient arena bytes,
+then releases the exact stored segment. Mode5 rechecks live geometry/size.
+Insufficient segment space keeps the stack view. Fixed40/168-byte window/stack
+entries have ELF CFI and no extra private nonvolatile resaves; only cold window
+preparation enters its typed C helper.
+
+Controls: NATIVE_SLICE disables views; NATIVE_FRAME_ARENA selects C stack;
+NATIVE_FRAME_REUSE selects transient arena; NATIVE_FRAME_LIFETIME selects live
+geometry checks; NATIVE_NUMBER_FRAME disables number alone. Each has prefix
+QJS_DISABLE_. NATIVE_CALL_LINK and NATIVE_VM_BRIDGE map to original builtin
+entry on Linux: the actual SysV ABI already preserves VM nonvolatile GPRs,
+so no Win64 home-area/XMM wrapper is copied. This explicit platform route does
+not close the missing JS call-link/forward/capture mechanisms. Parent C,
+shared, direct-host, register and frame controls remain effective.
+
+Dense-pop leaf
+--------------
+Actual initialized C/leaf policies, argc0 method descriptor, array class,
+fast/extensible flags, writable normal length and dense count guard transfer.
+The tail owner and count/length move without a C call or allocation. Existing
+return spill/receiver cleanup protects the result during last-reference
+release, allocator GC/reentry and cycle GC. Misses retain C/core handling.
+QJS_DISABLE_DENSE_ARRAY_POP and QJS_DISABLE_DENSE_ARRAY_POP_LEAF are independent.
+
+Qualification and limits
+------------------------
+Werror CMake,358 CTests, ELF/CFI/PIC/CET and independent installed consumer pass.
+Later fixture extensions change only linux-c-entry; qjs,run-test262,libqjs.a
+remain byte-identical. Full current Test262 ON/OFF:65/81152 inherited failures,
+31 fixed,0 new/changed; exact portable failure/fix identities are rechecked.
+Public fixtures cover numeric primitive/coercing/missing/throwing inputs,
+signed zero, INT32 bounds, NaN/infinity/subnormals, realm/GC/reentry, quota
+changes, deep lifetime and interrupt/recovery inside coercion. ON/OFF each
+inject six allocation failures and recover with zero complete ledgers. Dense
+pop retains200 last-receiver allocator reentries and finalizers.
+
+Read-only live observations show754 window views,754 stack/transient views
+under controls,0 when disabled. Bounded GDB observes405 native numeric calls,
+405 trampolines under its control,0 with both OFF;202 nonempty dense leaf
+transfers,0 under either dense control or C-invoke OFF;1087 slice/254 number
+bodies,0 number with its control. Default mode has1340 arena-window calls,
+one capacity fallback and1338 preparations: three calls use the hot lifetime
+cache. Geometry/transient prepare all1341. Counts are intrusive fixture
+observations, not suite rates or speed evidence.
+
+The first observer did not prove cache reuse because intervening arithmetic/
+length Slow steps invalidated it. Retain that negative; consecutive calls prove
+the hot route without weakening guards. Initial numeric fixture descriptors
+also provided too few cells for their typed arity and failed with frame OFF;
+those are not qualified inputs, and excluding them is not an upstream repair.
+
+Static delta versus array-family-r8: +5088 executable bytes,+32 allocated
+writable bytes (including pointer-relocation data),+6704 file bytes. Legacy
+stays37388 bytes and moves+336. Owning views charge up to128 bytes per admitted JS
+frame; transient mode charges128 per active view. No RSS/speed neutrality,
+PGO, fixed base, padding or address-search claim.
+
+Evidence: c-entry-r4/{qualification,expanded-fixture,consecutive-fixture,
+observation-r2,footprint,finalization},test262-c-entry-r4 under
+/home/eros/port-records/linux-x86_64. Earlier failed records remain separate.
+Windows product70638ed is unchanged. Final current-source Windows/package
+qualification and the other native mechanisms are still open.

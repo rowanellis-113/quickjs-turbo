@@ -1,0 +1,173 @@
+/* Test-only full AAPCS64 preserved-register sentinel. MIT. */
+.text
+.p2align 2
+.global qjs_aarch64_test_numeric_saved
+.type qjs_aarch64_test_numeric_saved,%function
+qjs_aarch64_test_numeric_saved:
+.cfi_startproc
+    stp x29,x30,[sp,#-160]!
+.cfi_def_cfa_offset 160
+.cfi_offset 29,-160
+.cfi_offset 30,-152
+    stp x19,x20,[sp,#16]
+.cfi_offset 19,-144
+.cfi_offset 20,-136
+    stp x21,x22,[sp,#32]
+.cfi_offset 21,-128
+.cfi_offset 22,-120
+    stp x23,x24,[sp,#48]
+.cfi_offset 23,-112
+.cfi_offset 24,-104
+    stp x25,x26,[sp,#64]
+.cfi_offset 25,-96
+.cfi_offset 26,-88
+    stp x27,x28,[sp,#80]
+.cfi_offset 27,-80
+.cfi_offset 28,-72
+    stp d8,d9,[sp,#96]
+.cfi_offset 72,-64
+.cfi_offset 73,-56
+    stp d10,d11,[sp,#112]
+.cfi_offset 74,-48
+.cfi_offset 75,-40
+    stp d12,d13,[sp,#128]
+.cfi_offset 76,-32
+.cfi_offset 77,-24
+    stp d14,d15,[sp,#144]
+.cfi_offset 78,-16
+.cfi_offset 79,-8
+    mov x29,sp
+.cfi_def_cfa_register 29
+    mov x19,#4883
+    mov x20,#5140
+    mov x21,#5397
+    mov x22,#5654
+    mov x23,#5911
+    mov x24,#6168
+    mov x25,#6425
+    mov x26,#6682
+    mov x27,#6939
+    mov x28,#7196
+    mov x10,#2056
+    fmov d8,x10
+    mov x10,#2313
+    fmov d9,x10
+    mov x10,#2570
+    fmov d10,x10
+    mov x10,#2827
+    fmov d11,x10
+    mov x10,#3084
+    fmov d12,x10
+    mov x10,#3341
+    fmov d13,x10
+    mov x10,#3598
+    fmov d14,x10
+    mov x10,#3855
+    fmov d15,x10
+    bl JS_FrameBigIntRelease
+#ifdef PROBE_BAD_NUMERIC_SAVED
+    mov x19,#0
+#endif
+    mov w0,#1
+    mov x10,sp
+    cmp x29,x10
+    b.ne 1f
+    mov x10,#4883
+    cmp x19,x10
+    b.ne 1f
+    mov x10,#5140
+    cmp x20,x10
+    b.ne 1f
+    mov x10,#5397
+    cmp x21,x10
+    b.ne 1f
+    mov x10,#5654
+    cmp x22,x10
+    b.ne 1f
+    mov x10,#5911
+    cmp x23,x10
+    b.ne 1f
+    mov x10,#6168
+    cmp x24,x10
+    b.ne 1f
+    mov x10,#6425
+    cmp x25,x10
+    b.ne 1f
+    mov x10,#6682
+    cmp x26,x10
+    b.ne 1f
+    mov x10,#6939
+    cmp x27,x10
+    b.ne 1f
+    mov x10,#7196
+    cmp x28,x10
+    b.ne 1f
+    fmov x10,d8
+    mov x11,#2056
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d9
+    mov x11,#2313
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d10
+    mov x11,#2570
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d11
+    mov x11,#2827
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d12
+    mov x11,#3084
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d13
+    mov x11,#3341
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d14
+    mov x11,#3598
+    cmp x10,x11
+    b.ne 1f
+    fmov x10,d15
+    mov x11,#3855
+    cmp x10,x11
+    b.ne 1f
+    mov w0,#0
+1:
+    ldp d8,d9,[sp,#96]
+.cfi_restore 72
+.cfi_restore 73
+    ldp d10,d11,[sp,#112]
+.cfi_restore 74
+.cfi_restore 75
+    ldp d12,d13,[sp,#128]
+.cfi_restore 76
+.cfi_restore 77
+    ldp d14,d15,[sp,#144]
+.cfi_restore 78
+.cfi_restore 79
+    ldp x19,x20,[sp,#16]
+.cfi_restore 19
+.cfi_restore 20
+    ldp x21,x22,[sp,#32]
+.cfi_restore 21
+.cfi_restore 22
+    ldp x23,x24,[sp,#48]
+.cfi_restore 23
+.cfi_restore 24
+    ldp x25,x26,[sp,#64]
+.cfi_restore 25
+.cfi_restore 26
+    ldp x27,x28,[sp,#80]
+.cfi_restore 27
+.cfi_restore 28
+    ldp x29,x30,[sp],#160
+.cfi_restore 29
+.cfi_restore 30
+.cfi_def_cfa sp,0
+    ret
+.cfi_endproc
+.size qjs_aarch64_test_numeric_saved,.-qjs_aarch64_test_numeric_saved
+.section .note.GNU-stack,"",%progbits

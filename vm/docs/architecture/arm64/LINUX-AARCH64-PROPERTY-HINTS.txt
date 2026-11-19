@@ -1,0 +1,80 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 bytecode own-slot hints and borrowed PICs
+====================================================
+
+This module retains the accepted own-bytecode.py/generate-register.py and
+property_ic_native.py algorithms. Both original bytecode creators use the
+complete accepted C allocation owner:compiler and serialized reader. Their
+original allocation/free ownership is unchanged. No extra JS root,frame or
+runtime field is added. The current target compiler measures all private
+types and control geometry;Win64 offsets/object code are not imported.
+
+The zeroed reservation is6+min(original allocation bytes,2048). The actual
+source inventory proves both code buffers are4-aligned and final allocation
+members. A hint cell is align4(code_end)+(PC_offset&~3),holding slot+1 with0
+unknown. Native length<=2048 bounds every tail access. Every hit rechecks
+current property count,atom and plain data descriptor before reading the
+live property value;it retains no shape/object/value pointer. Hash misses
+fill only the current bytecode cell and preserve all value tags/refcounts.
+
+Disabled hints and longer bytecodes retain the accepted original native
+own-data hash path,without reading/writing a tail. Accessor/missing-property
+routes retain the original observing owner and live method continuation.
+The actual3159-byte fixture executes1350 generic native reads and3 methods
+under IC-OFF controls,with zero hint hits/fills. Component OFF retains native
+hash execution independently of the tail allocation policy.
+
+An optional reservation failure completes monotonic disable before returning
+original-size storage. Subsequent construction never reenables it,including
+in another runtime. Pre-constructor creation also disables permanently.
+This is the complete accepted immutable-ELF mode protocol:acquire/release
+lock plus seq_cst StoreLoad fence. GCC13's actual cold code calls the linked
+__aarch64_swp1_acq,whose runtime-selected ARMv8.0 path uses ldaxrb/stxrb;the
+caller uses stlrb publication/unlock and dmb ish. Actual caller/helper FDEs
+are checked. No compiler flag is changed to force an anticipated code shape.
+
+QJS_DISABLE_NATIVE_OWN_BYTECODE and QJS_DISABLE_AARCH64_PROPERTY_HINTS use
+presence including0. Either disables new tails/hits and local borrowed PICs.
+QJS_DISABLE_FRAME_LOCAL_FIELD independently disables borrowed PICs only.
+Base/core IC OFF retains own hints/hash. Compiled QJS_PROPERTY_IC=OFF still
+has native get_field/get_field2 own/hash handlers and logical length;it has
+no borrowed PIC. Register/legacy controls retain original execution owners.
+
+A live local/argument/capture slot already owns an Object receiver. The
+native borrowed kernel reuses the complete four-way own/proto/unset PIC
+guards without a receiver incref/decref or an intermediate stack value.
+It duplicates the result before push. Every failed proof reconstructs the
+original owning operand and dispatches at the original property PC before
+any C/GC/user-code boundary. No cached receiver pointer crosses a safepoint.
+
+The public fixture observes128 borrowed hits on128 hot reads;core/base IC
+OFF observes128 own-slot reads and128 methods instead. It covers10 value
+tags including self alias,-0,Symbol and BigInt,24 live slot positions,wire
+reader execution,descriptor deletion/accessor conversion and GC/realm
+reentry. Another32 captured receivers lose their only source-slot owner
+inside a getter and collect there:all remain alive through the property
+read,then finalize exactly once. Process controls test all these bodies.
+
+Public allocator faults separately reject only the enlarged reservation
+and both enlarged/original requests. The tested original171-byte request
+reserves348bytes;fallback retries171bytes only after stable OFF. Old and new
+bytecodes and two later runtimes recover,with zero final allocator ledgers.
+An actual constructor-priority fixture proves original-size creation before
+the engine initializer remains permanently OFF.
+
+The logical static control adds80bytes plus1cold lock byte. Instrument-only
+TLS adds8passive words;release requires both its data/readers absent. Live
+bytecodes do consume the bounded reservation described above:unchanged
+frame/runtime sizes do not imply unchanged heap usage. Public allocator
+requested-byte accounting is separate from hardware RSS and QEMU host RSS.
+
+These tests establish functional mechanisms,not physical ARM speed. Full
+same-corpus/SDK/noGit/wire/old-platform qualification remains required.
+Activation weak prototype hints and persistent/direct snapshots are now
+implemented in the separate prototype supplement,which still requires its
+own full qualification. Forwarding and the remaining original22-family/P5
+migration gates stay open. AUTO remains
+PORTABLE until the original full release audit is complete.

@@ -1,0 +1,59 @@
+Linux native stack insertion: qualified development increment
+==============================================================
+The shared Win native insert3 opcode (obj key value -> value obj key value)
+was excluded by the Linux foundation generator gate. Linux therefore returned
+to the complete C interpreter for this noncalling stack operation.
+
+The Linux adapter now requests the same accepted instruction rows through a
+guarded optional generator argument. Win callers keep its defaultFalse; the
+reviewed native/IC/numeric Win instruction streams remain byte-identical.
+No second opcode implementation,C/assembly source file,private mode byte,
+frame field,GC root or public ABI is added. All19 upstream pins remain intact.
+
+The105byte JS_LinuxStackInsert continuation has an independent executable ELF
+input section. It borrows the existing VM activation/CFA144 and saved register
+rules. Incoming Clean/Dirty dispatch state remains authoritative;disabled
+misses select the corresponding original C slow owner. It duplicates precisely
+one original value owner without a C call,allocation or final release.
+
+In the qualified default GCC13 build,the entire inherited1539346byte .text,
+its address,and reviewed interpreter/slow/leaf entries and bytes match the
+prior development image. Dispatch entries,new code and unwind metadata differ;
+the CLI grows232bytes. This is neither a fixed-address policy nor padding
+tuning. Normal ASLR remains enabled. Preserved bytes are not a timing claim.
+
+Existing QJS_DISABLE_FRAME_STACK_INSERT presence,including value0,selects the
+retained fallback. This inherited component switch ALSO disables insert2 in
+the literal family. ON/OFF therefore is not a pure new-insert3 ablation.
+Credit only the actual old/new default comparison and attributed code routes.
+
+Qualification:934/934CTest;two new complete Test262 runs(default/component
+off0),each65/81152 inherited failures,31fixed,no new/changed exact identities,
+4925excluded/5954skipped. Installed then relocated SDK public C host tests cover
+GC,reentry,capture,realm,deep construction/generator cleanup and original stack
+owner/finalizer cases. Readonly debugger observation sees32 natural native
+routes and unwinds to main. No runtime control/register/state is forced.
+
+Measurements use unchanged original workloads/calibration,CPU2 serial order
+then reverse,normal ASLR,no PGO. In the retained fresh four-role V8 screen,
+NavierStokes scores are prior2142.80,candidate2600.98,MinGW2629.14:about21.4%
+score improvement against prior,with about1.1% remaining score gap to MinGW.
+Original full Jet17 elapsed is+0.854% against prior;focused repeated material
+cases do not reproduce the large first-pass costs. Original micro57 elapsed
+is-0.520%;concat0+5.53%(added4.20stock percentage points) remains a priced cost.
+These are bounded screens,not stable statistical claims or erased regressions.
+
+Fresh V8 totals:MinGW[1923.0626,1922.1143],candidate[1863.1442,1996.4456],
+prior[1803.4032,1847.2204],stock NG0.15.1[976.4347,967.7206]. Candidate RayTrace
+has a favorable high mode;do not claim stable whole parity from its mean or
+best process. This increment does not seal the Linux performance baseline.
+
+Matched diagnostic original Navier bodies after a full original suite warm
+show C slow self share11.05%->3.22%,with the new native kernel sampled. The new
+actual image has3480samples,6.803470s parsed span,0lost,ordinaryUID1000 CPU2.
+Shares are neither call counts nor removable time. Repeated diagnostics are
+separate from unchanged full-suite scores and original-caller path rates.
+
+Next material question:measure the Win native reference-slot replacement
+family versus Linux C fallback in Splay/Ray/Earley before proposing a complete
+SysV ownership/finalizer port. Existing C semantics remain the fallback.

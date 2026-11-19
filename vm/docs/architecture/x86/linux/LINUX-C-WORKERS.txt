@@ -1,0 +1,82 @@
+Linux source-owned C workers (development qualification)
+======================================================
+
+The port reuses the reviewed C algorithms before Win64 COFF extraction/routing.
+The normal Linux generation edge compiles them with real core types and helpers
+in the derived core translation unit. Public/private C boundaries are lowered
+by GCC as SysV; no Win64 private-struct clone, object patch or compiler profile
+is admitted for Linux. The pinned upstream files remain unchanged.
+
+tools/generate/generator-capability.py:prepare_source and
+tools/generate/prepared-callback.py:prepare_source contain the shared extraction
+phases. Win64 retains its original reviewed caller/callee and routing gates.
+Independent preparation comparisons produced the same C bytes as those original
+phases. That comparison is narrower than a fresh Windows build/qualification.
+
+Current modules
+---------------
+Async generators: direct await, fulfilled-Promise await and private output
+capability elision are enabled with their existing presence-disable controls.
+The original request owns its public Promise. Both undefined resolver slots
+identify a private capability-free request. Original and new recovery, reject,
+completed-return and late-hook paths share the patched settlement owner in
+the same TU. Real fresh CData callbacks, reaction jobs, context ownership, FIFO,
+interrupt polls, visible hooks, GC fields and request cleanup are retained.
+Ordinary async output-capability elision is not enabled by this module.
+
+Prepared callbacks: complete current-source every/some/forEach/map/filter and
+reduce/reduceRight loops, including TypedArray variants, have14 explicit
+method-table routes. Readonly and owned-formal activations share the common C
+admission/lifetime implementation. The Linux selector uses actual frame, state,
+segment and shared-anchor types, compiler TLS and the same register VM. It
+checks runtime modes, current host identity/coherence, callee, kind, captures,
+argc, capacity, stack budget and interrupt boundary on each prepared entry.
+Root/locals/operand state resets per callback; borrowed values and owned-formal
+cleanup remain distinct. Overflow, unsupported callees and disabled controls
+retain the typed original entry. No per-call bytecode validation is introduced.
+
+Added workers/controls use named ELF text/BSS families. This avoids introducing
+their large copied loops into ordinary text, but is not a performance proof or
+an address-preservation claim. Measurements wait for broader mechanism coverage.
+
+Qualification through candidate c-workers-r6
+-------------------------------------------
+Normal clean GCC13.3 Release/Werror build;255 CTests, ELF/CFI/PIC/CET checks and
+an independent installed public consumer pass. The image remains PIE. Compiler
+ENDBR decisions on direct-only static C helpers are allowed; actual method,
+CData and loop-pointer destinations are checked when IBT is selected.
+
+The private callback fixture observes448 prepared calls and434 frame reuses,
+including heap-object arguments, readonly/owned formals, missing arguments,
+56 GC/cross-realm reentries, throws, interruption and recovery. Component controls
+elide the expected paths; a disabled native C-invocation lane still uses the
+qualified scoped C boundary. A fresh-runtime reduce callback fault sweep fails
+each actual arena-growth allocation, recovers and frees its complete allocation
+ledger. Full pinned Test262 on portable/current-native/worker-OFF returns the
+same65/81152 inherited errors,31 fixed,0 new/changed and identical failure
+identities. Fresh Windows rebuilds pass307 MinGW/292 MSVC CTests, with all144/143
+accepted decision receipts unchanged. The export keeps the accepted raw Windows
+upstream pin bytes; their canonical source texts equal this Linux checkout. This
+is not Windows LF-source-archive qualification. Do not call the entire port complete.
+
+Known upstream OOM failure
+-------------------------
+The fixture's optional `linux-prepared-callback map-oom` reproduces a0.15.1 array
+species construction crash: add_property(length) can return NULL in
+JS_NewObjectFromShape, followed by an unchecked pr->u.value store. The same
+fault4 reproduces with the stock archive, pre-worker native archive and new
+worker OFF. Raw reproducer/control results are retained outside the source
+tree. This is a known inherited defect, not a passed fault case. The default
+reduce sweep independently exercises the new capsule's growth/cleanup without
+that unrelated species-constructor path; the optional map reproducer remains.
+
+Remaining integration
+---------------------
+This worker checkpoint closes the async-generator C worker and the shared
+prepared array-callback infrastructure. It does not close the arrays/sort family.
+The subsequent complete source-owned JSON integration is in LINUX-JSON.txt;
+its272-test strict build and actual-path/ownership evidence are separate from
+this earlier255-test worker checkpoint. Next: string/array builtin supplements
+and prepared/cached/default sort, then native call prepare/link/forward/capture
+and iterator/property supplements. All six LINUX-PORT completion gates remain
+required. No single-case layout/parameter benchmark campaign is running.

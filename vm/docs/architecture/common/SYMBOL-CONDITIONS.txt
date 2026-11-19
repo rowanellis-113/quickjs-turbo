@@ -1,0 +1,40 @@
+Resolved Symbol conditions
+
+Win64 GNU and MSVC native release builds with property ICs fold an already resolved
+global or lexical Symbol read followed by strict equality and a conditional
+branch. The existing binding cell supplies the current value. The worker
+consumes the left operand only when another reference remains. No allocation,
+C/JS call, new cache, GC owner, public API or runtime frame field is added.
+
+The native branch charges the original one interrupt poll. Missing/stale cells,
+TDZ, accessors, other value tags, last ownership, expired interrupt counters and
+unsupported patterns keep the original value/PC/SP and original ready path.
+Global mutation and cell lifetime still belong to the existing IC owner.
+
+This configuration defaults to the existing validated maximum of 65536 bytes
+for ordinary supported bytecode. The cold bitmap stack guard and all original
+eligibility checks remain. Disable controls win and are tested by presence:
+  QJS_DISABLE_SYMBOL_CASE=0         disables the condition fold
+  QJS_DISABLE_FRAME_LARGE_CODE=0    disables large-function admission
+  QJS_DISABLE_FRAME_LONG_CODE=0     inherited alias for the same admission
+An explicit QJS_ENABLE_FRAME_LARGE_CODE remains an opt-in where default is OFF.
+
+MSVC keeps its inherited large-function policy. Its separate get_var and
+get_var_undef binding-cell hits use separate fold entries and original ready
+labels. Both entries preserve the same VM registers and ownership contract.
+Diagnostic and property-IC-OFF configurations keep their original routes and
+large-code policy. Portable builds use the original C interpreter.
+Unsupported compiler/platform profiles retain the existing backend fallback.
+
+The 19 pinned QuickJS-NG0.15.1 upstream inputs remain byte-identical. Changes
+live in tools/generate/own-bytecode.py, tools/generate/varargs.py and
+tools/coff/retained_routes.py. The generated GNU248-byte worker and two MSVC
+291-byte workers use the existing VM register contract and chained unwind
+record. The MSVC route changes four validated local transfers; failed guards
+return to the exact original opcode ready label. Core JS_CallInternal is intact.
+
+CTest interpreter-symbol-conditions-* covers global and lexical symbols, live
+replacement, accessors, deletion, TDZ, short/long branches, last ownership and
+component-OFF behavior. The public C fixture compares16 fresh-runtime
+interrupt/GC/result/progress/exception-stack/memory records between ON/OFF and
+checks its original program bytes and normal reference results independently.

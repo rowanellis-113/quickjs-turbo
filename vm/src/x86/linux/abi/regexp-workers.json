@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "owners": {
+    "tools/x86/common/codegen/regexp.py": "53db44fb00516f81af38e17301ab3d54ff4118ea888c1e1b2bd4d4dd55b73b3c",
+    "tools/x86/common/codegen/regexp_split.py": "21e6c79f0b0a70800cd1236ef09a1dbd1660b1b3a82141a0372b9f15ffcfacbf",
+    "tools/common/backports/regexp_test.py": "93346d31787775ddba2aaefe26089016df26aa5f2bf6c4e2ed76d1a9aed48bdd",
+    "src/common/regexp/exec.inc": "706997334d7bd41763dcce07d4f3117322603b51c3829a3f1fb43bb041feeeb1",
+    "src/common/regexp/test.inc": "64599311c5a0ef357e496a07859e7f9ed0c9dea139557cf796a82201e11070c9",
+    "src/common/regexp/split.inc": "f86b6d7c054eb316f8b52ed3d8866a1612faa36eae39933f214776c4d3b0a064",
+    "src/common/regexp/replace-empty.inc": "8e54c221936d07a56f5a61e378599c55738fc1227f9b714a8443aed128544d99",
+    "src/common/regexp/flag-atoms.inc": "2c38453ceb555026ecbf83eacc254cbc03979dce184ef866f042812493f463d0",
+    "src/x86/win64/common/quickjs-regexp-replace.inc": "0af0f839daac222a35fb34931d71fedd4f5c034f92e5e59d30f953b04899350e",
+    "src/x86/win64/common/quickjs-regexp-flags.inc": "4f0fd0ddeec490a6ed857eab58b95cb8ea09902f2b014002a9f62abce3571ff5"
+  },
+  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "private_types": "Actual complete Linux GCC core TU;no duplicated structs/private ABI guessing",
+  "shared_exec_identity": "Preserve original js_regexp_exec and test C-overlay identities",
+  "callback": "Actual seven-argument SysV JS_CallInternal;owned copied argv",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "new_strong_roots": 0
+}

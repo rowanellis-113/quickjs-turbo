@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "name": "JSCVMSegmentState",
+  "public_abi": false,
+  "size": 48,
+  "alignment": 8,
+  "offsets": {
+    "pc": 0,
+    "sp": 8,
+    "locals": 16,
+    "args": 24,
+    "refs": 32,
+    "ctx": 40
+  },
+  "dependencies": {
+    "JSValue.size": 16,
+    "JSValue.tag": 8,
+    "JSRefCountHeader.ref_count": 0,
+    "JSContext.interrupt_counter": 568,
+    "JSVarRef.pvalue": 32
+  },
+  "contract": "Borrowed persistent slots, no allocation or callback in native segments; original slow opcode runs once after a guard exit. No JSStackFrame/JSAsyncFunctionState/context/runtime/object layout change.",
+  "tag_read_width_bits": 32,
+  "dispatch": "256 ordinary readonly absolute targets in .rdata$cvm_segments, each with a validated PE DIR64 fixup; one indirect indexed branch",
+  "native_stack_bytes": 0,
+  "nonvolatile_registers_used": [],
+  "volatile_registers": {
+    "pc": "r8",
+    "sp": "r9",
+    "boundary": "r10",
+    "dispatch": "r11",
+    "scratch": [
+      "rax",
+      "rcx",
+      "rdx",
+      "xmm0",
+      "xmm1"
+    ]
+  },
+  "boundary_lifetime": "Immutable bases initialized once per resume activation. PC/SP alone synchronized at each native segment boundary.",
+  "dispatch_topology": "Each handler tail reads the next opcode and jumps directly through the readonly table; the central site serves initial entry only.",
+  "native_indirect_dispatch_sites": 113,
+  "backend_policy": {
+    "mingw": "original inherited interpreter entry; dedicated coroutine resume and native opcode provider omitted",
+    "msvc": "Independently compiled persistent resume, original core compiler input unchanged; one verified async_func_resume callee relocation. Callback-free native handler segments."
+  }
+}

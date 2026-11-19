@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux/glibc/GCC AAPCS64",
+  "source_owners": {
+    "tools/common/elf/varargs_c.py": "309e73971078feb0bf42972d729d598ea5b13abb33513876521eac002619a53e",
+    "tools/common/c_extract/varargs_c.py": "88bf454180cf5b59818c8d8967d70a441b976f73b03675e9ffc32bc974a5e144",
+    "tools/common/c_extract/call_forward_c.py": "04acb7c0a43daef064cf5831b1b583e04756c5a77cc167335c34c7c159bde57f",
+    "src/common/kernel/apply-forward.c": "282bb6dc2b456eb6b1285f8893a0a94ace1327275ff3e9135857a55517980d0f",
+    "src/common/kernel/ordinary-arguments.c": "475a54e367848dee29a1beee10b83b69027f55d24212bb6560e3032b28100333",
+    "src/common/call/interpreter-retained-context.inc": "51979d33863b5715a5904dd0d94cba5e98fd5618e495295bb0b2ed9753e59c73",
+    "src/arm64/linux/interpreter-varargs.inc": "61d8bea11855c46b941a9cd287d4f8c195cefd3aab7018cca74f6d031b59f83a",
+    "asm/arm64/common/register-varargs.inc": "5f57f79164c20f2940fc29923c4d8bf161a991d3676f45cf6178ae78f4945264",
+    "asm/arm64/common/register-forwarding.inc": "0023a7348edd49c8cfe21f9515d53e7abcb3624bf8bc3616a55a54ea6ed0d922"
+  },
+  "frame_growth": 0,
+  "state_growth": 0,
+  "owned_actual_snapshot": true,
+  "source_reload_after_grow": true,
+  "logical_apply_wrapper": true,
+  "full_single_spread_fusion": true,
+  "whole_qualification": false
+}

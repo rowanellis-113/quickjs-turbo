@@ -1,0 +1,22 @@
+{
+  "upstream": "60984dc07cbb6b7885303b9542944b114203e918",
+  "license": "MIT, retained in each source file",
+  "files": [
+    {
+      "file": "libunicode.c",
+      "bytes": 61406,
+      "sha256": "d755606498ff707dc3a93826713c749f77b9222d8a6b066621d72a308460bf2d"
+    },
+    {
+      "file": "libunicode.h",
+      "bytes": 5278,
+      "sha256": "ad13f66aaea3fab1616e84b9c048f2a315e1bdbab628b966617a7a3e55bcba2b"
+    },
+    {
+      "file": "libunicode-table.h",
+      "bytes": 251190,
+      "sha256": "5840a921ac11664b505ee37b1219f518fff2a04972fe848b4bdf1e85c5a0bd83"
+    }
+  ],
+  "scope": "Private Unicode dependencies of retained regexp only; pinned core inputs unchanged"
+}

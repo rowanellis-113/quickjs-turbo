@@ -1,0 +1,57 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 standard C value return and owning operand consumer
+================================================================
+
+The native VM-only HostDirectValue/HostValue entries return the actual target
+JSValue aggregate in x0/x1. This is standard AAPCS64, not a private host ABI.
+The original int/out-result entry points remain for source C callers. Actual
+current-flags compiler probes prove the scalar pair/aggregate return with a
+RET-only witness and the Free(state,realm,JSValue) argument assignment with a
+B-only witness plus the original helper relocation. Their sources, objects,
+disassembly and SHA256 bindings are recorded in generated C-RETURN.json.
+
+The owning consumer first validates the original pending operand interval.
+A miss or exception leaves owners intact for original C finish_call. Normal
+cleanup consumes receiver,callee and arguments in the source's ascending order.
+Each slot becomes undefined before its old reference is released. A nonlast
+reference decrements inline. A last reference uses the ORIGINAL typed
+JS_FrameInterpFree and its quota/publication owner, with the owning result
+spilled before the call. The live top and undefined holes preserve the original
+cleanup interval;cur_sp remains the original suspended-frame cursor. No frame,
+register-state or physical save-area growth is required.
+
+After cleanup an ordinary call installs the returned value directly. A tail
+call uses the existing guarded return and consumed-parent continuation, so
+captured cells/finalizing frames retain the original cleanup and no call is
+replayed. QJS_DISABLE_AARCH64_HOST_RETURN, by presence including0, selects the
+unchanged C consumer. C-invoke/direct/register/shared controls remain distinct.
+
+The instrumented semantic fixture has64 ordinary/method/tail/alias trials.
+Native execution observes288 owning consumers,32 tails and192 typed final
+releases with natural Free+VM unwind and no C interpreter-step underneath.
+All64 quota snapshots restore exactly. It checks realm-specific prototypes,
+self-cycle result ownership, aliased argument results and ascending finalizer
+order;component controls exercise the same workload through old paths.
+
+Class finalizers only passively inspect their dying runtime. Per the pinned
+embedding contract in docs/docs/developer-guide/intro.md:76-80, executing JS
+from that finalizer is invalid. Active GC/JS reentry during finalization uses
+an independent runtime. Same-runtime public GC executes inside the legal C
+host callback with its new/aliased owning result alive, and again after call
+completion. Fresh-runtime allocation-failure sweeps require exact allocation
+and finalization ledgers and successful recovery. The rejected same-runtime
+finalizer fixture and its natural abort evidence remain outside the source.
+
+The publication observer grows its INTERNAL TLS bank to17 words to observe
+Free;the existing16-word reader stays bounded at16 and has a separate extended
+reader. All observers remain absent from release images. Actual loaded ELF,
+complete helper FDEs, readonly tables/PIE/NX/no-WX and compiler bindings are
+checked independently. Whole-corpus and noGit SDK qualification are separate.
+
+This closes the native result/consumer implementation, not the remaining hot
+builtin cache dependency or all original22/P5 gates. AUTO remains PORTABLE.
+QEMU establishes functional behavior only;real ARM performance,PMU and
+engine-only RSS remain unverified.

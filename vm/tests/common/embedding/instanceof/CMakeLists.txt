@@ -1,0 +1,20 @@
+cmake_minimum_required(VERSION 3.20)
+project(PublicInstanceOfRealmOracle C)
+find_package(qjs CONFIG REQUIRED)
+add_executable(instanceof-public main.c)
+target_compile_features(instanceof-public PRIVATE c_std_11)
+target_link_libraries(instanceof-public PRIVATE qjs)
+enable_testing()
+foreach(mode default off off-zero)
+    add_test(NAME public-instanceof-${mode} COMMAND instanceof-public)
+    set(extra "")
+    if(mode STREQUAL "off")
+        set(extra "QJS_DISABLE_FRAME_INSTANCEOF=1")
+    elseif(mode STREQUAL "off-zero")
+        set(extra "QJS_DISABLE_FRAME_INSTANCEOF=0")
+    endif()
+    set_tests_properties(
+        public-instanceof-${mode}
+        PROPERTIES ENVIRONMENT "QJS_EXPERIMENT_ALLOCATOR=256;${extra}" PASS_REGULAR_EXPRESSION
+                   "PUBLIC_INSTANCEOF_OK checks=1728")
+endforeach()

@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "owners": {
+    "src/x86/win64/mingw64/mingw-arguments.c": "475a54e367848dee29a1beee10b83b69027f55d24212bb6560e3032b28100333",
+    "src/x86/win64/mingw64/mingw-argument-constructor.c": "d54092a5d61a19b4babeeb4fa0cebefe0c14bdb46d06e61220f4fe890485dfaa",
+    "asm/x86/win64/mingw64/mingw-arguments_entry.S": "9052280733e3715cb9870aea7e336ca0e68c2103ac0c794b7d6a93195c403a3a",
+    "asm/x86/win64/mingw64/mingw-arguments_access.S": "dee0db9319f213d9a834386bca6031da294aa6695faca83eb03a571018745516",
+    "asm/x86/win64/mingw64/mingw-arguments_forward.S": "1c17420f8c9760d4bb2f7dcd1ee8087da75ddffc3d34d2741d8b8aa35e70b25c"
+  },
+  "scope": "Accepted GNU argument algorithms;source-derived actual-type Linux C and compiler-measured native instruction operands"
+}

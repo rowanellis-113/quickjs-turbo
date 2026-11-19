@@ -1,0 +1,86 @@
+Linux RegExp builtin mechanisms
+==============================
+
+This is one GNU mechanism group in the Linux x86_64 port. Whole-port coverage,
+performance, current Windows rebuild and final source-package gates still apply;
+see LINUX-PORT.txt. Passing through the original builtin alone is not native
+mechanism coverage. This document describes ownership and validation boundaries,
+not a speed claim.
+
+Shared algorithms and intrinsic identity
+---------------------------------------
+tools/generate/regexp.py exposes its reviewed C semantic source separately from
+Win64 COFF generation. The default Windows generation path retains its complete
+original body and routes. Linux uses the owned replace/match/matchAll/split/flags
+subset and keeps the existing shared js_regexp_exec/js_regexp_test definitions
+and their actual builtin identities. Unicode, wire, literal admission and the
+register regexp opcode remain owned by the previously integrated modules.
+
+tools/elf/regexp_workers.py validates the pinned core and all ten semantic owners,
+including the actual generated exec/test bodies. It routes five actual builtin
+table entries, emits ordinary C with the real complete core types and records
+the owners, routes and generated header. Normal CMake and standalone generation
+use this same factory. No COFF object or Windows JSValue calling convention is
+used by this worker.
+
+Owned replace callbacks retain original input conversion, flags/unicode access,
+all-match collection, capture/index/groups access and exception order. Callback
+values own a stack-six vector or transient allocated vector. Every initialized
+prefix is released, including partial OOM and throwing getters. The existing
+near-argument-limit array/apply fallback remains. The direct callback uses the
+actual seven-argument JS_CallInternal signature with COPY_ARGV and the existing
+coherent builtin C boundary. Escaping arguments, nested callbacks, foreign realms,
+GC and exceptions retain the existing ownership. There is no new strong root,
+frame field, persistent object/shape cache or public serialization format.
+
+Flags and guarded direct search
+-------------------------------
+The shared flag worker verifies live property keys, descriptor kinds, function
+identity, cproto and magic. A canonical shape proof batches eight intrinsic reads
+only when all eight original interrupt debits can be performed without a poll.
+Otherwise each property retains the original getter selection and poll boundary.
+Exotic objects, observable getters and error realms use their original lookup.
+Symbol descriptions never stand in for string property keys.
+
+Direct split and empty-string replace search share src/regexp bodies. Their
+Linux-private names avoid duplicate portable symbols and admit the current
+owned flags identity while retaining the original exec identity. Live guards
+retain constructor/species/exec/flag getter hooks, lastIndex conversion, sticky
+and Unicode behavior and the original path under a registered interrupt hook.
+Search allocation/error cleanup remains in the shared semantic owner.
+
+Only the added worker definitions and control bytes use the late Linux regexp
+code/data families. Actual SysV aggregate arguments/returns are compiler generated;
+the native record checks builtin indirect targets and CET landing instructions.
+No interpreter frame/state layout or native VM register convention changes.
+
+Controls and checks
+-------------------
+All disable controls are process-start presence controls; 0 also disables:
+  QJS_DISABLE_LINUX_REGEXP_WORKERS     whole new builtin group
+  QJS_DISABLE_LINUX_REGEXP_OWNED_ARGV  direct callback argv only
+  QJS_DISABLE_REGEXP_FLAGS_LEAF        live intrinsic flag worker
+  QJS_DISABLE_REGEXP_FLAGS_BATCH       eight-read batching only
+  QJS_DISABLE_REGEXP_SPLIT             direct split search
+  QJS_DISABLE_REGEXP_REPLACE_EMPTY     direct empty replacement search
+
+The whole-group OFF path restores the original core algorithms. It is a
+semantic control, not a byte-identical performance baseline: the actual flags
+builtin pointer is still the new dispatch, so original fast guards can reject it.
+Use the prior qualified image and stock NG as independent performance controls.
+
+tests/test_linux_regexp.js exercises small/allocated callback vectors, named
+captures and escaping arguments, GC/reentry, proxies, getter/coercion order,
+exceptions, indices, constructor hooks, Unicode empty matches and ordered flags.
+tests/native_linux_regexp.c uses only the public API and a public allocator:
+foreign callbacks/getters/error realms, stable memory, Symbol names, natural
+multi-period interrupt mutation/abort/recovery, and warm runtime allocation
+faults with complete zero allocation ledgers. No private counter is overwritten.
+Fresh ON/OFF processes and the same compiled public object linked against prior
+and stock archives distinguish port regressions from inherited behavior.
+
+Actual owned-vector calls, flags batch/per-property commits and direct search
+selection require read-only runtime observations with component OFF controls.
+ELF/CFI/PIE/CET checks, independent installed consumers, full pinned Test262 and
+the original portable failure identities are separate acceptance evidence. A
+test count or reduced allocation count does not prove speed or whole-port parity.

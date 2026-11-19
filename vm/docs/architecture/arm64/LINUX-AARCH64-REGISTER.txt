@@ -1,0 +1,74 @@
+Linux/glibc AArch64 register backend
+====================================
+Build and release scope:LINUX-AARCH64-RELEASE.txt.
+Physical-hardware qualification and measured costs:LINUX-AARCH64-HARDWARE.txt.
+Build with tools/build/product-linux-aarch64.sh. Native backend selection is
+explicit;AUTO remains PORTABLE. The common C fallback has its own unchanged
+product-linux-aarch64-portable.sh wrapper. Pinned QuickJS-NG is0.15.1,with all19
+recorded upstream inputs unchanged. No performance result from QEMU is an ARM
+hardware result.
+
+The actual target GCC measures private core/owned types,opcode numbers,bitfield
+masks,aggregate signatures and quota geometry from this build's compiler input.
+Declarations and source owners are hash-bound;no Win64 layout or compiler clone
+ABI is copied. Generation and compilation use ordinary CMake dependencies;no
+old engine,object patcher,post-link replacement,Node or profile data is required.
+
+The VM keeps PC,operand SP,frame,locals,arguments and relative dispatch token in
+callee-saved AAPCS64 registers. One physical activation runs ordinary JS children,
+methods,tails,constructors,forwarding and iterator checkpoints over owned data
+frames. Frame128/state168 and the original quota/GC/capture/reentry/exception
+owners remain. Captured pvalue slots are reloaded live;last-reference stores
+commit the new owner and PC/SP before the original observing Free boundary.
+
+The default current image has161 native opcode destinations. The accepted
+shared factory's141 base destinations are all present;the remaining20 are
+supplemental routes. Native count is an inventory,not a performance or full
+language-native percentage. Unadmitted functions and observing/overflow/TDZ/
+last-owner misses retain complete original C/legacy semantics before mutation.
+LINUX-AARCH64-SCALAR-OPS.txt describes the final22 base destinations and the
+computed-assignment compileOFF producer used for natural to_propkey evidence.
+
+Deferred publication uses the actual x25 Clean/Dirty/OFF relative tables.
+Pure helpers preserve the incoming token;observing C boundaries publish coherent
+SF/PC/SP first. Typed generic/magic/numeric/class/builtin calls retain original
+realms,argument windows,stack/transient alternatives,polls,ownership and quotas.
+Compiler-managed ELF TLS owns shared synchronous scopes and blocked active VMs.
+
+Complete original GNU mechanisms are mapped in LINUX-AARCH64-MECHANISMS.json:
+prepared/missing/captured calls and arguments;PIC/transition/own-bytecode/proto
+hints;indexed/instanceof;global bindings;loose/strict comparisons;array copy/
+pop/append/radix/cached/prepared sort;JSON and AdvSIMD;regexp/Unicode/literals;
+async-generator capability ownership;compiler/BigInt/decimal workers;activation
+literal shapes;strings/ropes/character cache;insert2/3 and scalar call leaves.
+Each module's source contract and linked-image check remain independent.
+
+Frame-free call leaves avoid JS data frames,argument copies,arena charges and
+observing work on a hit. This ARM version uses a real compiler-owned C aggregate
+worker with a192-byte physical activation. It is not the x86 noncalling sequence;
+hardware performance parity is unverified. Misses use original admission.
+
+Array/TypedArray and five JSON callback selectors retain prepared-capsule
+preference for short callbacks. They do not apply the x86 noncalling ChildLeaf
+competing-provider exclusions. The ARM aggregate worker now exists,but its
+physical C activation and the capsule costs differ. Both real routes are tested;
+this choice requires hardware profiling before a performance-parity claim.
+
+Release has no passive instrumentation banks. A separate instrumented build
+supports positive-path and fresh-process component controls,including presence
+value0. Read-only natural debugger observations verify actual PC/SP/owners,
+publication,polls,AAPCS64 saved state and unwind;debugger writes never force paths.
+
+CHECK.json verifies actual ELF183,PIE,NX,no writable executable LOAD,read-only
+dispatch tables and complete FDE coverage. VM.json and module receipts bind
+source/flags/generated inputs. These are generation/image proofs;the product
+ACCEPTANCE.json separately binds full corpus,controls,installed/noGit SDK,
+old-platform regressions and the released payloads.
+
+The GNU reference excludes MSVC-only coroutine segments/extra method learning,
+default-OFF optional weak VM links and ordinary async output-capability elision.
+Unsupported shared/LTO/sanitizer/BTI-PAC compiler profiles retain PORTABLE or
+fail an explicit strict native request. QEMU cortex-a53/glibc2.39/GCC13.3 is the
+initial functional target;older distro and physical hardware remain separate
+qualifications. The inherited nested-GC-inside-free/finalizer abort is retained;
+supported JS reentry and GC after ordinary return are independently checked.

@@ -1,0 +1,15 @@
+{
+  "scope": "Three original/published/known single-pass return cleanup owners; no captures/constructors/exception admission widening, exact inherited ranges and pop; remove32-cell/no-observer proof limit only",
+  "source_owners": {
+    "tools/arm64/vm/linear_return.py": "339bba44b508e7e06f50df74b8d042bbf96fb7165b74829fc046d88559c59c13",
+    "asm/arm64/common/register-call.inc": "c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a",
+    "asm/arm64/common/register-host-return.inc": "b6a1a7a85064aef13734c74faad28ea855105e8cd8e06824e41150e063125439",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "tools/arm64/vm/publication.py": "6ab668624903dcdaac8007208a6cc4eaae84fdf7f8c0205ac28e120aac163044",
+    "tools/common/elf/constructors_c.py": "bf1fd246a51de98405458144cb4810065feeb0f6f25dd59da3ef3b4a91cf690d"
+  },
+  "protocol": "Detach each consumed slot before release; ascending callee then exact original expanded pop and publication token, then ascending caller pending operands. x23/x24 cursor/end and x28 flags survive typed Free; original state.result owns return across reentry; all pre-consumption declines retain original owner; no partial replay.",
+  "physical_frame_growth": 0,
+  "public_ABI_growth": 0,
+  "private_compiled_fingerprints_updated": false
+}

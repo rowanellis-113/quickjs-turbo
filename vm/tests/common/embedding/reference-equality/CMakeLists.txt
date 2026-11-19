@@ -1,0 +1,23 @@
+cmake_minimum_required(VERSION 3.20)
+project(QuickJSReferenceOwnership C)
+find_package(qjs CONFIG REQUIRED)
+add_executable(interpreter-reference-host main.c)
+target_link_libraries(interpreter-reference-host PRIVATE qjs)
+enable_testing()
+foreach(mode native disabled zero enabled-large c)
+    set(extra "")
+    if(mode STREQUAL "disabled")
+        set(extra "QJS_DISABLE_FRAME_REFERENCE_EQUALITY=1")
+    elseif(mode STREQUAL "zero")
+        set(extra "QJS_DISABLE_FRAME_REFERENCE_EQUALITY=0")
+    elseif(mode STREQUAL "enabled-large")
+        set(extra "QJS_ENABLE_FRAME_LARGE_CODE=1")
+    elseif(mode STREQUAL "c")
+        set(extra
+            "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1"
+        )
+    endif()
+    add_test(NAME reference-ownership-${mode} COMMAND interpreter-reference-host)
+    set_tests_properties(reference-ownership-${mode}
+                         PROPERTIES ENVIRONMENT "QJS_EXPERIMENT_ALLOCATOR=256;${extra}")
+endforeach()

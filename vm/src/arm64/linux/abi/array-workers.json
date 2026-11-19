@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "target": "Linux/glibc/GCC AAPCS64",
+  "source_owners": {
+    "tools/common/elf/array_workers.py": "7a7de663be61f40cc16d75e10c90ba4d358f1449e0c28e43d24918f0b304f962",
+    "src/common/array/copy-grow.inc": "88be84694ca3497e60f5916a65b2755e236719f9fe019a85d373552c339cd7b7",
+    "src/common/array/default-string-sort.inc": "2fcb9b159fd4f0fab2979844ddfd1bd2e48c6662c5f569fc37d15e2a47c77e9c",
+    "src/common/kernel/cached-sort.inc": "a25080809ea8cdec102e687c1106c743937a9c9069b3d1e543052e13c6ae07b8",
+    "src/common/call/quickjs-interpreter-prepared-entry.inc": "9f059fa55cf0e54b854574a2f69a09b272444dccb5704b55a4b8d9d2822138f3",
+    "src/common/linux/interpreter-sort.inc": "d71282cc314afbc45b41b5f39f9c485afd91164d9a421897f53cce57abe016d0",
+    "src/common/call/quickjs-interpreter-shared.inc": "c153ad8947da20f3547652f142d34ba7ddf8cfda128241e2451ecd1c8eac7a83"
+  },
+  "scope": "Complete accepted copy/growth/default radix/cached/prepared C sort;existing dense pop retained;native append OPEN",
+  "actual_core_types": true,
+  "new_frame_state_runtime_fields": 0,
+  "whole_qualification": false
+}

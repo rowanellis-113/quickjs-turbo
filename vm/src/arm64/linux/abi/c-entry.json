@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "src/common/linux/interpreter-linux-c-invoke.inc": "4203d53ebcddc4765f9bce5cecda9cadcb720157d2c5bb04dbbe38b84029ece0",
+    "src/common/linux/interpreter-linux-builtin.inc": "88c78a1e46c44121555c48eed0dc8bc52b5ce14e144048135ba19cfaefceead9",
+    "src/arm64/linux/interpreter-c-entry.inc": "8d7cadc4a77e4a970d469c389bdd03e3fb026c9047d7830ad13ea0f564b7a246",
+    "tools/arm64/vm/c_entry.py": "483fe3b34bc829bc0241054574a87a0179d06f5d5c015cd9f44e21dbc71b3f38",
+    "tools/common/elf/builtin_workers.py": "c5f4a927503a2ff438c2417323d448c92ea915ff9927b8db71fab8ccb9b9f013",
+    "tools/common/c_extract/json_callback_c.py": "eaf46916638e5d7566d6359b6a84e1b0ee5b28d61882b93bc3570e73998d355d",
+    "src/common/kernel/slice-native.inc": "931929cf153fb21f003cf1f03c10a240d5de3a0c92b66a8ad45d0580430e09f3",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/interpreter-shared-types.inc": "3c221bce68db0e433c44f11c8c59132e0988514ea6f4d514f5bca39320d7fae6",
+    "src/common/linux/interpreter-linux-shared-tls.inc": "0c2d7e0f133304b286ee14dbe72ecafcd3e4c28769ac21d88bb4ac912a5f0c81",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f"
+  },
+  "owner": "Complete source-owned generic/magic,numeric direct/trampoline,borrowed builtin window/transient/stack,slice/decimal and dense-pop C/leaf;actual target compiler ABI",
+  "fallback": "Original typed shared bridges,retained unchanged underOriginal names;all scope/control/type/poll/quota misses",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "hardware_performance_qualified": false,
+  "runtime_evidence": "Required separately;unused hot branches are not native parity proof"
+}

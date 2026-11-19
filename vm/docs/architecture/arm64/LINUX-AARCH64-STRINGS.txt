@@ -1,0 +1,50 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental Linux AArch64 GNU string owners
+============================================
+The unchanged complete string_workers.py factory carries the original C
+concat/rope/local-add/spare/locale/character/index bodies over actual same-TU
+types. Native guards use actual AAPCS64 int(state) calls and original Clean/
+Dirty publication. Small-character caching keeps the original atom/Symbol,
+reentrant interning, bounded owner-slot and detach-before-shutdown behavior.
+
+The complete GNU native one-byte append and following local-store fusion is
+carried from add-boundary.py:native_append_body. Every tag/refcount/kind/pool/
+capacity/decode/local/depth/length guard precedes mutation. The hit cannot
+allocate, invoke a callback or drop a last reference. It appends the byte and
+terminator, updates leaf/root lengths/depth and nonlast owners, clears consumed
+slots, and skips the validated put/set local instruction. Other cases retain
+the original C owner. Actual GCC objects measure full string bitfield masks
+and the original allocator's FramePoolHeader type and capacity offset.
+
+QJS_INTERP_FRAME_STRING_WORKERS controls the whole group. The independent
+experimental allocator controls native spare admission. QJS_AARCH64_STRING_POOL
+enables the original allocator macro only inside this string header, with
+push/pop scope; inherited core code does not gain that macro. Numeric workers
+remain independently selectable. Process disable controls use presence, also0.
+
+Frame/state/runtime sizes do not grow. The original cache adds bounded static
+tables:16runtime owners x256character cells, plus original policies/statistics.
+Each populated cell retains an owning string atom until runtime shutdown;
+this is a real memory cost. Instrumentation alone adds64bytes TLS. Linked
+section/symbol sizes are recorded externally;they are not physical ARM RSS.
+
+The original GNU compound locale C proof is included. Its specialized root/
+child call classifier/entry route belongs to the separately open scalar leaf
+work; extraction or symbol presence alone does not qualify that route.
+
+Current targeted evidence:23fresh language/control modes,original18runtime/
+two-thread/cache-saturation/OOM fixture;native entry counters and21manual
+controls;natural readonly debugger verifies real append byte/terminator/RC,
+fused PC/SP,unchanged private168bytes/token/physicalSP and full VM unwind.
+In the probe3824/4096append operations use the no-C lane;272use original C.
+QEMU validates functionality;no hardware throughput claim follows from this.
+Full current-source Release/instrumented/Test262/noGitSDK/wire remains pending.
+
+Test corrections retain their strict original bounds. ARM now defines the
+native pool capability for the original host fixture. Disabling CONCAT_ROPE
+prevents an append-eligible rope,so its path control expects zero native hits.
+Actual qjs/lib/run-test262 images are byte identical across these test-only
+fixes;original failed logs and binding evidence are retained externally.

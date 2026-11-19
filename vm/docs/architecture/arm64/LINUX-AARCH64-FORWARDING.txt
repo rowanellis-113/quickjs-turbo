@@ -1,0 +1,106 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 forwarding -- partial native family
+
+Opt-in Linux/glibc/GCC/AAPCS64 only. AUTO remains PORTABLE. Existing x86-64
+factories and the 19 upstream source pins remain unchanged.
+
+Implemented source owners:
+  asm/arm64/common/register-forwarding.inc: observing original builtin gate,
+    caller-owned 32-byte temporary lease and real CFI, child/result reload.
+  asm/arm64/linux/forwarding-probe.S: exact single-wrapper integer leaf;
+    same source classification into general/private child continuations.
+  asm/arm64/linux/forwarding-owned.S: owned copies, readonly provided borrow,
+    and readonly missing-argument padding within the declared caller stack.
+  tools/arm64/forwarding.py: unchanged complete shared C normalizer,
+    prepared commit body, logical tails and original typed cleanup owners.
+  asm/arm64/linux/forwarding-prepared.S: bounded max64 descriptor discovery,
+    primitive/argument/add leaves,complete owned children and typed C fallback.
+
+The private constructors take (state,target bytecode,original argv,native argc)
+in x0,x1,x2,w3. They make no call,change no SP/callee-saved register,and only
+use the actual caller's 32-byte lease. Their geometry/strict/refcount fields
+come from the emitted target contract and actual-type compiler assertions.
+All failing checks precede either realm counter decrement. No allocation,
+observer or fallback is permitted between commitment and full publication.
+Each child reserves its regular frame plus an 80-byte logical native parent.
+Locals,missing values,capture pointers and parent PC/SP/pending are initialized
+before publishing state.frame and runtime.current_stack_frame. The existing
+owning C return and guarded native root2 return preserve the entire logical
+chain through capture close and observable finalization.
+
+Owned arguments duplicate all actual arguments and pad through the formals.
+Readonly arguments borrow the original operand window without provided-slot
+writes or refcount increments. Missing padding must fit both the caller's
+declared operand stack (excluding capture tables) and its actual allocation;
+otherwise use the original owned-copy route. Zero-native-argc skips the same
+unused first slot as the original algorithm and publishes undefined this.
+
+QJS_INTERP_FRAME_CALL_FORWARD is the independent compilation control. Runtime
+QJS_DISABLE_FRAME_CALL_FORWARD,NATIVE,OWNED,BORROW,BORROW_MISSING and existing
+LEAF/PREPARE/PREPARE_OWNED controls retain process-presence semantics: 0 and1
+both disable. The full variable names repeat FRAME_CALL_FORWARD_ where needed.
+QJS_DISABLE_DEFERRED_FRAME_PUBLISH,REGISTER_INTERP and INTERP_FRAME remain
+independent. Instrumented-only fixed TLS words0..4 retain the old C/native
+observations;words5,6,7 count owned,provided and missing native producers.
+Words8,9,10 count prepared leaves,typed C commits and native prepared owns. No
+frame/state/runtime field,strong root or release-build counter was added.
+
+Public fixture tests/aarch64/forward-owned.c checks seven actual execution
+cohorts,including zero argc,extra arguments and bounds failure,against native,
+component and outer controls. The original public host retains all ownership,
+capture,GC,cross-realm reentry,exception stack,interrupt,OOM and quota checks.
+Natural read-only debugger proofs bind the emitted layout,actual child and
+logical frames,root/pending/PC/SP,exact quota/realm polls,and preserved AAPCS64
+integer/SIMD saved state. Debugger writes never force admission.
+
+The original prepared descriptor preserves the depth/argc word,original argv
+and target bytecode in the same32 private native bytes. Every wrapper must be
+the real original Function.prototype.call intrinsic with exact class/proto/
+magic/length guards. Original max64 and original argument bounds remain. A
+leaf owns a returned reference before parent cleanup;nonleaf owns all actual
+target arguments,pads formals and initializes every local/capture slot and
+80-byte logical wrapper before publishing. Realm polls retain original order;
+on a near counter,exactly the successful prefix is refunded,including aliases.
+The original544-byte explicit diagnostic object remains process-global;normal
+mode never updates it. Observation uses ARM exclusive atomics for the original
+leaf/general/depth/native-own counters. Its test declaration is extracted from
+the same shared DATA_TYPE literal,never a separately maintained private mirror.
+
+Tests include34 fresh-runtime same/cross-realm cohorts per control mode:heap
+ownership,all compact primitive returns,argument3,missing slots,integer add,
+overflow,captured detach and max64. A naturally wide source caller grows its
+arena for native64 coverage;the unchanged4KiB thin caller retains its exact
+capacity miss,not a waived guard. Depth65 retains original normalization.
+
+The exact original64-node/65536-byte/4096-pool positive-whitelist proof and
+source-owned classifier now admit readonly captured kind7. All descendant
+bytecode constants participate,including unexecuted writers andasync bodies.
+The original1024-byte cold stack guard and presence control
+QJS_DISABLE_FRAME_CAPTURED_READONLY (both0 and1) are preserved. A natural
+debugger observation proves actual64nodes,5-to7 classification,unchanged
+published SF/realm polls and preserved AAPCS64 state. No private writes force
+admission. Forward compilation owns this proof dependency;compiledOFF retains
+the previous owned kind5. Ordinary C entry stillowns kind7 as accepted GNU did.
+
+Ordinary native kind7 supports provided and safe missing readonly windows.
+If the caller has a capture table,has no extensible tail,exceeds capacity,or
+disables missing windows,kind7 may recover via the original native owned
+builder when both owned-argument and owned-missing controls permit. It clears
+uncommitted window scratch first,never pads a captured table,and retains the
+previous fast captured recursive route. Existing owned kind5 andreadonly
+local kind3 behavior remains explicit. Original path assertions run with both
+proof disable values,alongside the new graph/ownership/callback fixtures.
+
+OPEN: complete family compatibility/SDK/noGit/old-platform/final P5 acceptance.
+All nine functions andtheir captured-readonly dependency are implemented;
+this does not yet qualify the full family or the original22-mechanism port.
+QEMU establishes functional correctness;hardware speed/RSS is unverified.
+
+The cold classifier source owner is src/call/interpreter-captured-readonly.inc.
+Linux x86-64 includes it unchanged;AArch64 derives its private name from the
+same complete definition. The bounded proof remains the original shared
+call-forward-owned factory literal. Installed SDKs include FORWARDING.json,
+AARCH64-FORWARDING.json andthis document alongside the VM/ABI receipts.

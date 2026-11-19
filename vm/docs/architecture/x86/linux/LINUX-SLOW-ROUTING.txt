@@ -1,0 +1,100 @@
+Historical slow-routing increment and its then-open parity review
+The final8c whole-suite/per-case review is in LINUX-FINAL-REVIEW.txt;
+current build/Test262/SDK scope is in LINUX-RELEASE.txt.
+
+Linux unified slow routing: qualified development increment
+============================================================
+
+MinGW performance parity remains OPEN. This increment repairs a demonstrated
+Linux routing cost; build/correctness qualification and a local speed gain do
+not close that whole-platform performance requirement. The original immutable
+deliveries retain their source/image identities. Stock means NG0.15.1 bf8988f,
+not Bellard QuickJS2026. All19 pinned sources remain unchanged.
+
+Mechanism and scope
+-------------------
+The previous Linux literal fallback walked every logical ancestor to choose
+between the ordinary C executor and its complete checkpoint/forward/constructor
+superset. Repeating this classification at depth costs O(depth) per slow step.
+The accepted MinGW slow-direct policy already uses the complete executor.
+
+JS_LinuxUnifiedSlowSelect is a51-byte SysV state-pointer-to-int tail dispatcher.
+Literal and indexed gateways run before it. With existing slow-direct mode
+ready/enabled and observation disabled, native for_of_next keeps its worker;
+other cases, including pending exceptions, enter COMPLETE JS_FrameVarargsSlow.
+It preserves the original semantic bodies, polls, quota, GC/publication and
+frame/iterator/forward/constructor cleanup. It does not write VM state, allocate,
+add a JS/C frame or add runtime/state/control bytes. No benchmark name or data
+selects the route. It uses the measured168-byte private state and existing mode.
+
+Cold255, disabled and observed modes retain the exact old selector. Existing
+coherent SlowDirectConfigure initializes the shared policy on its normal first
+eligible C step. QJS_DISABLE_FRAME_SLOW_DIRECT, by presence including0, disables
+this route AND existing indexed/instanceof steps. QJS_OBSERVE_FRAME_SLOW_DIRECT
+also retains the original selector here. Controls have fresh-process scope.
+Compare OLD-OFF against NEW-OFF; this is not a pure single-feature ablation.
+
+Emission requires the native indexed, literal and iterator contracts. Other
+generator configurations retain their existing targets. Windows runtime input
+is unchanged. Source ownership stays in tools/elf and src/x86/linux; no new
+public API, serialized format, checked-in assembly family or C TU is added.
+
+Evidence and retained costs
+---------------------------
+Historical installed MinGW SDK70638ed V8-v7 score1928.29 is verified. A fresh
+four-role original complete-suite screen found current MinGW1895.68 vs Linux53
+1730.52, an8.71% score deficit. The earlier5.8%comparison concerned lazy only.
+
+Quick reversed original V8 pairs: Linux53 mean1718.34 vs this increment1846.35
+points(+7.45%); EarleyBoyer1743.24->2356.14(+35.16%). Old/new existing-OFF runs
+give EarleyBoyer1459.78/1457.06, strong support for a routing gain. Their full
+OFF total has about1% new cost; layout is not assumed performance-neutral.
+
+Final paired current MinGW samples1892.29/1918.90, mean1905.59; Linux samples
+1814.26/1956.91, mean1885.58. A favorable Richards mode drives the high sample.
+Do not use that mean or the1957best to declare stable parity. All four valid
+candidate full-suite processes pool to1865.97 and four current MinGW processes
+to1900.64 across separate phases; this is descriptive, not one concurrent pair.
+NavierStokes, EarleyBoyer, Splay and RayTrace still have individual deficits.
+
+Original whole JetStream17 subset normalized elapsed is1.02% lower vs53; this
+is not an official JetStream score. Original micro57 user-CPU time is roughly
+flat(-0.07%) in the first screen; a bounded full-context repeat is-3.21% with
+large modes, so a stable3.2% gain is not claimed. Concat0 retains about5..6%
+more time, concat3 about7.8%, and hole-array length decrement about4.2..4.5%.
+Their added costs are explicitly priced against stock in the external report.
+Concat1 is multimodal; initial array_for/array_prop_create costs did not repeat.
+Keep original calibration N and clocks; no wall diagnostic replaces upstream.
+
+Old Linux EarleyBoyer diagnostic profile has3489 samples and19.46% self in the
+ancestor selector. New profile has3485 samples,0lost and no old selector above
+the0.5%report cutoff. These repeated-body profiles are not scores or call rates.
+A read-only public SDK observer saw32 naturally admitted routes and successful
+protocol checks. Initialization was not established as the Richards variance
+cause; observed Date calls already had ready mode. No speculative init patch
+was made. Debugger timings are excluded from performance results.
+
+Qualification and layout
+------------------------
+934/934 native CTest pass. Two NEW complete Test262 runs, default and existing
+slow-direct-OFF0:65/81152 inherited failures,31fixed,0new/changed exact identities,
+4925excluded,5954skipped on pinned corpus de8e621. Installed/moved SDK public C
+consumer passes default/OFF0/observed: GC, host reentry, changing capture, realm,
+depth32, Reflect.construct, constructor exception and generator-finally cleanup.
+
+PIE/PIC, CET, nonexecuting stack, no TEXTREL/engine JUMP_SLOT and complete new
+FDE pass. Catalog completion retained all56 compiler C/H/ASM inputs and the
+EXACT qualified/measured/installed CLI SHA256:
+b306a0c11475c7a87c47de068b39ea8ab313129170270b50fa386a77d13bf274.
+
+The core call graph changes function ordering: main VM+128bytes, old selector
+reordered+5184, VM tables+4096. LegacyCallInternal entry and size remain, while
+relocation bytes differ. Do not claim full layout identity. No PGO, padding/base
+tuning or favorable-address/copy selection is used. Windows original image and
+all raw Linux samples, negative contexts and benchmark/source hashes are kept.
+
+Audit: external maintenance/mingw-parity-v8-r1/CONSOLIDATED.txt/json contains
+every original micro57/Jet17/V8 row, repeat, cost and qualification binding.
+The next performance review must keep current MinGW as a whole-suite reference,
+investigate stable Navier gaps and Richards modes, and leave parity OPEN until
+the evidence supports closing it.

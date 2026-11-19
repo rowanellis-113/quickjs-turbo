@@ -1,0 +1,59 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental AArch64 activation-owned literal and scalar opcode tier
+===================================================================
+
+The complete accepted ordinary and iterator literal owners are composed by
+the shared source factory. Physical VM entry retains the existing kind3
+blocked compiler-TLS owner,then owns the original24byte lazy record or864byte
+full scope. The336byte legacy prefix and eight call replacement bytes are
+preserved. Strong old/successor shape pins and bounded optional metadata
+survive exactly this activation;all success,exception and allocation-failure
+exits restore the caller pointer/flags and release every owned shape/chunk.
+The owning cleanup never dereferences a completed JS frame.
+
+All shapes,properties,atoms,original OrdSite/OrdRecord/OrdScope/OrdLazy fields,
+class IDs,state padding and scalar constants are measured from actual GCC
+types and checked again against the generated same-TU semantic owner. No
+Win64 aggregate/register convention or private type mirror is imported.
+Frame/state/public runtime sizes remain128/168/original. There is no new
+Release or instrument TLS. Root scope storage and bounded cache allocations
+are original mechanism costs;unchanged JS frame size is not unchanged stack
+or RSS. Physical ARM speed and RSS remain unverified under QEMU.
+
+Native define_field retains the complete original live record/site/bytecode/
+atom/slot,plain extensible nonprototype object,hashed/undeleted shape and
+spare-capacity guards. It activates the pinned successor shape before
+weakening its pinned predecessor,transfers the only RHS owner and clears the
+popped slot. Every miss leaves incoming operands/PC/SP unchanged and reaches
+the exact original typed C lifetime owner through coherent publication.
+Object allocation retains that original C allocator rather than a guessed
+private malloc ABI.
+
+Native insert2,typeof value/function/undefined and string/rope/object/number
+truth cohorts retain the complete original tag,nonlast reference,HTMLDDA,
+NaN/-0 and interrupt-reset rules. Existing immediate and numeric architecture
+controls remain in force. Branches debit the original current-realm poll once
+only after all guards. typeof object/function cases rejected by the accepted
+kernel retain the complete original operator. The separate fused predicate
+call classifier/value kernels and other specialized root/child scalar call
+leaves remain OPEN;this tier does not claim that whole family complete.
+
+QJS_INTERP_FRAME_LITERALS is the compile control and requires the existing
+complete indexed/extended semantic owner. A missing dependency retains the
+original path. All original process-presence controls,including0 and1,are
+preserved:ordinary/iterator literal scopes and transitions,lazy/repeat/spare/
+VM-hit,cache allocation faults,insert,typeof,predicate,truth/number truth and
+broad register/frame/shared/publication controls. A disable control retains
+its original component scope rather than necessarily disabling all opcodes.
+
+External linux-arm64-literals-20261113 evidence contains unmodified complete
+semantic/public GC/reentry/OOM fixtures,actual native path controls and a
+natural read-only transition observation proving pinned shape RC,RHS transfer,
+cleared popped cursor,unchanged state and full activation/VM CFI. The shared
+factory's default x86 runtime header/core and all14 default C outputs remain
+byte-identical;actual old-platform.i/.o checks are retained. Whole frozen
+compatibility,compile-OFF and noGit installed SDK qualifications remain
+separate gates. AUTO stays PORTABLE until all original P0-P5/all22 gates close.

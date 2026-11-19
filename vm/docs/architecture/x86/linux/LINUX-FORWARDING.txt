@@ -1,0 +1,137 @@
+Linux .call normalization and logical native parents (development)
+================================================================
+
+forwarding-r2 closes the shared .call dependency group. It is not the finished
+Linux backend or a new performance/product baseline. All six LINUX-PORT.txt
+gates remain required. Function.apply/spread and entry/root/child/leaf selectors
+remain separate migration groups; default-OFF weak VM linking is still separate.
+
+Later native-entry completes the public/root/child selectors and standalone/
+child leaf group;see LINUX-ENTRIES.txt. Remaining lists here describe the
+forwarding-r2 checkpoint,not the latest whole-port coverage.
+
+Shared implementation and measured ABI
+---------------------------------------
+The accepted call-forward normalizer, prepared C constructor and nine native
+functions are reused through explicit actual-layout arguments to the common
+factories. Their default Win64 output and explicit Win layout output equal the
+actual qualified MinGW assembly:1418 generated rows including labels. The
+prepared C factory's Windows output also matches its original generated body
+exactly;Linux removes its unused leaf temporary after native classification.
+The ordinary Win64 MinGW build and all307CTest/144decision receipts pass after
+these shared changes. The accepted Windows SDK70638ed remains unchanged.
+
+Linux uses actual GCC/SysV classes, fields, bitfields and inline refcount0.
+The identity guard is a compiler-checked hidden ELF alias of the real original
+js_function_call, not a guessed local clone or copied COFF fingerprint. A new
+four-argument prepared bridge is checked against the real preprocessed
+signature; JSValueConst expands to JSValue in this pinned header.
+
+Returning probes keep the original private volatile-register convention and
+receive32 separately reserved native scratch bytes. Reusing the Win home area
+in the live Linux VM would overwrite its canonical TLS anchor. Returning
+functions use ordinary CFA8; the forwarding caller records the32-byte change,
+then restores the live VM CFA144. Direct JMP continuations retain that VM CFA.
+The native VM has142 handlers and32 audited C bridge targets. No JSValue,
+public type, arena state or regular128-byte JS-frame header grows.
+
+Ownership, observable frames and unwind
+---------------------------------------
+Supported genuine call wrappers normalize at most64 layers. A native leaf may
+return only the accepted immutable/argument/integer-add forms; it still checks
+the full hypothetical frame/arena/quota geometry and exact poll/realm order.
+Returned references are duplicated before the original operand owners die.
+One-wrapper native constructors own all supplied arguments and missing suffix,
+or borrow a proven readonly window. Missing readonly slots are padded only
+within the caller's declared operand stack and actual allocation, excluding
+captured tables. Mutable/unknown graphs keep independent ownership. Proven
+kind7 captures retain the original detach/close lifetime from LINUX-JS-CALLS.
+
+The shared deep descriptor normalizes once, then enters the original prepared
+leaf or owned constructor. Every owning cell, local and captured-table entry
+is initialized before runtime publication. No observer or failing operation
+occurs between final admission and complete publication. Linux restores the
+running cur_sp=NULL convention when returning from these constructors.
+
+Non-elidable wrappers retain80-byte logical C SFs after the regular data frame.
+They borrow the original pending owners, preserve native function identity,
+arguments and realm poll order, and remain visible through captured-cell close
+and every observable value release. Root marker2 identifies their JS child;
+marker1 remains a real activation root. The common retained-context parent/take
+helpers, native normal return and C exception/slow return skip/release the
+complete logical chain only after cleanup. Data quota and segment cursors
+account for the full tail; no native C activation is added per wrapper.
+
+An existing no-overwrite guard retains a C-stack builtin view when logical
+tails follow a frame. This matches the accepted Win window-preparation bound;
+it never moves a published logical SF to create a cached view. The mixed
+fixture observes40 root2 builtin stack views and0 arena-window views. A future
+post-tail window design would require its own ownership/geometry/cost proof.
+
+Controls (presence,including value0 and value1)
+----------------------------------------------
+QJS_DISABLE_FRAME_CALL_FORWARD: original wrapper invocation.
+QJS_DISABLE_FRAME_CALL_FORWARD_LEAF: retain observable frames for leaf bodies.
+QJS_DISABLE_FRAME_CALL_FORWARD_NATIVE: shared C normalizer instead of probes.
+QJS_DISABLE_FRAME_CALL_FORWARD_OWNED: retain original/C ownership constructor.
+QJS_DISABLE_FRAME_CALL_FORWARD_BORROW: independent owned argument prefix.
+QJS_DISABLE_FRAME_CALL_FORWARD_BORROW_MISSING: own the missing-arity prefix.
+QJS_DISABLE_FRAME_CALL_PREPARE: retain complete original discovery/normalizer.
+QJS_DISABLE_FRAME_CALL_PREPARE_OWNED: retain the typed prepared C constructor.
+The captured-readonly and parent register/frame controls remain independent.
+QJS_OBSERVE_FRAME_CALL_PREPARE enables the inherited explicit atomic counters;
+normal mode does not count. Process configuration remains immutable per run.
+
+Qualification and bounded observations
+--------------------------------------
+Release/Werror,437full CTests,ELF/CFI/PIC/CET and independent installed consumer
+pass. A later fixture-only quota extension requalifies all34 affected host/OOM/
+quota cases on unchanged engine/archive bytes:441 distinct current CTests.
+Full current Test262 ON/OFF each has65/81152 inherited failures,31fixed,0new or
+changed,with exact portable failure/fix identities and unchanged corpus/config.
+
+The2649-check language fixture matches stock/prior/current and component OFF.
+A separate161-check composition fixture covers builtin views,prepared map/sort,
+JSON reviver/replacer,regexp and throwing primitive coercion under forwarding.
+Actual native producer observations ON:19 primitive leaves,19 one-owned,
+19 borrowed,19 missing-borrowed,38 prepared leaves and19 prepared owned commits.
+Native-OFF makes all six zero; independent owned/borrow/missing/prepare/leaf
+controls remove their own producers. Complete fields and actual CFI are checked
+at commit points,not inferred from semantic fallback.
+
+The current public host has320 forwarded callbacks:304 owning,16 borrowed,
+160captured,320public backtraces and320GC/realm reentries;three interrupts abort
+and recover. All seven independent ownership/normalizer OOM modes recover with
+four or five injected allocation failures per mode and complete zero ledgers.
+At a real32KiB
+overflow,the live SF chain contains86forwarded JS frames and86logical parents;
+restoring1MiB recovers. Stock/prior/current archives pass the same public host
+object,OOM and overflow/recovery. These fixture counts are not suite rates.
+
+Static cost versus js-call-r2:+16224 executable bytes,+560 allocated writable,
++23448 file bytes. All67selected C worker functions and9returning probes have
+complete FDEs. Legacy CallInternal remains37388bytes at the same address.
+Retained logical tails cost80 arena bytes per wrapper; probes temporarily use
+32native bytes. The same public-host object's measured heap peak is158844bytes
+for both prior/current and158663 for stock. This bounded allocation diagnostic
+excludes C/native stacks,static mappings and RSS;no general memory/speed claim.
+
+Retain the failed initial signature check (the public macro expansion),the
+module-local/global fixture mistake,and the compact-leaf fixture that did not
+exercise missing borrowing. None was bypassed by weakening a runtime guard.
+Inherited species,original JSON366-byte and cold metadata OOM negatives remain.
+
+Next complete groups
+----------------------
+Native entry/root/child/leaf selectors and call-env parent routing,deferred
+dirty/clean publication,then apply/iterator/spread/close/unwind/literal shape,
+property/prototype/indexed,string/array/RegExp/scalar supplements. Complete
+mechanism coverage before local layout/parameter variants. Final stock/
+portable/native micro57,Jet17,V8-v7 quick reverse screens,justified stable/
+profile/RSS and current MSVC/MinGW/configuration/literal-source-package gates
+are still required. Consider measured SysV/hidden-ELF opportunities at that
+stage; do not trade missing mechanisms for isolated small benchmark variants.
+
+Evidence: /home/eros/port-records/linux-x86_64/forwarding-r2,
+test262-forwarding-r2 and forwarding-r1/factory-proof;
+D:/js-engines/maintenance/linux-x86_64/windows-forwarding-r2.

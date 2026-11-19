@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "tools/common/c_extract/global_binding_c.py": "5c08f86539e5c1ca04000db716e2b7f25247bb59d0f198fafa1f04f5bd090d38",
+    "tools/common/c_extract/own_bytecode_c.py": "ac462dcfded86e46a1a4b35065eaf2a861222ee6abe829a74e2c33610d0dae66",
+    "src/common/linux/interpreter-global-bindings.inc": "171f5b0d283e633613a7dc19cb7a6ae5b91a70ae858cf0344bea166887088d95",
+    "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/property/global-binding-cell.inc": "367241f4e3466cd43d975cec9ff2333ebf1cb9e6bace43edd56887ba982fdcc2",
+    "src/common/property/property-ic.h": "5606d8ccbd8fbbeafc5b129df402febf49011faef84472ffcab66018125f7702",
+    "src/common/property/property-ic.inc": "fe1a151295a3ab439eebbcf5979b646a369efea6597f42c565f98dae3f992442",
+    "src/common/property/property-ic-lifetime.inc": "68578bb940fbfe8d56b2b43fefbaa291475d0766ad13e9e3920a979ed3350388",
+    "asm/arm64/common/register-global-bindings.inc": "ffda4341bfd788db0a29e80d2e14f489e550d4593d5bb61a54393d7660bbe814"
+  },
+  "scope": "Complete accepted GNU BC cells/relink,weak activation global/lexical hints,undefined arithmetic,large bypass,resolved Symbol conditional",
+  "new_frame_fields": 0,
+  "new_state_fields": 0,
+  "new_strong_roots": 0,
+  "extra_allocations": 0,
+  "hardware_performance_qualified": false
+}

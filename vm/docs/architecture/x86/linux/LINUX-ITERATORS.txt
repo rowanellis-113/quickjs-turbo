@@ -1,0 +1,50 @@
+Native synchronous iteration on Linux x86_64
+===========================================
+
+tools/elf/iterators.py derives the accepted GNU iterator opcode workers,
+JS-next checkpoint, dense-array next guard and done/value continuation from
+the original generators. No COFF object, Windows unwind record or guessed
+function ABI is copied. The actual Linux core types and helper identities
+compile in the existing semantic owner; state-only bridges use measured SysV
+and the real VM CFA. Existing coherent C scopes protect callbacks and GC.
+
+The next() call is an ordinary child in the same VM activation. Its paused
+parent retains its original output top in cur_sp, flag63 bit1 and pending0.
+The original enter_frame body owns arity, captures, quota, growth and polls.
+Every ordinary C return must preserve that paused top until done/value are
+consumed; an injected legal slow return exposed the old unconditional NULL
+reset and is retained as a negative/regression proof. Normal running frames
+still use NULL. Frame128/state168 are unchanged; no new GC root/cache exists.
+
+Bytecode prefix padding belongs to leaf/argument descriptors. Iterator bits
+therefore use the existing combined tail byte after pc2line_len: extended1,
+varargs2,array-enabled4,array-init8,slow-array16/32,JS-next64/128. This keeps
+all varargs and argument metadata distinct. Dense-array guards check live
+iterator/method identity, array representation, length flags and bounds.
+Completion, accessors, proxies and other misses keep original semantics.
+The slow-array helper is present for the remaining combined varargs owner;
+the current isolated observer does not claim a natural slow-array hit.
+
+Controls by presence,including0:QJS_DISABLE_FRAME_ITERATOR,
+QJS_DISABLE_FRAME_ITERATOR_JS_CALL,QJS_DISABLE_FRAME_ARRAY_ITERATOR and
+QJS_DISABLE_FRAME_ARRAY_ITERATOR_SLOW. Fresh-process component tests and
+intrusive observations prove actual JS-next/root/child/nested and dense-array
+routes. Observed counts are bounded correctness evidence,not suite rates.
+
+The normal JS fixture covers get-order/GC/getters/proxies/inherited results,
+close/throw/primitive results,nested checkpoints,modified arrays,readonly/
+writable/captured/local next slots,escaping closures,large missing arity and
+argument-object fallback. The existing public C protocol fixture has an
+iterator variant for cyclic owners,realm/GC reentry,backtraces,interrupts
+and allocation-fault recovery. External same-object prior/stock references
+and additional close/98-formal OOM consumers are retained in port records.
+
+This iterator checkpoint remains a separately qualified development portion.
+Direct/fused spread, intrinsic apply and activation-owned literal-shape
+dependencies are now described in LINUX-VARARGS.txt. Their actual snapshots,
+GC roots and cleanup require their own proof; the historical isolated iterator
+observer above does not acquire a slow-array natural-hit claim retroactively.
+Remaining property/prototype/indexed/RegExp/scalar supplements and all six
+LINUX-PORT gates remain. Complete default-active MinGW mechanisms before local
+padding/parameter/per-case timing experiments. No final Windows/package or
+whole-product speed acceptance follows from semantic tests.

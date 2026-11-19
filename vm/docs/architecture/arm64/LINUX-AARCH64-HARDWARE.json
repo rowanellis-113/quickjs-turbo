@@ -1,0 +1,4329 @@
+{
+  "schema": 1,
+  "date": "2026-11-13",
+  "scope": "Linux AArch64/glibc/GCC native hardware follow-up; historical x86 MinGW parity and older glibc support remain separate",
+  "status": "Measured runtime and compatibility qualified; final clean-source/package binding is recorded by external RELEASE-ACCEPTANCE.json",
+  "upstream": "bf8988fc401e737f9946cd10a3463b48aab0fd7e",
+  "implementation_commit": "9bb91fe7568c84d8fe598239d9724b726bc27b61",
+  "measured_source_archive_sha256": "74837eb7f50f0933aea10c12ee454ffae30d761e99c6a543aac15b967b47fc1a",
+  "source_binding": "Measurements used an explicitly dirty, fully hashed noGit snapshot. The final canonical archive must reproduce CLI, qjsc, Test262 runner and static library bytes before those results are reused. Documentation changes are not runtime qualification.",
+  "host": {
+    "os": "Ubuntu 26.04.1 LTS",
+    "kernel": "7.0.0-1016-aws",
+    "cpu": "Neoverse-N1 AArch64",
+    "vcpus": 2,
+    "gcc": "13.4.0",
+    "binutils": "2.46",
+    "cmake": "4.2.3",
+    "ninja": "1.13.2",
+    "python": "3.14.4",
+    "affinity_cpu": 1,
+    "affinity_exception": "Only CPUs 0/1 exist; CPU 2 is unavailable. All timing/build panels are serial on CPU 1, one build job.",
+    "aslr": 2,
+    "PGO": false
+  },
+  "images": {
+    "stock": {
+      "sdk": "/home/ubuntu/qjs-experiments/20261113-migration/relocated-sdks/stock",
+      "qjs_sha256": "9e35327815f2bf8c63b421338a036d22d17939440a2d237bd2da4305cb4200ce",
+      "archive_sha256": "d68652387de823a4553354ee6cbbe0d43455bd62c3c72d42ea582689255b8695"
+    },
+    "portable": {
+      "sdk": "/home/ubuntu/qjs-experiments/20261113-migration/relocated-sdks/portable",
+      "qjs_sha256": "9ab893da727fd8c7bb9134d35518eb3dd18dde5d7d0b0e2e95bab4a4a7431e74",
+      "archive_sha256": "70b0dc8918cc8279be9081b2e9c4fe3f63c6a7f608f377cd089e705d0a5e2799"
+    },
+    "native": {
+      "sdk": "/home/ubuntu/qjs-experiments/20261113-migration/relocated-sdks/native",
+      "qjs_sha256": "52e49f84b1bfcd880d5e8c01275f64c17252f4f806122b8534eb430e01aef02e",
+      "archive_sha256": "423ccba8323502aff3c67981121d13a70a42266cfa262d6d49d0ebf266aa3178"
+    }
+  },
+  "ctest": {
+    "arm_native": 1249,
+    "arm_instrumented": 1797,
+    "arm_portable": 218,
+    "win_msvc": 294,
+    "win_mingw": 309,
+    "win_portable": 213,
+    "linux_x86_64_retained": 949
+  },
+  "test262": {
+    "corpus": "de8e621cdba4f40cff3cf244e6cfb8cb48746b4a",
+    "config_sha256": "33f65b67dd82f441e693c5087b61ab2948091ea7f8c773f974fa51bafee7584f",
+    "known_errors_sha256": "6b6e1a57b1c27944626119546dc456b44aff8bf15fc7d10d177f42e82f6a5b56",
+    "tested_per_configuration": 81152,
+    "stock_failures": 96,
+    "product_inherited_failures": 65,
+    "fixed": 31,
+    "new_or_changed": 0,
+    "arm_modes": [
+      "stock",
+      "portable",
+      "native",
+      "native-register-off"
+    ],
+    "windows_modes": [
+      "stock-mingw",
+      "msvc-WIN64",
+      "mingw-WIN64",
+      "mingw-PORTABLE"
+    ],
+    "product_failure_identity_equality": true
+  },
+  "public_consumers": {
+    "arm_relocated_sdks": 3,
+    "checks_per_sdk": 4,
+    "native_callback_unwind_gc_reentry_checks": 256,
+    "windows_relocated_sdks": 3,
+    "internal_arm_wire_pairs": 9,
+    "cross_os_isa_wire_pairs": 18
+  },
+  "linked_image": {
+    "native_handlers": 161,
+    "original_base_handlers": 141,
+    "missing_original_base_handlers": [],
+    "full_fde_ranges": 242,
+    "PIE": true,
+    "NX_stack": true,
+    "no_WX": true
+  },
+  "mechanisms": [
+    {
+      "family": "Public ABI, register dispatch and ordinary JS frames",
+      "implementation": "Measured AAPCS64 aggregate/root/child/tail VM, owned frames and native scalar destinations",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "asm/arm64/linux/interpreter.S": "d1b09873c11dcfd9dfe8e57b5ea61dfaad1fc7ad380c1b9f94b66945a3f76e48",
+        "asm/arm64/common/register-call.inc": "0d35ac9624dc02b34793aa70ab36da053e18309143ea95e85b3baacb4d217556",
+        "asm/arm64/common/register-scalar-ops.inc": "b9449cbba242fe9928d5a5b40eb54e90b5a5b05ebae556da9146d2c5775adcf4",
+        "tools/arm64/prepare_vm.py": "a3743054ae2316d4ca080d7b2c2ef8a6cc3c94c2c45643378bdd73908d567d2b"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-c-entry-native_numeric_invoke-0",
+          "output_sha256": "7dfd93cd2ed80245420dda92b415db129d523d36ae500669004fa6373e6383cf",
+          "markers": [
+            "LINUX_C_ENTRY_OK numeric=693 observations=756 views=754 window=754 stack=0 transient=0 reentry=778 interrupts=3",
+            "Required regular expression found. Regex=[LINUX_C_ENTRY_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-entry-native_numeric_invoke-1",
+          "output_sha256": "34ba7691e278beb1ac5ffa4814c3bbb8108a894b5a80abc4a709365b0b2164d0",
+          "markers": [
+            "LINUX_C_ENTRY_OK numeric=693 observations=756 views=754 window=754 stack=0 transient=0 reentry=778 interrupts=3",
+            "Required regular expression found. Regex=[LINUX_C_ENTRY_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-entry-numeric_trampoline-0",
+          "output_sha256": "26b3f5c607dfa0ed77738c37e50d36b669a9c24afa674ff995152dd396580548",
+          "markers": [
+            "LINUX_C_ENTRY_OK numeric=693 observations=756 views=754 window=754 stack=0 transient=0 reentry=778 interrupts=3",
+            "Required regular expression found. Regex=[LINUX_C_ENTRY_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-entry-numeric_trampoline-1",
+          "output_sha256": "b1db809c69c86dbb43cb97f010d472fc3e33980017fd1282a4756beeb06919c4",
+          "markers": [
+            "LINUX_C_ENTRY_OK numeric=693 observations=756 views=754 window=754 stack=0 transient=0 reentry=778 interrupts=3",
+            "Required regular expression found. Regex=[LINUX_C_ENTRY_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-call-owners-native",
+          "output_sha256": "87d5da5b076022f2ffa1b451d04602c269a63a30d80a6696ac5cfd499197c06d",
+          "markers": [
+            "AARCH64_CALL_OWNERS_OK mode=native born=121 finalized=121 reentry=121 interrupts=3 calls=1398 returns=1961 tail_calls=1359 tail_returns=1280 resumes=80"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-captured-entry-native",
+          "output_sha256": "9535bc228888d093373363149aff85563f7ee8285adf4b60e9b3b006bd13c318",
+          "markers": [
+            "AARCH64_CAPTURED_ENTRY_OK mode=native cases=124 born=132 finalized=132 reentries=13 native_calls=112 recursive_calls=98 host_sp_delta=0"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-register-vm-native",
+          "output_sha256": "c63ae4f4eeefea3705d85091b8ed97dd57b86f176d1ff362e04e4be62c45c935",
+          "markers": [
+            "AARCH64_REGISTER_VM_OK mode=native activations=14 native_ops=2584 c_steps=12 depth=200 host_sp_delta=0 calls=208 returns=223"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "asm/arm64/linux/interpreter.S": "d1b09873c11dcfd9dfe8e57b5ea61dfaad1fc7ad380c1b9f94b66945a3f76e48",
+        "asm/arm64/common/register-call.inc": "0d35ac9624dc02b34793aa70ab36da053e18309143ea95e85b3baacb4d217556",
+        "asm/arm64/common/register-scalar-ops.inc": "b9449cbba242fe9928d5a5b40eb54e90b5a5b05ebae556da9146d2c5775adcf4",
+        "tools/arm64/prepare_vm.py": "a3743054ae2316d4ca080d7b2c2ef8a6cc3c94c2c45643378bdd73908d567d2b"
+      }
+    },
+    {
+      "family": "Coherent C/legacy callback boundaries",
+      "implementation": "Typed direct/class/numeric host ABI, lifetime windows and consuming return",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/c_entry.py": "52d3729c140973d3588c211f2eaf405099fd8d8ab3a5e1775d7a6c2997a2b74e",
+        "tools/arm64/c_return.py": "974701a034f3008c1bb5eee1b319f6e6afc5ed3cdac03e88b1b07f89b2079163",
+        "src/arm64/linux/interpreter-c-entry.inc": "8d7cadc4a77e4a970d469c389bdd03e3fb026c9047d7830ad13ea0f564b7a246",
+        "asm/arm64/common/register-host-return.inc": "b6a1a7a85064aef13734c74faad28ea855105e8cd8e06824e41150e063125439"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-c-entry-observer-native",
+          "output_sha256": "d43cb44f8c8c712699b5dc0042c0126b7d99117667082c018f4cba396f2ecfb9",
+          "markers": [
+            "LINUX_C_ENTRY_OK numeric=693 observations=756 views=754 window=754 stack=0 transient=0 reentry=778 interrupts=3",
+            "AARCH64_C_ENTRY_COUNTS_OK",
+            "Required regular expression found. Regex=[AARCH64_C_ENTRY_COUNTS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-native",
+          "output_sha256": "81f8724d2ef614ecc8d0c6683b8d51f7568e5062efa59bc270a08992f89f2dc4",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "Required regular expression found. Regex=[LINUX_C_INVOKE_ABI_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-observer-native",
+          "output_sha256": "1078a449d19375d4080339158ba7b9a3fefae057c16001c55ebffc2e988c6c63",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "AARCH64_C_INVOKE_UNWIND_OK native_gc=720 no_gate=0 no_step=0",
+            "Required regular expression found. Regex=[AARCH64_C_INVOKE_UNWIND_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-one",
+          "output_sha256": "d7a38a4d38ccd06993385fb7d1b11f5f2d4d72dadb9bc4daac0d1cf288909e1f",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "Required regular expression found. Regex=[LINUX_C_INVOKE_ABI_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-shared-off",
+          "output_sha256": "646032120671dbe37c267b6e7b8de46593bacf2b1ce7ac99ad167f28fc3b937d",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "Required regular expression found. Regex=[LINUX_C_INVOKE_ABI_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-zero",
+          "output_sha256": "9c2dd774c62748e5186d405469a95a33da9ba78484bd62f47e79d6ef9c6a4e70",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "Required regular expression found. Regex=[LINUX_C_INVOKE_ABI_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-return-native",
+          "output_sha256": "c3c4850a5a44c3da53f2c02747c86ad1c037fc06f416fa9eee7d193ca1c25823",
+          "markers": [
+            "AARCH64_C_RETURN_OK trials=64 native=1 finalizer_unwind=192 reentry=192 regular=288 tail=32 free=192 fallback=0 quota_restored=64",
+            "Required regular expression found. Regex=[AARCH64_C_RETURN_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-class-host-native",
+          "output_sha256": "177c68586d1e05cc97dd4dc45bb6bea87a17a34bd96958b24a9eb37958e1b5ef",
+          "markers": [
+            "AARCH64_CLASS_HOST_OK mode=native cases=165 observe_gc_reentry_unwind=143 coercions=10 route_observed=1"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-host-call-native",
+          "output_sha256": "a530b514c74aa939d63ec063cc7696b3c8e8efa00f40985bb8aa6c607cc3ca7c",
+          "markers": [
+            "AARCH64_HOST_CALL_OK mode=native generic=40 magic=40 throws=20 collections=100 reentry=100 unwind=100 direct_generic=60 direct_magic=40"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/c_entry.py": "52d3729c140973d3588c211f2eaf405099fd8d8ab3a5e1775d7a6c2997a2b74e",
+        "tools/arm64/c_return.py": "974701a034f3008c1bb5eee1b319f6e6afc5ed3cdac03e88b1b07f89b2079163",
+        "src/arm64/linux/interpreter-c-entry.inc": "8d7cadc4a77e4a970d469c389bdd03e3fb026c9047d7830ad13ea0f564b7a246",
+        "asm/arm64/common/register-host-return.inc": "b6a1a7a85064aef13734c74faad28ea855105e8cd8e06824e41150e063125439"
+      }
+    },
+    {
+      "family": "Deferred frame publication",
+      "implementation": "Actual x25 Clean/Dirty/OFF tables and observing proxies; no early SF requirement for pure leaves",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/publication.py": "fb20cdcc48d51365c14f5273dea939d18dd0b7876975d3053d3bf5c06ef12808",
+        "src/arm64/linux/abi/publication.json": "426843ea13dbf6341f9ad20388aff22b21ea19a143804994121683767deabd27"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-c-invoke-observer-shared-off",
+          "output_sha256": "7845e543a40c5613a4f96f7dc8279a737400cf8aa6aeca1148f2a5b2f314a326",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "AARCH64_C_INVOKE_UNWIND_OK native_gc=0 no_gate=0 no_step=0",
+            "Required regular expression found. Regex=[AARCH64_C_INVOKE_UNWIND_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-invoke-shared-off",
+          "output_sha256": "646032120671dbe37c267b6e7b8de46593bacf2b1ce7ac99ad167f28fc3b937d",
+          "markers": [
+            "LINUX_C_INVOKE_ABI_OK calls=720",
+            "Required regular expression found. Regex=[LINUX_C_INVOKE_ABI_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-c-return-shared-off",
+          "output_sha256": "f43000a9c42e05df05da1154aac9d94cb58ecfc1cb211f2bd7522435d6b26dc8",
+          "markers": [
+            "AARCH64_C_RETURN_OK trials=64 native=1 finalizer_unwind=192 reentry=192 regular=288 tail=32 free=192 fallback=0 quota_restored=64",
+            "Required regular expression found. Regex=[AARCH64_C_RETURN_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-property-primitives-shared-off",
+          "output_sha256": "91135fbad0352c3635744c4c18b16fdfe9b5c911a242c10c1369b82d42b41bc0",
+          "markers": [
+            "AARCH64_PROPERTY_PRIMITIVES_OK methods=64 views=0 hot=0 unwind=0 gc_reentry=64 foreign=5 getters=2 logical_lengths=4 quota_restored zero_ledgers",
+            "Required regular expression found. Regex=[AARCH64_PROPERTY_PRIMITIVES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-api-native",
+          "output_sha256": "947977da4a7dc427a21bae93c2be3c21f3630a98fd94cf557239e01c1aaf7837",
+          "markers": [
+            "LINUX_PUBLICATION_API_OK resources=66 probes=132 reentries=66 interrupts=3 zero-ledgers",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_API_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-api-zero",
+          "output_sha256": "18197668086f50f9e6ee88dc25c7bdcb109130d9f16cd16101af0934e57148e9",
+          "markers": [
+            "LINUX_PUBLICATION_API_OK resources=66 probes=132 reentries=66 interrupts=3 zero-ledgers",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_API_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-js-native",
+          "output_sha256": "3f45b1859d57808e24e0723bf0e07a55951823739a7209b3174ad5dd3774f38d",
+          "markers": [
+            "LINUX_PUBLICATION_OK checks=1665",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-js-zero",
+          "output_sha256": "80b818b666eb1b09b65d63157addd30c4b330e466007c32cb67ff5b78e8a8561",
+          "markers": [
+            "LINUX_PUBLICATION_OK checks=1665",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-oom-native",
+          "output_sha256": "3f7670ec278dcfac4666c400c4ddd8af47669de9521583510f6d28ae8f5a52a8",
+          "markers": [
+            "LINUX_PUBLICATION_OOM_OK faults=8 zero-ledgers",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-publication-oom-zero",
+          "output_sha256": "c75df05835e02470ae20d858aed13b9042ae49b9513a75defde8645f69ae8b55",
+          "markers": [
+            "LINUX_PUBLICATION_OOM_OK faults=8 zero-ledgers",
+            "Required regular expression found. Regex=[LINUX_PUBLICATION_OOM_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/publication.py": "fb20cdcc48d51365c14f5273dea939d18dd0b7876975d3053d3bf5c06ef12808",
+        "src/arm64/linux/abi/publication.json": "426843ea13dbf6341f9ad20388aff22b21ea19a143804994121683767deabd27"
+      }
+    },
+    {
+      "family": "Call preparation, forwarding, arguments and captures",
+      "implementation": "All nine prepared forwarding functions, bounded captured-readonly proof, owned/borrowed/missing and mapped/unmapped arguments",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/forwarding.py": "ce9c2dd7b57e3dcf181ade2e1302735e29340efae84ef2f1782862b20cb41378",
+        "tools/arm64/arguments.py": "8f216506f5870b461958cf07c330b6d542cac47aa03e3bbef83dba686b55a228",
+        "asm/arm64/linux/forwarding-prepared.S": "81bc4cf27a590c94064f210c26bce28512857f0a7caacb9b8d01bebbf9ab5c45",
+        "asm/arm64/linux/forwarding-owned.S": "a9ac0ba2a5da84cc365e1d8fe91136338ded3000b5dd774794acee3e95fcac05"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-captured-entry-native",
+          "output_sha256": "9535bc228888d093373363149aff85563f7ee8285adf4b60e9b3b006bd13c318",
+          "markers": [
+            "AARCH64_CAPTURED_ENTRY_OK mode=native cases=124 born=132 finalized=132 reentries=13 native_calls=112 recursive_calls=98 host_sp_delta=0"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-missing-window-native",
+          "output_sha256": "d826543a6d6ccf42c4bd7e19f6e0320184151ef27cad44532e41bdb48e29e880",
+          "markers": [
+            "AARCH64_MISSING_WINDOW_OK mode=native calls=80 native_children=80 captured_parent_fallbacks=20 finalized=1 quota_recovery=10 cross_segment_flags=7"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-owned-args-native",
+          "output_sha256": "9cb8aa22a1a988bd99ebf47ccba50a46cb402be1068cb34daea3d85317754374",
+          "markers": [
+            "AARCH64_OWNED_ARGS_OK mode=native born=240 finalized=240 native_calls=80 recursive_calls=118 host_sp_delta=0"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-prepared-forward-native-one",
+          "output_sha256": "f4bf2785c0c412c94a9cbc59ef80386510456ecf02c593e2bb2cdedb437a18f3",
+          "markers": [
+            "AARCH64_PREPARED_PATHS_OK 34-fresh-runtime-cohorts zero-ledgers",
+            "Required regular expression found. Regex=[AARCH64_PREPARED_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-prepared-forward-native-zero",
+          "output_sha256": "dc6346b8be502a8fef627d5a9ecde1d380e085c6d627efd84ba5adf8970658fc",
+          "markers": [
+            "AARCH64_PREPARED_PATHS_OK 34-fresh-runtime-cohorts zero-ledgers",
+            "Required regular expression found. Regex=[AARCH64_PREPARED_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-apply-forward-default",
+          "output_sha256": "446031691c30dc2d0e94a0370dd590846117daf2cdcdf5f19e2dac2f416b30e4",
+          "markers": [
+            "APPLY_SEMANTICS_OK collections=59",
+            "APPLY_EXTRA_SEMANTICS_OK",
+            "Required regular expression found. Regex=[APPLY_SEMANTICS_OK collections=[1-9][0-9]*]"
+          ]
+        },
+        {
+          "test": "interpreter-apply-forward-off",
+          "output_sha256": "313381908c8612aa984e5ac889a20e2c0d061ddd2592f1bcdcc77f5b855242fb",
+          "markers": [
+            "APPLY_SEMANTICS_OK collections=59",
+            "APPLY_EXTRA_SEMANTICS_OK",
+            "Required regular expression found. Regex=[APPLY_SEMANTICS_OK collections=[1-9][0-9]*]"
+          ]
+        },
+        {
+          "test": "interpreter-apply-forward-off-zero",
+          "output_sha256": "825dc3854a80b8528278f5460cf73c4eb1c4d07490ab8cc9277d4cae865370ef",
+          "markers": [
+            "APPLY_SEMANTICS_OK collections=59",
+            "APPLY_EXTRA_SEMANTICS_OK",
+            "Required regular expression found. Regex=[APPLY_SEMANTICS_OK collections=[1-9][0-9]*]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/forwarding.py": "ce9c2dd7b57e3dcf181ade2e1302735e29340efae84ef2f1782862b20cb41378",
+        "tools/arm64/arguments.py": "8f216506f5870b461958cf07c330b6d542cac47aa03e3bbef83dba686b55a228",
+        "asm/arm64/linux/forwarding-prepared.S": "81bc4cf27a590c94064f210c26bce28512857f0a7caacb9b8d01bebbf9ab5c45",
+        "asm/arm64/linux/forwarding-owned.S": "a9ac0ba2a5da84cc365e1d8fe91136338ded3000b5dd774794acee3e95fcac05"
+      }
+    },
+    {
+      "family": "Native iterator checkpoints and varargs dependencies",
+      "implementation": "Native next/checkpoints/dense guards and complete original close/exception/apply dependencies",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/iterators.py": "28e13598ae67f1342e769651a74a12cd078c4508ab85c3a699ef8d315b87a7ae",
+        "asm/arm64/common/register-iterators.inc": "ac00a716cd7c201592c077f6cdb76216211f456a4fb52d63cb333c2e7b697f41",
+        "tools/arm64/varargs.py": "2a1a2115dc9ea85daa73bc01483cfb8daa864462b0678d5ac797b6d8ce20ef02"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-constructor-paths-varargs-zero",
+          "output_sha256": "114f0aee630fddc3c6c93a7f8d6aaa219192fdf3a1ad4e03dd50122921cc548d",
+          "markers": [
+            "AARCH64_CONSTRUCTOR_PATHS_OK cohorts=8 enabled=1 zero_ledgers",
+            "Required regular expression found. Regex=[AARCH64_CONSTRUCTOR_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-iterators-iterator-one",
+          "output_sha256": "008ef32488144b46c9ec53f6e634fac3a467c6f87a722e144be66470400e6c44",
+          "markers": [
+            "LINUX_ITERATORS_OK checksum=4096",
+            "Required regular expression found. Regex=[LINUX_ITERATORS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-iterators-iterator-zero",
+          "output_sha256": "48dfaa17defbc2b6dc7a415b4d2b3b62fcaf2ad86e24cde776d6011b4179a83e",
+          "markers": [
+            "LINUX_ITERATORS_OK checksum=4096",
+            "Required regular expression found. Regex=[LINUX_ITERATORS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-iterators-on",
+          "output_sha256": "6c8b49064ec00e4a89b918db2f4687e0a2d0f09403f0f2f617b6ca97e29e5300",
+          "markers": [
+            "LINUX_ITERATORS_OK checksum=4096",
+            "Required regular expression found. Regex=[LINUX_ITERATORS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-deferred_frame_publish-0",
+          "output_sha256": "0f9b534bc15d919c87bdf8108495d28a868d1390cdc8a673e48f44497b2b906b",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-deferred_frame_publish-1",
+          "output_sha256": "02d90802b4909c828a6503a214afe9ae9099f4bd25cca6ee0a96ae81e3c5099f",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_apply_direct-0",
+          "output_sha256": "b11e40c6da72611dd57a844be36934599d56d194f17e5e355d7832ec69a67149",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_apply_direct-1",
+          "output_sha256": "b971d8473916c11219286fc46887a307f1131f2139cae93cad47bd213043ce45",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_call_forward-0",
+          "output_sha256": "0e77a5d4f5fbcea67de4180f1bcb85869a7548525e165219c58905d3ccd5062e",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_call_forward-1",
+          "output_sha256": "ec6a0fe0b17740228893d8961ad83516940e9e3fd3ccb3475b339a5c88b816fa",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs-0",
+          "output_sha256": "ca41f4702b012f82a6b848908b64d84c5ec37861a1fc2fd5f36392ebef52fece",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs-1",
+          "output_sha256": "9c1fc090abb76e29f5f0f9ddaabb965a146089f095497a64b02760cd7c7e6f69",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs_direct-0",
+          "output_sha256": "f164e59e1631d148205df3104e06a037794a8216a2049a21b4c6664d03c17aea",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs_direct-1",
+          "output_sha256": "35244d61ce392452ee6e4ef27221e17bec45ff205e394e1e9a8a12094055710f",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs_fusion-0",
+          "output_sha256": "144b09f02b421727e70c892692f96d760a79940ffab312b8e26aac51e552606f",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-frame_varargs_fusion-1",
+          "output_sha256": "7f5b6c4eb7753fa89558d4b77bf8047338b0465ef9c9f70cf80e59b5a907af44",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-on-on",
+          "output_sha256": "faa9551da2ebff2c907864a6bde5f542d5785c84d5319613e2f294f09e0783b2",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-register_interp-0",
+          "output_sha256": "f58a597769449874bd1abfbfc304a47915a576da405fbd695ab48d78dfe9b878",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-varargs-paths-register_interp-1",
+          "output_sha256": "ba1ea8c1d99a4048822af760b45f1e700f1a85cd27298623442e23a9cdd34363",
+          "markers": [
+            "AARCH64_VARARGS_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_VARARGS_PATHS_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/iterators.py": "28e13598ae67f1342e769651a74a12cd078c4508ab85c3a699ef8d315b87a7ae",
+        "asm/arm64/common/register-iterators.inc": "ac00a716cd7c201592c077f6cdb76216211f456a4fb52d63cb333c2e7b697f41",
+        "tools/arm64/varargs.py": "2a1a2115dc9ea85daa73bc01483cfb8daa864462b0678d5ac797b6d8ce20ef02"
+      }
+    },
+    {
+      "family": "Prepared builtin callbacks and comparator scopes",
+      "implementation": "Complete fourteen callback routes, readonly/owned capsules and cached/prepared comparator lifetimes",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/elf/c_workers.py": "0d177856e5bc680431d47cebcc746ec489422e0e1da098fb6c9d27d0b0a596d9",
+        "tools/arm64/array_workers.py": "646e49a6ec2ad7cf6199ee6f0c9f09c9b26c497a6b4ff67276afe91fdbb1343c",
+        "tools/elf/array_workers.py": "4f71c45158bddc8577de12b803989986ff4233d38df6a0991e432932629c0631",
+        "src/arm64/linux/abi/prepared-callbacks.json": "69d51c3a24f14c4d3d276b28e097b124171b63c095fc5c86366326ddcf4c0ca5"
+      },
+      "tests": [
+        {
+          "test": "array-default-string-sort-off-zero",
+          "output_sha256": "ecad9af5e0d5e056b0ad2c9f75c684f66ae4c91bb4de780787142895e6b820ad",
+          "markers": [
+            "SORT_CORRECTNESS_PASS 103360 310658711"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-prepared-callback-native",
+          "output_sha256": "abd7c2d778f7a348c0900e84763014d12826b5ba919adc8f3e4cf7e11b41b968",
+          "markers": [
+            "LINUX_PREPARED_SEMANTICS_OK hits=672 reuse=651 gc=84 reentry=84 interrupts=2",
+            "AARCH64_PREPARED_UNWIND_OK observations=84"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-prepared-callback-off",
+          "output_sha256": "75b7bffa19e70d2525dec29e75939ae10af15964077bc9bc592052aca3775214",
+          "markers": [
+            "LINUX_PREPARED_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "AARCH64_PREPARED_UNWIND_OK observations=0"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-prepared-callback-zero",
+          "output_sha256": "3f0935604b4fcc758f9548508c5b3c3eb8460d09eef9e8bfb7119ace414aa109",
+          "markers": [
+            "LINUX_PREPARED_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "AARCH64_PREPARED_UNWIND_OK observations=0"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-c_invoke-off-0",
+          "output_sha256": "d469e661f7f9e2ad2fdb882363cfa696320c08e9dee8b4001d768517eb21810a",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=2310 reuse=2298 gc=44 reentry=44 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-c_invoke-off-1",
+          "output_sha256": "730997a138ed6c45ae033852ac2ead5bdce5e9eb164acd274250893df9e58587",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=2310 reuse=2298 gc=44 reentry=44 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-cached_sort_call-off-0",
+          "output_sha256": "242960764c39c0dc566b765496d0626a11c05f88d9bd91fcfc0a4e49fc359b80",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-cached_sort_call-off-1",
+          "output_sha256": "b06cf60b9f43edb7034e47f28a953480bcd358207e668353a4cf12373a9e6174",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-growth-oom-off",
+          "output_sha256": "8ff99f70b1624c567ad12fe6082d6d8ba04bc347c919902291673ad61651475e",
+          "markers": [
+            "LINUX_SORT_OOM_OK allocations=35 injected=35 failures=35 growth=1",
+            "Required regular expression found. Regex=[LINUX_SORT_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-growth-oom-on",
+          "output_sha256": "9c050ec421247178e3b8143a48a12588fe799170d1416c7cda12a92560d45935",
+          "markers": [
+            "LINUX_SORT_OOM_OK allocations=36 injected=36 failures=36 growth=1",
+            "Required regular expression found. Regex=[LINUX_SORT_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-internal_interp-off-0",
+          "output_sha256": "ab03db39a97ea2b967dddb9a1867f62a99db18359a77a406123cfdff6cf739d7",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-internal_interp-off-1",
+          "output_sha256": "ee2e96dff640df0dea09a43340665f5417cc7b40041da7e9015388642fcd4a78",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-interp_frame-off-0",
+          "output_sha256": "265710bbff5e39d13bad6353d8026923343410f4a6d10b1a7a9cb039eff8ccb6",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-interp_frame-off-1",
+          "output_sha256": "858eae061f4d4ceaa52a149ada8c9200e0adc6d6e3d675e01bb0dbc5dd2bc3f0",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-oom-off",
+          "output_sha256": "16143d2271f8331c453d7978737ed5a8afe4ad19b5a333d3adc924f8f15c398c",
+          "markers": [
+            "LINUX_SORT_OOM_OK allocations=4 injected=4 failures=4 growth=0",
+            "Required regular expression found. Regex=[LINUX_SORT_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-oom-on",
+          "output_sha256": "b77f184f2e92bd33e9f6a4db69153b6010f333ad3be0e4237bd87bbcfd456668",
+          "markers": [
+            "LINUX_SORT_OOM_OK allocations=4 injected=4 failures=4 growth=0",
+            "Required regular expression found. Regex=[LINUX_SORT_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-ownership-on",
+          "output_sha256": "54320703a909d65b81fa3358eb01612639aed19490aee1f01fca47694db3dd3b",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=2310 reuse=2298 gc=44 reentry=44 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-prepared_sort_call-off-0",
+          "output_sha256": "e7379d152524e4db3b5dee3cdba81d754cf4822f742744e7f49ca921f5a4f5bb",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-prepared_sort_call-off-1",
+          "output_sha256": "291aec27de625d10fe264ab77a3401b65273b9998de108662bb24d5d5daac68c",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-prepared_sort_entry-off-0",
+          "output_sha256": "a509d530ed67b3a8cfe7da13e92348a9369326397dfab5540e82254971b8310b",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=2310 reuse=2298 gc=44 reentry=44 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-prepared_sort_entry-off-1",
+          "output_sha256": "483eed309373ad36f6ee9bdf03d6c697c534a9dbbf3a429f40ac805a308bf5f7",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=2310 reuse=2298 gc=44 reentry=44 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-register_interp-off-0",
+          "output_sha256": "c5c5cb4e34824cb40c558536d621aae8e1d4b81e4079a0d24652d7634de5d6b7",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-register_interp-off-1",
+          "output_sha256": "dc152c922e0e0cc9f438ecbc09688454c144ceccc62aba22b138a9c5470e8bda",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-shared_call_bypass-off-0",
+          "output_sha256": "035e586e1357ac4f87f36f32daaca167f618ed80685aa2198b3825c88d572627",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-shared_call_bypass-off-1",
+          "output_sha256": "fa8ca6f59a54ae16f6e92363bf5cac9c1c3a5e21a4db78ed36d1ae3ab9df8830",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-shared_entry-off-0",
+          "output_sha256": "49bb0ceb018356a7d7c3a385e0a6fcb6489c741fb59e2e2b03307ee2f97f072a",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-sort-shared_entry-off-1",
+          "output_sha256": "1e03bea74932e43ec248c23d6cd8342803bd1285495dcca23e6f3542728238b3",
+          "markers": [
+            "LINUX_SORT_SEMANTICS_OK hits=0 reuse=0 gc=0 reentry=0 interrupts=2",
+            "Required regular expression found. Regex=[LINUX_SORT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-array-copy-c",
+          "output_sha256": "6c5c64052a027ade966728552c2d7e321b9a4e48b493bbd8ed69a02d845e1363",
+          "markers": []
+        },
+        {
+          "test": "interpreter-array-copy-disabled",
+          "output_sha256": "c5a31b99f8b4a43d143800cf75aa280d8b953f6d659a8852dadd20d152e14685",
+          "markers": []
+        },
+        {
+          "test": "interpreter-array-copy-native",
+          "output_sha256": "714bd90f25f2ab1060003202737d001fe409c629a0315e5e2a7e307362f0d789",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/elf/c_workers.py": "0d177856e5bc680431d47cebcc746ec489422e0e1da098fb6c9d27d0b0a596d9",
+        "tools/arm64/array_workers.py": "646e49a6ec2ad7cf6199ee6f0c9f09c9b26c497a6b4ff67276afe91fdbb1343c",
+        "tools/elf/array_workers.py": "4f71c45158bddc8577de12b803989986ff4233d38df6a0991e432932629c0631",
+        "src/arm64/linux/abi/prepared-callbacks.json": "fce153e717a8c75595f10f42127450a1f499b1efbe17b318f6b7db33f81d1e42"
+      }
+    },
+    {
+      "family": "By-id property IC",
+      "implementation": "Four-way by-id PICs/transition, own bytecode/hash, borrowed PIC, primitive/length, weak/persistent/direct prototype and independent generic writes",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/properties.py": "feac8a90106cff25d3e53f2da6d67b2924dae79d3243f5eef42d00242a72baf7",
+        "tools/arm64/property_hints.py": "d5602b501df65528320624b5c2123bae8e12271224e145bcd15376993dbae048",
+        "tools/arm64/property_primitives.py": "f3128f0dcbdb06e1b401cea45cd7a24cb5f2a5aae182e820fa24bf44e14c963c",
+        "tools/arm64/property_prototypes.py": "f749f21d08b29f635fad5d1bd51d6260136bd4c4951578d46fdf85529712cc8b",
+        "tools/arm64/reference_stores.py": "cbf5f309a2802472ba805a259ef08ff4b9066563b3174c8a602aac4146d6597c",
+        "src/property/property-ic.inc": "4c844caa38ffb62abc26561872c2b6ad0e292f593a27536d313daa5e83e81ce8"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-property-hints-native",
+          "output_sha256": "044569190b185ad4540dcf9e9eb1d621e21299bd8df543ff9ccab47eb9c4134c",
+          "markers": [
+            "AARCH64_PROPERTY_HINTS_OK borrowed=128 own_read=0 own_method=0 getter_gc_reentry=32 capture_drop_gc_finalizers=32 tags=10 shapes=24 wire_reader zero_ledgers",
+            "Required regular expression found. Regex=[AARCH64_PROPERTY_HINTS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-property-primitives-native",
+          "output_sha256": "b891bd7313de22383e8bdfb03050723319792d4b23998438d2b75fdb9c2cc324",
+          "markers": [
+            "AARCH64_PROPERTY_PRIMITIVES_OK methods=64 views=64 hot=62 unwind=64 gc_reentry=64 foreign=5 getters=2 logical_lengths=4 quota_restored zero_ledgers",
+            "Required regular expression found. Regex=[AARCH64_PROPERTY_PRIMITIVES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-property-prototypes-native",
+          "output_sha256": "adbfa6999da8cb2b3b994555b0608bbc09a2bf76f39c621c6eb717fcab32e2ac",
+          "markers": [
+            "AARCH64_PROPERTY_PROTOTYPES_OK calls=613 gc_reentry=181 unwind=181 getter=16 activation=397 promotion=132 direct=216 fill=144 deep=0 weak_negative=16",
+            "Required regular expression found. Regex=[AARCH64_PROPERTY_PROTOTYPES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-property-store-c",
+          "output_sha256": "30006c9a5c0ec9b05e0753458406eb21b750c58913c4e852a0b51b00385a0020",
+          "markers": []
+        },
+        {
+          "test": "interpreter-property-store-native",
+          "output_sha256": "9147b083d24fae37f993a7b9c25878eedc82667fecd413ee0c7c9261ddbb869c",
+          "markers": []
+        },
+        {
+          "test": "interpreter-prototype-chain-c",
+          "output_sha256": "4e1e1caa449f39def6250d1f91b4fd564e37765cfd306ae783d678d128ecfcfb",
+          "markers": []
+        },
+        {
+          "test": "interpreter-prototype-chain-native",
+          "output_sha256": "4ef010fbade3dcf14baee1273077cf5994bc2c76c4ca2b9f782213fcb545bd75",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/properties.py": "feac8a90106cff25d3e53f2da6d67b2924dae79d3243f5eef42d00242a72baf7",
+        "tools/arm64/property_hints.py": "d5602b501df65528320624b5c2123bae8e12271224e145bcd15376993dbae048",
+        "tools/arm64/property_primitives.py": "f3128f0dcbdb06e1b401cea45cd7a24cb5f2a5aae182e820fa24bf44e14c963c",
+        "tools/arm64/property_prototypes.py": "f749f21d08b29f635fad5d1bd51d6260136bd4c4951578d46fdf85529712cc8b",
+        "tools/arm64/reference_stores.py": "cbf5f309a2802472ba805a259ef08ff4b9066563b3174c8a602aac4146d6597c",
+        "src/property/property-ic.inc": "4c844caa38ffb62abc26561872c2b6ad0e292f593a27536d313daa5e83e81ce8"
+      }
+    },
+    {
+      "family": "String and local rope workers",
+      "implementation": "Complete original string/rope/cache/concat/local append and compound call owners",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/elf/string_workers.py": "ef1773f091e53d15bcfac6d37697511a2df0117b8fa403f5f78338318064e178",
+        "tools/arm64/strings.py": "543fc0cf101b87add5c25ec981997d3d75904fa496b4d7348bdb20911994c67a",
+        "asm/arm64/common/register-string-append.inc": "ec31ef220ded08865ffc0620304d35b10f5cbf00a8ab4c6a346d8a900bdd895a",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-native-string-paths-on-on",
+          "output_sha256": "6cdc8a7d774447bdffa06c22b5e1441bbac062a7f53aaa2ab1ac36259a93c140",
+          "markers": [
+            "AARCH64_STRING_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_STRING_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-reference-stores-native",
+          "output_sha256": "51195ddef892e5c2e4cceee33d1faf8cff5a5896b46d5335c3009b03abcd41b8",
+          "markers": [
+            "AARCH64_REFERENCE_STORES_OK slots=1 generic=1 pic=1 born=129 final=129 reentered=97 unwind=129 GC=129 zero_ledgers",
+            "Required regular expression found. Regex=[AARCH64_REFERENCE_STORES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-property-store-c",
+          "output_sha256": "30006c9a5c0ec9b05e0753458406eb21b750c58913c4e852a0b51b00385a0020",
+          "markers": []
+        },
+        {
+          "test": "interpreter-property-store-native",
+          "output_sha256": "9147b083d24fae37f993a7b9c25878eedc82667fecd413ee0c7c9261ddbb869c",
+          "markers": []
+        },
+        {
+          "test": "interpreter-string-concat-c",
+          "output_sha256": "f53c26e2cf2d449811e2fe680b52c9e1090bf56ec7218bb4efa933658660f9ce",
+          "markers": []
+        },
+        {
+          "test": "interpreter-string-concat-native",
+          "output_sha256": "f7d496aeb6d3d09c6c279ad952b1d91c07313b71251adaa748607956c1445355",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/elf/string_workers.py": "ef1773f091e53d15bcfac6d37697511a2df0117b8fa403f5f78338318064e178",
+        "tools/arm64/strings.py": "543fc0cf101b87add5c25ec981997d3d75904fa496b4d7348bdb20911994c67a",
+        "asm/arm64/common/register-string-append.inc": "ec31ef220ded08865ffc0620304d35b10f5cbf00a8ab4c6a346d8a900bdd895a",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      }
+    },
+    {
+      "family": "JSON parser, writer, reviver and source records",
+      "implementation": "Complete shared JSON family and real AdvSIMD bounded scanners/quoters, callback/source-record owners",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/json_worker.py": "455b2462040380454ee9ba651d617752e5db8455798c350c126081cf531127a6",
+        "src/arm64/common/json-vector.h": "86335f45d7756204127850daec575e2fbfdd2f65d125da67096b5a39cb9d1ec5"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-json-paths-disabled",
+          "output_sha256": "ca3a76134f6cfd5ed577c7ad81e60f3fcf3f223f9e3d1b8e70bd2d31930955b6",
+          "markers": [
+            "AARCH64_JSON_PATHS_OK cases=128 bytes=46401 digest=2400907609",
+            "Required regular expression found. Regex=[AARCH64_JSON_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-json-paths-native",
+          "output_sha256": "8bf0ecee74502e9657cd200bc5b3b2950a125dfa91bcacd868957d93a5420cce",
+          "markers": [
+            "AARCH64_JSON_PATHS_OK cases=128 bytes=46401 digest=2400907609",
+            "Required regular expression found. Regex=[AARCH64_JSON_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-json-paths-no-simd",
+          "output_sha256": "52152f9a243a57f93d16b2e0b83a0a2f4f2e858a921873257802ef98c2a3f442",
+          "markers": [
+            "AARCH64_JSON_PATHS_OK cases=128 bytes=46401 digest=2400907609",
+            "Required regular expression found. Regex=[AARCH64_JSON_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-json-vector",
+          "output_sha256": "4fc56d8ae7e40e0915f83b97d89d781fef2755122daf520c077d2cf6d81af1b9",
+          "markers": [
+            "AARCH64_JSON_VECTOR_OK cases=1426627 guard_pages=2 utf16_exhaustive=65536 masks=65536",
+            "Required regular expression found. Regex=[AARCH64_JSON_VECTOR_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/json_worker.py": "455b2462040380454ee9ba651d617752e5db8455798c350c126081cf531127a6",
+        "src/arm64/common/json-vector.h": "86335f45d7756204127850daec575e2fbfdd2f65d125da67096b5a39cb9d1ec5"
+      }
+    },
+    {
+      "family": "RegExp and Unicode",
+      "implementation": "Shared regexp/Unicode engine and full builtin workers, short/large native literal admission and typed opcode",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/elf/regexp_workers.py": "d2f3b41493ccc5a6c6cb67a130e3ed3ef8b6a9e531c4a876e977f70b330f8a83",
+        "tools/arm64/admission.py": "c79a521b717a387ce0f0ea03c69f7878eeff9e8be4116926d433bdadb309b1f2",
+        "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-regexp-opcode-admission-off",
+          "output_sha256": "57dac9c6e710e0e1b50b13e19172fd23ce8b09b6e854f7034d9e34641c0768c2",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=0 long=0 long_bytes=6016 unwind=0 reentry=0 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-enabled-zero",
+          "output_sha256": "370bf64e59ee9db3f899f3b9a2aff70be55a2673e9ec74ff67ef571da06f07e0",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=1 long_bytes=6016 unwind=212 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-large-off",
+          "output_sha256": "d4eee3a4c9b19103dad8451245eaeabfb3e314bae25b2e7768930ffb4b5a39d6",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=0 long_bytes=6016 unwind=204 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-large-zero",
+          "output_sha256": "a85f809c7d413cb4ff42044c4cee8dfcf07a54cb5e7424a15022772a284c442d",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=0 long_bytes=6016 unwind=204 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-legacy",
+          "output_sha256": "8719b99d71008466115290c1b83bd082564213dee8340e41f094bad27eb31981",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=0 long=0 long_bytes=6016 unwind=0 reentry=0 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-long-off",
+          "output_sha256": "4dfcfd5b8b7791ee9abc67692899a57d2e28a83b0a420eb7a3b1d6618a21b3f3",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=0 long_bytes=6016 unwind=204 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-longregexp-off",
+          "output_sha256": "4c9aa204d3b6775caac8e285d8efd7055320e4d475b9a1998b7a98167bcf74d0",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=0 long_bytes=6016 unwind=204 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-longregexp-zero",
+          "output_sha256": "4e2c57ba5e5d2599cdb0f10f68218c10ffa06d39d0ddaff7d910f034c4c76bef",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=0 long_bytes=6016 unwind=204 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-native",
+          "output_sha256": "32ab40e7b7c8e0cce0c509bac167e98cda2f8b526ce4c2fb5d1384a9e0631cbd",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=1 long=1 long_bytes=6016 unwind=212 reentry=1 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-oom-legacy",
+          "output_sha256": "d40f4f97f77f44b29f8959862e5348de0a2bb83fdb3c7939fca4244d3d6fa441",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OOM_OK allocations=2 faults=2 successes=2 live=0",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-oom-native",
+          "output_sha256": "1bf4ac5f65ad54ebc8be2855c32f22820a4a5615d82a011e051c464eb5527300",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OOM_OK allocations=2 faults=2 successes=2 live=0",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-oom-regexp-off",
+          "output_sha256": "734bc424a2466a0e8dd329267eeb74f19e49588d181ac24a5d780119d794f943",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OOM_OK allocations=2 faults=2 successes=2 live=0",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-oom-register-off",
+          "output_sha256": "97898bbb9be54d11704ee5f9deffe856d029c5dfe63a5205d6cfdf4a26f084ed",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OOM_OK allocations=2 faults=2 successes=2 live=0",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-regexp-off",
+          "output_sha256": "f122cded3303313697390db8b0de9cb3669d901f47d2ff40422e99386dc6623a",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=0 long=0 long_bytes=6016 unwind=0 reentry=0 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-regexp-zero",
+          "output_sha256": "59f346bc195c17871cc3546be267b3c7d6afc84f015ad743d1ce92c877035974",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=0 long=0 long_bytes=6016 unwind=0 reentry=0 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-opcode-register-off",
+          "output_sha256": "d783df92920e9540f6404846ef0c94ab6feeae81ef8ce8c19d92f7e23d6d730b",
+          "markers": [
+            "AARCH64_REGEXP_OPCODE_OK short=0 long=0 long_bytes=6016 unwind=0 reentry=0 finalized=1 quota_restored=106",
+            "AARCH64_REGEXP_BOUNDS_OK branch_bytes=33029 near_bytes=60016 over_bytes=72016 stack_guard_recovery=1 quota_restored=6",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_OPCODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-regexp-routing-native",
+          "output_sha256": "803983816af18cf4cc180b2821bded51fbb26b43e69d0eb051469004f8444ba7",
+          "markers": [
+            "AARCH64_REGEXP_ROUTING_OK intrinsic_mask=127 mode=1 original_exec_test=96",
+            "Required regular expression found. Regex=[AARCH64_REGEXP_ROUTING_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-large-code-native",
+          "output_sha256": "551d27ff9906409e9a31716a1c74461478bac8e6936ddc7731ed21508291896f",
+          "markers": [
+            "LARGE_CODE_SEMANTICS_OK"
+          ]
+        },
+        {
+          "test": "interpreter-portable-regexp-differential",
+          "output_sha256": "cd846db65c49119c48cf9f92b425f06f7e0670d4d06dd072d48340bcc80828b0",
+          "markers": []
+        },
+        {
+          "test": "interpreter-portable-regexp-portable_core",
+          "output_sha256": "fcf5e46c870ddb025f7b4eeabd7e9f57032acae79562101f94b5e6d29d074477",
+          "markers": [
+            "PORTABLE_REGEXP_CORE_CLASSIFIERS_OK checks=246"
+          ]
+        },
+        {
+          "test": "interpreter-portable-regexp-start",
+          "output_sha256": "cdcfbcff274bb0f56230cbde5256fcb055c745655e5e05e8b903dc76a2f7acb2",
+          "markers": [
+            "REGEXP_CASE_CLOSURE_OK 53"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/elf/regexp_workers.py": "d2f3b41493ccc5a6c6cb67a130e3ed3ef8b6a9e531c4a876e977f70b330f8a83",
+        "tools/arm64/admission.py": "c79a521b717a387ce0f0ea03c69f7878eeff9e8be4116926d433bdadb309b1f2",
+        "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882"
+      }
+    },
+    {
+      "family": "Arrays and default sort",
+      "implementation": "Complete copy/growth/default radix/cached/prepared sort and native pop/append ownership",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/array_workers.py": "646e49a6ec2ad7cf6199ee6f0c9f09c9b26c497a6b4ff67276afe91fdbb1343c",
+        "tools/arm64/indexed.py": "ce0482852a796664065e5e5d9835533f081d0e7405538673d03627b497703f84",
+        "tools/arm64/c_entry.py": "52d3729c140973d3588c211f2eaf405099fd8d8ab3a5e1775d7a6c2997a2b74e"
+      },
+      "tests": [
+        {
+          "test": "array-default-string-sort",
+          "output_sha256": "59b67200dfe70660e7b9064a45afa9228025fd2cb5aee42accc98ea83ff0a80d",
+          "markers": [
+            "SORT_CORRECTNESS_PASS 103360 310658711"
+          ]
+        },
+        {
+          "test": "array-default-string-sort-off-zero",
+          "output_sha256": "ecad9af5e0d5e056b0ad2c9f75c684f66ae4c91bb4de780787142895e6b820ad",
+          "markers": [
+            "SORT_CORRECTNESS_PASS 103360 310658711"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-c-invoke-off",
+          "output_sha256": "ff23d9bd04aa6d9e5fae1b0720fd8b740eced5f2311f5671f69005e65047be0d",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-leaf-one",
+          "output_sha256": "11c7539f47f23f5eb5efb8c42bf1c959a5a041fb675453914f0d17af739ee25b",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=2 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-leaf-zero",
+          "output_sha256": "7b753ecc8ecfc82d80521e8241086102efd7689d1eda774af2d8f30b39b969ae",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=2 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-native",
+          "output_sha256": "a6c6eb633ac82c3678dae23ab345f48af07fc135fd82e3714285970aa0239e70",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-pop-one",
+          "output_sha256": "0b649165884409ebda10ba5463718893b9541887c986e4a15fd48f759f817636",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-leaf-pop-zero",
+          "output_sha256": "c5c50e4c45b53d3eebe3e935a5f69017ba0f344dc9f97a879a803471b252935d",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "Required regular expression found. Regex=[DENSE_POP_LEAF_PASS]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-c-invoke-off",
+          "output_sha256": "5e083a0da798604b8dfce374601ccbbee248ca18fa84c796e0a3a1ae8dc57d26",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=0",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-leaf-one",
+          "output_sha256": "22f87083db1c8e85367064769abfb676d5b65d06fdb1df1f1bb656aa244ea712",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=2 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=0",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-leaf-zero",
+          "output_sha256": "ed3bc6f5b76056b71f5bd9804d15a6a105bd63bba4c66be6bd44b9e731e1ad5b",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=2 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=0",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-native",
+          "output_sha256": "55188e3840d3ec88d4eb5584edac31385c3c34eb67bc236fdfe9b0e07a43015c",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=203",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-pop-one",
+          "output_sha256": "ca911a2e440c6d3132ff1d995099b514004fbca82356d6c75c9dde24e5612a1c",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=0",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-dense-pop-observer-pop-zero",
+          "output_sha256": "4137de5bec05bbcdce2599645ac509ec8b31ed67e54f6322eb7e04311eb7c121",
+          "markers": [
+            "DENSE_POP_LEAF_PASS diagnostic=0 state=1 warm_hits=0 hits=0 reentry=200 gc=201 finalized=200 live=0",
+            "AARCH64_DENSE_POP_PATH_OK hits=0",
+            "Required regular expression found. Regex=[AARCH64_DENSE_POP_PATH_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-array-copy-c",
+          "output_sha256": "6c5c64052a027ade966728552c2d7e321b9a4e48b493bbd8ed69a02d845e1363",
+          "markers": []
+        },
+        {
+          "test": "interpreter-array-copy-disabled",
+          "output_sha256": "c5a31b99f8b4a43d143800cf75aa280d8b953f6d659a8852dadd20d152e14685",
+          "markers": []
+        },
+        {
+          "test": "interpreter-array-copy-native",
+          "output_sha256": "714bd90f25f2ab1060003202737d001fe409c629a0315e5e2a7e307362f0d789",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/array_workers.py": "646e49a6ec2ad7cf6199ee6f0c9f09c9b26c497a6b4ff67276afe91fdbb1343c",
+        "tools/arm64/indexed.py": "ce0482852a796664065e5e5d9835533f081d0e7405538673d03627b497703f84",
+        "tools/arm64/c_entry.py": "52d3729c140973d3588c211f2eaf405099fd8d8ab3a5e1775d7a6c2997a2b74e"
+      }
+    },
+    {
+      "family": "Async generator capabilities",
+      "implementation": "Same-TU request-owned Promise, complete settlement/recovery/FIFO/hooks; ordinary async elision absent in GNU reference",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "src/promise/generator-capability.inc": "b88f5c22036b994813478e44c621c12bf20031bc5a2bcca2a58187fdea6d4aad",
+        "tools/elf/c_workers.py": "0d177856e5bc680431d47cebcc746ec489422e0e1da098fb6c9d27d0b0a596d9",
+        "src/arm64/linux/abi/async-generator.json": "53bb61c203354a136f3c6f89314ad130a86f307952a088c62d138d8e7624f54e"
+      },
+      "tests": [
+        {
+          "test": "async-generator-capability-clone",
+          "output_sha256": "2d2d3390a512281b28cc723766c288c85848d6b5ebb98803b8068095c6174c5e",
+          "markers": []
+        },
+        {
+          "test": "async-generator-capability-off",
+          "output_sha256": "b8db1f3d2bd365c0521f018ee81c2a13fe4158c4beca223dcd031d0e97e4aa68",
+          "markers": []
+        },
+        {
+          "test": "async-generator-capability-on",
+          "output_sha256": "25db123b9af60cf8c1091289b90f000ce536e11a5a68c0f8f1ae45b9ff29c22e",
+          "markers": []
+        },
+        {
+          "test": "async-generator-oom-sweep",
+          "output_sha256": "72689891d3bb5c13d5aa3b236b85141090d8192966157617f9c7ce910cca0930",
+          "markers": [
+            "ASYNC_CAPABILITY_OK kind=generator trials=340 live=0 checks=1673691"
+          ]
+        },
+        {
+          "test": "async-generator-ownership",
+          "output_sha256": "c367bae871c3317900d6bfa381591c48f5f9539456a6d117c7f7f766adc624fc",
+          "markers": [
+            "HOOK init=68 before=0 after=0 resolve=68",
+            "ASYNC_CAPABILITY_OK kind=generator checks=286322"
+          ]
+        },
+        {
+          "test": "interpreter-property-generator",
+          "output_sha256": "3fa1e4f7dd14a6c187891e4b6ec9dbbf0de867b8b4b8851e85bdd2309d2e5d91",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "src/promise/generator-capability.inc": "b88f5c22036b994813478e44c621c12bf20031bc5a2bcca2a58187fdea6d4aad",
+        "tools/elf/c_workers.py": "0d177856e5bc680431d47cebcc746ec489422e0e1da098fb6c9d27d0b0a596d9",
+        "src/arm64/linux/abi/async-generator.json": "53bb61c203354a136f3c6f89314ad130a86f307952a088c62d138d8e7624f54e"
+      }
+    },
+    {
+      "family": "Compiler, allocator and scalar changes",
+      "implementation": "Pinned common overlays, bounded compiler plan/projector, allocator and full native scalar base",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/generate/backport-core.py": "95ceddda279bd08c712b1fc19558087a38752712e694cfaa8c227478c5a1cf2e",
+        "src/bytecode/compiler-plan.c": "4a68c9fba29fd054bcaa365181f8a16149ed037d67a66b428fa7a1c67de73c44",
+        "tools/arm64/numeric_workers.py": "6590f0fb6369723f1b7684ff3be5d0a7003950d6ad0f18312ac5bd18df0fb2f1",
+        "asm/arm64/common/register-scalar-ops.inc": "b9449cbba242fe9928d5a5b40eb54e90b5a5b05ebae556da9146d2c5775adcf4"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-scalar-owners-ON-0",
+          "output_sha256": "dbdf67e750257738e57d4c608f6a85d34314a2cf54cbe07397b3b5d35d72048b",
+          "markers": [
+            "SCALAR_LAST_OWNERS_OK made=390 finalized=390 JS_reentry=390 zero-ledgers",
+            "SCALAR_PROPERTY_KEY_OOM_OK fail=1 pass=31 fresh-runtimes=32 zero-ledgers",
+            "AARCH64_SCALAR_OWNERS_OK",
+            "Required regular expression found. Regex=[AARCH64_SCALAR_OWNERS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-owner-enabled",
+          "output_sha256": "61ef117e621bd2a33b345d813d6e7b7ea29a1221c99f2db7eb32aea60e094f96",
+          "markers": [
+            "ENTRY_INIT_OWNERSHIP_OK born=10 finalized=10",
+            "Required regular expression found. Regex=[ENTRY_INIT_OWNERSHIP_OK born=10 finalized=10]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-bytecode",
+          "output_sha256": "fed8a23608f86bc03d440469cbecea01ac15a6af4dc0af5e7229448e7bf15c2a",
+          "markers": [
+            "COMPILER_PLAN_BYTECODE_OK original=221 checks=213 optimized=207 entry=221",
+            "Required regular expression found. Regex=[COMPILER_PLAN_BYTECODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-checks-only",
+          "output_sha256": "058a436da5986a74e86bb196c1c9f5c251a1c7a6e535f64abb861a43a8a44321",
+          "markers": [
+            "ENTRY_INIT_SEMANTICS_OK",
+            "Required regular expression found. Regex=[ENTRY_INIT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-enabled",
+          "output_sha256": "7df3d1e22683b7e29f5163ae9a172c33e16d00d8efbcf46060b5572f25652b75",
+          "markers": [
+            "ENTRY_INIT_SEMANTICS_OK",
+            "Required regular expression found. Regex=[ENTRY_INIT_SEMANTICS_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/generate/backport-core.py": "95ceddda279bd08c712b1fc19558087a38752712e694cfaa8c227478c5a1cf2e",
+        "src/bytecode/compiler-plan.c": "4a68c9fba29fd054bcaa365181f8a16149ed037d67a66b428fa7a1c67de73c44",
+        "tools/arm64/numeric_workers.py": "6590f0fb6369723f1b7684ff3be5d0a7003950d6ad0f18312ac5bd18df0fb2f1",
+        "asm/arm64/common/register-scalar-ops.inc": "b9449cbba242fe9928d5a5b40eb54e90b5a5b05ebae556da9146d2c5775adcf4"
+      }
+    },
+    {
+      "family": "MSVC coroutine segments versus GCC dispatch",
+      "implementation": "Reviewed GNU boundary: original computed-goto/suspended-generator owner; no MSVC-only native coroutine/extra-method machinery",
+      "status": "reviewed GNU boundary",
+      "sources": {
+        "src/promise/generator-capability.inc": "b88f5c22036b994813478e44c621c12bf20031bc5a2bcca2a58187fdea6d4aad",
+        "docs/architecture/x86/linux/LINUX-PORT.txt": "3175a6852e236caaff36c26ac78db15e1f714b1d22229c4b0cd3b5270c5eef59"
+      },
+      "tests": [
+        {
+          "test": "async-generator-capability-clone",
+          "output_sha256": "2d2d3390a512281b28cc723766c288c85848d6b5ebb98803b8068095c6174c5e",
+          "markers": []
+        },
+        {
+          "test": "async-generator-capability-off",
+          "output_sha256": "b8db1f3d2bd365c0521f018ee81c2a13fe4158c4beca223dcd031d0e97e4aa68",
+          "markers": []
+        },
+        {
+          "test": "async-generator-capability-on",
+          "output_sha256": "25db123b9af60cf8c1091289b90f000ce536e11a5a68c0f8f1ae45b9ff29c22e",
+          "markers": []
+        },
+        {
+          "test": "interpreter-property-generator",
+          "output_sha256": "3fa1e4f7dd14a6c187891e4b6ec9dbbf0de867b8b4b8851e85bdd2309d2e5d91",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "src/promise/generator-capability.inc": "b88f5c22036b994813478e44c621c12bf20031bc5a2bcca2a58187fdea6d4aad",
+        "docs/architecture/x86/linux/LINUX-PORT.txt": "3175a6852e236caaff36c26ac78db15e1f714b1d22229c4b0cd3b5270c5eef59"
+      }
+    },
+    {
+      "family": "Activation-owned literal shapes and native scalar cohorts",
+      "implementation": "Activation strong shapes, insert2/3, type/truth kernels and complete primitive/getter/predicate/integer/compound call leaf families",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/literals.py": "8b5b148ea000f14bbfdca40d37112af57a7999be4477e461c93aea9783e6d152",
+        "tools/arm64/stack_insert.py": "79ba7e8552c433f217d18b00e6e5d83c1479813330cc62835ffc93cc79be9d90",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-call-leaves-paths",
+          "output_sha256": "028b0a148bee101f6ee829d7cf65b2bf1c09d42f1b558ffc082f4716a891072b",
+          "markers": [
+            "AARCH64_CALL_LEAVES_OK",
+            "Required regular expression found. Regex=[AARCH64_CALL_LEAVES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-literal-paths-on-on",
+          "output_sha256": "a3128175773008ac514793b5ee5504c9c9504c649fa5e85ff9b4f582461ef4a2",
+          "markers": [
+            "AARCH64_LITERAL_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_LITERAL_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-scalar-owners-ON-0",
+          "output_sha256": "dbdf67e750257738e57d4c608f6a85d34314a2cf54cbe07397b3b5d35d72048b",
+          "markers": [
+            "SCALAR_LAST_OWNERS_OK made=390 finalized=390 JS_reentry=390 zero-ledgers",
+            "SCALAR_PROPERTY_KEY_OOM_OK fail=1 pass=31 fresh-runtimes=32 zero-ledgers",
+            "AARCH64_SCALAR_OWNERS_OK",
+            "Required regular expression found. Regex=[AARCH64_SCALAR_OWNERS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-stack-insert-default",
+          "output_sha256": "1a2cbe8ffc5aa5cf4119e3c27e8a68e54b8c7e2079235e1b0f231278e6eb94c8",
+          "markers": [
+            "STACK_INSERT_OK 5185",
+            "Required regular expression found. Regex=[STACK_INSERT_OK 5185]"
+          ]
+        },
+        {
+          "test": "interpreter-stack-insert-host-default",
+          "output_sha256": "a115fac7772a1af0b1f034a90736af52930934330d31ccf905a23b2fb1994047",
+          "markers": [
+            "STACK_INSERT_HOST_OK born=160 finalized=160 collections=386 reentries=386 interrupts=3",
+            "Required regular expression found. Regex=[STACK_INSERT_HOST_OK born=160 finalized=160 collections=386 reentries=386 interrupts=3]"
+          ]
+        },
+        {
+          "test": "interpreter-stack-insert-host-off",
+          "output_sha256": "a09f73f9e669b261e89df4565b14871917019da98bd0b674dab73b42dea69832",
+          "markers": [
+            "STACK_INSERT_HOST_OK born=160 finalized=160 collections=386 reentries=386 interrupts=3",
+            "Required regular expression found. Regex=[STACK_INSERT_HOST_OK born=160 finalized=160 collections=386 reentries=386 interrupts=3]"
+          ]
+        },
+        {
+          "test": "interpreter-stack-insert-off",
+          "output_sha256": "41cc0b670accc91c6fac2e126cc1dbb90e1dca8246310dbc4a6b3022364e4c14",
+          "markers": [
+            "STACK_INSERT_OK 5185",
+            "Required regular expression found. Regex=[STACK_INSERT_OK 5185]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/literals.py": "8b5b148ea000f14bbfdca40d37112af57a7999be4477e461c93aea9783e6d152",
+        "tools/arm64/stack_insert.py": "79ba7e8552c433f217d18b00e6e5d83c1479813330cc62835ffc93cc79be9d90",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      }
+    },
+    {
+      "family": "Native indexed/instanceof dependency portion",
+      "implementation": "Dense/typed/sparse integer-own get/get2/put, capacity append and original pure instanceof",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/indexed.py": "ce0482852a796664065e5e5d9835533f081d0e7405538673d03627b497703f84",
+        "src/arm64/linux/interpreter-indexed.inc": "90fb47f710540b742841368bff43cb2bfb36f73b0c81fb2431d5d16a901829d7",
+        "asm/arm64/common/register-indexed.inc": "c012ad93008d410ee814177388ad777d58d49666327e87ee344240ad8be2eb46"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-indexed-paths-on-on",
+          "output_sha256": "bafaac985cdb400d4e89c7e7072bb984636c0052889b06a1bba7bea67cf58b56",
+          "markers": [
+            "AARCH64_INDEXED_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_INDEXED_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-instanceof-default",
+          "output_sha256": "71ac5ad54b4b7f887f70e9ff6d81951912627388f132916a820f6dd4c59ce387",
+          "markers": []
+        },
+        {
+          "test": "interpreter-instanceof-off",
+          "output_sha256": "4b17bbed0e9026f72ee710abe3e7fa0cd0b38857870a7d824ac99d8f0f5c9ed6",
+          "markers": []
+        },
+        {
+          "test": "interpreter-instanceof-off-zero",
+          "output_sha256": "ea9858846ef2a1f22da2bdf35ebd26e2a512d68e219e10b80ba530660d626082",
+          "markers": []
+        },
+        {
+          "test": "interpreter-instanceof-step-off",
+          "output_sha256": "b4395649e6d9dead606f56291176bc05f5f133559be2c63a1f6cfdab34384fcf",
+          "markers": []
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/indexed.py": "ce0482852a796664065e5e5d9835533f081d0e7405538673d03627b497703f84",
+        "src/arm64/linux/interpreter-indexed.inc": "90fb47f710540b742841368bff43cb2bfb36f73b0c81fb2431d5d16a901829d7",
+        "asm/arm64/common/register-indexed.inc": "c012ad93008d410ee814177388ad777d58d49666327e87ee344240ad8be2eb46"
+      }
+    },
+    {
+      "family": "GNU native loose/strict comparisons",
+      "implementation": "Complete source-owned loose/strict/identity/string/reference kernels and actual typed pure initializers",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/comparisons.py": "1ecfb8cb98a1159e2f56401c2c81469bb585da717b5fd5f35d237cceb80527b3",
+        "asm/arm64/common/register-comparisons.inc": "1e71e6d22a555f36ee8f920fe8c84682554aff49de0a401b20275016c6690ba0",
+        "asm/arm64/linux/comparison-identity.S": "e1c8e0483ff9be117348dcad5e26e14f16838b7dbe187bcc3a4a41e2db5176ac"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-comparison-api-group-zero",
+          "output_sha256": "773370509b354dd6c45373841e1c0ab1f36b060767c1a2db399abedab463c395",
+          "markers": [
+            "LINUX_COMPARISON_API_OK",
+            "Required regular expression found. Regex=[LINUX_COMPARISON_API_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-comparison-api-native",
+          "output_sha256": "c27c005cca3ede66d5a1d622f104d86a1b3ccd64e3fbbac4313d2f11536a2e50",
+          "markers": [
+            "LINUX_COMPARISON_API_OK",
+            "Required regular expression found. Regex=[LINUX_COMPARISON_API_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-comparison-family-group-zero",
+          "output_sha256": "e1807cc692789cf78229262b1414f9edbcb65ade4cbaa5315b6c5a4eeac44c4e",
+          "markers": [
+            "LINUX_COMPARISON_FAMILY_OK checks=9659",
+            "Required regular expression found. Regex=[LINUX_COMPARISON_FAMILY_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-comparison-family-native",
+          "output_sha256": "a1357cbb26b26315d615e1c47cd878d4e55f36bb1d0f2ebb89f87a80c8c02636",
+          "markers": [
+            "LINUX_COMPARISON_FAMILY_OK checks=9659",
+            "Required regular expression found. Regex=[LINUX_COMPARISON_FAMILY_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/comparisons.py": "1ecfb8cb98a1159e2f56401c2c81469bb585da717b5fd5f35d237cceb80527b3",
+        "asm/arm64/common/register-comparisons.inc": "1e71e6d22a555f36ee8f920fe8c84682554aff49de0a401b20275016c6690ba0",
+        "asm/arm64/linux/comparison-identity.S": "e1c8e0483ff9be117348dcad5e26e14f16838b7dbe187bcc3a4a41e2db5176ac"
+      }
+    },
+    {
+      "family": "GNU BigInt/local release,short decimal and compiler projection",
+      "implementation": "Complete original BigInt/local release/overflow, FPCR-aware decimal converter and independent actual-type FD projection",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/numeric_workers.py": "6590f0fb6369723f1b7684ff3be5d0a7003950d6ad0f18312ac5bd18df0fb2f1",
+        "asm/arm64/linux/bigint-release.S": "9dcb87d366711a597c44c94e25dbeecd2cba149335864e2b7786fc407a24de70",
+        "src/arm64/common/number-rounding.h": "1e6421e4dfa53258c5c0981e0bf9ccb0b8f05f5c76a0ce244b6ce2070c04529e"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-native-numeric-paths-on-on",
+          "output_sha256": "437cf60ad292f098c3b64a3e42e66667d70e3d0d6f5179194587722e3f6fe972",
+          "markers": [
+            "AARCH64_NUMERIC_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_NUMERIC_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-owner-enabled",
+          "output_sha256": "61ef117e621bd2a33b345d813d6e7b7ea29a1221c99f2db7eb32aea60e094f96",
+          "markers": [
+            "ENTRY_INIT_OWNERSHIP_OK born=10 finalized=10",
+            "Required regular expression found. Regex=[ENTRY_INIT_OWNERSHIP_OK born=10 finalized=10]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-bytecode",
+          "output_sha256": "fed8a23608f86bc03d440469cbecea01ac15a6af4dc0af5e7229448e7bf15c2a",
+          "markers": [
+            "COMPILER_PLAN_BYTECODE_OK original=221 checks=213 optimized=207 entry=221",
+            "Required regular expression found. Regex=[COMPILER_PLAN_BYTECODE_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-checks-only",
+          "output_sha256": "058a436da5986a74e86bb196c1c9f5c251a1c7a6e535f64abb861a43a8a44321",
+          "markers": [
+            "ENTRY_INIT_SEMANTICS_OK",
+            "Required regular expression found. Regex=[ENTRY_INIT_SEMANTICS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-compiler-plan-enabled",
+          "output_sha256": "7df3d1e22683b7e29f5163ae9a172c33e16d00d8efbcf46060b5572f25652b75",
+          "markers": [
+            "ENTRY_INIT_SEMANTICS_OK",
+            "Required regular expression found. Regex=[ENTRY_INIT_SEMANTICS_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/numeric_workers.py": "6590f0fb6369723f1b7684ff3be5d0a7003950d6ad0f18312ac5bd18df0fb2f1",
+        "asm/arm64/linux/bigint-release.S": "9dcb87d366711a597c44c94e25dbeecd2cba149335864e2b7786fc407a24de70",
+        "src/arm64/common/number-rounding.h": "1e6421e4dfa53258c5c0981e0bf9ccb0b8f05f5c76a0ce244b6ce2070c04529e"
+      }
+    },
+    {
+      "family": "Complete GNU native global binding hints",
+      "implementation": "Bytecode cells/relink/TDZ, activation lexical/global hints, undefined arithmetic, large bypass and all resolved Symbol forms",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/global_bindings.py": "e77f9f4d2e8302dafbe57129ff08008566c8f15f6c63f3cb697469f3d1e5e92a",
+        "asm/arm64/common/register-global-bindings.inc": "9116c3ef9006772b49dd2b2866476276c4c0015cdc2a1b7fc17117a8c66ed3f0"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-global-family-api-on",
+          "output_sha256": "c3d7223cee5e121bee4003ad834d3830df473f3e1d37cba3b4f6d01c8dd8b770",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_PUBLIC_OK threads=2 owners=2",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_PUBLIC_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-global-family-global-one",
+          "output_sha256": "9672733611d149650f4877c6b02a454f220dce9283622e3010fac29525411814",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_OK",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-global-family-global-zero",
+          "output_sha256": "35aca28c52d030fb8beb4fb791ecdf05f8b4ebd011f89caad57da2b458a503b3",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_OK",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-global-family-on",
+          "output_sha256": "fe0cee27a700b13270ec098eb15236a41767de4ec7e01aae3ed11d940425f683",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_OK",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-global-family-oom-on",
+          "output_sha256": "42e7216d55f75eca2ac7b78d95104d3ea21d4c8896c40bbdbed62410e2c8096c",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_OOM_OK faults=3",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_OOM_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-global-family-undefined-zero",
+          "output_sha256": "3873bff238c1553ce93d6a87803820da2b1eb218280698d477dce2c4e7dbbb99",
+          "markers": [
+            "LINUX_GLOBAL_BINDINGS_OK",
+            "Required regular expression found. Regex=[LINUX_GLOBAL_BINDINGS_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/global_bindings.py": "e77f9f4d2e8302dafbe57129ff08008566c8f15f6c63f3cb697469f3d1e5e92a",
+        "asm/arm64/common/register-global-bindings.inc": "9116c3ef9006772b49dd2b2866476276c4c0015cdc2a1b7fc17117a8c66ed3f0"
+      }
+    },
+    {
+      "family": "GNU native string integer receiver entries",
+      "implementation": "Accepted integer-receiver guards, pure/no-call append and frame-free compound/character C aggregate worker",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/strings.py": "543fc0cf101b87add5c25ec981997d3d75904fa496b4d7348bdb20911994c67a",
+        "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
+        "asm/arm64/common/register-string-append.inc": "ec31ef220ded08865ffc0620304d35b10f5cbf00a8ab4c6a346d8a900bdd895a",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-call-leaves-paths",
+          "output_sha256": "028b0a148bee101f6ee829d7cf65b2bf1c09d42f1b558ffc082f4716a891072b",
+          "markers": [
+            "AARCH64_CALL_LEAVES_OK",
+            "Required regular expression found. Regex=[AARCH64_CALL_LEAVES_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-native-string-concat-on-on",
+          "output_sha256": "e6350ad4782e5ddd03b8fdac2e67d6ffe472806e815af97c90f9da6d8cb9d02a",
+          "markers": []
+        },
+        {
+          "test": "interpreter-aarch64-native-string-locale-on-on",
+          "output_sha256": "9a4a2897751e4c5e50704570f9b48da3da362b85a3d7b528ad8453d0c76dfd78",
+          "markers": []
+        },
+        {
+          "test": "interpreter-aarch64-native-string-paths-on-on",
+          "output_sha256": "6cdc8a7d774447bdffa06c22b5e1441bbac062a7f53aaa2ab1ac36259a93c140",
+          "markers": [
+            "AARCH64_STRING_PATHS_OK",
+            "Required regular expression found. Regex=[AARCH64_STRING_PATHS_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-character-set-leaf",
+          "output_sha256": "7e73b6e17b364ccbdcdd20d47d12ae01fe909d35af0a52b75331b6a45988d187",
+          "markers": [
+            "FRAME_CHARACTER_SET_LEAF_OK 63816"
+          ]
+        },
+        {
+          "test": "interpreter-character-set-leaf-off",
+          "output_sha256": "76ca48f3ecdad233fb9c24b289f95dfac4dfe5d530bd395781ad133c13cbda4f",
+          "markers": [
+            "FRAME_CHARACTER_SET_LEAF_OK 63816"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/strings.py": "543fc0cf101b87add5c25ec981997d3d75904fa496b4d7348bdb20911994c67a",
+        "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
+        "asm/arm64/common/register-string-append.inc": "ec31ef220ded08865ffc0620304d35b10f5cbf00a8ab4c6a346d8a900bdd895a",
+        "tools/arm64/call_leaves.py": "70ab8e48ee5de04de145d471297594ee40900c4bbdace0f3453c5f9c389869a1"
+      }
+    },
+    {
+      "family": "Core C ordinary numeric-array own-property leaf",
+      "implementation": "Complete source-owned core ordinary numeric own-data leaf and owning duplication over actual fields",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/array_own.py": "ab622af985a08ed555d6a3c33667d9f8d5724a3359e01026fb74af6e30f783ee",
+        "asm/arm64/linux/array-own.S": "c904d1c1cde3381c49cb55f33edf8de834debf8eedfab51a41f32695edf1a5d0"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-array-own-frame-off",
+          "output_sha256": "d91394b7bebf693aed4346c87a393bdf2e897c47da669220d502c986552acac5",
+          "markers": [
+            "ARRAY_OWN_NATIVE_PATH_OK original_caller_hits=32 vm_indexed_hits=0 entries=244 hits=196 fallback=48"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-array-own-indexed-own-0",
+          "output_sha256": "803932976c4090383a50814d0655f3ddd4ca565a6aedcfe9b42e2e1345ea7e10",
+          "markers": [
+            "ARRAY_OWN_NATIVE_PATH_OK original_caller_hits=32 vm_indexed_hits=0 entries=244 hits=196 fallback=48"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-array-own-native",
+          "output_sha256": "c1c513018e38a92a97dc16dc07b6f1fe1c57d3d03df84ca28660558b86dea13a",
+          "markers": [
+            "ARRAY_OWN_NATIVE_PATH_OK original_caller_hits=32 vm_indexed_hits=32 entries=212 hits=164 fallback=48"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-array-own-register-off",
+          "output_sha256": "bd9cc778f9894dc9e85af41ce7c6dc8561b1a1ca88fc42991dcb1b318887ded1",
+          "markers": [
+            "ARRAY_OWN_NATIVE_PATH_OK original_caller_hits=32 vm_indexed_hits=0 entries=244 hits=196 fallback=48"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/array_own.py": "ab622af985a08ed555d6a3c33667d9f8d5724a3359e01026fb74af6e30f783ee",
+        "asm/arm64/linux/array-own.S": "c904d1c1cde3381c49cb55f33edf8de834debf8eedfab51a41f32695edf1a5d0"
+      }
+    },
+    {
+      "family": "GNU native null-prototype admission and warm allocation",
+      "implementation": "Complete original null-only validator/warm allocator with GC/quota/OOM/realm and actual aggregate result",
+      "status": "source-bound implementation and hardware execution verified",
+      "sources": {
+        "tools/arm64/null_proto.py": "d0e4291ba258ebfe9373f77044898449627a0dbe45cc301cbfa70667959b356b",
+        "asm/arm64/common/register-null-proto.inc": "a9363550c3059717c39f1ebb74d1030e9833f6b52b9afaaed3a14172cb3311ec"
+      },
+      "tests": [
+        {
+          "test": "interpreter-aarch64-null-proto-public-off-one",
+          "output_sha256": "f1aada1d66e9003e3a0cfafda9bc9bccdb10b5b33330fa2ee33f63216a765020",
+          "markers": [
+            "LINUX_NULL_PROTO_PUBLIC_OK faults=5",
+            "Required regular expression found. Regex=[LINUX_NULL_PROTO_PUBLIC_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-null-proto-public-off-zero",
+          "output_sha256": "625660367632e565817b7d8dce5dcc25480b81df7d6acf5ea9274c80df0d21e0",
+          "markers": [
+            "LINUX_NULL_PROTO_PUBLIC_OK faults=5",
+            "Required regular expression found. Regex=[LINUX_NULL_PROTO_PUBLIC_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-null-proto-public-on",
+          "output_sha256": "cd981414971b8e1152a01352ad78ec46a746e78b59d50607ea6668640974f4bf",
+          "markers": [
+            "LINUX_NULL_PROTO_PUBLIC_OK faults=5",
+            "Required regular expression found. Regex=[LINUX_NULL_PROTO_PUBLIC_OK]"
+          ]
+        },
+        {
+          "test": "interpreter-aarch64-null-proto-public-register-off",
+          "output_sha256": "fcdee71cc5e50f045c36b9895c128dc0264aedb616e2e0e86c8ca6863835d474",
+          "markers": [
+            "LINUX_NULL_PROTO_PUBLIC_OK faults=5",
+            "Required regular expression found. Regex=[LINUX_NULL_PROTO_PUBLIC_OK]"
+          ]
+        }
+      ],
+      "executed_snapshot_sources": {
+        "tools/arm64/null_proto.py": "d0e4291ba258ebfe9373f77044898449627a0dbe45cc301cbfa70667959b356b",
+        "asm/arm64/common/register-null-proto.inc": "a9363550c3059717c39f1ebb74d1030e9833f6b52b9afaaed3a14172cb3311ec"
+      }
+    }
+  ],
+  "explicit_boundaries": [
+    "Not counted as a native HOT destination: original naming opcode is admitted through the typed observing one-opcode JS_AArch64Step route, returns to the same VM; captures.json, prepare_vm.py and captured-entry ON/OFF/descriptor/OOM fixtures bind this explicit boundary. The initial audit incorrectly added the x86-specific set_name destination to the 141 original base handlers.",
+    "ARM pure root/child call leaves have a compiler-owned 192-byte C activation; ordinary native JS frame calls/returns retain the single register-VM activation. Prepared callbacks and JSON keep the qualified capsule preference. Counterfactual routing optimality and x86 noncalling machine-code identity are not claimed.",
+    "MSVC-only native coroutine segments and extra-method learning, default-OFF weak VM links, and ordinary async output-capability elision absent from the accepted GNU baseline remain outside GNU parity.",
+    "Build CHECK/ABI receipts certify their local functional/image contracts. Their hardware_performance_qualified=false fields are not rewritten into unconditional performance certification; this report binds actual measurements separately."
+  ],
+  "performance": {
+    "micro57": {
+      "cases": 57,
+      "geometric_mean_throughput_vs_stock": 0.9148582228635097,
+      "geometric_mean_throughput_vs_portable": 0.797603517102915,
+      "rows": [
+        {
+          "case": "empty_loop",
+          "stock_time": 25.7,
+          "portable_time": 21.6,
+          "native_time": 26.45,
+          "native_throughput_vs_stock": 0.9716446124763705,
+          "native_throughput_vs_portable": 0.8166351606805293,
+          "native_elapsed_vs_stock_percent": 2.9182879377431803,
+          "native_minus_portable_over_stock_percent": 18.871595330739293
+        },
+        {
+          "case": "date_now",
+          "stock_time": 117.45,
+          "portable_time": 82.825,
+          "native_time": 128.8,
+          "native_throughput_vs_stock": 0.9118788819875776,
+          "native_throughput_vs_portable": 0.6430512422360248,
+          "native_elapsed_vs_stock_percent": 9.663686675180937,
+          "native_minus_portable_over_stock_percent": 39.144316730523634
+        },
+        {
+          "case": "prop_read",
+          "stock_time": 21.439999999999998,
+          "portable_time": 32.224999999999994,
+          "native_time": 21.740000000000002,
+          "native_throughput_vs_stock": 0.9862005519779207,
+          "native_throughput_vs_portable": 1.4822907083716648,
+          "native_elapsed_vs_stock_percent": 1.3992537313433084,
+          "native_minus_portable_over_stock_percent": -48.90391791044773
+        },
+        {
+          "case": "prop_write",
+          "stock_time": 14.43,
+          "portable_time": 29.69,
+          "native_time": 18.05,
+          "native_throughput_vs_stock": 0.7994459833795013,
+          "native_throughput_vs_portable": 1.6448753462603878,
+          "native_elapsed_vs_stock_percent": 25.08662508662509,
+          "native_minus_portable_over_stock_percent": -80.66528066528066
+        },
+        {
+          "case": "prop_create",
+          "stock_time": 110.55,
+          "portable_time": 74.765,
+          "native_time": 71.065,
+          "native_throughput_vs_stock": 1.5556180961091959,
+          "native_throughput_vs_portable": 1.0520650109055092,
+          "native_elapsed_vs_stock_percent": -35.716870194482134,
+          "native_minus_portable_over_stock_percent": -3.3469018543645435
+        },
+        {
+          "case": "prop_delete",
+          "stock_time": 121.775,
+          "portable_time": 77.825,
+          "native_time": 212.8,
+          "native_throughput_vs_stock": 0.572250939849624,
+          "native_throughput_vs_portable": 0.365718984962406,
+          "native_elapsed_vs_stock_percent": 74.74851159926092,
+          "native_minus_portable_over_stock_percent": 110.839663313488
+        },
+        {
+          "case": "array_read",
+          "stock_time": 26.845,
+          "portable_time": 22.545,
+          "native_time": 28.575000000000003,
+          "native_throughput_vs_stock": 0.9394575678040243,
+          "native_throughput_vs_portable": 0.7889763779527559,
+          "native_elapsed_vs_stock_percent": 6.444403054572567,
+          "native_minus_portable_over_stock_percent": 22.46228347923264
+        },
+        {
+          "case": "array_write",
+          "stock_time": 40.105000000000004,
+          "portable_time": 13.844999999999999,
+          "native_time": 22.89,
+          "native_throughput_vs_stock": 1.752075141983399,
+          "native_throughput_vs_portable": 0.6048492791612057,
+          "native_elapsed_vs_stock_percent": -42.92482234135395,
+          "native_minus_portable_over_stock_percent": 22.553297593816236
+        },
+        {
+          "case": "array_prop_create",
+          "stock_time": 42.295,
+          "portable_time": 26.174999999999997,
+          "native_time": 44.7,
+          "native_throughput_vs_stock": 0.9461968680089485,
+          "native_throughput_vs_portable": 0.5855704697986576,
+          "native_elapsed_vs_stock_percent": 5.686251329944447,
+          "native_minus_portable_over_stock_percent": 43.799503487409865
+        },
+        {
+          "case": "array_length_decr",
+          "stock_time": 39.83,
+          "portable_time": 39.62,
+          "native_time": 78.73,
+          "native_throughput_vs_stock": 0.5059062619077861,
+          "native_throughput_vs_portable": 0.5032389178203988,
+          "native_elapsed_vs_stock_percent": 97.66507657544565,
+          "native_minus_portable_over_stock_percent": 98.19231734873213
+        },
+        {
+          "case": "array_hole_length_decr",
+          "stock_time": 45.32,
+          "portable_time": 54.82,
+          "native_time": 104.15,
+          "native_throughput_vs_stock": 0.4351416226596255,
+          "native_throughput_vs_portable": 0.5263562169947191,
+          "native_elapsed_vs_stock_percent": 129.81023830538393,
+          "native_minus_portable_over_stock_percent": 108.84819064430717
+        },
+        {
+          "case": "array_push",
+          "stock_time": 67.24,
+          "portable_time": 78.55,
+          "native_time": 113.02000000000001,
+          "native_throughput_vs_stock": 0.594938948858609,
+          "native_throughput_vs_portable": 0.6950097327906565,
+          "native_elapsed_vs_stock_percent": 68.08447352766214,
+          "native_minus_portable_over_stock_percent": 51.26412849494351
+        },
+        {
+          "case": "array_pop",
+          "stock_time": 166.45,
+          "portable_time": 137.89999999999998,
+          "native_time": 157.2,
+          "native_throughput_vs_stock": 1.0588422391857506,
+          "native_throughput_vs_portable": 0.8772264631043256,
+          "native_elapsed_vs_stock_percent": -5.557224391709226,
+          "native_minus_portable_over_stock_percent": 11.595073595674384
+        },
+        {
+          "case": "typed_array_read",
+          "stock_time": 26.03,
+          "portable_time": 22.215,
+          "native_time": 28.65,
+          "native_throughput_vs_stock": 0.9085514834205934,
+          "native_throughput_vs_portable": 0.7753926701570681,
+          "native_elapsed_vs_stock_percent": 10.065309258547828,
+          "native_minus_portable_over_stock_percent": 24.721475220898956
+        },
+        {
+          "case": "typed_array_write",
+          "stock_time": 39.95,
+          "portable_time": 24.1,
+          "native_time": 23.25,
+          "native_throughput_vs_stock": 1.7182795698924733,
+          "native_throughput_vs_portable": 1.0365591397849463,
+          "native_elapsed_vs_stock_percent": -41.80225281602002,
+          "native_minus_portable_over_stock_percent": -2.1276595744680886
+        },
+        {
+          "case": "global_read",
+          "stock_time": 11.309999999999999,
+          "portable_time": 11.38,
+          "native_time": 14.870000000000001,
+          "native_throughput_vs_stock": 0.7605917955615331,
+          "native_throughput_vs_portable": 0.7652992602555481,
+          "native_elapsed_vs_stock_percent": 31.476569407603904,
+          "native_minus_portable_over_stock_percent": 30.85764809902741
+        },
+        {
+          "case": "global_write",
+          "stock_time": 12.625,
+          "portable_time": 12.21,
+          "native_time": 10.754999999999999,
+          "native_throughput_vs_stock": 1.1738726173872618,
+          "native_throughput_vs_portable": 1.1352859135285915,
+          "native_elapsed_vs_stock_percent": -14.811881188118825,
+          "native_minus_portable_over_stock_percent": -11.524752475247539
+        },
+        {
+          "case": "global_write_strict",
+          "stock_time": 12.61,
+          "portable_time": 12.205,
+          "native_time": 16.725,
+          "native_throughput_vs_stock": 0.7539611360239162,
+          "native_throughput_vs_portable": 0.7297458893871449,
+          "native_elapsed_vs_stock_percent": 32.63283108643935,
+          "native_minus_portable_over_stock_percent": 35.8445678033307
+        },
+        {
+          "case": "local_destruct",
+          "stock_time": 68.86500000000001,
+          "portable_time": 42.535,
+          "native_time": 88.33,
+          "native_throughput_vs_stock": 0.7796331937054229,
+          "native_throughput_vs_portable": 0.4815464734518283,
+          "native_elapsed_vs_stock_percent": 28.265446888840472,
+          "native_minus_portable_over_stock_percent": 66.49967327379655
+        },
+        {
+          "case": "global_destruct",
+          "stock_time": 93.39,
+          "portable_time": 89.91499999999999,
+          "native_time": 105.155,
+          "native_throughput_vs_stock": 0.8881175407731444,
+          "native_throughput_vs_portable": 0.8550710855403927,
+          "native_elapsed_vs_stock_percent": 12.59770853410429,
+          "native_minus_portable_over_stock_percent": 16.318663668486998
+        },
+        {
+          "case": "global_destruct_strict",
+          "stock_time": 92.755,
+          "portable_time": 59.845,
+          "native_time": 116.44,
+          "native_throughput_vs_stock": 0.7965905187220886,
+          "native_throughput_vs_portable": 0.5139556853315012,
+          "native_elapsed_vs_stock_percent": 25.53501158967173,
+          "native_minus_portable_over_stock_percent": 61.01557867500404
+        },
+        {
+          "case": "func_call",
+          "stock_time": 46.04,
+          "portable_time": 35.925,
+          "native_time": 59.63,
+          "native_throughput_vs_stock": 0.7720945832634579,
+          "native_throughput_vs_portable": 0.6024652020794902,
+          "native_elapsed_vs_stock_percent": 29.517810599478732,
+          "native_minus_portable_over_stock_percent": 51.48783666377064
+        },
+        {
+          "case": "closure_var",
+          "stock_time": 43.7,
+          "portable_time": 49.84,
+          "native_time": 99.275,
+          "native_throughput_vs_stock": 0.44019138755980863,
+          "native_throughput_vs_portable": 0.5020397884663813,
+          "native_elapsed_vs_stock_percent": 127.17391304347827,
+          "native_minus_portable_over_stock_percent": 113.12356979405034
+        },
+        {
+          "case": "int_arith",
+          "stock_time": 23.279999999999998,
+          "portable_time": 22.825000000000003,
+          "native_time": 33.425,
+          "native_throughput_vs_stock": 0.6964846671652954,
+          "native_throughput_vs_portable": 0.6828721017202694,
+          "native_elapsed_vs_stock_percent": 43.578178694158076,
+          "native_minus_portable_over_stock_percent": 45.53264604810995
+        },
+        {
+          "case": "float_arith",
+          "stock_time": 42.57,
+          "portable_time": 37.519999999999996,
+          "native_time": 63.995,
+          "native_throughput_vs_stock": 0.66520821939214,
+          "native_throughput_vs_portable": 0.5862958043597155,
+          "native_elapsed_vs_stock_percent": 50.32887009631195,
+          "native_minus_portable_over_stock_percent": 62.19168428470754
+        },
+        {
+          "case": "map_set",
+          "stock_time": 430.2,
+          "portable_time": 321.2,
+          "native_time": 487.1,
+          "native_throughput_vs_stock": 0.8831862040648737,
+          "native_throughput_vs_portable": 0.6594128515705193,
+          "native_elapsed_vs_stock_percent": 13.22640632264065,
+          "native_minus_portable_over_stock_percent": 38.563458856345896
+        },
+        {
+          "case": "map_delete",
+          "stock_time": 529.45,
+          "portable_time": 417.6,
+          "native_time": 480.1,
+          "native_throughput_vs_stock": 1.1027910851905853,
+          "native_throughput_vs_portable": 0.8698187877525515,
+          "native_elapsed_vs_stock_percent": -9.320993483803953,
+          "native_minus_portable_over_stock_percent": 11.804702993672679
+        },
+        {
+          "case": "weak_map_set",
+          "stock_time": 377.5,
+          "portable_time": 155.39999999999998,
+          "native_time": 228.25,
+          "native_throughput_vs_stock": 1.6538882803943045,
+          "native_throughput_vs_portable": 0.6808324205914567,
+          "native_elapsed_vs_stock_percent": -39.5364238410596,
+          "native_minus_portable_over_stock_percent": 19.29801324503312
+        },
+        {
+          "case": "weak_map_delete",
+          "stock_time": 700.5,
+          "portable_time": 418.05,
+          "native_time": 529.3,
+          "native_throughput_vs_stock": 1.3234460608350653,
+          "native_throughput_vs_portable": 0.7898167390893635,
+          "native_elapsed_vs_stock_percent": -24.439685938615284,
+          "native_minus_portable_over_stock_percent": 15.881513204853668
+        },
+        {
+          "case": "array_for",
+          "stock_time": 39.599999999999994,
+          "portable_time": 34.09,
+          "native_time": 49.935,
+          "native_throughput_vs_stock": 0.7930309402222888,
+          "native_throughput_vs_portable": 0.6826874937418644,
+          "native_elapsed_vs_stock_percent": 26.098484848484873,
+          "native_minus_portable_over_stock_percent": 40.01262626262627
+        },
+        {
+          "case": "array_for_in",
+          "stock_time": 77.2,
+          "portable_time": 113.95,
+          "native_time": 70.45,
+          "native_throughput_vs_stock": 1.0958126330731015,
+          "native_throughput_vs_portable": 1.617459190915543,
+          "native_elapsed_vs_stock_percent": -8.743523316062173,
+          "native_minus_portable_over_stock_percent": -56.347150259067355
+        },
+        {
+          "case": "array_for_of",
+          "stock_time": 50.269999999999996,
+          "portable_time": 45.45,
+          "native_time": 55.08,
+          "native_throughput_vs_stock": 0.9126724763979666,
+          "native_throughput_vs_portable": 0.8251633986928105,
+          "native_elapsed_vs_stock_percent": 9.568331012532338,
+          "native_minus_portable_over_stock_percent": 19.15655460513228
+        },
+        {
+          "case": "math_min",
+          "stock_time": 86.85,
+          "portable_time": 65.09,
+          "native_time": 107.9,
+          "native_throughput_vs_stock": 0.804911955514365,
+          "native_throughput_vs_portable": 0.6032437442075996,
+          "native_elapsed_vs_stock_percent": 24.237190558434097,
+          "native_minus_portable_over_stock_percent": 49.29188255613126
+        },
+        {
+          "case": "object_null",
+          "stock_time": 101.35,
+          "portable_time": 89.0,
+          "native_time": 115.25,
+          "native_throughput_vs_stock": 0.8793926247288503,
+          "native_throughput_vs_portable": 0.7722342733188721,
+          "native_elapsed_vs_stock_percent": 13.71484953132709,
+          "native_minus_portable_over_stock_percent": 25.90034533793784
+        },
+        {
+          "case": "regexp_ascii",
+          "stock_time": 530.35,
+          "portable_time": 389.55,
+          "native_time": 453.35,
+          "native_throughput_vs_stock": 1.169846696812617,
+          "native_throughput_vs_portable": 0.8592698797838315,
+          "native_elapsed_vs_stock_percent": -14.518714056754977,
+          "native_minus_portable_over_stock_percent": 12.02979164702555
+        },
+        {
+          "case": "regexp_utf16",
+          "stock_time": 610.8499999999999,
+          "portable_time": 295.95000000000005,
+          "native_time": 456.2,
+          "native_throughput_vs_stock": 1.3389960543621218,
+          "native_throughput_vs_portable": 0.648728627794827,
+          "native_elapsed_vs_stock_percent": -25.31718097732667,
+          "native_minus_portable_over_stock_percent": 26.233936318245064
+        },
+        {
+          "case": "string_build1",
+          "stock_time": 139.75,
+          "portable_time": 135.75,
+          "native_time": 156.75,
+          "native_throughput_vs_stock": 0.8915470494417863,
+          "native_throughput_vs_portable": 0.8660287081339713,
+          "native_elapsed_vs_stock_percent": 12.164579606440062,
+          "native_minus_portable_over_stock_percent": 15.026833631484795
+        },
+        {
+          "case": "string_build2",
+          "stock_time": 144.25,
+          "portable_time": 135.2,
+          "native_time": 160.5,
+          "native_throughput_vs_stock": 0.8987538940809969,
+          "native_throughput_vs_portable": 0.8423676012461059,
+          "native_elapsed_vs_stock_percent": 11.265164644714032,
+          "native_minus_portable_over_stock_percent": 17.538994800693246
+        },
+        {
+          "case": "string_concat0",
+          "stock_time": 128.55,
+          "portable_time": 123.725,
+          "native_time": 221.6,
+          "native_throughput_vs_stock": 0.5800992779783394,
+          "native_throughput_vs_portable": 0.5583258122743682,
+          "native_elapsed_vs_stock_percent": 72.38428626993385,
+          "native_minus_portable_over_stock_percent": 76.13768961493581
+        },
+        {
+          "case": "string_concat1",
+          "stock_time": 180.35,
+          "portable_time": 143.45,
+          "native_time": 209.29999999999998,
+          "native_throughput_vs_stock": 0.8616817964644052,
+          "native_throughput_vs_portable": 0.6853798375537506,
+          "native_elapsed_vs_stock_percent": 16.052120876074305,
+          "native_minus_portable_over_stock_percent": 36.51233712226227
+        },
+        {
+          "case": "string_concat2",
+          "stock_time": 680.5,
+          "portable_time": 436.85,
+          "native_time": 628.3,
+          "native_throughput_vs_stock": 1.0830813305745663,
+          "native_throughput_vs_portable": 0.6952888747413657,
+          "native_elapsed_vs_stock_percent": -7.6708302718589305,
+          "native_minus_portable_over_stock_percent": 28.1337252020573
+        },
+        {
+          "case": "string_concat3",
+          "stock_time": 4714.0,
+          "portable_time": 4308.0,
+          "native_time": 3629.5,
+          "native_throughput_vs_stock": 1.2988014878082381,
+          "native_throughput_vs_portable": 1.186940349910456,
+          "native_elapsed_vs_stock_percent": -23.005939753924476,
+          "native_minus_portable_over_stock_percent": -14.393296563428086
+        },
+        {
+          "case": "string_slice1",
+          "stock_time": 109.5,
+          "portable_time": 128.95,
+          "native_time": 161.5,
+          "native_throughput_vs_stock": 0.6780185758513931,
+          "native_throughput_vs_portable": 0.7984520123839008,
+          "native_elapsed_vs_stock_percent": 47.48858447488584,
+          "native_minus_portable_over_stock_percent": 29.72602739726028
+        },
+        {
+          "case": "string_slice2",
+          "stock_time": 237.35000000000002,
+          "portable_time": 240.8,
+          "native_time": 299.25,
+          "native_throughput_vs_stock": 0.7931495405179616,
+          "native_throughput_vs_portable": 0.8046783625730994,
+          "native_elapsed_vs_stock_percent": 26.079629239519676,
+          "native_minus_portable_over_stock_percent": 24.626079629239513
+        },
+        {
+          "case": "string_slice3",
+          "stock_time": 140.125,
+          "portable_time": 129.75,
+          "native_time": 202.65,
+          "native_throughput_vs_stock": 0.6914631137429065,
+          "native_throughput_vs_portable": 0.6402664692820133,
+          "native_elapsed_vs_stock_percent": 44.62087421944692,
+          "native_minus_portable_over_stock_percent": 52.024977698483504
+        },
+        {
+          "case": "sort_bench",
+          "stock_time": 2.2,
+          "portable_time": 2.715,
+          "native_time": 0.91,
+          "native_throughput_vs_stock": 2.417582417582418,
+          "native_throughput_vs_portable": 2.983516483516483,
+          "native_elapsed_vs_stock_percent": -58.63636363636364,
+          "native_minus_portable_over_stock_percent": -82.04545454545453
+        },
+        {
+          "case": "int_to_string",
+          "stock_time": 72.735,
+          "portable_time": 67.83,
+          "native_time": 89.0,
+          "native_throughput_vs_stock": 0.817247191011236,
+          "native_throughput_vs_portable": 0.7621348314606742,
+          "native_elapsed_vs_stock_percent": 22.361999037602253,
+          "native_minus_portable_over_stock_percent": 29.105657523888087
+        },
+        {
+          "case": "int_toString",
+          "stock_time": 118.1,
+          "portable_time": 83.535,
+          "native_time": 154.8,
+          "native_throughput_vs_stock": 0.7629198966408268,
+          "native_throughput_vs_portable": 0.5396317829457363,
+          "native_elapsed_vs_stock_percent": 31.075359864521612,
+          "native_minus_portable_over_stock_percent": 60.3429297205758
+        },
+        {
+          "case": "float_to_string",
+          "stock_time": 320.5,
+          "portable_time": 279.92,
+          "native_time": 402.08,
+          "native_throughput_vs_stock": 0.7971050537206527,
+          "native_throughput_vs_portable": 0.6961798647035417,
+          "native_elapsed_vs_stock_percent": 25.453978159126358,
+          "native_minus_portable_over_stock_percent": 38.1154446177847
+        },
+        {
+          "case": "float_toString",
+          "stock_time": 420.5,
+          "portable_time": 389.58500000000004,
+          "native_time": 351.25,
+          "native_throughput_vs_stock": 1.197153024911032,
+          "native_throughput_vs_portable": 1.1091387900355874,
+          "native_elapsed_vs_stock_percent": -16.46848989298454,
+          "native_minus_portable_over_stock_percent": -9.116527942925098
+        },
+        {
+          "case": "float_toFixed",
+          "stock_time": 178.0,
+          "portable_time": 141.085,
+          "native_time": 200.57999999999998,
+          "native_throughput_vs_stock": 0.887426463256556,
+          "native_throughput_vs_portable": 0.7033851829693889,
+          "native_elapsed_vs_stock_percent": 12.685393258426947,
+          "native_minus_portable_over_stock_percent": 33.42415730337077
+        },
+        {
+          "case": "float_toPrecision",
+          "stock_time": 282.27,
+          "portable_time": 238.635,
+          "native_time": 305.33,
+          "native_throughput_vs_stock": 0.9244751580257426,
+          "native_throughput_vs_portable": 0.7815642092162578,
+          "native_elapsed_vs_stock_percent": 8.169483118999544,
+          "native_minus_portable_over_stock_percent": 23.628086583767313
+        },
+        {
+          "case": "float_toExponential",
+          "stock_time": 145.41500000000002,
+          "portable_time": 243.33499999999998,
+          "native_time": 220.66500000000002,
+          "native_throughput_vs_stock": 0.6589853397684273,
+          "native_throughput_vs_portable": 1.1027349149162755,
+          "native_elapsed_vs_stock_percent": 51.748444108241934,
+          "native_minus_portable_over_stock_percent": -15.589863494137438
+        },
+        {
+          "case": "string_to_int",
+          "stock_time": 198.6,
+          "portable_time": 195.95,
+          "native_time": 108.425,
+          "native_throughput_vs_stock": 1.8316808854046576,
+          "native_throughput_vs_portable": 1.8072400276688956,
+          "native_elapsed_vs_stock_percent": -45.40533736153072,
+          "native_minus_portable_over_stock_percent": -44.070996978851966
+        },
+        {
+          "case": "string_to_float",
+          "stock_time": 243.9,
+          "portable_time": 246.14999999999998,
+          "native_time": 192.0,
+          "native_throughput_vs_stock": 1.2703125,
+          "native_throughput_vs_portable": 1.28203125,
+          "native_elapsed_vs_stock_percent": -21.27921279212792,
+          "native_minus_portable_over_stock_percent": -22.201722017220163
+        },
+        {
+          "case": "bigint64_arith",
+          "stock_time": 85.85,
+          "portable_time": 113.17500000000001,
+          "native_time": 104.25,
+          "native_throughput_vs_stock": 0.8235011990407674,
+          "native_throughput_vs_portable": 1.085611510791367,
+          "native_elapsed_vs_stock_percent": 21.43273150844498,
+          "native_minus_portable_over_stock_percent": -10.39603960396041
+        },
+        {
+          "case": "bigint256_arith",
+          "stock_time": 212.75,
+          "portable_time": 211.75,
+          "native_time": 243.5,
+          "native_throughput_vs_stock": 0.8737166324435318,
+          "native_throughput_vs_portable": 0.8696098562628337,
+          "native_elapsed_vs_stock_percent": 14.453584018801413,
+          "native_minus_portable_over_stock_percent": 14.923619271445359
+        }
+      ],
+      "unit": "ns/op",
+      "clock": "original os.cputime user CPU, retains multimodal samples",
+      "peak_rss_kib_maximum": {
+        "stock": 6728,
+        "portable": 7160,
+        "native": 6568
+      },
+      "raw_samples": "micro57/SAMPLES.json"
+    },
+    "micro-original-concerns": {
+      "cases": 6,
+      "geometric_mean_throughput_vs_stock": 0.5799054850038495,
+      "geometric_mean_throughput_vs_portable": 0.5169920185231481,
+      "rows": [
+        {
+          "case": "array_length_decr",
+          "stock_time": 46.15,
+          "portable_time": 36.46,
+          "native_time": 70.72,
+          "native_throughput_vs_stock": 0.6525735294117647,
+          "native_throughput_vs_portable": 0.515554298642534,
+          "native_elapsed_vs_stock_percent": 53.239436619718305,
+          "native_minus_portable_over_stock_percent": 74.2361863488624
+        },
+        {
+          "case": "array_hole_length_decr",
+          "stock_time": 52.67,
+          "portable_time": 54.73,
+          "native_time": 107.2,
+          "native_throughput_vs_stock": 0.49132462686567163,
+          "native_throughput_vs_portable": 0.5105410447761194,
+          "native_elapsed_vs_stock_percent": 103.5314220618948,
+          "native_minus_portable_over_stock_percent": 99.62027719764573
+        },
+        {
+          "case": "closure_var",
+          "stock_time": 56.075,
+          "portable_time": 49.755,
+          "native_time": 109.215,
+          "native_throughput_vs_stock": 0.5134367989744999,
+          "native_throughput_vs_portable": 0.45556928993270157,
+          "native_elapsed_vs_stock_percent": 94.76593847525633,
+          "native_minus_portable_over_stock_percent": 106.03655818100758
+        },
+        {
+          "case": "prop_delete",
+          "stock_time": 156.89999999999998,
+          "portable_time": 123.9,
+          "native_time": 212.1,
+          "native_throughput_vs_stock": 0.7397454031117396,
+          "native_throughput_vs_portable": 0.5841584158415842,
+          "native_elapsed_vs_stock_percent": 35.18164435946465,
+          "native_minus_portable_over_stock_percent": 56.21414913957935
+        },
+        {
+          "case": "float_arith",
+          "stock_time": 41.8,
+          "portable_time": 37.5,
+          "native_time": 78.52000000000001,
+          "native_throughput_vs_stock": 0.532348446255731,
+          "native_throughput_vs_portable": 0.477585328578706,
+          "native_elapsed_vs_stock_percent": 87.84688995215315,
+          "native_minus_portable_over_stock_percent": 98.13397129186606
+        },
+        {
+          "case": "string_concat0",
+          "stock_time": 127.44999999999999,
+          "portable_time": 124.0,
+          "native_time": 217.25,
+          "native_throughput_vs_stock": 0.5866513233601841,
+          "native_throughput_vs_portable": 0.570771001150748,
+          "native_elapsed_vs_stock_percent": 70.45900353079642,
+          "native_minus_portable_over_stock_percent": 73.16594743036485
+        }
+      ],
+      "unit": "ns/op",
+      "clock": "original os.cputime user CPU, retains multimodal samples",
+      "peak_rss_kib_maximum": {
+        "stock": 6052,
+        "portable": 6364,
+        "native": 7540
+      },
+      "raw_samples": "micro-original-concerns/SAMPLES.json"
+    },
+    "micro-wall57": {
+      "cases": 57,
+      "geometric_mean_throughput_vs_stock": 0.9215747253131255,
+      "geometric_mean_throughput_vs_portable": 0.7854042923506737,
+      "rows": [
+        {
+          "case": "empty_loop",
+          "stock_time": 25.65,
+          "portable_time": 24.0,
+          "native_time": 27.725,
+          "native_throughput_vs_stock": 0.9251577998196573,
+          "native_throughput_vs_portable": 0.8656447249774571,
+          "native_elapsed_vs_stock_percent": 8.089668615984413,
+          "native_minus_portable_over_stock_percent": 14.522417153996107
+        },
+        {
+          "case": "date_now",
+          "stock_time": 115.25,
+          "portable_time": 107.4,
+          "native_time": 129.6,
+          "native_throughput_vs_stock": 0.8892746913580247,
+          "native_throughput_vs_portable": 0.8287037037037038,
+          "native_elapsed_vs_stock_percent": 12.451193058568322,
+          "native_minus_portable_over_stock_percent": 19.26247288503253
+        },
+        {
+          "case": "prop_read",
+          "stock_time": 26.575000000000003,
+          "portable_time": 32.2,
+          "native_time": 33.5,
+          "native_throughput_vs_stock": 0.7932835820895523,
+          "native_throughput_vs_portable": 0.9611940298507463,
+          "native_elapsed_vs_stock_percent": 26.058325493885228,
+          "native_minus_portable_over_stock_percent": 4.89181561618061
+        },
+        {
+          "case": "prop_write",
+          "stock_time": 19.325000000000003,
+          "portable_time": 29.475,
+          "native_time": 18.0,
+          "native_throughput_vs_stock": 1.0736111111111113,
+          "native_throughput_vs_portable": 1.6375000000000002,
+          "native_elapsed_vs_stock_percent": -6.856403622250983,
+          "native_minus_portable_over_stock_percent": -59.37904269081501
+        },
+        {
+          "case": "prop_create",
+          "stock_time": 170.5,
+          "portable_time": 74.67500000000001,
+          "native_time": 95.25,
+          "native_throughput_vs_stock": 1.79002624671916,
+          "native_throughput_vs_portable": 0.783989501312336,
+          "native_elapsed_vs_stock_percent": -44.13489736070382,
+          "native_minus_portable_over_stock_percent": 12.067448680351902
+        },
+        {
+          "case": "prop_delete",
+          "stock_time": 178.1,
+          "portable_time": 147.6,
+          "native_time": 212.60000000000002,
+          "native_throughput_vs_stock": 0.8377234242709312,
+          "native_throughput_vs_portable": 0.6942615239887111,
+          "native_elapsed_vs_stock_percent": 19.37113980909604,
+          "native_minus_portable_over_stock_percent": 36.49635036496352
+        },
+        {
+          "case": "array_read",
+          "stock_time": 26.325,
+          "portable_time": 22.89,
+          "native_time": 28.53,
+          "native_throughput_vs_stock": 0.9227129337539431,
+          "native_throughput_vs_portable": 0.8023133543638276,
+          "native_elapsed_vs_stock_percent": 8.37606837606839,
+          "native_minus_portable_over_stock_percent": 21.424501424501425
+        },
+        {
+          "case": "array_write",
+          "stock_time": 38.265,
+          "portable_time": 14.855,
+          "native_time": 22.895,
+          "native_throughput_vs_stock": 1.6713256169469317,
+          "native_throughput_vs_portable": 0.6488316226250274,
+          "native_elapsed_vs_stock_percent": -40.16725467137071,
+          "native_minus_portable_over_stock_percent": 21.011368090944725
+        },
+        {
+          "case": "array_prop_create",
+          "stock_time": 51.11,
+          "portable_time": 25.95,
+          "native_time": 44.650000000000006,
+          "native_throughput_vs_stock": 1.1446808510638296,
+          "native_throughput_vs_portable": 0.5811870100783874,
+          "native_elapsed_vs_stock_percent": -12.639405204460951,
+          "native_minus_portable_over_stock_percent": 36.58775190765018
+        },
+        {
+          "case": "array_length_decr",
+          "stock_time": 46.25,
+          "portable_time": 39.495,
+          "native_time": 79.30000000000001,
+          "native_throughput_vs_stock": 0.5832282471626733,
+          "native_throughput_vs_portable": 0.498045397225725,
+          "native_elapsed_vs_stock_percent": 71.45945945945948,
+          "native_minus_portable_over_stock_percent": 86.06486486486489
+        },
+        {
+          "case": "array_hole_length_decr",
+          "stock_time": 61.51,
+          "portable_time": 54.85,
+          "native_time": 104.69999999999999,
+          "native_throughput_vs_stock": 0.5874880611270297,
+          "native_throughput_vs_portable": 0.5238777459407833,
+          "native_elapsed_vs_stock_percent": 70.21622500406437,
+          "native_minus_portable_over_stock_percent": 81.04373272638594
+        },
+        {
+          "case": "array_push",
+          "stock_time": 80.8,
+          "portable_time": 78.78999999999999,
+          "native_time": 114.4,
+          "native_throughput_vs_stock": 0.7062937062937062,
+          "native_throughput_vs_portable": 0.6887237762237761,
+          "native_elapsed_vs_stock_percent": 41.5841584158416,
+          "native_minus_portable_over_stock_percent": 44.07178217821784
+        },
+        {
+          "case": "array_pop",
+          "stock_time": 163.6,
+          "portable_time": 137.7,
+          "native_time": 156.4,
+          "native_throughput_vs_stock": 1.0460358056265984,
+          "native_throughput_vs_portable": 0.8804347826086956,
+          "native_elapsed_vs_stock_percent": -4.400977995110022,
+          "native_minus_portable_over_stock_percent": 11.43031784841077
+        },
+        {
+          "case": "typed_array_read",
+          "stock_time": 25.725,
+          "portable_time": 22.57,
+          "native_time": 28.6,
+          "native_throughput_vs_stock": 0.8994755244755245,
+          "native_throughput_vs_portable": 0.7891608391608391,
+          "native_elapsed_vs_stock_percent": 11.175898931000972,
+          "native_minus_portable_over_stock_percent": 23.440233236151606
+        },
+        {
+          "case": "typed_array_write",
+          "stock_time": 45.79,
+          "portable_time": 24.27,
+          "native_time": 23.25,
+          "native_throughput_vs_stock": 1.9694623655913979,
+          "native_throughput_vs_portable": 1.0438709677419356,
+          "native_elapsed_vs_stock_percent": -49.224721554924656,
+          "native_minus_portable_over_stock_percent": -2.2275606027516917
+        },
+        {
+          "case": "global_read",
+          "stock_time": 13.065,
+          "portable_time": 11.275,
+          "native_time": 14.375,
+          "native_throughput_vs_stock": 0.9088695652173913,
+          "native_throughput_vs_portable": 0.7843478260869565,
+          "native_elapsed_vs_stock_percent": 10.026789131266757,
+          "native_minus_portable_over_stock_percent": 23.727516264829696
+        },
+        {
+          "case": "global_write",
+          "stock_time": 12.3,
+          "portable_time": 12.225,
+          "native_time": 16.335,
+          "native_throughput_vs_stock": 0.7529843893480257,
+          "native_throughput_vs_portable": 0.7483930211202938,
+          "native_elapsed_vs_stock_percent": 32.804878048780495,
+          "native_minus_portable_over_stock_percent": 33.41463414634147
+        },
+        {
+          "case": "global_write_strict",
+          "stock_time": 12.275,
+          "portable_time": 12.35,
+          "native_time": 16.25,
+          "native_throughput_vs_stock": 0.7553846153846154,
+          "native_throughput_vs_portable": 0.76,
+          "native_elapsed_vs_stock_percent": 32.38289205702647,
+          "native_minus_portable_over_stock_percent": 31.77189409368636
+        },
+        {
+          "case": "local_destruct",
+          "stock_time": 68.38499999999999,
+          "portable_time": 70.425,
+          "native_time": 88.75,
+          "native_throughput_vs_stock": 0.7705352112676055,
+          "native_throughput_vs_portable": 0.7935211267605633,
+          "native_elapsed_vs_stock_percent": 29.779922497623758,
+          "native_minus_portable_over_stock_percent": 26.79681216641077
+        },
+        {
+          "case": "global_destruct",
+          "stock_time": 92.055,
+          "portable_time": 90.53,
+          "native_time": 116.63,
+          "native_throughput_vs_stock": 0.7892909200034297,
+          "native_throughput_vs_portable": 0.7762153819771929,
+          "native_elapsed_vs_stock_percent": 26.695996958340107,
+          "native_minus_portable_over_stock_percent": 28.352615284340875
+        },
+        {
+          "case": "global_destruct_strict",
+          "stock_time": 92.13,
+          "portable_time": 90.44,
+          "native_time": 116.625,
+          "native_throughput_vs_stock": 0.789967845659164,
+          "native_throughput_vs_portable": 0.7754769560557342,
+          "native_elapsed_vs_stock_percent": 26.587430804298286,
+          "native_minus_portable_over_stock_percent": 28.42179528926517
+        },
+        {
+          "case": "func_call",
+          "stock_time": 54.55,
+          "portable_time": 48.275,
+          "native_time": 59.5,
+          "native_throughput_vs_stock": 0.9168067226890756,
+          "native_throughput_vs_portable": 0.811344537815126,
+          "native_elapsed_vs_stock_percent": 9.074243813015581,
+          "native_minus_portable_over_stock_percent": 20.577451879010088
+        },
+        {
+          "case": "closure_var",
+          "stock_time": 55.565,
+          "portable_time": 49.94,
+          "native_time": 121.25,
+          "native_throughput_vs_stock": 0.4582680412371134,
+          "native_throughput_vs_portable": 0.4118762886597938,
+          "native_elapsed_vs_stock_percent": 118.21290380635294,
+          "native_minus_portable_over_stock_percent": 128.33618284891568
+        },
+        {
+          "case": "int_arith",
+          "stock_time": 32.55,
+          "portable_time": 27.42,
+          "native_time": 55.9,
+          "native_throughput_vs_stock": 0.5822898032200358,
+          "native_throughput_vs_portable": 0.49051878354203937,
+          "native_elapsed_vs_stock_percent": 71.73579109062982,
+          "native_minus_portable_over_stock_percent": 87.49615975422427
+        },
+        {
+          "case": "float_arith",
+          "stock_time": 41.650000000000006,
+          "portable_time": 37.67,
+          "native_time": 97.4,
+          "native_throughput_vs_stock": 0.4276180698151951,
+          "native_throughput_vs_portable": 0.38675564681724844,
+          "native_elapsed_vs_stock_percent": 133.8535414165666,
+          "native_minus_portable_over_stock_percent": 143.40936374549818
+        },
+        {
+          "case": "map_set",
+          "stock_time": 520.0,
+          "portable_time": 416.0,
+          "native_time": 583.5,
+          "native_throughput_vs_stock": 0.8911739502999143,
+          "native_throughput_vs_portable": 0.7129391602399314,
+          "native_elapsed_vs_stock_percent": 12.211538461538463,
+          "native_minus_portable_over_stock_percent": 32.21153846153846
+        },
+        {
+          "case": "map_delete",
+          "stock_time": 528.2,
+          "portable_time": 419.5,
+          "native_time": 577.75,
+          "native_throughput_vs_stock": 0.9142362613587193,
+          "native_throughput_vs_portable": 0.7260926006057984,
+          "native_elapsed_vs_stock_percent": 9.380916319575917,
+          "native_minus_portable_over_stock_percent": 29.960242332449827
+        },
+        {
+          "case": "weak_map_set",
+          "stock_time": 356.0,
+          "portable_time": 179.47500000000002,
+          "native_time": 228.2,
+          "native_throughput_vs_stock": 1.5600350569675723,
+          "native_throughput_vs_portable": 0.78648115687993,
+          "native_elapsed_vs_stock_percent": -35.89887640449439,
+          "native_minus_portable_over_stock_percent": 13.686797752808978
+        },
+        {
+          "case": "weak_map_delete",
+          "stock_time": 687.0,
+          "portable_time": 416.25,
+          "native_time": 530.1,
+          "native_throughput_vs_stock": 1.2959818902093945,
+          "native_throughput_vs_portable": 0.7852292020373514,
+          "native_elapsed_vs_stock_percent": -22.838427947598248,
+          "native_minus_portable_over_stock_percent": 16.572052401746728
+        },
+        {
+          "case": "array_for",
+          "stock_time": 38.845,
+          "portable_time": 31.705,
+          "native_time": 49.7,
+          "native_throughput_vs_stock": 0.78158953722334,
+          "native_throughput_vs_portable": 0.6379275653923541,
+          "native_elapsed_vs_stock_percent": 27.94439438795213,
+          "native_minus_portable_over_stock_percent": 46.32513837044666
+        },
+        {
+          "case": "array_for_in",
+          "stock_time": 124.7,
+          "portable_time": 113.94999999999999,
+          "native_time": 118.975,
+          "native_throughput_vs_stock": 1.0481193528052113,
+          "native_throughput_vs_portable": 0.9577642361840722,
+          "native_elapsed_vs_stock_percent": -4.591018444266249,
+          "native_minus_portable_over_stock_percent": 4.029671210906179
+        },
+        {
+          "case": "array_for_of",
+          "stock_time": 49.82,
+          "portable_time": 45.415,
+          "native_time": 55.599999999999994,
+          "native_throughput_vs_stock": 0.896043165467626,
+          "native_throughput_vs_portable": 0.81681654676259,
+          "native_elapsed_vs_stock_percent": 11.601766358892007,
+          "native_minus_portable_over_stock_percent": 20.44359694901645
+        },
+        {
+          "case": "math_min",
+          "stock_time": 85.8,
+          "portable_time": 73.6,
+          "native_time": 107.42500000000001,
+          "native_throughput_vs_stock": 0.7986967651850126,
+          "native_throughput_vs_portable": 0.6851291598789853,
+          "native_elapsed_vs_stock_percent": 25.203962703962723,
+          "native_minus_portable_over_stock_percent": 39.42307692307695
+        },
+        {
+          "case": "object_null",
+          "stock_time": 101.4,
+          "portable_time": 87.55000000000001,
+          "native_time": 114.0,
+          "native_throughput_vs_stock": 0.8894736842105264,
+          "native_throughput_vs_portable": 0.767982456140351,
+          "native_elapsed_vs_stock_percent": 12.426035502958577,
+          "native_minus_portable_over_stock_percent": 26.08481262327415
+        },
+        {
+          "case": "regexp_ascii",
+          "stock_time": 578.45,
+          "portable_time": 388.35,
+          "native_time": 452.9,
+          "native_throughput_vs_stock": 1.2772135129167588,
+          "native_throughput_vs_portable": 0.8574740560830206,
+          "native_elapsed_vs_stock_percent": -21.704555277033467,
+          "native_minus_portable_over_stock_percent": 11.159132163540487
+        },
+        {
+          "case": "regexp_utf16",
+          "stock_time": 612.8,
+          "portable_time": 392.0,
+          "native_time": 456.25,
+          "native_throughput_vs_stock": 1.3431232876712327,
+          "native_throughput_vs_portable": 0.8591780821917808,
+          "native_elapsed_vs_stock_percent": -25.546671018276758,
+          "native_minus_portable_over_stock_percent": 10.484660574412533
+        },
+        {
+          "case": "string_build1",
+          "stock_time": 138.75,
+          "portable_time": 136.25,
+          "native_time": 156.75,
+          "native_throughput_vs_stock": 0.8851674641148325,
+          "native_throughput_vs_portable": 0.8692185007974481,
+          "native_elapsed_vs_stock_percent": 12.972972972972974,
+          "native_minus_portable_over_stock_percent": 14.774774774774775
+        },
+        {
+          "case": "string_build2",
+          "stock_time": 142.0,
+          "portable_time": 141.5,
+          "native_time": 160.5,
+          "native_throughput_vs_stock": 0.8847352024922118,
+          "native_throughput_vs_portable": 0.881619937694704,
+          "native_elapsed_vs_stock_percent": 13.0281690140845,
+          "native_minus_portable_over_stock_percent": 13.380281690140846
+        },
+        {
+          "case": "string_concat0",
+          "stock_time": 127.4,
+          "portable_time": 124.25,
+          "native_time": 218.95,
+          "native_throughput_vs_stock": 0.5818680063941539,
+          "native_throughput_vs_portable": 0.5674811600822106,
+          "native_elapsed_vs_stock_percent": 71.86028257456827,
+          "native_minus_portable_over_stock_percent": 74.33281004709575
+        },
+        {
+          "case": "string_concat1",
+          "stock_time": 179.575,
+          "portable_time": 168.3,
+          "native_time": 254.0,
+          "native_throughput_vs_stock": 0.7069881889763779,
+          "native_throughput_vs_portable": 0.6625984251968504,
+          "native_elapsed_vs_stock_percent": 41.44507865794238,
+          "native_minus_portable_over_stock_percent": 47.72379228734511
+        },
+        {
+          "case": "string_concat2",
+          "stock_time": 734.2,
+          "portable_time": 671.5,
+          "native_time": 632.7,
+          "native_throughput_vs_stock": 1.160423581476213,
+          "native_throughput_vs_portable": 1.061324482377114,
+          "native_elapsed_vs_stock_percent": -13.824570961590844,
+          "native_minus_portable_over_stock_percent": -5.28466357940615
+        },
+        {
+          "case": "string_concat3",
+          "stock_time": 4716.0,
+          "portable_time": 4316.0,
+          "native_time": 3629.0,
+          "native_throughput_vs_stock": 1.299531551391568,
+          "native_throughput_vs_portable": 1.1893083494075503,
+          "native_elapsed_vs_stock_percent": -23.04919423240034,
+          "native_minus_portable_over_stock_percent": -14.567430025445292
+        },
+        {
+          "case": "string_slice1",
+          "stock_time": 141.575,
+          "portable_time": 129.27499999999998,
+          "native_time": 211.14999999999998,
+          "native_throughput_vs_stock": 0.6704949088325834,
+          "native_throughput_vs_portable": 0.6122424816481175,
+          "native_elapsed_vs_stock_percent": 49.143563482253214,
+          "native_minus_portable_over_stock_percent": 57.831538054034965
+        },
+        {
+          "case": "string_slice2",
+          "stock_time": 236.8,
+          "portable_time": 243.2,
+          "native_time": 300.04999999999995,
+          "native_throughput_vs_stock": 0.7892017997000501,
+          "native_throughput_vs_portable": 0.8105315780703217,
+          "native_elapsed_vs_stock_percent": 26.710304054054035,
+          "native_minus_portable_over_stock_percent": 24.007601351351333
+        },
+        {
+          "case": "string_slice3",
+          "stock_time": 139.8,
+          "portable_time": 130.325,
+          "native_time": 203.85,
+          "native_throughput_vs_stock": 0.6857983811626196,
+          "native_throughput_vs_portable": 0.6393181260730929,
+          "native_elapsed_vs_stock_percent": 45.81545064377681,
+          "native_minus_portable_over_stock_percent": 52.59298998569385
+        },
+        {
+          "case": "sort_bench",
+          "stock_time": 2.96,
+          "portable_time": 2.965,
+          "native_time": 1.0,
+          "native_throughput_vs_stock": 2.96,
+          "native_throughput_vs_portable": 2.965,
+          "native_elapsed_vs_stock_percent": -66.21621621621621,
+          "native_minus_portable_over_stock_percent": -66.38513513513513
+        },
+        {
+          "case": "int_to_string",
+          "stock_time": 84.66499999999999,
+          "portable_time": 67.67,
+          "native_time": 104.87,
+          "native_throughput_vs_stock": 0.8073328883379421,
+          "native_throughput_vs_portable": 0.6452751025078669,
+          "native_elapsed_vs_stock_percent": 23.86464300478357,
+          "native_minus_portable_over_stock_percent": 43.93787279277152
+        },
+        {
+          "case": "int_toString",
+          "stock_time": 117.965,
+          "portable_time": 99.35,
+          "native_time": 154.935,
+          "native_throughput_vs_stock": 0.7613838061122407,
+          "native_throughput_vs_portable": 0.641236647626424,
+          "native_elapsed_vs_stock_percent": 31.3398041792057,
+          "native_minus_portable_over_stock_percent": 47.119908447420855
+        },
+        {
+          "case": "float_to_string",
+          "stock_time": 387.0,
+          "portable_time": 360.92,
+          "native_time": 402.08500000000004,
+          "native_throughput_vs_stock": 0.9624830570650483,
+          "native_throughput_vs_portable": 0.8976211497568921,
+          "native_elapsed_vs_stock_percent": 3.897932816537475,
+          "native_minus_portable_over_stock_percent": 10.63695090439277
+        },
+        {
+          "case": "float_toString",
+          "stock_time": 419.0,
+          "portable_time": 389.42,
+          "native_time": 432.75,
+          "native_throughput_vs_stock": 0.9682264586943963,
+          "native_throughput_vs_portable": 0.8998729058347776,
+          "native_elapsed_vs_stock_percent": 3.281622911694515,
+          "native_minus_portable_over_stock_percent": 10.341288782816225
+        },
+        {
+          "case": "float_toFixed",
+          "stock_time": 256.33,
+          "portable_time": 222.17,
+          "native_time": 281.08,
+          "native_throughput_vs_stock": 0.911946776718372,
+          "native_throughput_vs_portable": 0.7904155400597694,
+          "native_elapsed_vs_stock_percent": 9.655522178441856,
+          "native_minus_portable_over_stock_percent": 22.98209339523271
+        },
+        {
+          "case": "float_toPrecision",
+          "stock_time": 283.1,
+          "portable_time": 238.665,
+          "native_time": 304.67,
+          "native_throughput_vs_stock": 0.929202087504513,
+          "native_throughput_vs_portable": 0.7833557619719697,
+          "native_elapsed_vs_stock_percent": 7.619215824796899,
+          "native_minus_portable_over_stock_percent": 23.315083009537275
+        },
+        {
+          "case": "float_toExponential",
+          "stock_time": 290.5,
+          "portable_time": 243.47,
+          "native_time": 299.0,
+          "native_throughput_vs_stock": 0.9715719063545151,
+          "native_throughput_vs_portable": 0.8142809364548494,
+          "native_elapsed_vs_stock_percent": 2.925989672977636,
+          "native_minus_portable_over_stock_percent": 19.115318416523237
+        },
+        {
+          "case": "string_to_int",
+          "stock_time": 195.95,
+          "portable_time": 198.3,
+          "native_time": 182.7,
+          "native_throughput_vs_stock": 1.0725232621784346,
+          "native_throughput_vs_portable": 1.0853858784893269,
+          "native_elapsed_vs_stock_percent": -6.76192906353662,
+          "native_minus_portable_over_stock_percent": -7.961214595560104
+        },
+        {
+          "case": "string_to_float",
+          "stock_time": 243.1,
+          "portable_time": 247.39999999999998,
+          "native_time": 191.925,
+          "native_throughput_vs_stock": 1.2666406148234988,
+          "native_throughput_vs_portable": 1.289045199947896,
+          "native_elapsed_vs_stock_percent": -21.051007815713696,
+          "native_minus_portable_over_stock_percent": -22.819827231591923
+        },
+        {
+          "case": "bigint64_arith",
+          "stock_time": 134.45,
+          "portable_time": 112.825,
+          "native_time": 151.125,
+          "native_throughput_vs_stock": 0.8896608767576509,
+          "native_throughput_vs_portable": 0.7465674110835402,
+          "native_elapsed_vs_stock_percent": 12.40238006693939,
+          "native_minus_portable_over_stock_percent": 28.48642618073633
+        },
+        {
+          "case": "bigint256_arith",
+          "stock_time": 246.5,
+          "portable_time": 211.0,
+          "native_time": 245.5,
+          "native_throughput_vs_stock": 1.0040733197556009,
+          "native_throughput_vs_portable": 0.8594704684317719,
+          "native_elapsed_vs_stock_percent": -0.40567951318458695,
+          "native_minus_portable_over_stock_percent": 13.995943204868155
+        }
+      ],
+      "unit": "ns/op",
+      "clock": "elapsed os.now diagnostic (microseconds), not upstream scores",
+      "peak_rss_kib_maximum": {
+        "stock": 5964,
+        "portable": 6944,
+        "native": 6372
+      },
+      "raw_samples": "micro-wall57/SAMPLES.json"
+    },
+    "jetstream17": {
+      "cases": 17,
+      "geometric_mean_throughput_vs_stock": 1.258009009252719,
+      "geometric_mean_throughput_vs_portable": 1.0119251745628624,
+      "rows": [
+        {
+          "case": "Air",
+          "stock_time": 121.8632500001695,
+          "portable_time": 85.40574999991804,
+          "native_time": 95.28374999971129,
+          "native_throughput_vs_stock": 1.278951027856678,
+          "native_throughput_vs_portable": 0.8963306964742344,
+          "native_elapsed_vs_stock_percent": -21.810923309874997,
+          "native_minus_portable_over_stock_percent": 8.10580712378794
+        },
+        {
+          "case": "delta-blue",
+          "stock_time": 301.1697500003502,
+          "portable_time": 335.08800000022165,
+          "native_time": 380.65625000023283,
+          "native_throughput_vs_stock": 0.7911856169448577,
+          "native_throughput_vs_portable": 0.8802902881537258,
+          "native_elapsed_vs_stock_percent": 26.392590889287604,
+          "native_minus_portable_over_stock_percent": 15.130420634860636
+        },
+        {
+          "case": "Babylon",
+          "stock_time": 163.9607500003185,
+          "portable_time": 136.03799999994226,
+          "native_time": 156.68025000020862,
+          "native_throughput_vs_stock": 1.0464672477871346,
+          "native_throughput_vs_portable": 0.8682523802442307,
+          "native_elapsed_vs_stock_percent": -4.440391984115555,
+          "native_minus_portable_over_stock_percent": 12.589750900887108
+        },
+        {
+          "case": "cdjs",
+          "stock_time": 1011.2675000000745,
+          "portable_time": 885.2367499999236,
+          "native_time": 949.2742500002496,
+          "native_throughput_vs_stock": 1.0653059429346246,
+          "native_throughput_vs_portable": 0.9325405698086626,
+          "native_elapsed_vs_stock_percent": -6.130252381276002,
+          "native_minus_portable_over_stock_percent": 6.332399686563767
+        },
+        {
+          "case": "FlightPlanner",
+          "stock_time": 113.08400000003166,
+          "portable_time": 64.85349999996834,
+          "native_time": 67.57374999998137,
+          "native_throughput_vs_stock": 1.6734900756590072,
+          "native_throughput_vs_portable": 0.9597439834253125,
+          "native_elapsed_vs_stock_percent": -40.24464115174343,
+          "native_minus_portable_over_stock_percent": 2.4055127162218146
+        },
+        {
+          "case": "pdfjs",
+          "stock_time": 562.7862500001211,
+          "portable_time": 480.9195000003092,
+          "native_time": 402.7657500000205,
+          "native_throughput_vs_stock": 1.397304140185933,
+          "native_throughput_vs_portable": 1.194042691068654,
+          "native_elapsed_vs_stock_percent": -28.43361933594969,
+          "native_minus_portable_over_stock_percent": -13.886933094096008
+        },
+        {
+          "case": "typescript-octane",
+          "stock_time": 4195.1627500006,
+          "portable_time": 4280.975499999942,
+          "native_time": 5148.122500000056,
+          "native_throughput_vs_stock": 0.8148917882199879,
+          "native_throughput_vs_portable": 0.8315605349328606,
+          "native_elapsed_vs_stock_percent": 22.715680100833268,
+          "native_minus_portable_over_stock_percent": 20.670163511534557
+        },
+        {
+          "case": "crypto",
+          "stock_time": 304.6184999998659,
+          "portable_time": 234.16024999972433,
+          "native_time": 282.33774999994785,
+          "native_throughput_vs_stock": 1.0789152353871283,
+          "native_throughput_vs_portable": 0.8293621734952821,
+          "native_elapsed_vs_stock_percent": -7.314312820766911,
+          "native_minus_portable_over_stock_percent": 15.815684208360532
+        },
+        {
+          "case": "richards",
+          "stock_time": 378.4262499997858,
+          "portable_time": 445.5167500001844,
+          "native_time": 463.19725000020117,
+          "native_throughput_vs_stock": 0.8169872554287001,
+          "native_throughput_vs_portable": 0.961829436595297,
+          "native_elapsed_vs_stock_percent": 22.400930168153856,
+          "native_minus_portable_over_stock_percent": 4.672112465778146
+        },
+        {
+          "case": "json-parse-inspector",
+          "stock_time": 201.683749999851,
+          "portable_time": 112.50524999992922,
+          "native_time": 67.10449999989942,
+          "native_throughput_vs_stock": 3.005517513730872,
+          "native_throughput_vs_portable": 1.676567890381388,
+          "native_elapsed_vs_stock_percent": -66.727859830081,
+          "native_minus_portable_over_stock_percent": -22.51086168323593
+        },
+        {
+          "case": "json-stringify-inspector",
+          "stock_time": 204.53850000002421,
+          "portable_time": 204.8032499998808,
+          "native_time": 34.21600000024773,
+          "native_throughput_vs_stock": 5.977861234467597,
+          "native_throughput_vs_portable": 5.985598842599894,
+          "native_elapsed_vs_stock_percent": -83.27160901236506,
+          "native_minus_portable_over_stock_percent": -83.40104674651123
+        },
+        {
+          "case": "acorn-wtb",
+          "stock_time": 5357.559499999974,
+          "portable_time": 3203.7864999996964,
+          "native_time": 4268.464749999577,
+          "native_throughput_vs_stock": 1.2551490556412594,
+          "native_throughput_vs_portable": 0.7505711509038498,
+          "native_elapsed_vs_stock_percent": -20.328187675758002,
+          "native_minus_portable_over_stock_percent": 19.872448453440153
+        },
+        {
+          "case": "prettier-wtb",
+          "stock_time": 1248.1525000003166,
+          "portable_time": 1128.2049999998417,
+          "native_time": 1560.3322500002105,
+          "native_throughput_vs_stock": 0.799927387260084,
+          "native_throughput_vs_portable": 0.7230543366643158,
+          "native_elapsed_vs_stock_percent": 25.011346770511977,
+          "native_minus_portable_over_stock_percent": 34.62135035584667
+        },
+        {
+          "case": "async-fs",
+          "stock_time": 523.8529999998864,
+          "portable_time": 353.0802500001155,
+          "native_time": 334.43349999981,
+          "native_throughput_vs_stock": 1.5663891326681807,
+          "native_throughput_vs_portable": 1.055756226575137,
+          "native_elapsed_vs_stock_percent": -36.158903356498385,
+          "native_minus_portable_over_stock_percent": -3.559538649260292
+        },
+        {
+          "case": "lazy-collections",
+          "stock_time": 127.87199999997392,
+          "portable_time": 115.19225000031292,
+          "native_time": 187.10724999988452,
+          "native_throughput_vs_stock": 0.6834155277256913,
+          "native_throughput_vs_portable": 0.615648244524913,
+          "native_elapsed_vs_stock_percent": 46.32386292536494,
+          "native_minus_portable_over_stock_percent": 56.23983358326002
+        },
+        {
+          "case": "js-tokens",
+          "stock_time": 348.38750000018626,
+          "portable_time": 222.12025000015274,
+          "native_time": 233.30450000008568,
+          "native_throughput_vs_stock": 1.493273811692695,
+          "native_throughput_vs_portable": 0.9520615761807901,
+          "native_elapsed_vs_stock_percent": -33.03304510065346,
+          "native_minus_portable_over_stock_percent": 3.2102902658467842
+        },
+        {
+          "case": "bigint-noble-ed25519",
+          "stock_time": 441.6140000000596,
+          "portable_time": 364.29524999973364,
+          "native_time": 487.4194999996107,
+          "native_throughput_vs_stock": 0.9060244819922312,
+          "native_throughput_vs_portable": 0.7473957238067509,
+          "native_elapsed_vs_stock_percent": 10.372293450738646,
+          "native_minus_portable_over_stock_percent": 27.880513298912728
+        }
+      ],
+      "unit": "JetStream body milliseconds",
+      "raw_result": "jetstream17/RESULT.json",
+      "peak_rss_kib_maximum": {
+        "stock": 145088,
+        "portable": 152880,
+        "native": 150176
+      }
+    },
+    "jetstream-concerns": {
+      "cases": 5,
+      "geometric_mean_throughput_vs_stock": 0.8850090516356692,
+      "geometric_mean_throughput_vs_portable": 0.6983590766997164,
+      "rows": [
+        {
+          "case": "crypto",
+          "stock_time": 274.2360000000335,
+          "portable_time": 232.28475000010803,
+          "native_time": 287.94725000020117,
+          "native_throughput_vs_stock": 0.9523827714966611,
+          "native_throughput_vs_portable": 0.8066920243202383,
+          "native_elapsed_vs_stock_percent": 4.999799442876185,
+          "native_minus_portable_over_stock_percent": 20.29729867708336
+        },
+        {
+          "case": "acorn-wtb",
+          "stock_time": 5602.916250000242,
+          "portable_time": 3124.1115000001155,
+          "native_time": 4508.522500000894,
+          "native_throughput_vs_stock": 1.2427388906230659,
+          "native_throughput_vs_portable": 0.6929346587489573,
+          "native_elapsed_vs_stock_percent": -19.532573773511263,
+          "native_minus_portable_over_stock_percent": 24.708757693829867
+        },
+        {
+          "case": "prettier-wtb",
+          "stock_time": 1253.8107499997132,
+          "portable_time": 1141.7327499999665,
+          "native_time": 1588.5039999997243,
+          "native_throughput_vs_stock": 0.7893028597976025,
+          "native_throughput_vs_portable": 0.7187471671460472,
+          "native_elapsed_vs_stock_percent": 26.69408042641903,
+          "native_minus_portable_over_stock_percent": 35.63306902575688
+        },
+        {
+          "case": "lazy-collections",
+          "stock_time": 128.40349999954924,
+          "portable_time": 116.56224999995902,
+          "native_time": 199.09324999991804,
+          "native_throughput_vs_stock": 0.6449415035396835,
+          "native_throughput_vs_portable": 0.5854656046852769,
+          "native_elapsed_vs_stock_percent": 55.05282176935751,
+          "native_minus_portable_over_stock_percent": 64.27472771400215
+        },
+        {
+          "case": "bigint-noble-ed25519",
+          "stock_time": 464.26049999985844,
+          "portable_time": 363.82699999958277,
+          "native_time": 515.2032499997877,
+          "native_throughput_vs_stock": 0.901121062415755,
+          "native_throughput_vs_portable": 0.7061814924493056,
+          "native_elapsed_vs_stock_percent": 10.97288052719212,
+          "native_minus_portable_over_stock_percent": 32.6058861351011
+        }
+      ],
+      "unit": "JetStream body milliseconds",
+      "raw_result": "jetstream-concerns/RESULT.json",
+      "peak_rss_kib_maximum": {
+        "stock": 48860,
+        "portable": 54052,
+        "native": 53964
+      }
+    },
+    "v8-v7": {
+      "cases": 8,
+      "geometric_mean_throughput_vs_stock": 1.1021145660979037,
+      "geometric_mean_throughput_vs_portable": 0.8333824808487004,
+      "rows": [
+        {
+          "case": "Richards",
+          "stock_time": 7548.872180451128,
+          "portable_time": 9397.405865000868,
+          "native_time": 10180.377166156977,
+          "native_throughput_vs_stock": 0.7415120341067654,
+          "native_throughput_vs_portable": 0.9230901479997253,
+          "native_elapsed_vs_stock_percent": 34.85957799789621,
+          "native_minus_portable_over_stock_percent": 10.372030184637698
+        },
+        {
+          "case": "DeltaBlue",
+          "stock_time": 14328.571428571418,
+          "portable_time": 15253.174603174586,
+          "native_time": 21959.383753501395,
+          "native_throughput_vs_stock": 0.6525033484278331,
+          "native_throughput_vs_portable": 0.6946084996917314,
+          "native_elapsed_vs_stock_percent": 53.25591851895302,
+          "native_minus_portable_over_stock_percent": 46.803054887624825
+        },
+        {
+          "case": "Crypto",
+          "stock_time": 60224.93760910406,
+          "portable_time": 53886.880993228246,
+          "native_time": 71172.03946175033,
+          "native_throughput_vs_stock": 0.8461881669341579,
+          "native_throughput_vs_portable": 0.7571355464977005,
+          "native_elapsed_vs_stock_percent": 18.177024812710506,
+          "native_minus_portable_over_stock_percent": 28.700998547666625
+        },
+        {
+          "case": "RayTrace",
+          "stock_time": 82474.3589743589,
+          "portable_time": 73626.38888888888,
+          "native_time": 75567.8571428571,
+          "native_throughput_vs_stock": 1.0913947026239663,
+          "native_throughput_vs_portable": 0.9743082796393449,
+          "native_elapsed_vs_stock_percent": -8.37412005063175,
+          "native_minus_portable_over_stock_percent": 2.3540264854581334
+        },
+        {
+          "case": "EarleyBoyer",
+          "stock_time": 64471.790129199086,
+          "portable_time": 59912.11941444478,
+          "native_time": 83574.34619695107,
+          "native_throughput_vs_stock": 0.7714303857940455,
+          "native_throughput_vs_portable": 0.7168721281199861,
+          "native_elapsed_vs_stock_percent": 29.629324747259478,
+          "native_minus_portable_over_stock_percent": 36.7016748489348
+        },
+        {
+          "case": "RegExp",
+          "stock_time": 629546.8749999995,
+          "portable_time": 92654.04040404032,
+          "native_time": 97049.78354978345,
+          "native_throughput_vs_stock": 6.486844709726344,
+          "native_throughput_vs_portable": 0.9547063065474201,
+          "native_elapsed_vs_stock_percent": -84.58418468842633,
+          "native_minus_portable_over_stock_percent": 0.698239213044005
+        },
+        {
+          "case": "Splay",
+          "stock_time": 5055.555555555553,
+          "portable_time": 4665.2038566302035,
+          "native_time": 4587.788259958068,
+          "native_throughput_vs_stock": 1.1019592163134748,
+          "native_throughput_vs_portable": 1.0168742741132615,
+          "native_elapsed_vs_stock_percent": -9.25253991291729,
+          "native_minus_portable_over_stock_percent": -1.5312975165916922
+        },
+        {
+          "case": "NavierStokes",
+          "stock_time": 200599.99999999988,
+          "portable_time": 160503.47490347482,
+          "native_time": 227071.4285714283,
+          "native_throughput_vs_stock": 0.8834224598930487,
+          "native_throughput_vs_portable": 0.7068413490558825,
+          "native_elapsed_vs_stock_percent": 13.196125907990242,
+          "native_minus_portable_over_stock_percent": 33.18442356328689
+        }
+      ],
+      "unit": "usec per original V8 workload (original scores retained in raw)",
+      "raw_result": "v8-v7/RESULT.json",
+      "peak_rss_kib_maximum": {
+        "stock": 163340,
+        "portable": 181436,
+        "native": 182228
+      }
+    }
+  },
+  "profiles": [
+    {
+      "case": "lazy-collections",
+      "engine": "native",
+      "pid": 27076,
+      "uid": 1000,
+      "binary": "/home/ubuntu/qjs-experiments/20261113-migration/build-native/qjs",
+      "binary_sha256": "52e49f84b1bfcd880d5e8c01275f64c17252f4f806122b8534eb430e01aef02e",
+      "cpu": 1,
+      "go_sent_monotonic": 9062.295752409,
+      "roi_start_monotonic": 9062.295809,
+      "roi_end_monotonic": 9077.458428,
+      "perf_command": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--sample-cpu",
+        "-e",
+        "cpu-clock:u",
+        "-F",
+        "499",
+        "--call-graph",
+        "dwarf,16384",
+        "-z",
+        "-D",
+        "3000",
+        "-p",
+        "27076",
+        "-o",
+        "/home/ubuntu/qjs-experiments/20261113-migration/profile2-lazy-collections-native/perf.data",
+        "--",
+        "sleep",
+        "10"
+      ],
+      "samples": 3456,
+      "first_sample": 9066.876217,
+      "last_sample": 9073.877619,
+      "lost_events": [],
+      "work": {
+        "start": 9062295809,
+        "end": 9077458428,
+        "calls": 77,
+        "result": 635
+      },
+      "top_self_symbols": [
+        [
+          "JS_LegacyCallInternal",
+          1067
+        ],
+        [
+          "JS_FrameInterp",
+          724
+        ],
+        [
+          "JS_FrameAArch64CallLeaf",
+          248
+        ],
+        [
+          "js_frame_run_shared",
+          152
+        ],
+        [
+          "js_generator_next",
+          112
+        ],
+        [
+          "JS_FrameCallEntryShared",
+          81
+        ],
+        [
+          "js_for_of_next",
+          63
+        ],
+        [
+          "JS_IteratorNext.constprop.0",
+          61
+        ],
+        [
+          "JS_LinuxIterator_for_of_next",
+          51
+        ],
+        [
+          "js_poll_interrupts",
+          51
+        ],
+        [
+          "JS_LinuxLiteralEnter",
+          51
+        ],
+        [
+          "JS_FrameIteratorSlowNext",
+          48
+        ],
+        [
+          "JS_FrameOrdinaryLiteralLazyEnter",
+          47
+        ],
+        [
+          "JS_FreeValue",
+          46
+        ],
+        [
+          "qjs_aarch64_vm_policy",
+          40
+        ],
+        [
+          "JS_FrameAArch64Run",
+          39
+        ],
+        [
+          "JS_CallInternal",
+          35
+        ],
+        [
+          "JS_GetPropertyInternal",
+          33
+        ],
+        [
+          "JS_FrameCallEntryDispatch",
+          32
+        ],
+        [
+          "JS_FrameIteratorCheckpointOp",
+          29
+        ]
+      ],
+      "image_load_bias": "0xad6f8b4d0000",
+      "top_binary_offsets": [
+        [
+          "0xb6e48",
+          124
+        ],
+        [
+          "0x15c2b4",
+          71
+        ],
+        [
+          "0xb6e50",
+          54
+        ],
+        [
+          "0x600d4",
+          39
+        ],
+        [
+          "0x15c2b0",
+          39
+        ],
+        [
+          "0xb6e6c",
+          38
+        ],
+        [
+          "0xb6e8c",
+          36
+        ],
+        [
+          "0xc918c",
+          31
+        ],
+        [
+          "0x8895c",
+          28
+        ],
+        [
+          "0xb2c04",
+          25
+        ],
+        [
+          "0x15c2e4",
+          23
+        ],
+        [
+          "0xb672c",
+          22
+        ],
+        [
+          "0x15c73c",
+          22
+        ],
+        [
+          "0x15c2ac",
+          22
+        ],
+        [
+          "0xb6770",
+          21
+        ],
+        [
+          "0xb6728",
+          21
+        ],
+        [
+          "0x121fb0",
+          21
+        ],
+        [
+          "0x1633f4",
+          21
+        ],
+        [
+          "0xb4740",
+          21
+        ],
+        [
+          "0xb7be0",
+          20
+        ],
+        [
+          "0x1633d0",
+          20
+        ],
+        [
+          "0x15c3b8",
+          20
+        ],
+        [
+          "0x161088",
+          19
+        ],
+        [
+          "0x367e0",
+          19
+        ],
+        [
+          "0x16a694",
+          18
+        ],
+        [
+          "0xb291c",
+          18
+        ],
+        [
+          "0xb2c88",
+          17
+        ],
+        [
+          "0xb2cc0",
+          17
+        ],
+        [
+          "0xb6078",
+          17
+        ],
+        [
+          "0x88784",
+          16
+        ]
+      ]
+    },
+    {
+      "case": "lazy-collections",
+      "engine": "portable",
+      "pid": 27156,
+      "uid": 1000,
+      "binary": "/home/ubuntu/qjs-experiments/20261113-migration/build-portable/qjs",
+      "binary_sha256": "9ab893da727fd8c7bb9134d35518eb3dd18dde5d7d0b0e2e95bab4a4a7431e74",
+      "cpu": 1,
+      "go_sent_monotonic": 9078.632216608,
+      "roi_start_monotonic": 9078.632266,
+      "roi_end_monotonic": 9093.684646,
+      "perf_command": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--sample-cpu",
+        "-e",
+        "cpu-clock:u",
+        "-F",
+        "499",
+        "--call-graph",
+        "dwarf,16384",
+        "-z",
+        "-D",
+        "3000",
+        "-p",
+        "27156",
+        "-o",
+        "/home/ubuntu/qjs-experiments/20261113-migration/profile2-lazy-collections-portable/perf.data",
+        "--",
+        "sleep",
+        "10"
+      ],
+      "samples": 3451,
+      "first_sample": 9082.363545,
+      "last_sample": 9089.364475,
+      "lost_events": [],
+      "work": {
+        "start": 9078632266,
+        "end": 9093684646,
+        "calls": 125,
+        "result": 635
+      },
+      "top_self_symbols": [
+        [
+          "JS_CallInternal",
+          2647
+        ],
+        [
+          "js_generator_next",
+          169
+        ],
+        [
+          "JS_IteratorNext.constprop.0",
+          85
+        ],
+        [
+          "set_value",
+          54
+        ],
+        [
+          "JS_FreeValue",
+          49
+        ],
+        [
+          "JS_GetPropertyInternal",
+          46
+        ],
+        [
+          "pool_malloc",
+          33
+        ],
+        [
+          "JS_GetGlobalVar",
+          31
+        ],
+        [
+          "find_own_property",
+          27
+        ],
+        [
+          "js_property_ic_prototype_free",
+          24
+        ],
+        [
+          "free_gc_object",
+          20
+        ],
+        [
+          "js_math_min_max",
+          19
+        ],
+        [
+          "pool_free",
+          19
+        ],
+        [
+          "js_malloc",
+          18
+        ],
+        [
+          "js_call_c_function",
+          17
+        ],
+        [
+          "add_property",
+          12
+        ],
+        [
+          "JS_DefineProperty",
+          10
+        ],
+        [
+          "async_func_free",
+          10
+        ],
+        [
+          "JS_NewObjectProtoClass",
+          9
+        ],
+        [
+          "js_closure",
+          8
+        ]
+      ],
+      "image_load_bias": "0xb4b1468e0000",
+      "top_binary_offsets": [
+        [
+          "0x247cc",
+          152
+        ],
+        [
+          "0x247d4",
+          81
+        ],
+        [
+          "0x207b8",
+          59
+        ],
+        [
+          "0x24b4c",
+          55
+        ],
+        [
+          "0x24bd0",
+          49
+        ],
+        [
+          "0x208ec",
+          46
+        ],
+        [
+          "0x20828",
+          46
+        ],
+        [
+          "0x24810",
+          46
+        ],
+        [
+          "0x247f0",
+          45
+        ],
+        [
+          "0x245c0",
+          44
+        ],
+        [
+          "0x20760",
+          42
+        ],
+        [
+          "0x20c48",
+          39
+        ],
+        [
+          "0x20c78",
+          39
+        ],
+        [
+          "0x6c288",
+          37
+        ],
+        [
+          "0x25d60",
+          33
+        ],
+        [
+          "0x251c0",
+          32
+        ],
+        [
+          "0x2095c",
+          30
+        ],
+        [
+          "0x25478",
+          29
+        ],
+        [
+          "0x208b8",
+          27
+        ],
+        [
+          "0x20d40",
+          26
+        ],
+        [
+          "0x24afc",
+          26
+        ],
+        [
+          "0x20cd8",
+          25
+        ],
+        [
+          "0x20c54",
+          25
+        ],
+        [
+          "0x24bc8",
+          22
+        ],
+        [
+          "0x22814",
+          22
+        ],
+        [
+          "0x2088c",
+          21
+        ],
+        [
+          "0x254e8",
+          21
+        ],
+        [
+          "0x22810",
+          21
+        ],
+        [
+          "0x247b4",
+          20
+        ],
+        [
+          "0x20d18",
+          20
+        ]
+      ]
+    },
+    {
+      "case": "lazy-collections",
+      "engine": "stock",
+      "pid": 27226,
+      "uid": 1000,
+      "binary": "/home/ubuntu/qjs-experiments/20261113-migration/build-stock/qjs",
+      "binary_sha256": "9e35327815f2bf8c63b421338a036d22d17939440a2d237bd2da4305cb4200ce",
+      "cpu": 1,
+      "go_sent_monotonic": 9094.671535694,
+      "roi_start_monotonic": 9094.671584,
+      "roi_end_monotonic": 9109.69448,
+      "perf_command": [
+        "sudo",
+        "-n",
+        "perf",
+        "record",
+        "--sample-cpu",
+        "-e",
+        "cpu-clock:u",
+        "-F",
+        "499",
+        "--call-graph",
+        "dwarf,16384",
+        "-z",
+        "-D",
+        "3000",
+        "-p",
+        "27226",
+        "-o",
+        "/home/ubuntu/qjs-experiments/20261113-migration/profile2-lazy-collections-stock/perf.data",
+        "--",
+        "sleep",
+        "10"
+      ],
+      "samples": 3452,
+      "first_sample": 9098.4169,
+      "last_sample": 9105.419414,
+      "lost_events": [],
+      "work": {
+        "start": 9094671584,
+        "end": 9109694480,
+        "calls": 113,
+        "result": 635
+      },
+      "top_self_symbols": [
+        [
+          "JS_CallInternal",
+          2644
+        ],
+        [
+          "js_generator_next",
+          123
+        ],
+        [
+          "JS_IteratorNext.constprop.0",
+          78
+        ],
+        [
+          "find_own_property",
+          49
+        ],
+        [
+          "JS_FreeValue",
+          47
+        ],
+        [
+          "JS_GetPropertyInternal",
+          47
+        ],
+        [
+          "malloc",
+          37
+        ],
+        [
+          "malloc_usable_size",
+          37
+        ],
+        [
+          "set_value",
+          36
+        ],
+        [
+          "[unknown]",
+          35
+        ],
+        [
+          "JS_DefineProperty",
+          33
+        ],
+        [
+          "add_property",
+          30
+        ],
+        [
+          "cfree",
+          29
+        ],
+        [
+          "js_math_min_max",
+          27
+        ],
+        [
+          "free_gc_object",
+          23
+        ],
+        [
+          "js_call_c_function",
+          13
+        ],
+        [
+          "__JS_AtomToValue.constprop.0",
+          13
+        ],
+        [
+          "js_strict_eq_slow",
+          10
+        ],
+        [
+          "JS_NewObjectProtoClass",
+          9
+        ],
+        [
+          "js_malloc",
+          9
+        ]
+      ],
+      "image_load_bias": "0xb310c4960000",
+      "top_binary_offsets": [
+        [
+          "0x228f4",
+          111
+        ],
+        [
+          "0x228fc",
+          82
+        ],
+        [
+          "0x2293c",
+          61
+        ],
+        [
+          "0x23a04",
+          60
+        ],
+        [
+          "0x228d4",
+          55
+        ],
+        [
+          "0x1e400",
+          52
+        ],
+        [
+          "0x21864",
+          50
+        ],
+        [
+          "0x1dd68",
+          49
+        ],
+        [
+          "0x21950",
+          49
+        ],
+        [
+          "0x1e278",
+          47
+        ],
+        [
+          "0x1dea8",
+          44
+        ],
+        [
+          "0x2291c",
+          42
+        ],
+        [
+          "0x24684",
+          39
+        ],
+        [
+          "0x1ddd4",
+          38
+        ],
+        [
+          "0x1dd44",
+          36
+        ],
+        [
+          "0x22898",
+          36
+        ],
+        [
+          "0x2181c",
+          35
+        ],
+        [
+          "0x228cc",
+          34
+        ],
+        [
+          "0x1fb68",
+          32
+        ],
+        [
+          "0x1e468",
+          32
+        ],
+        [
+          "0x1df10",
+          31
+        ],
+        [
+          "0x1de68",
+          30
+        ],
+        [
+          "0x5671c",
+          28
+        ],
+        [
+          "0x22d84",
+          28
+        ],
+        [
+          "0x228d8",
+          23
+        ],
+        [
+          "0x2186c",
+          23
+        ],
+        [
+          "0x1dd18",
+          23
+        ],
+        [
+          "0x228a0",
+          23
+        ],
+        [
+          "0x1e2fc",
+          21
+        ],
+        [
+          "0x1e2d8",
+          21
+        ]
+      ]
+    }
+  ],
+  "decisions": [
+    {
+      "disposition": "retain",
+      "item": "Existing native implementation and conservative AUTO fallback",
+      "basis": "Full mechanisms, functional/compatibility matrices and real hardware scores are bound. Native is explicit opt-in: strong JSON benefits coexist with material dispatch/call costs; PORTABLE remains a useful workload choice."
+    },
+    {
+      "disposition": "reject",
+      "item": "Experimental float-local fast path",
+      "basis": "Retained prior experiment: about 25.5% targeted elapsed reduction; whole micro57 throughput 0.999052 original and 1.006594 elapsed diagnostic, with 6.56%, 5.90%, 4.39% selected elapsed regressions. Not promoted; raw per-case (candidate-prior)/stock costs and negative evidence remain external."
+    },
+    {
+      "disposition": "defer",
+      "item": "Dispatch/helper preservation and short-callback routing redesign",
+      "basis": "Eight valid source/image-bound software-perf captures across both rounds identify real VM/C/helper activity. The lazy-collections original-body profile confirms a legacy generator/VM/call-leaf mix. Self-sample shares are not removable costs or an architectural ceiling; no layout/address search or unbounded optimization is required for this baseline release."
+    }
+  ],
+  "evidence": {
+    "directory": "arm64-migration-20261113",
+    "archive": {
+      "status": "collected",
+      "files": 2108,
+      "bytes": 74136755,
+      "sha256": "2576b8983b2a10d89dd98d1b3599b7373bb7fda8768b5baee1aec682d5bb3576"
+    },
+    "test262_and_wire_supplement": {
+      "files": 19,
+      "bytes": 13033,
+      "sha256": "79cbf627d2b14a388ca37b0aa0e4059b63da0dfd302cc859fe48a1a5a2383c06"
+    },
+    "files_verified": 2127,
+    "prior_profiles_and_rejected_candidate": "../arm64-hotspots-20261113/REPORT.json",
+    "source_pins": "19 upstream inputs unchanged; source ABI and 525 file receipts checked",
+    "format": "docs/architecture/common/FORMAT.txt; docs/architecture/common/FORMAT-VALIDATION.json"
+  }
+}

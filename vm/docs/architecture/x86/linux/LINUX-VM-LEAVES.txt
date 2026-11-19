@@ -1,0 +1,98 @@
+Linux in-VM primitive, compound and character leaves (development)
+=================================================================
+
+This group reuses the complete accepted tools/generate/leaf-entry.py kernels
+inside the existing Linux register VM. It does not substitute a C entry or a
+benchmark-specific implementation. The accepted Windows product is unchanged.
+Constructor/root3, deferred publication and the remaining mechanism families
+still precede whole-port correctness, performance and release acceptance.
+
+Shared semantics and ownership
+------------------------------
+Seven primitive classes cover integer/undefined/null/boolean constants,
+argument identity, argument-plus-integer and two-argument integer addition.
+The unchanged exact-bytecode classifiers and live arity, type, overflow,
+realm, arena, logical/physical quota and interrupt guards remain. Returned
+references are duplicated before the original caller releases its arguments.
+Misses restore the live callee and use the original metadata/frame path.
+
+With property IC enabled, the exact compound wrapper reads two ordinary own
+data properties and calls the live original String.prototype.localeCompare
+builtin. Its source-owned C helper uses actual Linux bytecode/PIC types and
+offsets, including PIC and hash-slot fallback. String/realm/prototype/builtin
+identity and flat Latin-1 guards remain. Replaced builtins, getters, wide
+strings, shapes and misses retain the original observable path.
+
+The character-set kernel recognizes the original exact three-literal OR
+pattern, with the same realm and one-byte input/constant guards. It retains
+two interrupt polls on the first match and three on later/no-match paths.
+Ordinary primitives retain one poll; the compound path retains two.
+
+These are direct continuations in the single existing VM activation, with
+the same CFA144 and original finalizer-safe result/argument consumer. No JS
+frame, state, public JSValue or GC-root field is added; no arena cursor,
+segment, committed charge or runtime frame is changed at the leaf commit.
+Positive metadata uses the original three unused flag bits; the ready bit16
+is deliberately clear. Serialized/compiler padding is not preclassified.
+Dirty/clean dispatch-table selection remains a separate unported group.
+
+Actual SysV integration
+-----------------------
+The compound helper has the measured signature
+  uint64_t (JSContext *, JSFunctionBytecode *, const JSValue *, const JSValue *)
+Its bridge moves private RCX/RDX/R8/R9 to SysV RDI/RSI/RDX/RCX, preserving full
+pointer width and the VM's nonvolatile private registers. Cold null/null
+probing and hot success retain distinct uint64_t result bits. The existing
+272-byte hypothetical physical-quota address is a LEA, not a stack access.
+Other private scratch accesses retain the generation-time bounds checks.
+Both helper and live VM frames have matching unwind information.
+
+Presence, including value0, disables QJS_DISABLE_FRAME_LEAF_ENTRY,
+QJS_DISABLE_FRAME_COMPOUND_LEAF and QJS_DISABLE_FRAME_CHARACTER_SET_LEAF.
+QJS_DISABLE_LOCALE_COMPARE_LATIN1 also disables the compound entry. Values are
+cached in independent atomic bytes by cold bytecode admission. A build
+without property IC emits only ordinary primitive leaves. Whole-configuration
+requalification remains a final gate; this statement is not an IC-OFF test.
+
+Qualification and limits
+-------------------------
+The current Werror build passes525 CTests and the installed public consumer.
+Its qjs, Test262 runner and archive are byte-identical to the fully qualified
+499-test image: full native ON/OFF Test262 has65/81152 inherited failures,
+31 fixes and0 new/changed, with exact portable failure/fix identities.
+
+The compact admitted observer fixture proves all seven primitive classes,
+compound and character success routes; master/individual/frame OFF controls
+remove the intended paths. It checks the original caller consumer, PC/SP,
+poll counts, unchanged frame/charge ownership and actual helper-to-VM CFI.
+Bounded breakpoint observations are not application hit rates or speed.
+
+The public API fixture checks256 fresh native resources, identity-result
+lifetimes across GC and final release of unused argument owners, three
+interrupt abort/recoveries, and fresh-runtime allocation-fault recovery.
+Ten host modes and six OOM modes pass; each sweep injects six failures with
+complete zero allocation/resource ledgers. The same compiled object also
+passes host/OOM against stock and the preceding native-entry archive.
+Stock means unoptimized QuickJS-NG0.15.1 on the same Linux/GCC, not Bellard2026.
+
+Static linked cost versus native-entry-r4 is4560 added executable bytes,
+6040 file bytes and0 allocated-writable bytes. Legacy CallInternal keeps the
+same218992 address and37341-byte size; all91 selected functions have complete
+FDE coverage. This does not prove whole-image layout/performance/RSS neutrality.
+Inherited species-constructor, original JSON and cold string-metadata OOM
+negatives remain separate. The initial overstrict scratch audit rejection
+is retained as a generator negative; it is not a passed runtime result.
+
+Evidence: /home/eros/port-records/linux-x86_64/vm-leaves-r1 and
+/home/eros/port-records/linux-x86_64/test262-vm-leaves-r1.
+Next: constructor/root3 including return/finalization, deferred dirty/clean
+publication, apply/iterator/spread/close/unwind/literal shape, then remaining
+property/prototype/indexed, array, RegExp and scalar kernels. Complete the
+active MinGW mechanism dependency groups before local performance variants.
+
+Later constructor checkpoint
+----------------------------
+LINUX-CONSTRUCTORS.txt closes ordinary root3 push/return and complete slow
+cleanup. Earlier remaining-work descriptions above are historical. Specialized
+argument constructors,deferred publication and the other named native families
+still require migration;this is not full-port or performance acceptance.

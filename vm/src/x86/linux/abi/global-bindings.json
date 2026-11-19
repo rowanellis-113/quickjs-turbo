@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "owners": {
+    "tools/x86/common/codegen/global-binding.py": "f5f18cbf5c5b5bdb50dbff10b81662ff1e07e17f730a438efaa8b808c9411c33",
+    "tools/x86/common/codegen/property_ic_native.py": "b4eddd4b9d7c0f72e62bbdf0d1be8dcb275ad25524f7fdc4785de434fc366d57",
+    "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "tools/x86/common/codegen/own-bytecode.py": "7d6ca9cf3debb4f53ee6df8aa4988bfbc47f6e1802ab70a90cc188f7dcb207be"
+  },
+  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "profile": "Compiler-measured Linux LP64 inline-header/JSValue16;existing frame128/state168 and sites16x32",
+  "accepted_provenance": {
+    "product": "70638ed/source92a48f8",
+    "complete_generator": "Canonical-text-identical accepted global-binding.py",
+    "property_probe": "Existing Linux measured_tail flag;default False retains inherited Win generator expressions;explicit route/rows proof required",
+    "cache_types": "Exact JSFrameCallSite typedef factored from accepted Win native-root owner;actual C size/offset assertions"
+  },
+  "architecture_adaptations": [
+    "Static immutable ELF dispatch with one hot mode guard",
+    "Pure typed SysV getenv/atomics initializer;no observing C/GC/JS",
+    "BC global-cell relink via original coherent Clean/Dirty C opcode step",
+    "Aligned scalar arithmetic hint word;no retained cached pointers"
+  ],
+  "frame_growth": 0,
+  "state_growth": 0,
+  "new_strong_roots": 0,
+  "per_runtime_heap_growth": 0
+}

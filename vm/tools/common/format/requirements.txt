@@ -1,0 +1,6 @@
+clang-format==22.1.8
+ruff==0.14.14
+cmakelang==0.6.13
+six==1.17.0
+shfmt-py==4.2.0
+meson==1.12.1

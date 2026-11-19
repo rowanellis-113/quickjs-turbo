@@ -1,0 +1,68 @@
+Deferred frame publication on Linux x86_64
+==========================================
+
+The private VM's dispatch-table register RDI tracks whether its current RBP
+frame is published in runtime.current_stack_frame. This is a private helper
+output contract. The outer public SysV VM entry still saves/restores RDI;
+no public ABI, JSFrame128, register-state168 or segment layout is enlarged.
+
+tools/elf/publication.py derives Clean/Dirty handlers from the actual Linux
+stream and native supplements. Original handlers/table remain the component
+OFF path. Clean overrides eight call and two return opcodes; other Clean
+handlers retain original addresses. Dirty handlers preserve the current
+native property/string/leaf/call/constructor semantics. The generator checks
+that it did not mutate any retained original instruction stream.
+
+Ordinary borrowed and independently owned argument child pushes fully
+initialize their frame before selecting Dirty, without an eager runtime SF
+store. Ordinary child pop also selects Dirty. Root/constructor/logical-parent
+cleanup still publishes at the original coherent boundaries. Call-forward
+returning probes can allocate or enter C, so their parent is published before
+entry and Clean is selected explicitly. No GC-visible cursor is repurposed.
+
+Every actual observing C transfer in the derived streams goes through a leaf
+tail proxy: publish RBP if Dirty, select Clean, tail-transfer to the actual
+typed Linux bridge. Conditional tails are included. One exact-source pure
+localeCompare compound helper neither allocates nor enters JS and can retain
+Dirty. Future helper additions require the same classification and proof.
+Native instanceof leaf is a separate scalar supplement, not closed here.
+
+The existing Win64 two-phase known-return factory is shared without changing
+its generated Win64 instruction streams. It derives both callee-value and
+caller-operand release phases from the retained return owner. Root/capture
+guards and finalizer fallbacks retain their original cleanup. Known return
+does not call C or reselect the already Dirty table. Guard-entry observation
+must distinguish admissible ordinary frames from valid root/capture fallback.
+
+Linux opportunity: both 2064-byte dispatch tables are linker-relocated in
+.data.rel.ro, read-only after the loader applies PIE relocations. There is
+no runtime table copy/spin initialization or writable 4128-byte table pair.
+Only the atomic policy byte is mutable. The full relative-address tables and
+all actual indirect targets retain their audited CET and ELF contracts.
+This static/runtime protection result is not a timing or RSS improvement.
+
+QJS_DISABLE_DEFERRED_FRAME_PUBLISH is cached by process. Presence, including
+0, selects the retained original eager path; test controls in fresh processes.
+The native VM cold ranges retain CFA144; the real CALLed leaf proxies use
+CFA8 and tail-transfer without adding a hidden C activation.
+
+Normal CMake integrates test_linux_publication.js and the public-only
+native_linux_publication.c regression. The latter checks cyclic resources
+held by ordinary/owned/deep calls across GC, cross-realm C reentry, TypeError
+backtraces, interrupt recovery and every allocation-failure point. Its object
+also runs against the prior constructor archive and unoptimized NG0.15.1.
+The separate bounded native observer verifies both deferred push producers,
+both return phases, coherent C handoffs, pure-helper Dirty execution and
+runtime read-only table mappings with ON and both OFF presence values.
+
+Rebuild/test using the ordinary Linux product command in LINUX-PORT.txt.
+Full native publication ON/OFF Test262 uses the unchanged accepted corpus,
+configuration and known errors:65/81152 inherited failures,31 fixed,0 new or
+changed, with exact portable failure/fix identities. Reuse that proof only
+after matching current qjs, run-test262 and libqjs.a bytes and source owners.
+
+This closes one mechanism's development qualification, not the full port or
+a new performance baseline. Arguments/mapped arguments/specialized argument
+constructors, native iterator/checkpoint/apply/spread/fusion/literal shapes,
+remaining property/indexed/RegExp/scalar groups and all six release gates
+remain. Complete default-active MinGW groups before local timing variants.

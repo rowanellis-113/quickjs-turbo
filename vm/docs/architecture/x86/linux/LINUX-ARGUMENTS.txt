@@ -1,0 +1,84 @@
+Argument-object calls on Linux x86_64
+====================================
+
+tools/elf/arguments.py compiles the complete accepted GNU arguments and
+argument-constructor algorithms with the actual Linux core types. The source
+owners are mingw-arguments.c and mingw-argument-constructor.c;their reviewed
+hashes live in src/x86/linux/abi/arguments.json. No COFF object,Win64 C
+aggregate calling convention or private helper prototype is reused. The
+platform adapter lives in src/x86/linux/interpreter-arguments.inc. Existing
+.call identity code is reused only after token-equivalence against its owner.
+
+Argument functions retain kind2 with separate ready/denied metadata in the
+measured bytecode padding. Ordinary/prepared builders still reject kind2.
+Only these functions add a private16-byte original argc/argv record after
+the128-byte JSFrame,before any owned cells. The register state remains168
+bytes. Complete non-COPY windows retain their original writable alias;
+COPY/missing windows independently own all actual cells,including extras,
+and pad missing formals. This is function eligibility,not a public argc limit.
+Original mapped-argument creation and close_var_refs own escaped bindings.
+
+Measured native argument guard/Ready bodies enter complete borrowed children
+in the same register activation,with original poll/quota/capture initialization.
+Cold construction retains grow/owned/exception behavior. The actual SysV C
+root preserves aggregate values and the original control/fallback semantics.
+Special-object steps retain unmapped/mapped arguments,this function,plain-call
+undefined new.target,home object and null-prototype semantics admitted by the
+existing validator. The full original slow executor owns exception cleanup.
+
+Native get/get2/put and length retain the reviewed class/fast-array/index/
+reference/property guards. Mutated descriptors,unmapped slots,unusual values
+or finalizer-sensitive cases keep their original fallback. The separate Linux
+length policy honors QJS_DISABLE_NATIVE_LENGTH;this does not claim the other
+general string/array length supplements have been migrated.
+
+The returning .call probe uses the existing normalization and logical80-byte
+SF chain. Its C worker returns to a measured private/SysV bridge;the original
+private probe owns fallback after restoring its state argument. No private
+Win64 C call is made from SysV C. Argument construction reuses the validated
+argument push,original receiver/function transfer and root3 return owner.
+Foreign construction,new.target use,derived/bound/proxy cases retain the
+same original fallback decisions as the accepted GNU implementation.
+
+All allocating/reentrant steps use the checked coherent slow-host boundary.
+Commit the actual quota BEFORE publishing its commitment or a lendable anchor;
+otherwise a later begin_c can incorrectly skip the charge. Restore running
+cur_sp=NULL before register execution. Original ordinary targets must pass
+the retained classifier:an argument prefix rejection must not poison their
+unknown descriptor. Both errors were reproduced,then fixed without reducing
+the existing native .call coverage assertion. A24-boundary observer checks
+exact runtime quota after the fix. The ordinary return/capture/logical/root3
+cleanup and Clean/Dirty publication tables remain source-derived.
+
+Controls are cached by process and tested in fresh processes. Presence,
+including0,disables FRAME_ARGUMENTS;components are FRAME_ARGUMENTS_NATIVE,
+FRAME_ARGUMENTS_BORROW,FRAME_ARGUMENTS_ACCESS,FRAME_ARGUMENTS_INDEX,
+FRAME_ARGUMENTS_LENGTH,FRAME_ARGUMENTS_FORWARD and FRAME_ARGUMENTS_CONSTRUCTOR,
+each prefixed QJS_DISABLE_. QJS_OBSERVE_FRAME_ARGUMENTS enables diagnostic
+counters only. Native/OFF observations prove the intended route differences.
+
+Normal CMake includes test_linux_arguments.js,an argument-bearing variant of
+the shared public ownership protocol fixture,and the accepted constructor
+host. Mapped cases use Function so CLI module strictness cannot change them.
+Native observation separately proves root0/1/2/3,prefix/owned/borrowed storage,
+Ready commits,all four access paths,forwarding and constructor control gates.
+The public-only object runs against current,prior publication and stock NG
+archives with cyclic resources,GC/realm reentry,backtraces,interrupt recovery
+and every allocation point of a warmed48-deep argument operation. Current
+native260 versus259OFF and261stock faults recover with zero full ledgers.
+These are bounded correctness observations,not suite hit rates or speed.
+The shared constructor protocol also has an argument-bearing variant:19public
+component/reference processes check193resources,33realm/GC reentries and3
+interrupts per host. Every ordinary14 and grown249 native constructor allocation
+point is swept,versus248grownOFF and298stock,with recovery and zero ledgers.
+
+Full argument ON/OFF Test262 uses the unchanged corpus/configuration/errors:
+65/81152 inherited failures,31fixed,0new/changed and exact portable failure/fix
+identities. Reuse that qualification only with byte-identical current qjs,
+runner and archive. Keep original Win64 argument owners unchanged;final
+current Windows/MSVC/fullTC/literal-source-package acceptance remains a gate.
+
+This closes one mechanism development group,not the full port or a performance
+baseline. Native iterator next/checkpoint/fast/close/unwind,apply/spread/fusion/
+literal-shape and remaining property/prototype/indexed/RegExp/scalar groups
+still precede whole-suite quick screens and all six release gates.

@@ -1,0 +1,95 @@
+Persistent coroutine execution on MSVC Win64
+============================================
+The MSVC Win64 Release backend resumes real suspended generator, async-function
+and async-generator frames through a private generated entry. Arguments,
+locals, captures and PC/SP remain in their existing storage. The full inherited
+C opcode loop, exception walker and suspension cleanup remain available.
+
+The persistent resume loop is compiled in its own private C unit. The original
+core compiler input stays unchanged; one verified direct async_func_resume
+call relocation selects the new entry. Typed original helper imports preserve
+their identity and ABI. Linker retention can still change ordinary code layout;
+compiler-object identity is not a claim of identical timing or linked layout.
+
+Contiguous supported operations run through 108 precompiled scalar handlers,
+with direct successor dispatch and no runtime machine-code generation. The
+native leaf uses volatile Win64 registers, no native stack, ordinary readonly
+dispatch targets with complete ASLR fixups and standard unwind metadata.
+Its temporary 48-byte view borrows the real persistent slots. No public API,
+JSValue, object, context, runtime or suspended-frame layout changes are made.
+The 19 pinned upstream files remain unchanged.
+
+Unsupported value types, final-owner release, overflow, negative zero, TDZ,
+callbacks and interrupt boundaries return before the unsupported opcode changes
+state. That original opcode runs once in the complete C loop. The generator
+checks the pinned parent and retains this build's declared overlays. Source,
+private ABI, COFF caller/relocation, readonly targets, unwind and regeneration
+contracts remain required build checks. Derived helper extraction retains the
+actual frame compiler policy, including the existing native instanceof route.
+
+Controls and compatibility
+--------------------------
+GNU computed-goto, portable and MSVC Debug builds use the original entry.
+Before process start, presence of QJS_DISABLE_CVM_NATIVE_SEGMENTS selects the
+original path, including values 0 and 1. Existing frame/internal/register
+disables do the same. QJS_DISABLE_CVM_NATIVE_SEGMENT_OPS selects the isolated
+C resume loop without native scalar segments. Configuration is process cached;
+compare modes in separate processes. These new flags are inactive on GNU and
+portable execution. Debug builds retain the original dump/stepping behavior.
+
+Qualification
+-------------
+Qualified raw native digest: 90ea211e2f32365d94211e931acd3a0d5bc2af0211bff4262267762cd08fc4f0
+Historical qualified SDK identifier: 90ea211 (retained release archive).
+REPORT.txt and ACCEPTANCE.json in that SDK bind source, tools, binaries,
+complete measurements, retained costs, memory observations and real-PC audits.
+
+GNU/MSVC/portable CTest: 269/254/182; all 705 passed. All three Test262 runs use
+the accepted corpus/configuration: 65 pre-existing errors out of 81152, the same
+31 fixed identities, no new failures. Installed public consumers pass 96 tests.
+Additional JS/C coroutine consumers pass 96 processes across three packages and
+eight modes. The JS fixture checks 2269 conditions; public C hosts cover wide
+tags, ownership/finalization, GC, reentry and completed/aborted interrupts.
+
+Twenty-four independent public allocator/working-set processes hold, resume
+and release 2000 generator/async/async-generator activations. Exact requested
+allocation/live/peak rows match the accepted product in every measured phase.
+Six Promise consumers also have identical allocation/retention rows. Every
+observed runtime shuts down with zero live requested bytes/blocks. Working set
+and private usage are independent host observations, not workload allocation
+rates or a claim of zero memory overhead.
+
+MSVC CLI footprint changes: file +43520 bytes,
+executable virtual sections +39792 bytes,
+readonly virtual sections +3216 bytes.
+
+Actual installed-image throughput geometric-mean changes versus prior product:
+                                  GNU            MSVC
+Selected 18 original bodies      +0.161%       +0.445%
+Original V8-v7 eight categories   -0.083%       -0.849%
+Original complete micro57         +0.334%       +0.490%
+
+The suites stay separate. The selected 18 are the established ten plus eight
+additional workloads, not an official JetStream total score. Elapsed change
+and reciprocal throughput change are distinct. Every case, reverse block,
+copy cohort and negative result is retained. GNU has no new coroutine path;
+its measured image/path differences remain in the report. Final source and
+SDK decisions include the costs, not only the aggregate or best workload.
+
+The optional JSC OfflineAssembler pair was left unscored before this campaign
+because the prior reference timed out. The old/new GNU/MSVC, stock, V8 JIT and
+V8 jitless roles all have complete fresh pairs. No score was imputed or taken
+from the earlier reference. All other JSC references remain measured.
+
+Profiles use exact installed images, matching symbols, actual PIDs, natural
+bases, sampled instruction bounds and PE unwind ranges on CPU2. The bounded
+extra-loop profile context is separate from original-suite timing and caller
+admission. Self samples are not call counts, inclusive costs or additive
+removable time. ASLR remains enabled; no PGO, padding or favorable-base choice.
+
+The design follows precompiled handler dispatch used by the measured V8
+jitless interpreter. Jitless retains native handlers, builtins and inline-cache
+machinery while disabling runtime JIT. The pinned Node build has pointer
+compression disabled, so compression is not assumed to explain its gap.
+Sources: https://v8.dev/blog/jitless and https://v8.dev/docs/ignition
+Pinned Node/V8 source and build evidence are retained with the research report.

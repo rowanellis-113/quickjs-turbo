@@ -1,0 +1,2488 @@
+{
+  "source_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "cutils_sha256": "b93331edd1bf86e1c0b516657d0b16b95bba5f24d799d9824df16f903173b5c2",
+  "source_functions": {
+    "js_async_generator_resume_next": "0f95ce2a1ac99b830e1dca20537c86b0351cac620e2aaf2dab1c0d3f7d80fbaf",
+    "js_async_generator_next": "64f3237acd6e719b35ea10a19e83145052478027965b947cc0fef785873a54b9",
+    "js_async_generator_resolve_function": "fb83a397c31a4c154af1c739758cdcbf68c8a694a108750bd8af7ad411a512db",
+    "js_async_generator_await": "bfccdf31049e5e6dcb6f11b867972e7186de008c8bb6c0425f669760c3ea5c70",
+    "js_async_generator_resolve_or_reject": "db9c74d4934dff1cb036de03e7ffe83168b06191f51a24332f92c1e2a42a7ede",
+    "js_async_generator_completed_return": "fe6ef8867f2c362afec09f52de034d0fad553237304bc3638b68d9fa6d4e15ad",
+    "js_promise_new": "26d245bb0e3c77cf87c354433fc18d1dbb8634db4bd716ab1200e77cfa6daf6d",
+    "js_promise_resolve_function_call": "2e16e672723a20472d72cf3df1b09b253224e4266e0b9df8ed6a6a9bcace4e83",
+    "fulfill_or_reject_promise": "5b0c98fef52d3a86868300928d1b7216ee83b84fe708b9f7b36b3258b63cc5d7",
+    "js_create_resolving_functions": "ff9ae100d77dcae982b12760e3a0808cdfacd9dc3907cc607d717ef9ccd2b254"
+  },
+  "profiles": {
+    "msvc": {
+      "original": {
+        "js_async_generator_next": {
+          "size": 854,
+          "normalized_code_sha256": "63ae1edb85058a38ebd5c5ea76947be144f85e92a01bd9748e0bacffcada6dfa",
+          "relocations": [
+            [
+              86,
+              4,
+              "js_new_promise_capability"
+            ],
+            [
+              142,
+              4,
+              "??_C@_0BN@JFEFBEAK@not?5an?5AsyncGenerator?5object@"
+            ],
+            [
+              154,
+              4,
+              "JS_ThrowTypeError"
+            ],
+            [
+              286,
+              4,
+              "JS_CallInternal"
+            ],
+            [
+              355,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              403,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              448,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              498,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              516,
+              4,
+              "js_mallocz"
+            ],
+            [
+              572,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              616,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              656,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              810,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 466,
+          "normalized_code_sha256": "2e98620c93a2712da7493d890bdcb3667eb845df9aa44d46abe57d930395242c",
+          "relocations": [
+            [
+              135,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              178,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              219,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              266,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              366,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              429,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 1428,
+          "normalized_code_sha256": "4320d083be10aa2711623dff2eeab9253ec21cc371bf16ec0d5e2590bc4ea393",
+          "relocations": [
+            [
+              90,
+              4,
+              "__ImageBase"
+            ],
+            [
+              107,
+              3,
+              "$LN154"
+            ],
+            [
+              148,
+              4,
+              "async_func_free"
+            ],
+            [
+              270,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              378,
+              4,
+              "??_C@_0CB@NKPMMKMA@Maximum?5call?5stack?5size?5exceede@"
+            ],
+            [
+              387,
+              4,
+              "JS_ThrowRangeError"
+            ],
+            [
+              473,
+              4,
+              "JS_CallInternal"
+            ],
+            [
+              557,
+              4,
+              "js_async_generator_await"
+            ],
+            [
+              596,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              689,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              736,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              781,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              818,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              868,
+              4,
+              "async_func_free"
+            ],
+            [
+              909,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              956,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1001,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1046,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1143,
+              4,
+              "async_func_free"
+            ],
+            [
+              1174,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1209,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1326,
+              4,
+              "js_async_generator_resolve"
+            ],
+            [
+              1361,
+              4,
+              "js_async_generator_completed_return"
+            ],
+            [
+              1387,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1398,
+              4,
+              "__imp_abort"
+            ],
+            [
+              1404,
+              3,
+              "$LN12"
+            ],
+            [
+              1408,
+              3,
+              "$LN20"
+            ],
+            [
+              1412,
+              3,
+              "$LN20"
+            ],
+            [
+              1416,
+              3,
+              "$resume_exec$202"
+            ],
+            [
+              1420,
+              3,
+              "$LN195"
+            ],
+            [
+              1424,
+              3,
+              "$LN15"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 799,
+          "normalized_code_sha256": "959935b8b3d33be8807a1310056fe55ae3602649df41d85aca2a7944772ec113",
+          "relocations": [
+            [
+              39,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              59,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              177,
+              4,
+              "??_C@_0CH@PJCBGDBK@QJS_DISABLE_INTERNAL_FUNCTION_T@"
+            ],
+            [
+              183,
+              4,
+              "__imp_getenv"
+            ],
+            [
+              337,
+              4,
+              "JS_NewObjectFromShape"
+            ],
+            [
+              368,
+              4,
+              "JS_NewObjectProtoClass"
+            ],
+            [
+              402,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              492,
+              4,
+              "js_internal_function_finish_properties"
+            ],
+            [
+              600,
+              4,
+              "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+            ],
+            [
+              605,
+              4,
+              "printf"
+            ],
+            [
+              611,
+              4,
+              "__imp_abort"
+            ],
+            [
+              624,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              661,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              716,
+              4,
+              "js_free_value_rt"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        }
+      },
+      "adapted": {
+        "js_async_generator_next": {
+          "size": 854,
+          "normalized_code_sha256": "63ae1edb85058a38ebd5c5ea76947be144f85e92a01bd9748e0bacffcada6dfa",
+          "relocations": [
+            [
+              86,
+              4,
+              "js_new_promise_capability"
+            ],
+            [
+              142,
+              4,
+              "??_C@_0BN@JFEFBEAK@not?5an?5AsyncGenerator?5object@"
+            ],
+            [
+              154,
+              4,
+              "JS_ThrowTypeError"
+            ],
+            [
+              286,
+              4,
+              "JS_FrameDispatchInternal"
+            ],
+            [
+              355,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              403,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              448,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              498,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              516,
+              4,
+              "js_mallocz"
+            ],
+            [
+              572,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              616,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              656,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              810,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 466,
+          "normalized_code_sha256": "2e98620c93a2712da7493d890bdcb3667eb845df9aa44d46abe57d930395242c",
+          "relocations": [
+            [
+              135,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              178,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              219,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              266,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              366,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              429,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 1428,
+          "normalized_code_sha256": "4320d083be10aa2711623dff2eeab9253ec21cc371bf16ec0d5e2590bc4ea393",
+          "relocations": [
+            [
+              90,
+              4,
+              "__ImageBase"
+            ],
+            [
+              107,
+              3,
+              "$LN154"
+            ],
+            [
+              148,
+              4,
+              "async_func_free"
+            ],
+            [
+              270,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              378,
+              4,
+              "??_C@_0CB@NKPMMKMA@Maximum?5call?5stack?5size?5exceede@"
+            ],
+            [
+              387,
+              4,
+              "JS_ThrowRangeError"
+            ],
+            [
+              473,
+              4,
+              "JS_FrameDispatchInternal"
+            ],
+            [
+              557,
+              4,
+              "js_async_generator_await"
+            ],
+            [
+              596,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              689,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              736,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              781,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              818,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              868,
+              4,
+              "async_func_free"
+            ],
+            [
+              909,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              956,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1001,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1046,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1143,
+              4,
+              "async_func_free"
+            ],
+            [
+              1174,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1209,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1326,
+              4,
+              "js_async_generator_resolve"
+            ],
+            [
+              1361,
+              4,
+              "js_async_generator_completed_return"
+            ],
+            [
+              1387,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1398,
+              4,
+              "__imp_abort"
+            ],
+            [
+              1404,
+              3,
+              "$LN12"
+            ],
+            [
+              1408,
+              3,
+              "$LN20"
+            ],
+            [
+              1412,
+              3,
+              "$LN20"
+            ],
+            [
+              1416,
+              3,
+              "$resume_exec$202"
+            ],
+            [
+              1420,
+              3,
+              "$LN195"
+            ],
+            [
+              1424,
+              3,
+              "$LN15"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 799,
+          "normalized_code_sha256": "959935b8b3d33be8807a1310056fe55ae3602649df41d85aca2a7944772ec113",
+          "relocations": [
+            [
+              39,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              59,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              177,
+              4,
+              "??_C@_0CH@PJCBGDBK@QJS_DISABLE_INTERNAL_FUNCTION_T@"
+            ],
+            [
+              183,
+              4,
+              "__imp_getenv"
+            ],
+            [
+              337,
+              4,
+              "JS_NewObjectFromShape"
+            ],
+            [
+              368,
+              4,
+              "JS_NewObjectProtoClass"
+            ],
+            [
+              402,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              492,
+              4,
+              "js_internal_function_finish_properties"
+            ],
+            [
+              600,
+              4,
+              "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+            ],
+            [
+              605,
+              4,
+              "printf"
+            ],
+            [
+              611,
+              4,
+              "__imp_abort"
+            ],
+            [
+              624,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              661,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              716,
+              4,
+              "js_free_value_rt"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        }
+      },
+      "sites": [
+        {
+          "kind": "call",
+          "caller": "js_async_generator_resolve_function",
+          "offset": 429,
+          "relocated": true,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "call",
+          "caller": "js_async_generator_next",
+          "offset": 810,
+          "relocated": true,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 24
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 56
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 88
+        }
+      ],
+      "pointer_table": {
+        "symbol": "js_async_generator_proto_funcs",
+        "section_name": ".rdata",
+        "record_size": 32,
+        "name_offset": 0,
+        "function_offset": 24,
+        "names": [
+          "next",
+          "return",
+          "throw"
+        ],
+        "normalized_sha256": "3f4ee5a1324b54b5edbbeed1138a50929d3ad491ffdc5cb7ea7e823df69b5244"
+      }
+    },
+    "msvc_mt": {
+      "original": {
+        "js_async_generator_next": {
+          "size": 854,
+          "normalized_code_sha256": "63ae1edb85058a38ebd5c5ea76947be144f85e92a01bd9748e0bacffcada6dfa",
+          "relocations": [
+            [
+              86,
+              4,
+              "js_new_promise_capability"
+            ],
+            [
+              142,
+              4,
+              "??_C@_0BN@JFEFBEAK@not?5an?5AsyncGenerator?5object@"
+            ],
+            [
+              154,
+              4,
+              "JS_ThrowTypeError"
+            ],
+            [
+              286,
+              4,
+              "JS_CallInternal"
+            ],
+            [
+              355,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              403,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              448,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              498,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              516,
+              4,
+              "js_mallocz"
+            ],
+            [
+              572,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              616,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              656,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              810,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 466,
+          "normalized_code_sha256": "2e98620c93a2712da7493d890bdcb3667eb845df9aa44d46abe57d930395242c",
+          "relocations": [
+            [
+              135,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              178,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              219,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              266,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              366,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              429,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 1428,
+          "normalized_code_sha256": "0914c7c5789f5c4b007835c828cc49e7eb652835587fac2247a6d7e290c7dee4",
+          "relocations": [
+            [
+              90,
+              4,
+              "__ImageBase"
+            ],
+            [
+              107,
+              3,
+              "$LN154"
+            ],
+            [
+              148,
+              4,
+              "async_func_free"
+            ],
+            [
+              270,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              378,
+              4,
+              "??_C@_0CB@NKPMMKMA@Maximum?5call?5stack?5size?5exceede@"
+            ],
+            [
+              387,
+              4,
+              "JS_ThrowRangeError"
+            ],
+            [
+              473,
+              4,
+              "JS_CallInternal"
+            ],
+            [
+              557,
+              4,
+              "js_async_generator_await"
+            ],
+            [
+              596,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              689,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              736,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              781,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              818,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              868,
+              4,
+              "async_func_free"
+            ],
+            [
+              909,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              956,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1001,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1046,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1143,
+              4,
+              "async_func_free"
+            ],
+            [
+              1174,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1209,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1326,
+              4,
+              "js_async_generator_resolve"
+            ],
+            [
+              1361,
+              4,
+              "js_async_generator_completed_return"
+            ],
+            [
+              1387,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1397,
+              4,
+              "abort"
+            ],
+            [
+              1404,
+              3,
+              "$LN12"
+            ],
+            [
+              1408,
+              3,
+              "$LN20"
+            ],
+            [
+              1412,
+              3,
+              "$LN20"
+            ],
+            [
+              1416,
+              3,
+              "$resume_exec$202"
+            ],
+            [
+              1420,
+              3,
+              "$LN195"
+            ],
+            [
+              1424,
+              3,
+              "$LN15"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 802,
+          "normalized_code_sha256": "752f1935d67ed1448e97b5ba428cdab34d1734dd719629ea646d07b3126f0375",
+          "relocations": [
+            [
+              39,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              59,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              177,
+              4,
+              "??_C@_0CH@PJCBGDBK@QJS_DISABLE_INTERNAL_FUNCTION_T@"
+            ],
+            [
+              182,
+              4,
+              "getenv"
+            ],
+            [
+              336,
+              4,
+              "JS_NewObjectFromShape"
+            ],
+            [
+              367,
+              4,
+              "JS_NewObjectProtoClass"
+            ],
+            [
+              401,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              491,
+              4,
+              "js_internal_function_finish_properties"
+            ],
+            [
+              603,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              640,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              695,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              787,
+              4,
+              "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+            ],
+            [
+              792,
+              4,
+              "printf"
+            ],
+            [
+              797,
+              4,
+              "abort"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        }
+      },
+      "adapted": {
+        "js_async_generator_next": {
+          "size": 854,
+          "normalized_code_sha256": "63ae1edb85058a38ebd5c5ea76947be144f85e92a01bd9748e0bacffcada6dfa",
+          "relocations": [
+            [
+              86,
+              4,
+              "js_new_promise_capability"
+            ],
+            [
+              142,
+              4,
+              "??_C@_0BN@JFEFBEAK@not?5an?5AsyncGenerator?5object@"
+            ],
+            [
+              154,
+              4,
+              "JS_ThrowTypeError"
+            ],
+            [
+              286,
+              4,
+              "JS_FrameDispatchInternal"
+            ],
+            [
+              355,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              403,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              448,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              498,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              516,
+              4,
+              "js_mallocz"
+            ],
+            [
+              572,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              616,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              656,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              810,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 466,
+          "normalized_code_sha256": "2e98620c93a2712da7493d890bdcb3667eb845df9aa44d46abe57d930395242c",
+          "relocations": [
+            [
+              135,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              178,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              219,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              266,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              366,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              429,
+              4,
+              "js_async_generator_resume_next"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 1428,
+          "normalized_code_sha256": "0914c7c5789f5c4b007835c828cc49e7eb652835587fac2247a6d7e290c7dee4",
+          "relocations": [
+            [
+              90,
+              4,
+              "__ImageBase"
+            ],
+            [
+              107,
+              3,
+              "$LN154"
+            ],
+            [
+              148,
+              4,
+              "async_func_free"
+            ],
+            [
+              270,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              378,
+              4,
+              "??_C@_0CB@NKPMMKMA@Maximum?5call?5stack?5size?5exceede@"
+            ],
+            [
+              387,
+              4,
+              "JS_ThrowRangeError"
+            ],
+            [
+              473,
+              4,
+              "JS_FrameDispatchInternal"
+            ],
+            [
+              557,
+              4,
+              "js_async_generator_await"
+            ],
+            [
+              596,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              689,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              736,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              781,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              818,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              868,
+              4,
+              "async_func_free"
+            ],
+            [
+              909,
+              4,
+              "js_create_iterator_result"
+            ],
+            [
+              956,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1001,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1046,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1143,
+              4,
+              "async_func_free"
+            ],
+            [
+              1174,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1209,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              1326,
+              4,
+              "js_async_generator_resolve"
+            ],
+            [
+              1361,
+              4,
+              "js_async_generator_completed_return"
+            ],
+            [
+              1387,
+              4,
+              "js_async_generator_resolve_or_reject"
+            ],
+            [
+              1397,
+              4,
+              "abort"
+            ],
+            [
+              1404,
+              3,
+              "$LN12"
+            ],
+            [
+              1408,
+              3,
+              "$LN20"
+            ],
+            [
+              1412,
+              3,
+              "$LN20"
+            ],
+            [
+              1416,
+              3,
+              "$resume_exec$202"
+            ],
+            [
+              1420,
+              3,
+              "$LN195"
+            ],
+            [
+              1424,
+              3,
+              "$LN15"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 802,
+          "normalized_code_sha256": "752f1935d67ed1448e97b5ba428cdab34d1734dd719629ea646d07b3126f0375",
+          "relocations": [
+            [
+              39,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              59,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              177,
+              4,
+              "??_C@_0CH@PJCBGDBK@QJS_DISABLE_INTERNAL_FUNCTION_T@"
+            ],
+            [
+              182,
+              4,
+              "getenv"
+            ],
+            [
+              336,
+              4,
+              "JS_NewObjectFromShape"
+            ],
+            [
+              367,
+              4,
+              "JS_NewObjectProtoClass"
+            ],
+            [
+              401,
+              4,
+              "js_malloc_rt"
+            ],
+            [
+              491,
+              4,
+              "js_internal_function_finish_properties"
+            ],
+            [
+              603,
+              4,
+              "JS_ThrowOutOfMemory"
+            ],
+            [
+              640,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              695,
+              4,
+              "js_free_value_rt"
+            ],
+            [
+              787,
+              4,
+              "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+            ],
+            [
+              792,
+              4,
+              "printf"
+            ],
+            [
+              797,
+              4,
+              "abort"
+            ]
+          ],
+          "local_transfers": [],
+          "local_addresses": []
+        }
+      },
+      "pointer_table": {
+        "symbol": "js_async_generator_proto_funcs",
+        "section_name": ".rdata",
+        "record_size": 32,
+        "name_offset": 0,
+        "function_offset": 24,
+        "names": [
+          "next",
+          "return",
+          "throw"
+        ],
+        "normalized_sha256": "3f4ee5a1324b54b5edbbeed1138a50929d3ad491ffdc5cb7ea7e823df69b5244"
+      },
+      "sites": [
+        {
+          "kind": "call",
+          "caller": "js_async_generator_resolve_function",
+          "offset": 429,
+          "relocated": true,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "call",
+          "caller": "js_async_generator_next",
+          "offset": 810,
+          "relocated": true,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 24
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 56
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 88
+        }
+      ]
+    },
+    "mingw": {
+      "original": {
+        "js_async_generator_next": {
+          "size": 800,
+          "normalized_code_sha256": "3a8d99dee3a19becebe387804a80be12e09facccf533035a877e9ca23489f809",
+          "relocations": [
+            [
+              435,
+              4,
+              ".rdata"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 112,
+              "opcode": 232,
+              "target": "js_promise_new"
+            },
+            {
+              "offset": 153,
+              "opcode": 232,
+              "target": "js_mallocz"
+            },
+            {
+              "offset": 334,
+              "opcode": 232,
+              "target": "js_async_generator_resume_next"
+            },
+            {
+              "offset": 389,
+              "opcode": 232,
+              "target": "js_promise_new"
+            },
+            {
+              "offset": 445,
+              "opcode": 232,
+              "target": "JS_ThrowTypeError"
+            },
+            {
+              "offset": 595,
+              "opcode": 232,
+              "target": "JS_CallInternal"
+            },
+            {
+              "offset": 626,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 642,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 667,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 692,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 732,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 757,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 778,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 448,
+          "normalized_code_sha256": "82788773a5cd8860577dcbf38f866924c215bf924fd64086b84b9cfbd6fb74a1",
+          "relocations": [],
+          "local_transfers": [
+            {
+              "offset": 131,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 217,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 246,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 290,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 363,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 388,
+              "opcode": 232,
+              "target": "js_async_generator_resume_next"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 3248,
+          "normalized_code_sha256": "dbd80465744a4f4b3daeb389f85d4bf633febbe7d27c44f14d494593e7ba34df",
+          "relocations": [
+            [
+              89,
+              4,
+              ".rdata"
+            ],
+            [
+              1314,
+              4,
+              ".rdata"
+            ],
+            [
+              1526,
+              4,
+              ".rdata"
+            ],
+            [
+              82,
+              4,
+              ".text.unlikely"
+            ],
+            [
+              742,
+              4,
+              ".text.unlikely"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 200,
+              "opcode": 232,
+              "target": "perform_promise_then"
+            },
+            {
+              "offset": 227,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 344,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 641,
+              "opcode": 232,
+              "target": "JS_CallInternal"
+            },
+            {
+              "offset": 806,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 832,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 850,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 875,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 942,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 1003,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 1126,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 1239,
+              "opcode": 232,
+              "target": "js_internal_function_object"
+            },
+            {
+              "offset": 1276,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 1370,
+              "opcode": 232,
+              "target": "js_internal_function_finish_properties"
+            },
+            {
+              "offset": 1462,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1501,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1533,
+              "opcode": 232,
+              "target": "JS_ThrowRangeError"
+            },
+            {
+              "offset": 1608,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 1640,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 1665,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1697,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 1729,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 1829,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 1926,
+              "opcode": 232,
+              "target": "JS_NewCFunctionData2.constprop.0"
+            },
+            {
+              "offset": 2002,
+              "opcode": 232,
+              "target": "JS_NewCFunctionData2.constprop.0"
+            },
+            {
+              "offset": 2103,
+              "opcode": 232,
+              "target": "perform_promise_then"
+            },
+            {
+              "offset": 2126,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2149,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2174,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2229,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2320,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 2410,
+              "opcode": 232,
+              "target": "JS_NewObjectProtoClass"
+            },
+            {
+              "offset": 2489,
+              "opcode": 232,
+              "target": "JS_DefinePropertyValue"
+            },
+            {
+              "offset": 2643,
+              "opcode": 232,
+              "target": "JS_DefineProperty"
+            },
+            {
+              "offset": 2697,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 2762,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2787,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 2815,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 2846,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2883,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2996,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 3033,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3096,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3151,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3191,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 3218,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 768,
+          "normalized_code_sha256": "e554a5fd06fea8f6296c5652e836a26edf7ffbf30ebefacfc1bf6e668b8514de",
+          "relocations": [
+            [
+              355,
+              4,
+              ".rdata"
+            ],
+            [
+              365,
+              4,
+              "getenv"
+            ],
+            [
+              739,
+              4,
+              ".rdata"
+            ],
+            [
+              749,
+              4,
+              "abort"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 50,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 184,
+              "opcode": 232,
+              "target": "JS_NewObjectProtoClass"
+            },
+            {
+              "offset": 216,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 292,
+              "opcode": 232,
+              "target": "js_internal_function_finish_properties"
+            },
+            {
+              "offset": 591,
+              "opcode": 232,
+              "target": "JS_NewObjectFromShape"
+            },
+            {
+              "offset": 672,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 712,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 743,
+              "opcode": 232,
+              "target": "printf"
+            }
+          ],
+          "local_addresses": []
+        }
+      },
+      "adapted": {
+        "js_async_generator_next": {
+          "size": 800,
+          "normalized_code_sha256": "3a8d99dee3a19becebe387804a80be12e09facccf533035a877e9ca23489f809",
+          "relocations": [
+            [
+              435,
+              4,
+              ".rdata"
+            ],
+            [
+              596,
+              4,
+              "JS_FrameDispatchInternal"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 112,
+              "opcode": 232,
+              "target": "js_promise_new"
+            },
+            {
+              "offset": 153,
+              "opcode": 232,
+              "target": "js_mallocz"
+            },
+            {
+              "offset": 334,
+              "opcode": 232,
+              "target": "js_async_generator_resume_next"
+            },
+            {
+              "offset": 389,
+              "opcode": 232,
+              "target": "js_promise_new"
+            },
+            {
+              "offset": 445,
+              "opcode": 232,
+              "target": "JS_ThrowTypeError"
+            },
+            {
+              "offset": 626,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 642,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 667,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 692,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 732,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 757,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 778,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_async_generator_resolve_function": {
+          "size": 448,
+          "normalized_code_sha256": "82788773a5cd8860577dcbf38f866924c215bf924fd64086b84b9cfbd6fb74a1",
+          "relocations": [],
+          "local_transfers": [
+            {
+              "offset": 131,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 217,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 246,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 290,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 363,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 388,
+              "opcode": 232,
+              "target": "js_async_generator_resume_next"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_async_generator_resume_next": {
+          "size": 3248,
+          "normalized_code_sha256": "dbd80465744a4f4b3daeb389f85d4bf633febbe7d27c44f14d494593e7ba34df",
+          "relocations": [
+            [
+              89,
+              4,
+              ".rdata"
+            ],
+            [
+              1314,
+              4,
+              ".rdata"
+            ],
+            [
+              1526,
+              4,
+              ".rdata"
+            ],
+            [
+              82,
+              4,
+              ".text.unlikely"
+            ],
+            [
+              742,
+              4,
+              ".text.unlikely"
+            ],
+            [
+              642,
+              4,
+              "JS_FrameDispatchInternal"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 200,
+              "opcode": 232,
+              "target": "perform_promise_then"
+            },
+            {
+              "offset": 227,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 344,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 806,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 832,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 850,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 875,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 942,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 1003,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 1126,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 1239,
+              "opcode": 232,
+              "target": "js_internal_function_object"
+            },
+            {
+              "offset": 1276,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 1370,
+              "opcode": 232,
+              "target": "js_internal_function_finish_properties"
+            },
+            {
+              "offset": 1462,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1501,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1533,
+              "opcode": 232,
+              "target": "JS_ThrowRangeError"
+            },
+            {
+              "offset": 1608,
+              "opcode": 232,
+              "target": "js_create_iterator_result"
+            },
+            {
+              "offset": 1640,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 1665,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 1697,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 1729,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            },
+            {
+              "offset": 1829,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 1926,
+              "opcode": 232,
+              "target": "JS_NewCFunctionData2.constprop.0"
+            },
+            {
+              "offset": 2002,
+              "opcode": 232,
+              "target": "JS_NewCFunctionData2.constprop.0"
+            },
+            {
+              "offset": 2103,
+              "opcode": 232,
+              "target": "perform_promise_then"
+            },
+            {
+              "offset": 2126,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2149,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2174,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2229,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2320,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 2410,
+              "opcode": 232,
+              "target": "JS_NewObjectProtoClass"
+            },
+            {
+              "offset": 2489,
+              "opcode": 232,
+              "target": "JS_DefinePropertyValue"
+            },
+            {
+              "offset": 2643,
+              "opcode": 232,
+              "target": "JS_DefineProperty"
+            },
+            {
+              "offset": 2697,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 2762,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2787,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 2815,
+              "opcode": 232,
+              "target": "async_func_free"
+            },
+            {
+              "offset": 2846,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2883,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 2996,
+              "opcode": 232,
+              "target": "js_promise_resolve"
+            },
+            {
+              "offset": 3033,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3096,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3151,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 3191,
+              "opcode": 232,
+              "target": "js_async_generator_resolve_or_reject.isra.0"
+            },
+            {
+              "offset": 3218,
+              "opcode": 232,
+              "target": "js_free_value_rt"
+            }
+          ],
+          "local_addresses": []
+        },
+        "js_create_resolving_functions": {
+          "size": 768,
+          "normalized_code_sha256": "e554a5fd06fea8f6296c5652e836a26edf7ffbf30ebefacfc1bf6e668b8514de",
+          "relocations": [
+            [
+              355,
+              4,
+              ".rdata"
+            ],
+            [
+              365,
+              4,
+              "getenv"
+            ],
+            [
+              739,
+              4,
+              ".rdata"
+            ],
+            [
+              749,
+              4,
+              "abort"
+            ]
+          ],
+          "local_transfers": [
+            {
+              "offset": 50,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 184,
+              "opcode": 232,
+              "target": "JS_NewObjectProtoClass"
+            },
+            {
+              "offset": 216,
+              "opcode": 232,
+              "target": "js_malloc"
+            },
+            {
+              "offset": 292,
+              "opcode": 232,
+              "target": "js_internal_function_finish_properties"
+            },
+            {
+              "offset": 591,
+              "opcode": 232,
+              "target": "JS_NewObjectFromShape"
+            },
+            {
+              "offset": 672,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 712,
+              "opcode": 232,
+              "target": "JS_FreeValue"
+            },
+            {
+              "offset": 743,
+              "opcode": 232,
+              "target": "printf"
+            }
+          ],
+          "local_addresses": []
+        }
+      },
+      "sites": [
+        {
+          "kind": "call",
+          "caller": "js_async_generator_resolve_function",
+          "offset": 389,
+          "relocated": false,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "call",
+          "caller": "js_async_generator_next",
+          "offset": 335,
+          "relocated": false,
+          "target": "js_async_generator_resume_next"
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 24
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 56
+        },
+        {
+          "kind": "pointer",
+          "target": "js_async_generator_next",
+          "owner": "js_async_generator_proto_funcs",
+          "relative_offset": 88
+        }
+      ],
+      "pointer_table": {
+        "symbol": "js_async_generator_proto_funcs",
+        "section_name": ".rdata",
+        "record_size": 32,
+        "name_offset": 0,
+        "function_offset": 24,
+        "names": [
+          "next",
+          "return",
+          "throw"
+        ],
+        "normalized_sha256": "3f4ee5a1324b54b5edbbeed1138a50929d3ad491ffdc5cb7ea7e823df69b5244"
+      }
+    }
+  },
+  "promise_types_sha256": "75b125383a60bebc21b9279801e0d405696cd6c63caa972ad6e036031f00bec7",
+  "generator_types_sha256": "cbe2f410ed22c5e319bd5a896ae002ba5fda22d863f32a58ec87207286e53b9d",
+  "source_digest_format": "SHA256 after CRLF-to-LF normalization,matching QuickJSUpstreamPin.cmake;function-body and compiler ABI fingerprints are unchanged"
+}

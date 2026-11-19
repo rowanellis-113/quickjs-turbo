@@ -1,0 +1,120 @@
+Linux owned-argument and readonly-captured calls (development)
+=============================================================
+
+js-call-r2 is a mechanism/ownership checkpoint, not a new product or a
+performance baseline. All six LINUX-PORT.txt gates remain required. It also
+repairs a real post-checkpoint builtin-view/argument alias defect in c-entry-r4.
+The accepted Windows product70638ed remains unchanged.
+
+Shared constructor and actual SysV route
+---------------------------------------
+The shared register stream already prepares scalar call metadata: cached frame
+bytes, formal/local counts and the inherited initialization bit. This was not
+a missing default mechanism. tools/generate/js-owned-missing.py now exposes
+the existing constructor as a pure factory over the supplied actual layout.
+Its126 accepted MinGW instruction rows remain identical. tools/elf/js_calls.py
+uses that factory with compiler-measured Linux types and inline refcount0.
+
+Four direct-only native blocks add guarded owned missing arguments, the wide
+missing window, the owned child constructor and readonly-captured admission.
+Every supplied owning cell receives its own Dup, including repeated aliases;
+the missing suffix is Undefined. Locals and captured-cell tables are initialized
+before runtime SF publication. Existing capacity, stack quota, interrupt,
+exception, close/pop/tail cleanup and typed legacy fallback remain in force.
+The inherited wide constructor bound is128 formals. No public/state type grows,
+no per-JS-call C recursion is added and no address/layout tuning is involved.
+
+Readonly captures and naming dependency
+---------------------------------------
+The original64-node,65536-code-byte,4096-pool-value proof is extracted verbatim
+from call-forward-owned.py. It checks all descendant bytecode constants,
+including never-executed closures, against the original positive whitelist.
+Unknown, mutable, eval/arguments/rest/with and over-budget graphs retain the
+owned/original route. The proof uses bounded stack storage, no recursion or
+allocation; the real runtime stack headroom is checked before admission.
+Proven low-kind7 functions can borrow the argument window. Their captured
+cells keep the original detach/close ownership when an escaping closure lives
+past its caller. External closure variables and locally owned captured cells
+remain distinct.
+
+Closure name inference emits OP_set_name. Without that dependency, otherwise
+eligible readonly-capture bodies returned wholly to the legacy interpreter.
+The exact accepted set-name STEP uses the real JS_DefineObjectName helper;
+Linux restores its running cur_sp=NULL convention after the allocating call.
+The original begin/finish-C publication and exception protocol is preserved.
+At this checkpoint the native VM had142 handlers and27 audited C bridges.
+
+Controls, tested by presence including value0 and value1:
+  QJS_DISABLE_FRAME_JS_OWNED_MISSING
+  QJS_DISABLE_FRAME_JS_CAPTURED
+  QJS_DISABLE_FRAME_CAPTURED_READONLY
+  QJS_DISABLE_FRAME_SET_NAME
+Parent C-invoke/shared/register/frame controls still retain semantic fallback.
+
+Builtin view correctness repair
+-------------------------------
+The cached128-byte view is inactive scratch that a later borrowed missing-argv
+pad can reuse. Eleven formal arguments with zero actual arguments write the
+Undefined tag3 into its transient-segment word at offset120. Before this fix,
+the next hot or geometry-cached slice mistook that word for an owned segment
+and segfaulted. Semantic/TC successes at c-entry-r4 did not cover that alias.
+
+Every hot-window invocation and cached C geometry preparation now resets its
+transient-segment owner to NULL. Geometry/lifetime validity never preserves
+inactive payload bytes. Actual transient mode still stores its real segment.
+The original negative is retained at js-call-r1/window-argument-diagnosis.
+The same unchanged eleven-formal fixture now observes3->0 reinitialization
+three times in each of the hot and geometry paths, without changing inferior
+memory or diverting the borrow route. A new regression covers1..128 formals,
+eight calls each, in five view modes. c-entry-r4 is superseded for correctness;
+its frozen qualification records remain historical evidence.
+
+Qualification and cost boundaries
+---------------------------------
+A fresh Release/Werror build passes384 CTests, ELF/CFI/PIC/CET checks and an
+independent installed consumer. Full pinned Test262 ON/OFF each reports
+65/81152 inherited failures,31fixed,0new/changed, with exact portable failure
+and fix identities. Corpus/configuration/known-error bytes are bound.
+
+The public host performs477 matched calls with GC, cross-realm reentry and
+stack-limit changes. Default ownership observations are389 owned and88 borrowed;
+captured/proof OFF makes413/64. Actual bounded debugger producer observations
+show328 complete owned constructions and24 readonly-captured borrowed commits;
+owned OFF shows0/24, captured OFF216/0 and proof OFF216/0. These are fixture
+counts, not suite rates or performance gains. Four fault injections in each
+of ON/owned-OFF/captured-OFF/proof-OFF recover with complete zero ledgers.
+
+Relative to the frozen c-entry-r4 image, executable sections grow2736 bytes,
+allocated writable sections grow0 and the file grows5280 bytes. Legacy
+CallInternal stays37388 bytes at the same address. All62 selected C worker
+functions have full-function FDE coverage; native assembly entries are checked
+separately. These static facts imply neither speed nor RSS neutrality.
+
+An early host fixture failed to match captured native calls because set_name
+was missing. Retain that failed observation and its diagnosis. Inherited array
+species, original JSON366-byte and cold metadata OOM negatives are not repaired
+or reclassified by this group.
+
+Remaining complete dependency groups
+------------------------------------
+Later forwarding-r2 closes the complete .call normalizer,prepared leaf/owned,
+borrow/missing/deep and80-byte logical-parent group;see LINUX-FORWARDING.txt.
+The remaining text below describes the js-call-r2 checkpoint boundary.
+Native root/child/leaf entry selectors, .call normalization/forwarding and
+the accepted logical-frame/borrow variants still need Linux execution proof.
+Deferred dirty/clean frame publication is separate from the owned constructor's
+late publication above. Optional weak native call-site linking/destination
+metadata on accepted Windows is opt-in via QJS_ENABLE_CALL_LINK_VM, with its
+independent DISABLE controls; it must not be enabled or counted as a missing
+default optimization without a separate coverage/cost decision.
+
+Iterator/close/unwind/literal shape, sparse array-own, primitive/prototype/
+indexed access, locale/character entries, RegExp wrappers and scalar supplements
+also remain. Finish mechanism/dependency coverage before local timing/layout
+variants. Then run stock/portable/native micro57,Jet17,V8-v7 reversed quick
+screens, justified stable/profile/RSS checks and final cross-platform/source
+package qualification. No whole-port completion is claimed here.
+
+Evidence: /home/eros/port-records/linux-x86_64/js-call-r2 and
+test262-js-call-r2; current-source Windows proof is recorded separately under
+D:/js-engines/maintenance/linux-x86_64/windows-js-call-r2.

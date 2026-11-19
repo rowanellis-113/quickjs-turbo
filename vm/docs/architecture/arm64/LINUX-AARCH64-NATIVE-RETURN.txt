@@ -1,0 +1,80 @@
+Noncalling return cleanup on Linux AArch64
+==========================================
+
+This increment follows product5e48e0a49d5db6eb06613ab77b82edaefa1936f0.
+The only runtime instruction change is asm/arm64/common/register-call.inc;
+three ABI source-owner receipts follow its reviewed file hash. All19 pinned
+upstream files, public API0.15.1 and compiled private fingerprints are unchanged.
+
+The existing32cell quota and RC>total-cells sufficient proof remain. References
+with lower positive RC may additionally pass when RC>1 and their pointer hashes
+occupy distinct bits of one64bit scratch-register mask across BOTH cleanup
+ranges. Equal pointers always collide. Any collision, last owner or other old
+guard failure retains the original C path BEFORE any decrement. False collisions
+only decline. Every committed release leaves a live owner; the original release
+order, result ownership, captures, exception/tail handling, quotas, publication
+and CFI remain. There is no new C call, SP/frame growth, FPR/callee-save lease,
+runtime field, policy, cache, allocation or GC root.
+
+Same-host geometric mean throughput ratios against accepted5e48:
+  Original V8-v7, all8 cases, six launches/role, per-case median: +1.85%
+  The same six launches, per-case mean latency:                  +0.97%
+  Retained JetStream subset, all17 original bodies:              +2.94%
+  Original57 microbench cases, user CPU:                         +8.29%
+  Separate elapsed diagnostic, all57 original bodies:            +1.30%
+
+All three balanced V8 cohorts are retained: +1.75%, -2.36%, +3.65%. Candidate
+scores include753.07 and portable controls include762.31; no launch is discarded.
+These measurements support a small variable increment, not a stable1.85% claim.
+The original user-CPU minima have large modes and the8.29% figure is not a stable
+gain claim. The elapsed diagnostic changes only os.cputime to os.now and never
+replaces or relabels the original CPU panel. Original N and all modes remain.
+
+Closure-variable elapsed throughput improves26.57% in the full panel and19.05%
+in the original-calibration focused panel. Function-call gains are5.53% and0.60%.
+Focused elapsed costs remain: int_arith-7.89%, string_slice1-7.04%, int_to_string
+-5.47%, float_toString-5.22%; corresponding full-panel results are substantially
+smaller costs or gains. Both panels are retained without an unproven explanation.
+JetStream pdfjs is-13.10% in the full panel and-2.14% in the focused rerun; added
+time relative to stock is10.05% and1.41%. Air/bigint full-panel losses flip to
+gains in the focused run. These variable costs are explicitly accepted here.
+
+All measurements use the retained Neoverse-N1/t4g.small host, GCC13.4, UID1000,
+CPU1/jobs1, normal ASLR2 and allocator256. CPU1 is the documented exception on
+this two-CPU machine. No address, padding, hash-constant or layout search occurs.
+The companion JSON retains complete per-case data, original scores, stock and
+portable controls, focused costs, actual peak RSS, footprints and source/image
+bindings. Executable sections grow160 bytes, with the same VM entry. All C and
+other non-VM qjs objects remain byte-identical. Preserved entries alone do not
+isolate a pure mechanism timing benefit. Paired Earley profiles retain3450/3451
+samples and no lost events; their extra loops are excluded from scores.
+
+Fresh documented native1249 and instrumented1808 CTests pass. The permanent
+public C fixture covers object/string/Symbol/BigInt/-0 aliases, tail/capture,
+the32cell boundary, real finalizers, legal foreign-runtime GC/JS reentry,
+natural backtraces, fresh96-step OOM recovery and zero allocator ledgers.
+Its cross-range last-owner case proves32 native calls then32 C returns and
+real finalization; the shared mask cannot admit the duplicated last owner.
+Nine native/component/legacy modes and two OOM modes pass. A cold/tail fixture
+that did not reach the intended native-call path was corrected using ordinary
+public warmup and a non-tail caller; the strict native-call assertion remains.
+
+Four full Test262 executions each test81152 cases and retain the same65 known
+failures with zero new/changed identities: prior, candidate, publication-OFF and
+register-OFF. The freshly built instrumented library is byte-identical to the
+one used for original-caller observations and public lifetime/OOM tests. Test
+registration changes leave all four measured normal CLI/library payloads exact.
+A relocated installed public CMake SDK consumer passes1024 closure calls with
+C callbacks, JS_RunGC and standard AAPCS64 aggregate values.
+
+Runtime SHA256:a0799c7ce6625e87b1db063d85fb06a5a8a07315005738beff6941e0f338c23b
+Assembly SHA256:c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a
+Performance archive SHA256:
+c78687e7754c26b291755ade7b3ce2b3aaeafefc042a4c831504c5f0a2f390de
+Qualified full-image archive SHA256:
+59289d3878814600d0b7f298147b3f0af019e8f7fa3b3b196a234089de9b629d
+
+The exact-alias full-rescan predecessor reduced C fallback counts but slowed
+wholeV8 by2.03%; it is parked and archived. No further hash/layout variants
+belong to this bounded return campaign. The broader ARM64 migration audit and
+call-boundary attribution remain open; this is not an ARM/x86 parity claim.

@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 GCC/glibc",
+  "source_owners": {
+    "tools/common/elf/string_workers.py": "60bd16c30c82fc88887bf95b29068f00e502346f3ff41bf24582f4dd351bde5c",
+    "tools/common/c_extract/local_string_c.py": "6dc46ff734ed8d4fc97d527060ff7c764aa770fe03caac436ee71b451a9645d7",
+    "src/common/string/concat-rope.inc": "58d358aa635c8630ce0fce49a4f94ed947ec9d24bafff80976645fa5cbc16d37",
+    "src/common/string/local-rope-append.inc": "0c1dc8ecbde0aed7f89e4c71a3c2ab9f5c52e55a366015f0cef39003f650f619",
+    "src/common/string/locale-compare.inc": "6330df519aa9a409bfdd8c17e5adaf888c8d8b589d03ebbd180ff4a9f4415eac",
+    "src/common/linux/interpreter-string.inc": "ed67f7a6d1da3e5911b25338005743ee27fa60ecdf03a6738045a8917ecee2aa",
+    "src/common/kernel/string-index.c": "52b05fc68bb9e82e3bd4d8851719cf72154ff3cc982d83daa4718306456feec0",
+    "src/common/kernel/small-char.c": "5167df183786da00ec02ef63151b57429172f6ab9f7bb2a35820a510c8a51b96",
+    "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
+    "asm/arm64/common/register-indexed.inc": "a52dc8eb25cba657c46de124da65ba00b6e1009823f02e60b3c737f07c8555a5",
+    "asm/arm64/common/register-bigint.inc": "242561658c31c2494ef4bd0bb9f488456ca297b6d473baaa41a6dfd7c0fc5c1f",
+    "asm/arm64/common/register-string-append.inc": "5457b349603ebb2eeeeedb642d4d0209cd6f375cd64d8a0fdd5c3fea242b18dd",
+    "src/common/memory/allocator-pool.c": "fc434b10e49914150c6ebc7099d5a81da5ecd427f1c7aaf13b091fd58cde2f36",
+    "src/common/kernel/string-control.inc": "945882bed648f87f86332262401f80b71c283a98708eb79e6e421f85df9879fd"
+  },
+  "whole_qualification": false,
+  "native_byte_append_implementation_complete": true
+}

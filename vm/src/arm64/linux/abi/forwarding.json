@@ -1,0 +1,28 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "tools/common/c_extract/call_forward_c.py": "04acb7c0a43daef064cf5831b1b583e04756c5a77cc167335c34c7c159bde57f",
+    "tools/common/c_extract/call_prepare_c.py": "469703ea77245bed325c2138fc8d0764548efdd050d05ada85127c9b957fa5f0",
+    "tools/common/elf/forwarding_c.py": "e9f25448e9748e64f8b7cf563194491fc7fd4361291267ecea7fec3dff06788e",
+    "src/common/call/interpreter-retained-context.inc": "51979d33863b5715a5904dd0d94cba5e98fd5618e495295bb0b2ed9753e59c73",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/arm64/linux/interpreter-forward.inc": "9241f74bd927e4d85a7269ee91dd0e861f2978724c91a60e3900c5d675fc1e7c",
+    "asm/arm64/common/register-forwarding.inc": "0023a7348edd49c8cfe21f9515d53e7abcb3624bf8bc3616a55a54ea6ed0d922",
+    "asm/arm64/linux/forwarding-probe.S": "b01877da56ec4d879ca76765d230f1138125e13046f5d7ecd74a04aa3de84949",
+    "asm/arm64/linux/forwarding-owned.S": "a9ac0ba2a5da84cc365e1d8fe91136338ded3000b5dd774794acee3e95fcac05",
+    "asm/arm64/linux/forwarding-prepared.S": "81bc4cf27a590c94064f210c26bce28512857f0a7caacb9b8d01bebbf9ab5c45",
+    "asm/arm64/common/register-call.inc": "c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a",
+    "src/common/call/interpreter-captured-readonly.inc": "95aaeffeb01628c78a7384fcc119100727527efa94f873b4d85ea3fc763188b4"
+  },
+  "logical_frame_bytes": 80,
+  "maximum_depth": 64,
+  "frame_growth": 0,
+  "state_growth": 0,
+  "runtime_growth": 0,
+  "private_returning_probe_scratch_bytes": 32,
+  "scope": "All nine native forwarding/prepared functions plus original bounded captured-readonly proof and coherent ordinary kind7 entry;whole qualification OPEN",
+  "complete_native_producer_family": false,
+  "private_child_continuation": "int(JSFrameRegisterState*,JSFunctionBytecode*,JSValue*,unsigned); x0,x1,x2,w3; SP unchanged; no callee-saved writes; caller scratch32",
+  "prepared_descriptor": "AAPCS64 compiler-checked int(state,const-targetslot,originalargv,packed-depth-argc);private native Execute additionally x4 targetslot,w5 depth;32 caller bytes only"
+}

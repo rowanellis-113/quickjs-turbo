@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "asm/arm64/common/register-iterators.inc": "ac00a716cd7c201592c077f6cdb76216211f456a4fb52d63cb333c2e7b697f41",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/quickjs-interpreter-register.h": "c9c63178bb3300dd2f6f0c45cefcf72c8117f0681827f0e74043a66f9169b3e3",
+    "tools/common/elf/arguments_c.py": "a8e31ca1840b84115ce1da3ef64f8f0823d8b3d8cb7e02d05576a9c24df69daf",
+    "tools/common/elf/iterators_c.py": "93d4f6c94093522b4e09c17ff8569bbcacc390c4bf3612ac7c4f29440434240a",
+    "tools/common/c_extract/iterator_c.py": "0554c241dc5c6214a70ba221b6f30ae106bb125403b1b9891488e4bf400cd679",
+    "tools/common/c_extract/varargs_c.py": "88bf454180cf5b59818c8d8967d70a441b976f73b03675e9ffc32bc974a5e144"
+  },
+  "scope": "Complete accepted GNU synchronous iterator/checkpoint/dense-array and eight typed opcodes;not apply/spread/literal",
+  "new_frame_fields": 0,
+  "new_state_fields": 0,
+  "new_runtime_fields": 0,
+  "hardware_performance_qualified": false
+}

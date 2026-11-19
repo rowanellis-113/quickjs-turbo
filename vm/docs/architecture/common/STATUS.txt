@@ -1,0 +1,26 @@
+Product status,2026-11-11
+=========================
+Pinned QuickJS-NG0.15.1,bf8988fc401e737f9946cd10a3463b48aab0fd7e;19pins intact.
+Accepted runtime8c1b9ce;final source/documentation revision is in the bundled
+release manifest. No new runtime optimization was accepted during closeout.
+
+Independent clean archive builds pass Linux native934/934CTest,PORTABLE211/211,
+Windows MinGW307/307,MSVC292/292,PORTABLE211/211. Strict minimal native,realAUTO
+fallback/strict rejection,all movedSDK public consumers and bothWin native
+unwind consumers pass. Linux actual native execution,CFI/CET/PIE/PIC/WX pass.
+
+Three freshWindows fullTest262 runs each65/81152 inherited failures,31fixed,
+0new/changed exact identities. Four earlierLinux full records are bound by
+complete runner/input/raw-log hashes;no freshLinux full run is claimed here.
+Unmodified stockNG has96failures. Scope/hashes/toolchains:LINUX-RELEASE.txt.
+
+Current original57micro/17JetStream/8V8-v7 rows,memory and cost decisions:
+LINUX-FINAL-REVIEW.txt. Older component/performance records remain historical.
+Source-platform whole-suite comparison is qualified as a screen;per-case gaps
+remain. No officialJetStream total,all-cases-improved or architecture-ceiling
+claim. Default GNU mechanisms and optional boundaries:LINUX-MECHANISM-COVERAGE.
+
+Feature work is frozen at the best qualified baseline. Reopen for a measured
+representative gap,a bounded remedy and repeatable net benefit with stock-priced
+costs,memory/correctness review. Apply-scope/REST candidates remain external.
+Build/profile/benchmark artifacts stay outside the clean product source.

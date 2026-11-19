@@ -1,0 +1,116 @@
+Linux SysV generic C invocation: development contract
+====================================================
+
+The later numeric/dense-pop/builtin-window integration is in LINUX-C-ENTRY.txt.
+The generic contract and r3 measurements below describe that earlier image;
+they are not current whole-product scores.
+
+This supplements the native Linux register VM. It is not the accepted Windows
+product and does not close the full port gates in LINUX-PORT.txt. The reference
+for the mechanism is tools/generate/native-c-scope.py; Win64 incoming home space,
+TLS offsets and aggregate conventions are not reused as Linux ABI contracts.
+
+Source ownership
+----------------
+asm/x86/linux/c-invoke.inc owns the real SysV call and its ELF/CFI. The renderer
+tools/elf/c_invoke.py substitutes compiler-measured Linux fields. The small C
+owner src/x86/linux/interpreter-c-invoke.inc checks the actual function types
+and fixed private frame/state layout, and obtains a compiler-managed TLS slot.
+No public struct, JS frame, register state or heap allocation is added.
+
+The inherited VM stream owns scratch32..63 of its existing72-byte local area.
+Generation rejects unknown RSP addressing and checks complete operand widths
+before leasing scratch0..23 to a canonical anchor and64..71 to its TLS cache.
+This lease is admitted only with the audited SysV bridges, which need no Win64
+incoming home area. Input saves during lazy initialization are consumed before
+their scratch is reused for the anchor.
+
+The TLS cache is0 before initialization,1 for the original path, or a real slot
+address. One activation-owned anchor is installed lazily and restored at the
+common VM exit, including exception exits. Its kind remains3 while the VM is
+running. A checked C call changes it to0 only after its SF/arguments/quota and
+caller PC/SP are coherent, then restores3 on return. Parent host and child
+barrier chains retain the common shared-entry ownership protocol.
+
+The call gate checks the live generic/magic callee, committed state, current
+runtime frame, interrupt boundary, same-runtime realm and conservative stack
+headroom. Rejection uses the original checked bridge. The caller interrupt poll
+is charged once. A real96-byte C header contains the original72-byte SF, private
+saved registers, argc and control words. It initializes the same C-SF fields as
+the existing C bridge; unused JS-frame fields are not new GC roots. Formal
+padding copies borrowed values into at most255 slots/4080 bytes and fills only
+the missing suffix with undefined. Actual argc remains unchanged. The fixed
+header is touched before the bounded dynamic window. CFI uses RBP as a stable
+CFA base across that window.
+
+The receiver aggregate travels in RSI/RDX; magic is the signed R9 argument.
+The public return aggregate in RAX/RDX becomes the private VM result in XMM0.
+Only exceptions require the state-result spill before the existing consumer.
+Both original host bridges also produce XMM0, so their ownership continuation
+remains the same. Runtime SF/active state and native stack limits are restored
+or refreshed after the actual call, including nested JS, GC and exceptions.
+
+Controls and qualification
+--------------------------
+QJS_DISABLE_C_INVOKE is presence based, including0. Shared-entry/direct-host
+disable controls and QJS_RETAIN_SCOPED_HOST retain their existing paths. Only
+latched configuration and this thread's TLS slot are cached; no callee, realm,
+argument object, return address or function identity is cached.
+
+The r3 development image passes228 CTests and an independently configured
+installed consumer. A public C fixture exercises720 calls across actual counts
+0/1/2/7/255/256, formal counts0/1/2/7/255, generic/magic, methods, cross-realm calls,
+GC/reentry, owning results, exceptions and stack-limit changes. GDB observes all
+720 actual native entries and their60 ABI variants, checks the live canonical
+anchor, real C unwind, and720 TLS restorations at VM exit. Five explicit old
+routes are observed separately. ELF/PIC/deep-VM checks cover33 FDE ranges.
+Full pinned Test262 for portable/r3/r3-OFF has the same65/81152 inherited errors,
+31 fixes, no new/changed errors and equal failure identities.
+
+Evidence is retained outside source under
+/home/eros/port-records/linux-x86_64/c-invoke-r3 and test262-c-invoke-r3.
+Reversed quick and stable application measurements are separate. This native
+mechanism is a development candidate: passing ABI/semantic checks is not proof
+of an application speedup or permission to replace the accepted product.
+
+Bounded performance decision
+----------------------------
+Four rotated engine cohorts, each with reversed original calibration, give the
+following median milliseconds for five selected applications. Stock means
+unoptimized QuickJS-NG0.15.1 bf8988f built with the same Linux/GCC toolchain.
+It never means Bellard QuickJS2026 or an earlier optimized/Windows image.
+
+case              stock       prior       r3          r3-OFF
+pdfjs             301.590     263.883     262.388     267.074
+prettier-wtb      821.696     852.731     852.858     858.011
+async-fs          327.820     239.335     241.945     243.750
+js-tokens         220.425     153.432     153.749     155.548
+richards          218.245     157.232     159.947     161.876
+
+Added cost `(r3 - prior) / stock` ranges from -0.50% to +1.24%. All five same-image
+ON medians beat OFF, but the five cases do not establish a whole-product gain
+over prior. Earlier quick js-tokens regressions were not reproduced by this
+stable measurement. Retain every raw sample and RSS range; do not select only
+favorable launches. A >1.5x disagreement in the original micro math_min OFF
+calibration is flagged and excluded from any performance conclusion.
+
+The r3 ELF adds1176 allocated read-only bytes and no net allocated writable
+bytes relative to the prior image. This is not an empty-engine RSS claim.
+Inherited key C function sizes are unchanged, but their addresses move. The
+large Legacy function remains37388 bytes; layout still matters. No PGO, base
+selection or padding was used.
+
+Actual js-tokens profiles bind three UID1000/CPU2 processes and about3490 samples
+each to the real binaries, with about7-second software capture windows and zero
+loss. The native profile has22.92% self in Legacy and substantial RegExp work.
+The corpus tokenizer is a generator with sticky/Unicode RegExp. These samples
+do not prove a missing ordinary opcode admission path and are not additive
+removable costs. Classify ordinary admission/opcode gaps, suspended generator
+execution and RegExp cost separately before the next mechanism change. Stop
+small C-invocation variants here; carry the qualified mechanism on the Linux
+development branch while the remaining port/release gates stay open.
+
+External evidence: c-invoke-screen-r1/r2/r3, c-invoke-stable-r3,
+profile-js-tokens-c-invoke-r3 and SCORES-C-INVOKE-R3.txt/json. The initial offline
+root report refused the user-owned perf file; its diagnostic is preserved.
+Offline symbolization was rerun as the file owner without recollecting data.

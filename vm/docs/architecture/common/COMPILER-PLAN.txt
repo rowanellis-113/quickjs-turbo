@@ -1,0 +1,35 @@
+Bounded compiler planning
+
+The compiler performs a must-initialized analysis before the inherited label
+resolver. It replaces redundant lexical checks with existing unchecked local
+operations and removes only independently proved first-entry sentinels. All
+value writes, releases, source locations and loop reinitialization remain.
+
+The proof covers the first 64 uncaptured lexical cells, at most 256 CFG blocks
+and 65536 worklist steps. A 20KiB caller stack reserve is required. Eval, with,
+aliases, finally subroutines, resumables, derived constructors and implicit
+prologue bindings retain the inherited handling. Unsupported or excessive
+inputs are unchanged. No new opcode, public ABI, runtime frame field, retained
+metadata or JS heap ownership is introduced.
+
+src/bytecode contains the common analysis and private typed projection. Native
+compiler code and readonly data are isolated from the runtime core TU. Private
+FD types must match the actual generated core exactly. PORTABLE builds compile
+the same common worker normally. WASM has its own source-root include path;
+EMSDK execution is not qualified by the Windows native/portable results.
+
+QJS_DISABLE_TDZ_PLAN and QJS_DISABLE_TDZ_INIT disable their respective compile
+transforms by environment-variable presence, including value 0. They affect new
+compilation only. Both OFF restores inherited bytecode on the trusted corpus;
+the compiled image is still different from the accepted control image.
+
+Private native function fingerprints validate reviewed transfer targets and
+function-address LEAs before normalizing their displacements. Other bytes,
+registers, relocations, caller/callee profiles and source gates remain checked.
+Unknown shapes retain the exact original input without guessed worker refs.
+
+The implementation follows the compile-time check-elision principle described
+by V8 BytecodeGenerator HoleCheckElisionScope. It does not import V8 code,
+tagged representation or garbage-collection ownership. Function qualification,
+public embedding/serialization, source readback, ownership traces, native route
+contracts and full Test262 are required alongside actual installed-image timing.

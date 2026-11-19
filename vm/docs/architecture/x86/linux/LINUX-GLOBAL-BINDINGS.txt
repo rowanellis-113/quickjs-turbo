@@ -1,0 +1,83 @@
+Linux complete GNU global binding mechanisms
+============================================
+
+The accepted GNU global-binding factory is reused in full: live own/lexical
+activation hints, the two-way replacement policy, undefined mask/bucket linking
+and the large-bytecode bypass. Existing BC global cells run first, including
+the original resolved-cell Symbol condition. They are a separate cache layer,
+not a substitute for activation hints. No cached object/shape/value pointer is
+retained or dereferenced; each activation hint checks the current live binding.
+
+Ownership and platform boundary
+-------------------------------
+tools/elf/global_bindings.py selects the existing invariant/algorithm factory
+from tools/generate/global-binding.py. All268 getter and25 undefined-link rows
+are retained after measured cell/continuation adaptation. The common generator,
+own-bytecode Symbol algorithm and reference-config owner retain canonical text
+identical to the accepted Windows product. The prior Linux measured_tail
+extension retains byte-identical old default probe output; Linux uses actual
+BC/RT/map field extents. The two original global constructors and shape/exotic
+invariants are checked against both pinned and overlaid source.
+
+One shared ELF getter/undefined/relink/Symbol stream preserves the current
+Clean/Dirty token. Immutable RELRO dispatch uses a mode guard; a cold typed
+int(JSFrameRegisterState*) initializer calls only CRT getenv and scalar atomics.
+It neither allocates nor observes JS, GC or a paused SF. The actual SysV bridge
+preserves private RSI/RDI and running state. The original own-bytecode cold
+configuration again initializes the shared reference/large-code controls.
+Unarmed BC cells use the original coherent Clean/Dirty C opcode step to relink;
+the inherited Linux native base resolver has no relink probe of its own.
+
+The existing activation sites16x32 and8 replacement bytes are reused. Actual
+compiled assertions retain physical frame128/state168, the cache typedef,
+all slot offsets, inline refcount0 and JSValue16. No frame/state extension,
+new strong root or per-runtime heap allocation is added. Undefined stores only
+one aligned64-bit mask/bucket arithmetic pair; every read validates the live
+mask and bucket. Two byte controls have process lifetime. Static image bytes
+and zero public allocation ledgers are not whole-suite RSS measurements.
+
+Controls and qualification
+--------------------------
+QJS_INTERP_FRAME_GLOBAL_BINDING is an ordinary Linux CMake option, defaultON.
+CompileOFF omits the new controls/stream and retains the preceding BC wrappers.
+Fresh compileOFF passes917 CTests and yields qjs,run-test262 andlibqjs.a exactly
+byte-identical to the accepted numeric development checkpoint b19cd6b.
+Its full-Test262 reuse is explicit: identical runner plus corpus/config/errors.
+Both native generation edges are checked for a no-op incremental build.
+
+Process presence controls, including value0, retain original paths:
+ QJS_DISABLE_FRAME_GLOBAL_BINDING
+ QJS_DISABLE_FRAME_GLOBAL_UNDEFINED
+ QJS_DISABLE_FRAME_LARGE_GLOBAL_BYPASS
+ QJS_DISABLE_PROPERTY_IC
+ QJS_DISABLE_DEFERRED_FRAME_PUBLISH
+ QJS_DISABLE_INTERP_FRAME / QJS_DISABLE_REGISTER_INTERP
+
+Current normal strict build and917 CTests pass. New lifecycle,collision,
+TDZ/getter/GC/reentry,realm,interrupt,simultaneous independent-runtime first-use
+and warmed allocator-fault fixtures include complete zero allocation ledgers.
+Four fresh complete Test262 cohorts(default/globalOFF/propertyIC OFF/
+undefined+largeOFF) retain exact portable65/81152 inherited failures,31fixed,
+0new/changed. Source-owned CFI/ELF,independent installed SDK/public consumers,
+same-public-object prior/stock references and standalone archive qualification
+must bind these images before the module is sealed.
+
+Read-only normal Release observations prove actual own/lexical hits and fills,
+shared call/global replacement,BC relink and cell hits,Symbol debit/poll,
+undefined arithmetic update/empty-bucket decisions and large-code bypass versus
+OFF. They check Clean/Dirty and eager PC+5/SP+16,current SF PC,one reference
+duplicate and the cold SysV initializer's full private preservation. FrameOFF
+has no native-global events. Natural long-function/normal property callers and
+an extra ordinary JS parent expose the paths; no bytecode,mode,register or
+interrupt counter is modified. Bounded observer events are not hit rates or
+performance. Earlier observer attempts with a stale-state/context assumption
+and an unmatched breakpoint cap are retained as diagnostic negatives.
+
+Whole-port boundaries
+---------------------
+This closes one complete source-owned mechanism group. The independent
+slow-array route and complete default-active GNU source/build/ABI/dispatch
+inventory still require closure. Whole micro57/JetStream17/V8-v7 time/memory,
+major-gap and Linux-opportunity profiles,and final current-source Windows/
+MSVC/configuration/fullTC/literal-LF package gates remain required. The Windows
+accepted product is unchanged. No new speed or release baseline is claimed.

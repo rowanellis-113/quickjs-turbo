@@ -1,0 +1,66 @@
+Linux core ordinary numeric-array own-property leaf
+====================================================
+
+This is a separate tier from native VM indexed-own opcodes. The accepted GNU
+core routes all actual js_get_fast_array_element calls through array_own.S.
+The prior Linux port had retained the original C helper while carrying only
+VM indexed kernels. The complete source leaf now also serves the core and
+cloned C consumers. It reads live ordinary numeric data of nonfast arrays,
+duplicates an existing value and writes its owning JSValue output. It retains
+all original class/fast-array/index/hash/atom/descriptor guards.
+
+ABI and fallback
+----------------
+tools/elf/indexed_ops.py reuses the complete accepted ASM instruction body.
+Only argument-register tokens,local labels,ELF/CFI and the original fallback
+name change. SysV arguments are ctx=RDI,object=RSI,uint32 index=EDX,out=RCX;
+RAX/R10/R11 are scratch. Every miss preserves all four arguments and tail
+jumps to the complete original C helper. The original dense,array/arguments,
+mapped-arguments and all TypedArray cases,including allocating BigInt returns,
+remain exact source. The inline-profile directives are selected only after
+actual JSValue16/shape-property8/atom-offset4 checks;all field/bit operands
+come from the compiler-measured layout. The actual typed C declaration and
+fallback signature are asserted compatible. The leaf has ordinary CFA8.
+
+The C source routing macro follows the renamed original definition and applies
+to subsequent core/cloned consumers. Linked prior/current Linux images have
+the same26 caller/site multiplicities;the accepted MinGW receipt also records
+26 routed calls,with compiler-specific owner/relocation identities. This is
+not an assumption that a source rename preserves compiler call-site choices.
+All raw19 upstream pins remain unchanged. No public ABI,frame/state field,
+strong root,cache,data table or per-runtime allocation is added.
+
+Qualification
+-------------
+Fresh strict core build and921 CTests pass;the selected mechanism screen has
+100 cases. Three fresh full Test262 cohorts(default,frameOFF,propertyIC OFF)
+retain exact portable65/81152 inherited failures,31fixed,0new/changed.
+The new public regression covers every primitive/heap value category,current
+owning result lifetime,getter GC/cross-realm nested reads,dense/TypedArray/
+mapped-arguments/object/proxy fallback,128 reads without allocation,and fresh
+allocating BigUint64 fallback faults with recovery and zero complete ledgers.
+The initial test compilation lacked a stdlib include;its failed artifact is
+retained and a test-only resume holds all core/generator/flags hashes.
+
+Read-only normal Release observations on the public fixture prove actual SysV
+arguments,one positive reference duplicate,exact output/bool return and all
+four unmodified arguments at the original C tail. Default/frameOFF/property
+OFF runs all exercise both hit and original fallback;this is a core C path,
+not a frame-only feature. Existing native VM indexed opcodes remain separate.
+Event counts are finite observations,not hit rates or speed estimates.
+SDK,independent same-object stock/prior and standalone archive checks must bind
+these same images before this module is sealed. Static image bytes are not
+whole-suite RSS. Whole-suite time/memory acceptance remains outstanding.
+
+Inventory boundary
+------------------
+The review now includes25 nested archive stage operations in addition to77
+Ninja commands,32 distinct direct/stage tools,21 retained source providers,
+13 retained root objects and211 actual route changes toward92 target names.
+Those units expose scope;none is a completion percentage. This core leaf was
+found by reviewing the actual core route rules,not a selected receipt count.
+Remaining default branches/stage roles require source/ABI/execution evidence
+before closing the complete GNU mechanism inventory. Whole micro57/Jet17/V8-v7
+stock/portable/native time/memory,major-gap/Linux-opportunity profiles,and final
+current-source Windows/MSVC/configuration/fullTC/literal-LF package gates are
+still required. No whole-port,speed or release baseline is claimed.

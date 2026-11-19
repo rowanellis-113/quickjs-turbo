@@ -1,0 +1,123 @@
+Qualified Linux native reference-slot replacement
+===============================================
+
+This development increment carries the accepted shared Win reference-slot
+factory to measured Linux ELF/SysV. It does not change the pinned
+QuickJS-NG0.15.1 bf8988f core,bytecode,public ABI,frame or root layout.
+Windows factory defaults remain byte-identical;no fresh Windows compiler
+build is claimed by this Linux qualification. Whole performance review
+retains all original launch modes and per-case costs.
+
+Source and ownership
+--------------------
+tools/elf/slot_store.py adapts tools/generate/slot-store.py with the measured
+layout and a reviewed owner hash;tools/elf/generate-vm.py emits its normal
+and Dirty continuations. The shared generate-register.py opt-in defaults
+False and is selected only for the complete native Linux stream.
+Both put/set local,argument and closure slots retain incoming alias,dup
+and transfer semantics. A nonlast old reference is decremented directly.
+The last-reference route captures/dups the new value,commits its slot and
+PC/SP BEFORE finalization,and never rewrites the slot after a callback.
+It uses existing typed JS_FrameInterpFree for original quota/publication
+and GC/reentry ownership,rather than a second borrowed-release algorithm.
+Dirty routes preserve their observing boundary. Unsupported or disabled
+cases retain the original C opcode implementation.
+
+Configuration and ABI
+---------------------
+QJS_DISABLE_NATIVE_SLOT_STORE disables the complete family by PRESENCE;
+both 0 and1 disable it. The decision is cached in one existing empty
+JSRuntime padding byte at normalize_has_attr+5 (349 on this qualified ABI).
+No new runtime/public field,allocation or frame byte is added. Layout
+extraction verifies this byte precedes normalize_u (352). SysV getenv
+uses RDI/RAX while private VM RDI/RSI,target and flags use scratch32..63.
+The new section borrows CFA144 and both normal/Dirty functions have FDEs.
+The actual relocated public consumer naturally reached256 last-release
+boundaries with coherent state/SF PC/SP and current frame,and unwound to
+main. The observer never changes engine controls,memory or registers.
+
+Layout and size
+---------------
+JS_LegacyCallInternal,JS_FrameVarargsSlow,JS_FrameInterpFree,numeric leaf
+and unified selector retain reviewed entries,sizes and exact bytes.
+Normal/Dirty register VMs retain entries/sizes;each has34 changed negative
+tag branch destinations into the complete new reference-store family.
+The old independent105byte insert3 continuation moves+1184 due ELF orphan
+section ordering. This is NOT whole-image or whole-text identity.
+New executable section1180bytes;constant env string30bytes;CLI+3288bytes.
+No PGO,fixed base,padding search or core interpreter rewrite was used.
+
+Qualification and performance
+-----------------------------
+934/934CTest;two full81152Test262 runs(default and familyOFF0):each65
+unchanged known failures,31fixed,zero new/changed failure identities.
+Installed/relocated SDK and independent public consumers exercise GC,
+reentry,capture,realm,deep constructs,generators and finalization in
+default/off0/off1.19pinned source files are unchanged.
+An independent tests/embedding/reference-slots public CMake consumer also
+passes5modes(native,off0,off1,register-C,C):256immediate finalizations and
+128reentries read the already-committed captured slot. This fixture is
+additional to the934coreCTest cases and links the relocated installed SDK.
+Original Jet17 geometric body-time delta vs prior: -6.312%.
+Original micro57 geometric ns/op delta vs prior: -2.395%.
+These reversed two-block screens retain original calibration,clock and
+every sample;they do not establish a noise-free or selected-best baseline.
+Original V8-v7 complete-process scores (higher is better):
+MinGW-current: 1917.1419, 1917.4138
+Linux-prior17f87a2: 1870.6499, 1909.7355
+Linux-slot-candidate: 1935.4373, 1941.2504
+Linux-stock-NG0151: 987.8068, 987.4303
+All V8 subcases,Jet17 and micro57 rows and exact receipts are in the
+external audit directory below. Original refers to NG0.15.1,not Bellard2026.
+Concat0/1 costs remain explicitly priced against both prior and stock.
+micro prop_delete and regexp_ascii show different original adaptive N
+and large sample modes;bad samples are not discarded or replaced by a
+wall-clock diagnostic. Focused Jet repeats do not replace complete17data.
+Additional unchanged full57 forward pair: time delta+0.409%.
+This pair measures regexp_ascii284.1->266.9ns,closure_var20.35->20.20ns,
+concat0 53.12->52.80ns and concat1 93.74->92.58ns. These samples are added
+as a separate context confirmation,not substituted for earlier samples.
+Do not claim a stable53.6%closure gain or69%regexp loss from initial means.
+The additional string_to_int19.02->83.40ns fast/slow mode remains unresolved;
+initial complete-screen means were83.875->83.40ns. No stable whole-micro win
+is claimed. All raw modes and adaptive N remain in the audit receipts.
+Focused delta-blue: time vs prior-7.200%,added cost-4.901stock pp.
+Focused cdjs: time vs prior-13.519%,added cost-8.112stock pp.
+Focused async-fs: time vs prior+7.810%,added cost+4.503stock pp.
+
+Profiles and remaining boundaries
+---------------------------------
+Before/after Splay profiles use identical hosts:full original8case warm,
+then8repeats of the original Splay body. Ordinary UID1000CPU2,root perf
+cpu-clock:u499Hz,DWARF,3second delay,7second sample window,zero lost.
+These are diagnostic self samples,not original-caller rates or removable
+time. Original MinGW uProf captures use the actual retained c25image;
+offline symbol-translation copies are never executed. Windows has no
+explicit loss counter or callgraph here;zero loss is NOT asserted.
+A single early Windows Splay event is retained and explicitly audited.
+MinGW component controls justify the complete slot family;the separate
+borrowed-release arithmetic control showed no measured overall benefit.
+Differences in allocator/GC/object representation remain measured research
+topics,not automatically an architectural ceiling or another missing port.
+
+Evidence and reproduction
+-------------------------
+D:/js-engines/maintenance/linux-reference-slots-r1:
+REPORT.txt/json(all17/57/8rows and memory),FOCUSED-COSTS.json,
+qualification-r1,sdk-r1,sdk-route-r4,reference-host-r1,LAYOUT-reviewed.json,
+CANDIDATE-PROFILE-COMPARISON.json,win-default-stream-r1,
+whole-r1,parity-r1,jet-material-confirm-r1 and HANDOFF.txt.
+The initial all-entries-fixed audit failed on the105byte continuation;
+its failure and explicit reviewed exception are retained. The first
+stack-insert observer had no matching slot-final-release events;its
+negative result is retained. The independent slot consumer supplies the
+positive natural route and reentrant ownership proof.
+Use the normal CMake product entry described in docs/architecture/x86/linux/LINUX-PORT.txt;
+The independent regression can be built using the installed package:
+cmake -S tests/embedding/reference-slots -B build/reference-slots
+      -DCMAKE_PREFIX_PATH=/path/to/installed-sdk
+cmake --build build/reference-slots
+ctest --test-dir build/reference-slots --output-on-failure
+do not compile foundation tools manually. Keep original build provenance
+when redistributing a tested SDK;clean Git source packaging is distinct
+from an independent rebuild of that source archive.

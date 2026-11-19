@@ -1,0 +1,124 @@
+Retained migration baseline at 10ea7a1. For the later fast-dispatch increment,
+see LINUX-AARCH64-DISPATCH.txt and LINUX-AARCH64-DISPATCH.json.
+
+Linux AArch64 native hardware qualification, 2026-11-13
+=====================================================
+The implementation and formatting changes are in 9bb91fe. This follow-up
+qualifies the recorded runtime images on real ARM hardware. The final clean
+source archive, installed SDKs and exact image-equivalence audit are bound by
+the external RELEASE-ACCEPTANCE.json. No release claim follows from a commit
+label alone. The full mechanism, test, profile and per-case score record is
+LINUX-AARCH64-HARDWARE.json.
+
+Build and execution
+-------------------
+  CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=1 \
+    bash tools/build/product-linux-aarch64.sh build/arm-native out/sdk-arm-native
+  CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=1 \
+    bash tools/build/product-linux-aarch64-portable.sh build/arm-c out/sdk-arm-c
+  QJS_EXPERIMENT_ALLOCATOR=256 out/sdk-arm-native/bin/qjs -e 'print(6*7)'
+
+The PORTABLE wrapper runs directly on native ARM, without a cross compiler or
+QEMU. The same wrapper retains the documented cross/QEMU workflow on x86.
+Use fresh build directories. Native is explicit LINUX_AARCH64; AUTO remains
+conservative and selects PORTABLE on this host. Actual unsupported x86, LTO,
+unsafe floating-point, shared-library and BTI/PAC requests fail strictly.
+
+Host: Ubuntu26.04.1, kernel7.0.0-1016-aws, Neoverse-N1, GCC13.4/binutils2.46,
+CMake4.2.3/Ninja1.13.2. This two-vCPU host has only CPU0/1, so all serial
+measurements and builds use CPU1 instead of the guide's unavailable CPU2.
+One build job, normal ASLR2, allocator256 and original workload calibration
+are retained. No PGO, fixed base, padding or address search is used.
+
+Native qjs SHA-256:
+  52e49f84b1bfcd880d5e8c01275f64c17252f4f806122b8534eb430e01aef02e
+It equals the accepted pre-format hardware image. This establishes image
+equivalence, not identical timing across launches. No float-local prototype
+or other experimental runtime optimization was promoted in this follow-up.
+
+Execution and compatibility
+---------------------------
+ARM native1249, instrumented1797 and PORTABLE218 CTests pass. The verbose
+instrumented rerun retains actual positive/disabled path markers. All22 GNU
+mechanism families have current source and execution bindings, including the
+reviewed original MSVC-only boundary. Recomputed common foundation140 plus
+regexp gives all141 original native destinations; ARM has161 total. Actual
+PIE, NX stack, no-WX and242 complete FDE ranges are checked.
+
+set_name is an explicit typed observing one-opcode C boundary returning to
+the same VM; it is not counted as a native HOT destination. Ordinary native
+calls/returns/tail calls retain one register activation and tested ownership,
+GC/OOM/interrupt/reentry. Pure call leaves use a real compiler-owned192-byte
+C activation. Prepared callback/JSON capsule preference is retained; optimal
+counterfactual routing and x86 noncalling machine-code parity are not claimed.
+
+Eight full Test262 configurations use pin de8e621cdba4, identical configuration
+and known-error bytes: ARM stock/PORTABLE/native/register-OFF and Windows
+stock/MSVC/MinGW/PORTABLE. Each runs81152 cases. Stock has96 known failures;
+all products have65 inherited,31 fixed,0 new/changed, with identical actual
+product failure identities. Fresh Windows CTest totals are294/309/213.
+The retained Linux x86-64 formatting panel passed949; no Linux x86 runtime
+implementation changed in the subsequent hardware tooling/documentation work.
+
+Three relocated ARM SDKs pass independent public C, C++, qjsc-output and
+GC/reentry/unwind consumers. The native consumer observes256 natural VM
+callback backtraces. Nine ARM internal wire pairs and18 bidirectional
+Windows/ARM bytecode exchanges pass. Three relocated Windows SDK public
+consumers also pass. The19 upstream source pins remain unchanged.
+
+Performance and retained costs
+-------------------------------
+Geometric mean of per-case native throughput ratios, higher is better:
+
+  Panel                         vs stock       vs PORTABLE
+  original micro57                0.914858        0.797604
+  elapsed-clock micro57           0.921575        0.785404
+  retained JetStream17            1.258009        1.011925
+  original V8-v7, all8 cases       1.102115        0.833382
+
+These are separate suites, not one combined score. Two reversed blocks use
+all three engines. Micro original user-CPU modes and adaptive N are retained;
+the elapsed diagnostic changes only get_clock to os.now, whose unit here is
+microseconds. It is not renamed as an upstream score. Six concerning micro
+cases and five JetStream cases receive additional original-calibration pairs.
+Every original V8 score and JetStream body-ms sample is retained externally.
+
+Native peak RSS maxima: micro original6568KiB, elapsed6372KiB,
+JetStream150176KiB and V8-v7 full-suite182228KiB. They are actual engine
+measurements; JetStream samples VmHWM before supplemental validation, while
+micro/V8 use the engine child's GNU time peak. Per-engine/case data are in
+the JSON report; do not compare peaks from different memory scopes as deltas.
+
+The suite means retain material losses. The confirmation panel prices native
+minus PORTABLE against stock at about64.27% for lazy-collections,35.63% for
+prettier,32.61% for bigint,24.71% for acorn and20.30% for crypto. Lazy's native
+elapsed time is about55.05% above stock in that confirmation. Native is not
+universally faster, and these costs are not hidden by JSON's large wins.
+
+Three new valid lazy-collections software-perf captures retain10359 samples,
+ordinary UID1000, CPU1, actual mapped image/hash, warm READY/GO and a delayed
+seven-second window inside fifteen seconds of original body work. No samples
+are lost. Native self samples include inherited generator calls, register VM
+and the real call-leaf worker. Five prior float/concat captures bind the same
+native image. Extra-loop profiles have different callers and do not establish
+original-caller capacity rates or additive removable time. Hardware cycles
+are available on this host; instructions are unsupported. Software profiles
+do not imply portable PMU support.
+
+The isolated float-local candidate is rejected: its targeted improvement did
+not justify the full-list costs. Dispatch/helper and capsule-route redesigns
+are deferred to separately justified work. No architectural performance ceiling
+is inferred. This is a bounded native ARM qualification; it does not close the
+historical Linux x86 MinGW-parity item or qualify older glibc distributions.
+
+Evidence and delivery
+----------------------
+The external arm64-migration-20261113 evidence directory retains raw launches,
+full Test262 identities, corpus/source receipts, maps, symbols, CFI, profiles,
+SDKs and negative results. Both evidence archives are checksum-verified after
+transfer;2127 member files are checked individually. Windows results and all
+18 cross-OS/ISA exchanges are bound in LOCAL-EVIDENCE-VERIFIED.json.
+Final source/SDK hashes and the six-gate current-state audit belong to
+RELEASE-ACCEPTANCE.json. Build CHECK/ABI manifests certify their own local
+functional contracts; their hardware_performance_qualified fields are not
+rewritten into unconditional timing certification for arbitrary builds.

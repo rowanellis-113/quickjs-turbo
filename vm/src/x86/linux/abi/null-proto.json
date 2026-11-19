@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "owners": {
+    "tools/x86/common/codegen/null-proto.py": "c42210ed4ad8e31b2fe2899c157e3af2d1505dabac1d8117ca7d41affe879f82",
+    "tools/x86/common/codegen/null-arena.py": "19c0826a55fe93c66de0fd9b027c644b0e6fa09188da63792bd93f16613d88cb",
+    "asm/x86/win64/mingw64/mingw-arguments_entry.S": "9052280733e3715cb9870aea7e336ca0e68c2103ac0c794b7d6a93195c403a3a"
+  },
+  "scope": "Complete default GNU native null-prototype admission,VM and warm allocator;actual Linux source types and SysV aggregate ABI"
+}

@@ -1,0 +1,649 @@
+{
+  "status": "frozen-before-build",
+  "functions": {
+    "msvc": {
+      "callee": "rqsort",
+      "caller": {
+        "size": 1450,
+        "normalized_code_sha256": "53a5c1b7aca5ce2ca7ab6af81afb6858d57c4872726859cfbc81c76751b5dcbf",
+        "relocations": [
+          [
+            186,
+            4,
+            "JS_ToObject"
+          ],
+          [
+            213,
+            4,
+            "js_get_length64"
+          ],
+          [
+            323,
+            4,
+            "js_malloc_rt"
+          ],
+          [
+            347,
+            4,
+            "??_C@_0P@INPKAELH@not?5a?5function@"
+          ],
+          [
+            359,
+            4,
+            "JS_ThrowTypeError"
+          ],
+          [
+            540,
+            4,
+            "JS_TryGetPropertyInt64"
+          ],
+          [
+            623,
+            4,
+            "js_array_cmp_generic"
+          ],
+          [
+            639,
+            4,
+            "rqsort"
+          ],
+          [
+            719,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            784,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            869,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            910,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            967,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            972,
+            4,
+            "printf"
+          ],
+          [
+            978,
+            4,
+            "__imp_abort"
+          ],
+          [
+            991,
+            4,
+            "JS_ThrowOutOfMemory"
+          ],
+          [
+            1052,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            1057,
+            4,
+            "printf"
+          ],
+          [
+            1063,
+            4,
+            "__imp_abort"
+          ],
+          [
+            1095,
+            4,
+            "JS_SetPropertyInt64"
+          ],
+          [
+            1152,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            1157,
+            4,
+            "printf"
+          ],
+          [
+            1163,
+            4,
+            "__imp_abort"
+          ],
+          [
+            1248,
+            4,
+            "JS_SetPropertyInt64"
+          ],
+          [
+            1302,
+            4,
+            "JS_DeletePropertyInt64"
+          ],
+          [
+            1392,
+            4,
+            "js_free_value_rt"
+          ]
+        ],
+        "local_transfers": [],
+        "local_addresses": []
+      },
+      "sorter": {
+        "size": 969,
+        "normalized_code_sha256": "f4b7e158068f6c934d54bfa1898a80fd23c1bc35b99d969296999641f30eb170",
+        "relocations": [
+          [
+            16,
+            4,
+            "__security_cookie"
+          ],
+          [
+            65,
+            4,
+            "exchange_func"
+          ],
+          [
+            81,
+            4,
+            "exchange_func"
+          ],
+          [
+            778,
+            4,
+            "heapsortx"
+          ],
+          [
+            952,
+            4,
+            "__security_check_cookie"
+          ]
+        ],
+        "local_transfers": [],
+        "local_addresses": []
+      }
+    },
+    "msvc_mt": {
+      "callee": "rqsort",
+      "caller": {
+        "size": 1452,
+        "normalized_code_sha256": "ca6e253ac4802f591396dc0a244bec7462aef38e1f39e5d53aeee08df5a6c513",
+        "relocations": [
+          [
+            186,
+            4,
+            "JS_ToObject"
+          ],
+          [
+            213,
+            4,
+            "js_get_length64"
+          ],
+          [
+            323,
+            4,
+            "js_malloc_rt"
+          ],
+          [
+            347,
+            4,
+            "??_C@_0P@INPKAELH@not?5a?5function@"
+          ],
+          [
+            359,
+            4,
+            "JS_ThrowTypeError"
+          ],
+          [
+            540,
+            4,
+            "JS_TryGetPropertyInt64"
+          ],
+          [
+            623,
+            4,
+            "js_array_cmp_generic"
+          ],
+          [
+            639,
+            4,
+            "rqsort"
+          ],
+          [
+            719,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            784,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            869,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            910,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            971,
+            4,
+            "JS_ThrowOutOfMemory"
+          ],
+          [
+            1060,
+            4,
+            "JS_SetPropertyInt64"
+          ],
+          [
+            1185,
+            4,
+            "JS_SetPropertyInt64"
+          ],
+          [
+            1238,
+            4,
+            "JS_DeletePropertyInt64"
+          ],
+          [
+            1328,
+            4,
+            "js_free_value_rt"
+          ],
+          [
+            1395,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            1400,
+            4,
+            "printf"
+          ],
+          [
+            1405,
+            4,
+            "abort"
+          ],
+          [
+            1413,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            1418,
+            4,
+            "printf"
+          ],
+          [
+            1423,
+            4,
+            "abort"
+          ],
+          [
+            1437,
+            4,
+            "??_C@_0EF@GINDGNMO@js_free_rt?3?5malloc_size?5underfl@"
+          ],
+          [
+            1442,
+            4,
+            "printf"
+          ],
+          [
+            1447,
+            4,
+            "abort"
+          ]
+        ],
+        "local_transfers": [],
+        "local_addresses": []
+      },
+      "sorter": {
+        "size": 969,
+        "normalized_code_sha256": "f4b7e158068f6c934d54bfa1898a80fd23c1bc35b99d969296999641f30eb170",
+        "relocations": [
+          [
+            16,
+            4,
+            "__security_cookie"
+          ],
+          [
+            65,
+            4,
+            "exchange_func"
+          ],
+          [
+            81,
+            4,
+            "exchange_func"
+          ],
+          [
+            778,
+            4,
+            "heapsortx"
+          ],
+          [
+            952,
+            4,
+            "__security_check_cookie"
+          ]
+        ],
+        "local_transfers": [],
+        "local_addresses": []
+      }
+    },
+    "mingw": {
+      "callee": "rqsort.constprop.1",
+      "caller": {
+        "size": 1600,
+        "normalized_code_sha256": "96667a404c9175c2c765b85e3945f780c583facf8568c4ecd47408933d370add",
+        "relocations": [
+          [
+            1163,
+            4,
+            ".rdata"
+          ],
+          [
+            1382,
+            4,
+            ".rdata"
+          ],
+          [
+            1392,
+            4,
+            "abort"
+          ]
+        ],
+        "local_transfers": [
+          {
+            "offset": 119,
+            "opcode": 232,
+            "target": "check_function"
+          },
+          {
+            "offset": 172,
+            "opcode": 232,
+            "target": "JS_ToObject"
+          },
+          {
+            "offset": 216,
+            "opcode": 232,
+            "target": "js_get_length64"
+          },
+          {
+            "offset": 359,
+            "opcode": 232,
+            "target": "js_realloc_rt"
+          },
+          {
+            "offset": 468,
+            "opcode": 232,
+            "target": "JS_TryGetPropertyInt64"
+          },
+          {
+            "offset": 555,
+            "opcode": 232,
+            "target": "rqsort.constprop.1"
+          },
+          {
+            "offset": 655,
+            "opcode": 232,
+            "target": "JS_SetPropertyInt64"
+          },
+          {
+            "offset": 734,
+            "opcode": 232,
+            "target": "JS_FreeValue"
+          },
+          {
+            "offset": 916,
+            "opcode": 232,
+            "target": "js_free_value_rt"
+          },
+          {
+            "offset": 1072,
+            "opcode": 232,
+            "target": "js_free_value_rt"
+          },
+          {
+            "offset": 1104,
+            "opcode": 232,
+            "target": "js_free_value_rt"
+          },
+          {
+            "offset": 1178,
+            "opcode": 232,
+            "target": "JS_ThrowInternalError"
+          },
+          {
+            "offset": 1225,
+            "opcode": 232,
+            "target": "js_free_value_rt"
+          },
+          {
+            "offset": 1260,
+            "opcode": 232,
+            "target": "js_free_rt"
+          },
+          {
+            "offset": 1365,
+            "opcode": 232,
+            "target": "JS_SetPropertyInt64"
+          },
+          {
+            "offset": 1386,
+            "opcode": 232,
+            "target": "printf"
+          },
+          {
+            "offset": 1449,
+            "opcode": 232,
+            "target": "rqsort.constprop.1"
+          },
+          {
+            "offset": 1475,
+            "opcode": 232,
+            "target": "js_free_rt"
+          },
+          {
+            "offset": 1544,
+            "opcode": 232,
+            "target": "JS_DeletePropertyInt64.constprop.0"
+          },
+          {
+            "offset": 1565,
+            "opcode": 232,
+            "target": "js_free_rt"
+          }
+        ],
+        "local_addresses": []
+      },
+      "sorter": {
+        "size": 2544,
+        "normalized_code_sha256": "b42c511b0c085a5f9f44b12e393799110e316fcc1daf2419e2b3cbac993b5c8f",
+        "relocations": [
+          [
+            2531,
+            4,
+            ".text.unlikely"
+          ]
+        ],
+        "local_transfers": [
+          {
+            "offset": 313,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 335,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 457,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 751,
+            "opcode": 232,
+            "target": "JS_CallInternal"
+          },
+          {
+            "offset": 1224,
+            "opcode": 232,
+            "target": "js_string_memcmp"
+          },
+          {
+            "offset": 1359,
+            "opcode": 232,
+            "target": "JS_ToStringInternal"
+          },
+          {
+            "offset": 1467,
+            "opcode": 232,
+            "target": "JS_ToNumberHintFree"
+          },
+          {
+            "offset": 1568,
+            "opcode": 232,
+            "target": "JS_ToStringInternal"
+          },
+          {
+            "offset": 1637,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 1659,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 1685,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 1906,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 1978,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 2119,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 2191,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          },
+          {
+            "offset": 2361,
+            "opcode": 232,
+            "target": "js_array_cmp_generic"
+          }
+        ],
+        "local_addresses": [
+          {
+            "offset": 56,
+            "prefix": "488d3d",
+            "target": "exchange_int16s"
+          },
+          {
+            "offset": 84,
+            "prefix": "488d3d",
+            "target": "exchange_int32s"
+          },
+          {
+            "offset": 109,
+            "prefix": "488d05",
+            "target": "exchange_int64s"
+          },
+          {
+            "offset": 1713,
+            "prefix": "488d2d",
+            "target": "exchange_int128s"
+          },
+          {
+            "offset": 1729,
+            "prefix": "488d2d",
+            "target": "exchange_bytes"
+          },
+          {
+            "offset": 1747,
+            "prefix": "488d2d",
+            "target": "exchange_int16s"
+          },
+          {
+            "offset": 1764,
+            "prefix": "488d2d",
+            "target": "exchange_int32s"
+          },
+          {
+            "offset": 1781,
+            "prefix": "488d2d",
+            "target": "exchange_bytes"
+          },
+          {
+            "offset": 1788,
+            "prefix": "488d05",
+            "target": "exchange_int64s"
+          },
+          {
+            "offset": 2457,
+            "prefix": "488d05",
+            "target": "exchange_int128s"
+          },
+          {
+            "offset": 2480,
+            "prefix": "488d05",
+            "target": "exchange_bytes"
+          },
+          {
+            "offset": 2501,
+            "prefix": "4c8d15",
+            "target": "exchange_bytes"
+          },
+          {
+            "offset": 2513,
+            "prefix": "488d05",
+            "target": "exchange_bytes"
+          }
+        ]
+      }
+    }
+  },
+  "source_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "cutils_sha256": "b93331edd1bf86e1c0b516657d0b16b95bba5f24d799d9824df16f903173b5c2",
+  "bodies": {
+    "js_array_sort": "2e23faba645e57a1249e0b8bda2e88be5b68a8bbd54a2ac034bf345953c04a42",
+    "js_array_cmp_generic": "5b82dfef7c64305ab4d45f0d9fbbc1cf27c3e97199ab9a86d6c6d7499b4604d2"
+  },
+  "scope": "Masks only explicit PC-relative relocations, retaining offset/kind/symbol and every other instruction byte, including GNU assembler-resolved calls. Review original concrete clone prototype/call registers, never call it through source rqsort ABI.",
+  "notes": "Reviewed original Win64 ABI/code shapes. Different compiler output disables this optional route; it never calls a clone through a guessed signature.",
+  "source_digest_format": "SHA256 after CRLF-to-LF normalization,matching QuickJSUpstreamPin.cmake;function-body and compiler ABI fingerprints are unchanged"
+}

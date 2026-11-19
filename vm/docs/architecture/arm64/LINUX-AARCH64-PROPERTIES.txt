@@ -1,0 +1,75 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 base by-id property inline caches
+==============================================
+
+get_field,get_field2 and put_field use the existing bytecode-owned PIC slab.
+The target compiler measures the actual common types,offsets,enums and flags.
+No Win64 offsets,registers,private C aggregate ABI or object patch is imported.
+The source gates bind property_ic_native.py,the common C cache lifetime and
+the complete native ARM handler. The original cache producers/GC/epoch/shape
+retention owners are unchanged. A new steady-state hit adds no allocation,
+frame/state field,strong root or physical stack reservation.
+
+All four accepted native ways are checked directly:primary and three secondary
+ways. Own/prototype/negative reads retain the original shape+epoch proofs.
+get duplicates before consuming its receiver;get-method retains the receiver.
+Replacement rejects old-value last release,including the receiver/old-value
+two-owner alias case,before changing anything. Same-capacity transitions first
+activate the successor's prototype edge,then drop the predecessor shape/weak
+edge,then install the owning RHS and consume the receiver. No native hit can
+call C,allocate,collect or release a last reference. Misses retain unchanged
+PC/SP and all operands for the exact original observing C learner.
+
+The native semantic fixture observes256 get+256 get-method+256 replacement
+hits,including576 secondary-way hits. A passive opcode histogram proves zero
+C execution for every property opcode in the warm panel. Its256 remaining
+opcode steps are all original OP_return ownership continuations;the natural
+first one is independently recorded by a read-only debugger. This is not a
+claim that all unrelated return mechanisms are complete.
+
+Continuous naturally spare-slot creation has128 native transitions. Another
+128-trial cohort contains8 explicit collections of orphaned cache proofs:
+120 transitions remain native and8 correctly relearn through original C.
+The allocation/growth cohort takes128 original C put_field executions and no
+native transitions. It retains a real resize-kind proof,not a fabricated shape.
+Further checks include64 live prototype data replacements,32 negative hits,
+descriptor conversion/deletion/reinstallation,32 getter GC callbacks,original
+IC public/API/adaptive/OOM suites and exact zero allocator ledgers.
+
+QJS_DISABLE_AARCH64_PROPERTY_IC uses process presence including0. Independent
+core-IC,adaptive,weak-shape,deferred-publication,invoke,return,register and full
+legacy controls run the same body. Compile-time QJS_PROPERTY_IC=OFF emits no
+base PIC handlers. Independent live-method and logical-length supplements
+remain available;see LINUX-AARCH64-PROPERTY-PRIMITIVES.txt for their controls.
+The base PIC process disable likewise does not disable these supplements.
+The actual generated
+feature constant also determines the inherited long-code default in the
+RegExp fixture:long code defaults OFF without IC,while explicit enable0 opts
+in and explicit disables still win. Short native regexp behavior is unchanged.
+The test reads the configured constant;it never derives expected success from
+whether the candidate happened to take a route.
+
+Instrumented images have only passive eight-word hit and256-word opcode TLS
+ledgers. Release images require their absence and the original complete VM
+CFI/PIE/NX/no-WX contract. All14 default x86 generated files and actual x86 core
+tokens/object remain byte-identical before/after this ARM-only implementation.
+Whole-corpus,installed SDK,noGit and final cross-platform qualification remain
+separate from focused tests. QEMU establishes functional behavior only.
+
+This is the base by-id PIC portion of the accepted Linux property family.
+The native own-bytecode hint tails and borrowed-slot PIC supplement are now
+implemented separately;see LINUX-AARCH64-PROPERTY-HINTS.txt for lifetime,
+controls and remaining qualification. Activation weak prototype hints and
+persistent/direct prototype hints are implemented in the separate
+LINUX-AARCH64-PROPERTY-PROTOTYPES.txt supplement,pending its full qualification.
+Generic native writable own-property hash/M3 and remaining reference-store
+consumers are still open. The
+separate primitive supplement implements String/Number methods,live ordinary
+method chains and logical length. More-than4 ways,resize/accessor/exotic/
+dictionary/last-release cases keep their original accepted owners. That
+supplement also supplies a natural repeated-builtin hot-cache witness;it does
+not qualify the remaining forwarding routes. Original22-family/P5 completion
+remains open. AUTO continues to select PORTABLE.

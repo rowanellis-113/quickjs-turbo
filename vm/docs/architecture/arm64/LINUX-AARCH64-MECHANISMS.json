@@ -1,0 +1,501 @@
+{
+  "schema": 2,
+  "scope": "Original accepted22 Linux/GNU families;QEMU functional qualification,not ARM hardware performance",
+  "basis": {
+    "path": "docs/architecture/x86/linux/LINUX-MECHANISMS.json",
+    "sha256": "9a3b9dc164f501e2cbaf32c68bc51955dc86940a83c4b373b9ff115e98334112"
+  },
+  "target": "Linux AArch64 little-endian LP64/glibc/GCC13+",
+  "qualified_engine_commit": "679573508855891fa56d5b7de29aa98fac393f55",
+  "qualification": {
+    "source_commit": "679573508855891fa56d5b7de29aa98fac393f55",
+    "CTest": {
+      "arm-native": 1249,
+      "arm-instrumented": 1797,
+      "arm-noGit": 1249,
+      "arm-portable": 218,
+      "linux-x86_64": 949,
+      "win-msvc": 294,
+      "win-mingw": 309
+    },
+    "Test262": {
+      "tested": 81152,
+      "inherited_failures": 65,
+      "fixed": 31,
+      "new_or_changed": 0,
+      "default_vs_register_off": {
+        "tested": true,
+        "failed": true,
+        "counts": true,
+        "fixed_identities": true,
+        "failure_identities": true,
+        "difference_lines": true,
+        "stderr_sha256": true,
+        "corpus_revision": true,
+        "known_error_sha256": true,
+        "config_sha256": true,
+        "known_failure_identities": true
+      }
+    },
+    "hardware_performance_qualified": false
+  },
+  "execution_families": [
+    {
+      "family": "Public ABI, register dispatch and ordinary JS frames",
+      "linux_route": "Measured Linux private types; SysV aggregate entry and audited bridges; shared VM instruction stream",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Measured AAPCS64 aggregate/root/child/tail VM, owned frames and native scalar destinations",
+      "source_sha256": {
+        "asm/arm64/linux/interpreter.S": "6eb290ead1d92874052c241129797df0718aa0e724c094d2399dbcd6c9282f1d",
+        "asm/arm64/common/register-call.inc": "d5343d3b9c444450af6b3acc5c4ef30b8df04ae1960462956dd5e03291130277",
+        "asm/arm64/common/register-scalar-ops.inc": "4e1e2ddb1058e8b1b64e7ac17c512fed601eb7b3c643b67edacb6913cb3f544e",
+        "tools/arm64/prepare_vm.py": "5a929a599928228e24417dcd3ecd66ae2a9a4c04e54375ded2b4162996f99e52"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-c-entry-native_numeric_invoke-0",
+        "interpreter-aarch64-c-entry-native_numeric_invoke-1",
+        "interpreter-aarch64-c-entry-numeric_trampoline-0",
+        "interpreter-aarch64-c-entry-numeric_trampoline-1"
+      ],
+      "proof_test_count": 178,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Coherent C/legacy callback boundaries",
+      "linux_route": "Typed paused C-step publication;actual SysV generic/magic/numeric invocation;compiler-managed TLS and complete builtin window/transient/stack lifetimes",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Typed direct/class/numeric host ABI, lifetime windows and consuming return",
+      "source_sha256": {
+        "tools/arm64/c_entry.py": "d9e291144e82e46392cda7264a4a674560bed91118ac8be4fd9cb91899c632fe",
+        "tools/arm64/c_return.py": "92d25bcd8885838c271bb98a78d620d9e9e543a01a47a453207889712e91477b",
+        "src/arm64/linux/interpreter-c-entry.inc": "aac32c7d77a954b3ac4f325f73a35d2e8e60ae4963bc9518368929284164be67",
+        "asm/arm64/common/register-host-return.inc": "6a36460bd0b0e6295fd5d9a27fbb20a61f8c37ebb1ab982c09022ed2c7cd4763"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-c-invoke-native",
+        "interpreter-aarch64-c-invoke-zero",
+        "interpreter-aarch64-c-invoke-one",
+        "interpreter-aarch64-c-invoke-shared-off"
+      ],
+      "proof_test_count": 112,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Deferred frame publication",
+      "linux_route": "Source-derived Clean/Dirty dispatch and observing-helper tail proxies;immutable ELF RELRO tables;retained original OFF streams",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Actual x25 Clean/Dirty/OFF tables and observing proxies; no early SF requirement for pure leaves",
+      "source_sha256": {
+        "tools/arm64/publication.py": "a9c50c9b2c5a4300e255ff415a733372cd0ae4a6639bf7a28887b0432350ad3f",
+        "src/arm64/linux/abi/publication.json": "47568e1dd7f76e19f4c572278221514e6036e5f97b5b204a701007c616253bfe"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-c-invoke-shared-off",
+        "interpreter-aarch64-property-primitives-shared-off",
+        "interpreter-aarch64-c-return-shared-off",
+        "interpreter-aarch64-c-invoke-observer-shared-off"
+      ],
+      "proof_test_count": 75,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Call preparation, forwarding, arguments and captures",
+      "linux_route": "Measured scalar metadata and owned/captured builders;shared .call normalizer/prepared constructor,nine native factories and common logical-parent helpers;actual SysV bridges with separate private scratch",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "All nine prepared forwarding functions, bounded captured-readonly proof, owned/borrowed/missing and mapped/unmapped arguments",
+      "source_sha256": {
+        "tools/arm64/forwarding.py": "0f075be6613809ed8b39ee3771b8091c0751e0d96f1ffb6705ff6c0b3f581733",
+        "tools/arm64/arguments.py": "8bf8bb85c086a837d42cd1002baa4519300f6a3ae238a8712530a19223c7f0b4",
+        "asm/arm64/linux/forwarding-prepared.S": "199c60ed858e569262887f75e3eaa0d969bd125e673784a5b1a4e4f96f54611e",
+        "asm/arm64/linux/forwarding-owned.S": "fa69e1a65c152c82ef90788ac48c979a1fb44e9d97b73df7828bae9cdadffcf5"
+      },
+      "proof_test_examples": [
+        "interpreter-apply-forward-default",
+        "interpreter-apply-forward-off",
+        "interpreter-apply-forward-off-zero",
+        "interpreter-aarch64-captured-entry-native"
+      ],
+      "proof_test_count": 222,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Native iterator checkpoints and varargs dependencies",
+      "linux_route": "Source-owned native eight opcode boundaries,JS-next checkpoint and dense-array workers;actual SysV/ELF and coherent C scopes",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Native next/checkpoints/dense guards and complete original close/exception/apply dependencies",
+      "source_sha256": {
+        "tools/arm64/iterators.py": "89e9b9173b5a558eb39ef9d02f0cc6aab857c1a55f488b0a3c2f6861f72160e6",
+        "asm/arm64/common/register-iterators.inc": "ac00a716cd7c201592c077f6cdb76216211f456a4fb52d63cb333c2e7b697f41",
+        "tools/arm64/varargs.py": "42f1b9c586b9b886f0b563985b1ddf094dfdfe92f33634e62f5c997de1a4b307"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-constructor-paths-varargs-zero",
+        "interpreter-aarch64-iterators-on",
+        "interpreter-aarch64-iterators-iterator-zero",
+        "interpreter-aarch64-iterators-iterator-one"
+      ],
+      "proof_test_count": 108,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Prepared builtin callbacks and comparator scopes",
+      "linux_route": "Common C scope/admission,exact extracted array loops and accepted sort scopes/comparison/collection bodies;actual Linux state/frame/segment aliases and compiler TLS",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete fourteen callback routes, readonly/owned capsules and cached/prepared comparator lifetimes",
+      "source_sha256": {
+        "tools/elf/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
+        "tools/arm64/array_workers.py": "809c7467b47a29250732d4b6eb87649477e580f4bd492a597b8b0c94d42d575a",
+        "tools/elf/array_workers.py": "c3a19e58dee3c4a78eb7e952c35da76c28ff41de16ad66e2551b43ad52087f17",
+        "src/arm64/linux/abi/prepared-callbacks.json": "933ba13bc3d67bb1345af1f3f2589b5214540486367e2d171112cb372016c247"
+      },
+      "proof_test_examples": [
+        "interpreter-array-copy-native",
+        "interpreter-array-copy-c",
+        "interpreter-array-copy-disabled",
+        "array-default-string-sort-off-zero"
+      ],
+      "proof_test_count": 86,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "By-id property IC",
+      "linux_route": "Common bytecode IC lifetime/shape guards and native primary/secondary get, get-method and set/transition blocks",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Four-way by-id PICs/transition, own bytecode/hash, borrowed PIC, primitive/length, weak/persistent/direct prototype and independent generic writes",
+      "source_sha256": {
+        "tools/arm64/properties.py": "b091292429b05b7d9ae8127b46fa3b4b2932d445efe938e7ef776e2887a445d1",
+        "tools/arm64/property_hints.py": "df05408b567231ac06a3ca9dc24e2444c40b75bd8542f5fba2c8da9e43696d55",
+        "tools/arm64/property_primitives.py": "e9defae941bd524ed117b53cb34b99176364ac6dcada564cb8bed304f9a1c9a6",
+        "tools/arm64/property_prototypes.py": "0d1c2d0814ec19358d124588c6e513f10710e561871df00c23428cade5ecee8c",
+        "tools/arm64/reference_stores.py": "10ac073395cd8de9e2e4cafb379d2ac67abd5ec1143f770c0922a931d68cc5d4",
+        "src/property/property-ic.inc": "4c844caa38ffb62abc26561872c2b6ad0e292f593a27536d313daa5e83e81ce8"
+      },
+      "proof_test_examples": [
+        "interpreter-prototype-chain-native",
+        "interpreter-prototype-chain-c",
+        "interpreter-property-store-native",
+        "interpreter-property-store-c"
+      ],
+      "proof_test_count": 170,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "String and local rope workers",
+      "linux_route": "Common rope equality plus complete shared concat/local-rope/add_loc and GNU small-character/index kernels; measured Linux native byte-append block; real core types and independent ELF policy bytes;accepted slice and decimal-number semantic bodies with actual SysV builtin views",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete original string/rope/cache/concat/local append and compound call owners",
+      "source_sha256": {
+        "tools/elf/string_workers.py": "6fc246db2fc39319f3c577887047dbfdb5c8eae63f3128ee079fd9eed7eee8fd",
+        "tools/arm64/strings.py": "15f2fb3820957f12f676480615fcb6d15ab51248d5dc54a4d88c0b1b6e25c094",
+        "asm/arm64/common/register-string-append.inc": "0ee58d06b71674f3e0a373760b331a1be1848eae5b1b78a291d84225b296c049",
+        "tools/arm64/call_leaves.py": "d028164725ca75340e50f98ee55529ab3a155a719bf0d3cde98bf3f485a5fe0c"
+      },
+      "proof_test_examples": [
+        "interpreter-property-store-native",
+        "interpreter-property-store-c",
+        "interpreter-string-concat-native",
+        "interpreter-string-concat-c"
+      ],
+      "proof_test_count": 209,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "JSON parser, writer, reviver and source records",
+      "linux_route": "Complete source-owned parser/writer, value/ASCII-source/Unicode-code-unit reviver chain, readonly/owned replacer, live-buffer direct quote and typed toJSON slot cache; actual GCC SysV types and shared prepared capsule",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete shared JSON family and real AdvSIMD bounded scanners/quoters, callback/source-record owners",
+      "source_sha256": {
+        "tools/arm64/json_worker.py": "9470efc90a4e4b03a206f2e633a312578cf76b501e7303f8aad0433e4238f6e9",
+        "src/arm64/common/json-vector.h": "1a195b17cd316cc3b3cf80ea005a61178121cc72070527b9aff319f78de88b4e"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-json-paths-native",
+        "interpreter-aarch64-json-paths-no-simd",
+        "interpreter-aarch64-json-paths-disabled",
+        "interpreter-aarch64-json-vector"
+      ],
+      "proof_test_count": 32,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "RegExp and Unicode",
+      "linux_route": "Shared engine/wire/exec/test identities plus source-owned complete owned builtin C with actual SysV selector and live guards",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Shared regexp/Unicode engine and full builtin workers, short/large native literal admission and typed opcode",
+      "source_sha256": {
+        "tools/elf/regexp_workers.py": "bf10ea779ba2111bbbaed1566e35d7267439ed844b18e0d5063f52463964d7ba",
+        "tools/arm64/admission.py": "3b865ad9064c0c038e0d5660d1002285073f8fa19bfc40c8cc4a58f69ad6e3a7",
+        "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882"
+      },
+      "proof_test_examples": [
+        "interpreter-portable-regexp-start",
+        "interpreter-portable-regexp-differential",
+        "interpreter-portable-regexp-portable_core",
+        "interpreter-large-code-native"
+      ],
+      "proof_test_count": 100,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Arrays and default sort",
+      "linux_route": "Shared sparse-length correction,dense-copy growth,complete default radix/cached/prepared sort,dense-pop C and measured native append;original observable collection/species/commit owners retained",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete copy/growth/default radix/cached/prepared sort and native pop/append ownership",
+      "source_sha256": {
+        "tools/arm64/array_workers.py": "809c7467b47a29250732d4b6eb87649477e580f4bd492a597b8b0c94d42d575a",
+        "tools/arm64/indexed.py": "e72fcd4a6b72906c019dfc7ba34d113b1f8442d44dfa2cbcf9404443d2f40979",
+        "tools/arm64/c_entry.py": "d9e291144e82e46392cda7264a4a674560bed91118ac8be4fd9cb91899c632fe"
+      },
+      "proof_test_examples": [
+        "interpreter-array-copy-native",
+        "interpreter-array-copy-c",
+        "interpreter-array-copy-disabled",
+        "array-default-string-sort-off-zero"
+      ],
+      "proof_test_count": 93,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Async generator capabilities",
+      "linux_route": "Shared source extraction, complete same-TU settlement/recovery helper owner, actual GCC SysV C; original parent/next controls retained",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Same-TU request-owned Promise, complete settlement/recovery/FIFO/hooks; ordinary async elision absent in GNU reference",
+      "source_sha256": {
+        "src/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
+        "tools/elf/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
+        "src/arm64/linux/abi/async-generator.json": "7bdbdef8e93e56180a5a057f93bc1c300315cc97000871f3cff86c2701b592aa"
+      },
+      "proof_test_examples": [
+        "interpreter-property-generator",
+        "async-generator-capability-on",
+        "async-generator-capability-off",
+        "async-generator-capability-clone"
+      ],
+      "proof_test_count": 35,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Compiler, allocator and scalar changes",
+      "linux_route": "Declared common C overlays, independent compiler-plan TU, value initialization, mixed numeric operators and pointer hash",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Pinned common overlays, bounded compiler plan/projector, allocator and full native scalar base",
+      "source_sha256": {
+        "tools/generate/backport-core.py": "50e3576497ff33da4c176a64ea05183d9f81787c66ab038756fc292e10789bf4",
+        "src/bytecode/compiler-plan.c": "be2cd9a61f18e9168f1c8445c86034c3eb3a4410096225e6c42832990aa91fea",
+        "tools/arm64/numeric_workers.py": "b1115c19799f2a8f65a02966833cecfaa1d6b7a2adcc1a79f78d8f9e46937bb5",
+        "asm/arm64/common/register-scalar-ops.inc": "4e1e2ddb1058e8b1b64e7ac17c512fed601eb7b3c643b67edacb6913cb3f544e"
+      },
+      "proof_test_examples": [
+        "interpreter-compiler-plan-bytecode",
+        "interpreter-compiler-plan-enabled",
+        "interpreter-compiler-owner-enabled",
+        "interpreter-compiler-plan-checks-only"
+      ],
+      "proof_test_count": 110,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "MSVC coroutine segments versus GCC dispatch",
+      "linux_route": "GCC computed-goto C interpreter and original suspended generator frames",
+      "arm_status": "reviewed-GNU-reference-boundary",
+      "implemented": "Reviewed GNU boundary: original computed-goto/suspended-generator owner; no MSVC-only native coroutine/extra-method machinery",
+      "source_sha256": {
+        "src/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
+        "docs/architecture/x86/linux/LINUX-PORT.txt": "3175a6852e236caaff36c26ac78db15e1f714b1d22229c4b0cd3b5270c5eef59"
+      },
+      "proof_test_examples": [
+        "interpreter-property-generator",
+        "async-generator-capability-on",
+        "async-generator-capability-off",
+        "async-generator-capability-clone"
+      ],
+      "proof_test_count": 35,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Activation-owned literal shapes and native scalar cohorts",
+      "linux_route": "Actual same-TU strong-shape owners;all physical SysV VM entries share one facade;source-owned native Clean kernels and existing Dirty publication factory",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Activation strong shapes, insert2/3, type/truth kernels and complete primitive/getter/predicate/integer/compound call leaf families",
+      "source_sha256": {
+        "tools/arm64/literals.py": "666d96fe5b58617e1ba6424117a2fc1af5fc5f62d2b8e0020be33b10dc43932c",
+        "tools/arm64/stack_insert.py": "f829c1809dafb65ec0a0ac9f335a1ec00e218781a84dc90985631e264c00da42",
+        "tools/arm64/call_leaves.py": "d028164725ca75340e50f98ee55529ab3a155a719bf0d3cde98bf3f485a5fe0c"
+      },
+      "proof_test_examples": [
+        "interpreter-stack-insert-default",
+        "interpreter-stack-insert-host-default",
+        "interpreter-stack-insert-off",
+        "interpreter-stack-insert-host-off"
+      ],
+      "proof_test_count": 312,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Native indexed/instanceof dependency portion",
+      "linux_route": "Source-owned sparse kernels;actual-type C opcode workers with coherent entry/consumed-slot publication;checked SysV two-argument pure bridge and shared Dirty cloning",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Dense/typed/sparse integer-own get/get2/put, capacity append and original pure instanceof",
+      "source_sha256": {
+        "tools/arm64/indexed.py": "e72fcd4a6b72906c019dfc7ba34d113b1f8442d44dfa2cbcf9404443d2f40979",
+        "src/arm64/linux/interpreter-indexed.inc": "314b8e235fc31074fe9eb3af74d8f42c692f33c4802fd8a0d162503c78c7a3dc",
+        "asm/arm64/common/register-indexed.inc": "c012ad93008d410ee814177388ad777d58d49666327e87ee344240ad8be2eb46"
+      },
+      "proof_test_examples": [
+        "interpreter-instanceof-default",
+        "interpreter-instanceof-off",
+        "interpreter-instanceof-off-zero",
+        "interpreter-instanceof-step-off"
+      ],
+      "proof_test_count": 187,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "GNU native loose/strict comparisons",
+      "linux_route": "Complete source-owned Clean kernels with exact source Dirty equivalence;actual publication clone and64-byte statistics banks;real SysV C identity/typed pure initialization bridges",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete source-owned loose/strict/identity/string/reference kernels and actual typed pure initializers",
+      "source_sha256": {
+        "tools/arm64/comparisons.py": "348f6b041d29200b9b8d9db43663bd2f4034949533dee5b0e8d1aee8d5d78ccc",
+        "asm/arm64/common/register-comparisons.inc": "7f9ec5028e1abf0f4123329644c31fc7b6fa1a7f9d0bb162e886eae64e1454b2",
+        "asm/arm64/linux/comparison-identity.S": "828ecf599ee9342b6cc39bee13f28a8f94955a60e44488b83a9a0dac80c4a1af"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-comparison-family-native",
+        "interpreter-aarch64-comparison-api-native",
+        "interpreter-aarch64-comparison-family-group-zero",
+        "interpreter-aarch64-comparison-api-group-zero"
+      ],
+      "proof_test_count": 48,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "GNU BigInt/local release,short decimal and compiler projection",
+      "linux_route": "Actual SysV release leaf and local cold kernel,complete source-owned arithmetic/converter,independent actual-type FD projection",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete original BigInt/local release/overflow, FPCR-aware decimal converter and independent actual-type FD projection",
+      "source_sha256": {
+        "tools/arm64/numeric_workers.py": "b1115c19799f2a8f65a02966833cecfaa1d6b7a2adcc1a79f78d8f9e46937bb5",
+        "asm/arm64/linux/bigint-release.S": "e44668541b30eaad37b527f4beefd3cc02ca01691b2c4bb92032defe3902cbfd",
+        "src/arm64/common/number-rounding.h": "13d440565a7da8c77178ea7cd398812657f216f834b85d31ca04a9abc73e5b5a"
+      },
+      "proof_test_examples": [
+        "interpreter-compiler-plan-bytecode",
+        "interpreter-compiler-plan-enabled",
+        "interpreter-compiler-owner-enabled",
+        "interpreter-compiler-plan-checks-only"
+      ],
+      "proof_test_count": 83,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Complete GNU native global binding hints",
+      "linux_route": "Shared Clean/Dirty getter,undefined,relink and Symbol continuations;actual measured BC/RT fields;pure typed SysV initializer and static RELRO",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Bytecode cells/relink/TDZ, activation lexical/global hints, undefined arithmetic, large bypass and all resolved Symbol forms",
+      "source_sha256": {
+        "tools/arm64/global_bindings.py": "2d7632e49454a6d8315cb384d60460fe611e8e28ed7250d46664f11fcc02dba4",
+        "asm/arm64/common/register-global-bindings.inc": "f5a9324699fc542b55388f59d5d73de854c13d087ec5f9b0c9a4a1a2b3766926"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-global-family-on",
+        "interpreter-aarch64-global-family-global-zero",
+        "interpreter-aarch64-global-family-global-one",
+        "interpreter-aarch64-global-family-undefined-zero"
+      ],
+      "proof_test_count": 50,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "GNU native string integer receiver entries",
+      "linux_route": "Complete accepted native guard/publication/C-step body;receiver miss only after integer guard;Linux Dirty derivation and actual SysV helper",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Accepted integer-receiver guards, pure/no-call append and frame-free compound/character C aggregate worker",
+      "source_sha256": {
+        "tools/arm64/strings.py": "15f2fb3820957f12f676480615fcb6d15ab51248d5dc54a4d88c0b1b6e25c094",
+        "asm/arm64/common/register-strings.inc": "74dcc2150e8182d714008e96fba81fbc3e715f6e232b000bc54dd5e412f3266d",
+        "asm/arm64/common/register-string-append.inc": "0ee58d06b71674f3e0a373760b331a1be1848eae5b1b78a291d84225b296c049",
+        "tools/arm64/call_leaves.py": "d028164725ca75340e50f98ee55529ab3a155a719bf0d3cde98bf3f485a5fe0c"
+      },
+      "proof_test_examples": [
+        "interpreter-character-set-leaf",
+        "interpreter-character-set-leaf-off",
+        "interpreter-aarch64-native-string-concat-on-on",
+        "interpreter-aarch64-native-string-locale-on-on"
+      ],
+      "proof_test_count": 120,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "Core C ordinary numeric-array own-property leaf",
+      "linux_route": "Complete common array_own.S with measured SysV tokens and untouched typed C fallback;all core/cloned consumers",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete source-owned core ordinary numeric own-data leaf and owning duplication over actual fields",
+      "source_sha256": {
+        "tools/arm64/array_own.py": "f33b9391fe1128a713b8a170c3f22419c715a9e2c63a6b010a28ed1ecd34f938",
+        "asm/arm64/linux/array-own.S": "70dd906f065da85c82bb4ef99861f96981fa9385984d3e0070ca8ff70ab482fe"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-array-own-native",
+        "interpreter-aarch64-array-own-register-off",
+        "interpreter-aarch64-array-own-frame-off",
+        "interpreter-aarch64-array-own-indexed-own-0"
+      ],
+      "proof_test_count": 8,
+      "fallback_is_native_parity": false
+    },
+    {
+      "family": "GNU native null-prototype admission and warm allocation",
+      "linux_route": "Complete inherited validator and inline-header allocator,actual SysV aggregate,coherent typed VM opcode",
+      "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
+      "implemented": "Complete original null-only validator/warm allocator with GC/quota/OOM/realm and actual aggregate result",
+      "source_sha256": {
+        "tools/arm64/null_proto.py": "4a8fc20400af9f4e55c3106e85164612c70719157d240f9f848c295379f68dee",
+        "asm/arm64/common/register-null-proto.inc": "a9363550c3059717c39f1ebb74d1030e9833f6b52b9afaaed3a14172cb3311ec"
+      },
+      "proof_test_examples": [
+        "interpreter-aarch64-null-proto-public-on",
+        "interpreter-aarch64-null-proto-public-off-zero",
+        "interpreter-aarch64-null-proto-public-off-one",
+        "interpreter-aarch64-null-proto-public-register-off"
+      ],
+      "proof_test_count": 15,
+      "fallback_is_native_parity": false
+    }
+  ],
+  "base_native_handlers": 141,
+  "actual_native_handlers": 161,
+  "missing_base_native_handlers": [],
+  "architectural_costs": [
+    "Call leaf C worker uses a compiler-owned physical activation192B;no JS frame/argument copy. No ARM speed parity claim.",
+    "Core/frame/state layouts retained; bounded bytecode hints and strong character atom cache retain original real memory costs.",
+    "Nested GC inside a public custom free/finalizer reproduces the inherited abort;GC after ordinary return and supported JS reentry remain tested.",
+    "Array/TypedArray and five JSON callback selectors retain prepared-capsule preference for short callbacks. They intentionally omit the x86 noncalling ChildLeaf competing-provider exclusions. The ARM leaf worker has a real192B C activation;these routing preferences are functionally tested and require hardware profiling before any speed-parity claim. The old generator comment describing that x86 provider as open is historical;the actual ARM aggregate leaf route is implemented."
+  ],
+  "reviewed_boundaries": [
+    "MSVC-only coroutine native segments/extra method learning",
+    "Default-OFF optional weak VM links",
+    "Ordinary async output-capability elision, absent in accepted GNU reference",
+    "Physical ARM speed/RSS/PMU qualification"
+  ],
+  "completion_rule": "Product ACCEPTANCE.json binds the delivered source and SDK identities;QEMU functionality does not qualify real ARM speed/RSS/PMU",
+  "routing_boundaries": [
+    {
+      "families": [
+        "Prepared builtin callbacks and comparator scopes",
+        "JSON parser, writer, reviver and source records"
+      ],
+      "source_owners": [
+        "tools/elf/prepared_callbacks.py",
+        "tools/arm64/json_worker.py"
+      ],
+      "difference": "Prepared capsule preferred rather than x86 noncalling ChildLeaf exclusion",
+      "reason": "AAPCS64 compiler-owned leaf activation and actual typed capsule costs differ;retain tested routing for this QEMU functional delivery",
+      "performance_validated": false
+    }
+  ],
+  "hardware_followup": {
+    "report": "docs/architecture/arm64/LINUX-AARCH64-HARDWARE.json",
+    "scope": "Original source/functional bindings above remain historical. Current source hashes, actual hardware execution and performance are bound by the follow-up report and external final acceptance manifest."
+  }
+}

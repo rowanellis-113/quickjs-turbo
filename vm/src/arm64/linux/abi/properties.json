@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "src/common/property/property-ic.h": "5606d8ccbd8fbbeafc5b129df402febf49011faef84472ffcab66018125f7702",
+    "src/common/property/property-ic.inc": "fe1a151295a3ab439eebbcf5979b646a369efea6597f42c565f98dae3f992442",
+    "src/common/property/property-ic-lifetime.inc": "68578bb940fbfe8d56b2b43fefbaa291475d0766ad13e9e3920a979ed3350388",
+    "asm/arm64/common/register-property-ic.inc": "135d5fb9fe0df8a2e1cb128c9139cc8caf27bae60692cf3a258f670d2268c3a5",
+    "tools/arm64/workers/properties.py": "85faa4e15910cf9ea4d2433c3eb9fc0f2f1be28ccfe0eb4f231885fb49fd1eed"
+  },
+  "source_protocol": "Complete primary/three secondary by-id own/proto/unset/get-method/replace/same-capacity transition;original cold learner and cache lifetime",
+  "control": "QJS_DISABLE_AARCH64_PROPERTY_IC process presence including0",
+  "fallback": "No partial stores or releases before any miss;original C owner and PC/SP",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "hardware_performance_qualified": false
+}

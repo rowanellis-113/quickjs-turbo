@@ -1,0 +1,133 @@
+{
+  "date": "2026-11-13",
+  "baseline_commit": "9147bedb7560747b818a256c471dafb36004706e",
+  "branch": "product/turbo",
+  "status": "validated formatting policy and source changes; source snapshots are bound by the retained build evidence",
+  "policy": {
+    "specification": "docs/architecture/common/FORMAT.txt",
+    "write": "npm run format",
+    "check": "npm run format:check",
+    "ci": ".github/workflows/interpreter-integration.yml"
+  },
+  "pinned_formatters": {
+    "clang-format": "22.1.8",
+    "prettier": "3.9.10",
+    "ruff": "0.14.14",
+    "cmakelang": "0.6.13",
+    "shfmt-py": "4.2.0",
+    "shfmt_upstream": "3.14.1",
+    "meson": "1.12.1",
+    "PSScriptAnalyzer": "1.24.0"
+  },
+  "checks": {
+    "complete_format_check": "passed",
+    "format_idempotence": "passed: complete final check has zero pending changes; batch formatters also compare repeated output",
+    "source_receipts_checked": 525,
+    "stale_source_receipts": 0,
+    "source_abi_validation": "passed --require-native",
+    "git_diff_check": "passed",
+    "safety_and_generator_unit_tests": 88,
+    "functional_ctest_cases": 3014,
+    "functional_ctest_failures": 0
+  },
+  "source_equivalence": {
+    "python_ast": 223,
+    "c_cpp_tokens": 137,
+    "assembly_lines": 34,
+    "cmake_tokens": 37,
+    "linker_lines": 1,
+    "shell_ast": 4,
+    "meson_ast": 1
+  },
+  "protected_inputs": {
+    "upstream_and_generated_checkout_bytes": "unchanged",
+    "immutable_native_files": 40,
+    "immutable_javascript_files": 16,
+    "handwritten_generator_inputs_format_checked_and_hash_pinned": 27,
+    "explicitly_reviewed_source_receipt_updates": 229,
+    "compiled_symbol_fingerprints": "not refreshed"
+  },
+  "generator_adaptations": [
+    "C source extraction and replacement accept token-equivalent whitespace and reject missing or ambiguous matches.",
+    "ELF worker loading uses the existing module loader.",
+    "AArch64 source guards accept equivalent C whitespace; unwind directive boundaries accept indentation.",
+    "Reference-slot factory pin was updated after owner AST equivalence was checked."
+  ],
+  "backend_suites": [
+    {
+      "backend": "msvc-WIN64",
+      "passed": 294,
+      "failed": 0,
+      "log": "build/format-validation/msvc-WIN64.log"
+    },
+    {
+      "backend": "mingw-WIN64",
+      "passed": 309,
+      "failed": 0,
+      "log": "build/format-validation/mingw-WIN64.log"
+    },
+    {
+      "backend": "mingw-PORTABLE",
+      "passed": 213,
+      "failed": 0,
+      "log": "build/format-validation/mingw-PORTABLE.log"
+    },
+    {
+      "backend": "linux-final",
+      "passed": 949,
+      "failed": 0,
+      "log": "build/format-validation/linux-final.log"
+    },
+    {
+      "backend": "linux-aarch64-native-QEMU",
+      "passed": 1249,
+      "failed": 0,
+      "evidence": "build/format-validation/arm64-complete-summary.json",
+      "note": "119 completed cases plus 1130 resumed cases cover all 1249 indices. Scheduling overrides affected only generated build files, preserving test declarations and assertions."
+    }
+  ],
+  "unit_suites": [
+    {
+      "test": "test_c_source_match.py",
+      "passed": 15
+    },
+    {
+      "test": "test_format_contract.py",
+      "passed": 13
+    },
+    {
+      "test": "test_property_ic_generator.py",
+      "passed": 1
+    },
+    {
+      "test": "test_vm_abi.py",
+      "passed": 8
+    },
+    {
+      "test": "test_vm_build.py",
+      "passed": 20
+    },
+    {
+      "test": "test_vm_call_env.py",
+      "passed": 4
+    },
+    {
+      "test": "test_vm_core_routes.py",
+      "passed": 21
+    },
+    {
+      "test": "test_vm_private.py",
+      "passed": 5
+    },
+    {
+      "test": "test_vm_unwind_capacity.py",
+      "passed": 1
+    }
+  ],
+  "evidence_directory": "build/format-validation",
+  "scope_notes": [
+    "Full backend suites exercised the formatted runtime sources and generator adaptations. Subsequent edits affected only format tooling, documentation, format safety tests, CI, and syntax-equivalent build/link wrappers; final ABI, unit, format and syntax checks cover these additions.",
+    "The initial formatting panel used QEMU. Separate native ARM hardware qualification is retained under D:/js-engines/experiments/arm64-migration-20261113; its native qjs image is byte-identical to the accepted image at SHA-256 52e49f84b1bfcd880d5e8c01275f64c17252f4f806122b8534eb430e01aef02e. This does not claim timing identity across launches or arbitrary toolchains.",
+    "The external PRODUCT-BASELINE.json records the pre-format source archive and is retained as historical evidence."
+  ]
+}

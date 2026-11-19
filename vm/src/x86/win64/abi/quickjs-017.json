@@ -1,0 +1,271 @@
+{
+  "schema": 1,
+  "source_sha256": "c7aeac7a894185d97c17f61f16b7c833ff1333e4b73604c47591227d63f8244f",
+  "reference_count_model": "allocator-prefix",
+  "sizes": {
+    "JSValue": 16,
+    "JSGCObjectHeader": 16,
+    "JSRuntime": 1488,
+    "JSContext": 600,
+    "JSObject": 72,
+    "JSFunctionBytecode": 128,
+    "JSStackFrame": 80,
+    "JSVarRef": 48,
+    "JSString": 24,
+    "JSStringRope": 40,
+    "JSShape": 56,
+    "JSShapeProperty": 8,
+    "JSProperty": 16,
+    "JSBigInt": 4,
+    "JSCFunctionType": 8,
+    "JSArrayBuffer": 56,
+    "JSTypedArray": 48,
+    "JSMallocBlockHeader": 8,
+    "JSArenaState": 1000
+  },
+  "offsets": {
+    "JSValue.tag": 8,
+    "JSRuntime.malloc_state": 40,
+    "JSRuntime.rt_info": 1072,
+    "JSRuntime.atom_hash_size": 1080,
+    "JSRuntime.atom_array": 1104,
+    "JSRuntime.current_exception": 1240,
+    "JSRuntime.in_free": 1258,
+    "JSRuntime.current_stack_frame": 1264,
+    "JSRuntime.stack_size": 1216,
+    "JSRuntime.stack_top": 1224,
+    "JSRuntime.stack_limit": 1232,
+    "JSRuntime.interrupt_handler": 1272,
+    "JSRuntime.interrupt_opaque": 1280,
+    "JSRuntime.module_normalize_has_attr": 1344,
+    "JSRuntime.normalize_u": 1352,
+    "JSRuntime.module_loader_has_attr": 1360,
+    "JSRuntime.u": 1368,
+    "JSRuntime.gc_obj_list": 1152,
+    "JSRuntime.can_block": 1432,
+    "JSRuntime.shape_hash_bits": 1440,
+    "JSContext.rt": 16,
+    "JSContext.class_proto": 96,
+    "JSContext.global_obj": 504,
+    "JSContext.global_var_obj": 520,
+    "JSContext.interrupt_counter": 556,
+    "JSObject.header": 0,
+    "JSObject.class_id": 18,
+    "JSObject.shape": 24,
+    "JSObject.prop": 32,
+    "JSObject.first_weak_ref": 40,
+    "JSObject.u.func.function_bytecode": 48,
+    "JSObject.u.func.var_refs": 56,
+    "JSObject.u.func.home_object": 64,
+    "JSObject.u.cfunc.realm": 48,
+    "JSObject.u.cfunc.c_function": 56,
+    "JSObject.u.cfunc.length": 64,
+    "JSObject.u.cfunc.cproto": 65,
+    "JSObject.u.cfunc.magic": 66,
+    "JSObject.u.array.u1": 48,
+    "JSObject.u.array.u": 56,
+    "JSObject.u.array.count": 64,
+    "JSObject.u.regexp": 48,
+    "JSObject.u.array.u.values": 56,
+    "JSObject.u.typed_array": 48,
+    "JSObject.u.array_buffer": 48,
+    "JSObject.u.array.u.int32_ptr": 56,
+    "JSFunctionBytecode.header": 0,
+    "JSFunctionBytecode.byte_code_buf": 24,
+    "JSFunctionBytecode.byte_code_len": 32,
+    "JSFunctionBytecode.func_name": 36,
+    "JSFunctionBytecode.vardefs": 40,
+    "JSFunctionBytecode.closure_var": 48,
+    "JSFunctionBytecode.arg_count": 56,
+    "JSFunctionBytecode.var_count": 58,
+    "JSFunctionBytecode.defined_arg_count": 60,
+    "JSFunctionBytecode.stack_size": 62,
+    "JSFunctionBytecode.var_ref_count": 64,
+    "JSFunctionBytecode.closure_var_count": 66,
+    "JSFunctionBytecode.cpool_count": 68,
+    "JSFunctionBytecode.cpool": 80,
+    "JSFunctionBytecode.realm": 72,
+    "JSFunctionBytecode.pc2line_len": 104,
+    "JSFunctionBytecode.pc2line_buf": 112,
+    "JSStackFrame.prev_frame": 0,
+    "JSStackFrame.cur_func": 8,
+    "JSStackFrame.arg_buf": 24,
+    "JSStackFrame.var_buf": 32,
+    "JSStackFrame.var_refs": 40,
+    "JSStackFrame.cur_pc": 48,
+    "JSStackFrame.var_ref_count": 56,
+    "JSStackFrame.arg_count": 58,
+    "JSStackFrame.is_strict_mode": 60,
+    "JSStackFrame.cur_sp": 64,
+    "JSStackFrame.is_constructor": 61,
+    "JSStackFrame.cur_gc_obj": 72,
+    "JSVarRef.header": 0,
+    "JSVarRef.pvalue": 24,
+    "JSVarRef.value": 32,
+    "JSVarRef.is_detached": 16,
+    "JSVarRef.is_lexical": 17,
+    "JSVarRef.is_const": 18,
+    "JSVarRef.is_coro": 19,
+    "JSString.hash_next": 8,
+    "JSString.first_weak_ref": 16,
+    "JSStringRope.len": 0,
+    "JSShape.header": 0,
+    "JSShape.prop_count": 32,
+    "JSShape.prop_size": 28,
+    "JSShape.proto": 48,
+    "JSShape.prop_hash_mask": 24,
+    "JSShape.hash": 20,
+    "JSShape.is_hashed": 16,
+    "JSShape.deleted_prop_count": 36,
+    "JSShape.hash_table": 56,
+    "JSShapeProperty.atom": 4,
+    "JSArrayBuffer.immutable": 9,
+    "JSTypedArray.buffer": 24,
+    "JSBigInt.len": 0,
+    "JSBigInt.tab": 4,
+    "JSMallocBlockHeader.ref_count": 4,
+    "JSMallocBlockHeader.user_data": 8
+  },
+  "bits": {
+    "JSRuntime.dump_flags": [
+      [
+        1436,
+        1
+      ]
+    ],
+    "JSObject.is_prototype": [
+      [
+        16,
+        1
+      ]
+    ],
+    "JSObject.extensible": [
+      [
+        16,
+        2
+      ]
+    ],
+    "JSObject.free_mark": [
+      [
+        16,
+        4
+      ]
+    ],
+    "JSObject.is_exotic": [
+      [
+        16,
+        8
+      ]
+    ],
+    "JSObject.fast_array": [
+      [
+        16,
+        16
+      ]
+    ],
+    "JSObject.is_constructor": [
+      [
+        16,
+        32
+      ]
+    ],
+    "JSObject.is_HTMLDDA": [
+      [
+        17,
+        1
+      ]
+    ],
+    "JSString.len": [
+      [
+        0,
+        1
+      ]
+    ],
+    "JSString.is_wide_char": [
+      [
+        3,
+        128
+      ]
+    ],
+    "JSString.hash": [
+      [
+        4,
+        1
+      ]
+    ],
+    "JSString.kind": [
+      [
+        7,
+        16
+      ]
+    ],
+    "JSString.atom_type": [
+      [
+        7,
+        64
+      ]
+    ],
+    "JSFunctionBytecode.is_strict_mode": [
+      [
+        16,
+        1
+      ]
+    ],
+    "JSFunctionBytecode.func_kind": [
+      [
+        16,
+        32
+      ]
+    ],
+    "JSFunctionBytecode.is_derived_class_constructor": [
+      [
+        16,
+        8
+      ]
+    ],
+    "JSShapeProperty.flags": [
+      [
+        3,
+        4
+      ]
+    ],
+    "JSMallocBlockHeader.gc_obj_type": [
+      [
+        3,
+        1
+      ]
+    ],
+    "JSMallocBlockHeader.mark": [
+      [
+        3,
+        128
+      ]
+    ],
+    "JSContext.std_array_prototype": [
+      [
+        48,
+        1
+      ]
+    ]
+  },
+  "constants": {
+    "JS_TAG_STRING": -7,
+    "JS_TAG_STRING_ROPE": -6,
+    "JS_TAG_OBJECT": -1,
+    "JS_TAG_EXCEPTION": 6,
+    "JS_CLASS_OBJECT": 1,
+    "JS_CLASS_ARRAY": 2,
+    "JS_CLASS_BYTECODE_FUNCTION": 13,
+    "JS_CLASS_C_FUNCTION": 12,
+    "JS_CLASS_STRING": 5,
+    "JS_PROP_TMASK": 48,
+    "JS_ATOM_length": 51,
+    "OP_COUNT": 252,
+    "JS_PROP_INITIAL_SIZE": 2
+  },
+  "upstream": "60984dc07cbb6b7885303b9542944b114203e918",
+  "measured_compilers": [
+    "MSVC 14.50.35717 x64",
+    "MinGW GCC 13.1.0 x86_64, default MS bitfields"
+  ]
+}

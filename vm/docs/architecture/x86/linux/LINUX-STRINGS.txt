@@ -1,0 +1,107 @@
+Linux string kernels and native append
+=====================================
+
+Scope and normal build
+----------------------
+tools/elf/string_workers.py owns the accepted concat/local-rope, add_loc,
+single-character cache/index and Latin-1 localeCompare C algorithms in the
+actual generated Linux core TU. tools/elf/string_vm.py connects the register
+VM and the no-call byte-append lane. Normal CMake generation binds the typed
+header, measured layout, VM assembly and STRING-WORKERS.json in PREPARE/BUILD.
+The pinned upstream files and public API are unchanged.
+
+  bash tools/build/product-linux.sh build/linux-native out/sdk-linux-native
+  ctest --test-dir build/linux-native --output-on-failure -R 'string|locale|rope'
+
+The original string-family checkpoint below is historical. Later native-entry
+and LINUX-VM-LEAVES.txt checkpoints add slice/number builtin views and the
+complete compound localeCompare/character-set leaf routes. Whole-image
+performance and Linux release qualification remain separate gates.
+
+Algorithms, ABI and ownership
+-----------------------------
+The common rope-aware equality repair is retained once in its existing core
+owner. The complete shared concat/local-rope algorithms and add_loc C body
+retain consumption, reference count, allocation failure, GC roots and exception
+cleanup. Nonprimitive operands retain the original coercion boundary.
+
+The native append block uses the shared instruction factory after validating
+the actual Linux string/rope/runtime fields, bitfields and opcode constants.
+Allocator identity is checked before reading the pool header. No allocation,
+C call, callback or final release occurs after the commit guards. Independent
+atomic Linux policy bytes replace the Windows runtime-padding controls. The
+two add_loc cold edges and three short-add miss edges retain their original
+fallback and VM unwind protocol. Direct-only cold blocks have explicit CFI;
+actual indirect dispatch/C-method targets retain the measured CET checks.
+
+The existing GNU small-character algorithm is compiled against real Linux
+types. Its optional16 runtime slots each hold256 strong string-atom owners;
+the pointer table is32768 bytes. Saturation retains the original constructor.
+The interning guard prevents recursive atom-table growth. Every original
+single-character constructor route uses this owner. The exact FreeRuntime
+pre-GC boundary detaches all cached owners, then calls the original GC;
+rt->in_free prevents cleanup reentry from repopulating the cache. A runtime
+keeps QuickJS's normal single-executor requirement; independent runtimes can
+use separate slots concurrently.
+
+The complete GNU string-index kernel handles the two indexed-get forms with
+the original typed C fallback. The common Latin-1 localeCompare kernel is an
+explicit method-table target. The later VM-leaf integration also compiles the
+complete compound C algorithm against actual Linux bytecode/PIC types and
+routes it through the measured SysV uint64_t helper bridge.
+No COFF objects, mirrored private context structs or Windows TLS are used.
+
+Controls and fallback
+---------------------
+Use fresh processes. The following controls disable by presence, including0:
+  QJS_DISABLE_NATIVE_ADD_BOUNDARY / QJS_DISABLE_NATIVE_ADD_LOCAL
+  QJS_DISABLE_CONCAT_ROPE / QJS_DISABLE_LOCAL_ROPE_APPEND
+  QJS_DISABLE_LOCAL_ROPE_SPARE / QJS_DISABLE_FRAME_NATIVE_ROPE_APPEND
+  QJS_DISABLE_SMALL_CHAR_CACHE / QJS_DISABLE_FRAME_STRING_INDEX
+  QJS_DISABLE_LOCALE_COMPARE_LATIN1
+The existing register/interpreter controls remain applicable. A native build
+without the optional allocator passes with typed string fallbacks and without
+the pool-dependent native append. AUTO without the required source overlay
+selects PORTABLE; an explicit unsupported native request fails at configure.
+
+Development qualification: string-family-r6
+-----------------------------------------
+The current GCC13.3 Release/Werror source passes286 CTests, ELF/CFI/PIC/CET
+verification and an installed independent public-API consumer. Current qjs,
+Test262 runner, string header and VM source are byte-identical to tested r5.
+Revalidated corpus/config/errors and exact portable failure/fix identities
+support reuse of the full ON/OFF Test262 evidence:65/81152 inherited failures,
+31 fixed and0 new/changed. This reuse is explicit, not a claim of another run.
+
+The bounded linked-image fixture observes59 actual native append commits,
+64 character-cache hits and2 indexed-string hits. Component controls remove
+their corresponding admissions. These counts prove those paths execute; they
+are not suite hit rates or a speed claim. Existing pool-allocation fixtures
+match Windows counts15,227,15,402 without lowering their thresholds.
+
+The public ownership fixture covers18 simultaneous runtimes,16-slot saturation,
+non-LIFO release, two threads, Symbol identity, all256 characters and257 warm-
+metadata/cold-cache fault injections. Complete allocator ledgers and owner
+slots return to zero. Optional cache OFF values0/1 also pass. The function and
+intrinsic metadata warmup uses uncached wide character257; Latin-1 misses and
+atom-table growth remain cold for this sweep.
+
+Static image delta from the JSON checkpoint is+9184 executable-section bytes
+and+33080 allocated writable bytes. LegacyCallInternal remains37388 bytes but
+its ELF entry moves+2352 bytes. These are static accounting facts, not runtime
+RSS, layout neutrality or performance evidence. Default Windows local-string
+C output and native-body factory equivalence are checked; final current-tree
+Windows/MSVC/MinGW and LF-source-package qualification remain required.
+
+Retained inherited negative
+---------------------------
+The optional command below intentionally fails: a cold function's allocation
+fault2 can leave subsequent recovery with TypeError:not a function. It was
+independently reproduced on stock NG0.15.1, the prior JSON build, current and
+cache-OFF. It is not counted as a passing fault test or attributed to the cache.
+The frozen pre-warm reproducer and logs remain in the external evidence.
+  build/linux-native/linux-string-ownership cold 2
+
+All six LINUX-PORT.txt gates remain open for the whole product. Complete the
+array/sort and remaining native call/iterator/property/RegExp mechanisms before
+whole-suite quick comparisons, justified profiles and final release packaging.

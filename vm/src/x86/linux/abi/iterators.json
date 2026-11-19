@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "status": "reviewed-source-algorithms-pending-Linux-qualification",
+  "owners": {
+    "tools/x86/common/codegen/iterator.py": "ffcf870ba33e28a4fa21a7ccef189f073d2260eeefe44710b3c0be103ef0b0f3",
+    "tools/x86/common/codegen/iterator-fast.py": "32869f6726086b8af32f7df121722da7aa44888395e8a08736a67a0a2ccc9745",
+    "tools/x86/common/codegen/iterator-slow.py": "eb2a9477e60b1105ae4ef2cb8ec8d9f2f401ed3e3807f8ecabcb66d59ae6d3bc",
+    "tools/x86/common/codegen/iterator-checkpoint.py": "f708ec3b4a22c7fdfd6742d460b593268db14b1f96a673a0e8b16b105e1cc82d",
+    "tools/x86/common/codegen/varargs.py": "efb360c4179562c614a772bd0c1a3189312d60ac04d46b27f7ff63cdc2e06684"
+  },
+  "metadata": "Existing combined tail byte after pc2line_len;prefix leaf/argument byte untouched",
+  "metadata_bits": {
+    "extended": 1,
+    "varargs": 2,
+    "array_enabled": 4,
+    "array_initialized": 8,
+    "slow_array_enabled": 16,
+    "slow_array_initialized": 32,
+    "js_next_enabled": 64,
+    "js_next_initialized": 128
+  },
+  "ABI": "Actual Linux compiler types;SysV state-only int;ELF compiler unwind;no PE metadata"
+}

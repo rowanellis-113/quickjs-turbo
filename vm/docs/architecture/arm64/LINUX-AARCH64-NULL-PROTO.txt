@@ -1,0 +1,31 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 null-prototype cohort and warm allocator
+
+The opt-in backend independently controls QJS_INTERP_FRAME_NATIVE_NULL_PROTO.
+The complete accepted bounded null-only classifier remains the shared source
+factory, with the original ordinary classifier first. Only the independent
+THIS_FUNC case is removed from the derived null-only clone. The original
+THIS_FUNC route and exact cases in the typed C fallback remain valid.
+
+The complete source-owned ordinary allocator duplicates the warm null shape
+before GC/allocator reentry, retains the original malloc/accounting/GC list,
+and consumes the shape on every failure. No new allocation representation,
+public ABI, runtime/frame/state field or retained strong cache is introduced.
+Mode bytes use only the original measured runtime padding and same-TU checks.
+All arguments and aggregate results use the actual compiler AAPCS64 types.
+
+NULL_PROTO's native state-only C bridge participates in the existing immutable
+Clean/Dirty tables and observing publication proxies. The original seven
+boundaries and 17-word publication statistics prefix remain unchanged.
+The original full scoped C owner handles TLS blocking, reentry, quota and
+exception cleanup. Compiled OFF must retain prior core/VM object bytes.
+
+QJS_DISABLE_NATIVE_NULL_PROTO presence, including 0, rejects the new cohort.
+Register/frame/admission controls retain their original semantics. Public
+fresh-runtime GC/realm/allocation reentry and complete OOM sweeps are retained.
+Native admission, ownership, original special-object C fallback and real
+unwind require separate checks; QEMU does not establish hardware performance.
+Whole original22 and final P5 migration qualification remain OPEN.

@@ -1,0 +1,48 @@
+Linux complete GNU numeric and compiler projection candidate
+===========================================================
+
+This development group carries the accepted add_loc BigInt cold gate,short
+native sum and complete owned C arithmetic,all seven original heap-BigInt
+release boundaries,the complete common short-decimal converter,and independent
+compiler field projection. Common semantic owners remain unchanged.
+
+BigInt release uses actual SysV ctx/payload/tag registers and original inline
+refcount0. First use,OFF,other tags and nonpositive counts retain JS_FreeValue.
+Positive nonlast owners debit exactly once;the final owner tails original
+js_free_rt with actual rt/pointer ABI and allocator/accounting unchanged.
+The local result is published before releasing its original local owner.
+Original begin/finish C,coercion,OOM,interrupt and exception owners remain.
+QJS_DISABLE_NATIVE_ADD_LOCAL remains the original per-runtime padding mode;
+QJS_DISABLE_BIGINT_RELEASE remains the original atomic process mode,both by
+presence including0. No frame/state extension,new roots or strong cache.
+
+The decimal converter is exactly src/x86/common/string-to-number.c with
+ELF section spelling only. Its original grammar,length,rounding and fallback
+guards remain. The original js_atod is independently callable as an oracle.
+
+Independent compiler projection uses the exact current core type prelude and
+original FD,stack helpers and opcode table compiled with the core target's same
+flags. The common compiler-plan-shim.inc supplies the field algorithm. No COFF
+input,private compiler clone ABI,frozen offsets,JS allocation or retained state.
+Both existing TDZ controls still apply at compilation,including presence0.
+
+Development qualification:890 strict CTests,including26 numeric cases and
+nine existing compiler bytecode/ownership cases;three full pinned Test262
+cohorts(default,BigInt local/release OFF,TDZ both OFF) retain exact portable
+65/81152 inherited failures,31fixed,0new/changed. Independent actual compiled
+objects use identical core/projection/converter flags;the projection and
+converter have zero allocated writable bytes. Decoding proves exactly seven
+release calls in the three source-owned arithmetic boundaries.
+
+Read-only normal Release observation verifies actual Clean and Dirty short
+local PC+2/SP-16/value commits,owned C continuation commits,positive nonlast
+and final-owner debits,actual SysV RT/pointer tails,and component controls.
+Both decimal fast return and original fallback execute. Independent SDK and
+standalone/public-consumer qualification is recorded in the bound module
+checkpoint;the extra ordinary-JS-parent observer is not a workload hit-rate
+or performance measurement. Initial root-only Clean observation is retained.
+
+Whole default-active GNU closure still includes native global-binding
+activation-cache/large-code-bypass and slow-array route review. Whole-suite
+time/memory and final Windows/MSVC/configuration/source-package gates remain
+in LINUX-PORT.txt. No speed or whole-port completion claim is made here.

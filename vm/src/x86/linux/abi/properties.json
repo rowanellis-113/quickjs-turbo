@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "owners": {
+    "tools/x86/common/codegen/own-bytecode.py": "7d6ca9cf3debb4f53ee6df8aa4988bfbc47f6e1802ab70a90cc188f7dcb207be",
+    "tools/x86/common/codegen/number-property.py": "1ec1fdd00c905755098e1589d8ddbe5fea85f6fc70c26250c11c3b73f2355e81",
+    "tools/x86/common/codegen/proto-load.py": "af12025ed1b3ceee92357c8f748173cb38cbe58f02d6f0e9a3dc5ea0f33910a4",
+    "tools/x86/common/codegen/proto-direct.py": "5efc2f8758f9195593571f69fd069cfc3ccf474675cdabed921bb581b1fcf40b",
+    "tools/x86/common/codegen/length.py": "38a60d9a40736fdb065ac735038e0389644a5ad5cd4e430c9a069a8969948637",
+    "tools/x86/common/codegen/property_ic_native.py": "b4eddd4b9d7c0f72e62bbdf0d1be8dcb275ad25524f7fdc4785de434fc366d57",
+    "src/x86/win64/common/quickjs-interpreter-number-property.inc": "ebdacc6699d09761299be66726886a29f10469b2e192d8cb6b5e7801610352b9",
+    "src/x86/win64/common/quickjs-interpreter-proto-load.inc": "119ac89dda95850091e6026fac3f3e2db6e2c4efcee8f3aca334dd03f94b5797",
+    "src/x86/win64/common/quickjs-interpreter-proto-persistent.inc": "9781c26444bfa63b61d08686bee78762bdc620c3a6e30e5ea999905ebe9dcc5b",
+    "tools/x86/common/codegen/generate-register.py": "0249bc3da48982c960c8a2d3371ba52c13114a4cb7f5eb53c51d926dfc4e738d"
+  },
+  "frame_growth": 0,
+  "state_growth": 0,
+  "hint_cap": 2048,
+  "actual_profile": "Linux x86_64 inline-header JSValue16;immutable ELF original/Clean/Dirty tables",
+  "migration": "Source-owned GNU hint/PIC/borrowed/symbol/number/prototype/persistent/direct/chain/length;extra MSVC method learning excluded",
+  "native_borrowed_entry": "Dedicated borrowed_field_index from measured Linux flag;PE binding_index remains unchanged,actual global-cell emitter remains tools/elf"
+}

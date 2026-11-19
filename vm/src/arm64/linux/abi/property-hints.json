@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "tools/common/c_extract/own_bytecode_c.py": "ac462dcfded86e46a1a4b35065eaf2a861222ee6abe829a74e2c33610d0dae66",
+    "tools/common/elf/property_family_c.py": "93e21e8d9b239ecc8db1cc2b2988686d1ef5f51c6c52b92a8a4eab6a13bbfb7e",
+    "tools/arm64/workers/property_hints.py": "bad1eb683cb762fcd7a47df0a3f92b1fdccf4d125ba8b076e1a784061210ed85",
+    "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7",
+    "asm/arm64/common/register-property-ic.inc": "135d5fb9fe0df8a2e1cb128c9139cc8caf27bae60692cf3a258f670d2268c3a5",
+    "asm/arm64/common/register-ops.inc": "7aad6f2b49041f5bb8c924e7816ae544af650bff771d3216f5d7c3ea53c1ada4",
+    "src/common/property/property-ic.h": "5606d8ccbd8fbbeafc5b129df402febf49011faef84472ffcab66018125f7702",
+    "src/common/property/property-ic.inc": "fe1a151295a3ab439eebbcf5979b646a369efea6597f42c565f98dae3f992442"
+  },
+  "lifetime": "Exact two original bytecode producer/free owners;bounded zeroed tail and monotonic optional-reservation failure",
+  "native": "Current own descriptor slot validation;original no-hint hash when disabled or length>2048;original four-way borrowed live-slot PIC",
+  "target_atomic": "Actual AAPCS64 C11 acquire/release lock and seq_cst StoreLoad barrier",
+  "new_frame_fields": 0,
+  "new_state_fields": 0,
+  "new_strong_roots": 0,
+  "hardware_performance_qualified": false
+}

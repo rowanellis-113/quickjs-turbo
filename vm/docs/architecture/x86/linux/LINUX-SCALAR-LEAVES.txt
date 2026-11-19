@@ -1,0 +1,93 @@
+Linux native scalar expression leaves
+=====================================
+
+This incremental optimization extends the accepted 7bb3293 Linux native child
+entry. It does not change the pinned QuickJS-NG 0.15.1 sources or public ABI.
+The original packaged 7bb3293 release remains an immutable historical delivery;
+its exact executable hashes must not be assigned to this newer implementation.
+
+Implementation and boundaries
+-----------------------------
+tools/elf/integer_expressions.py emits a bounded noncalling scalar worker into
+the existing ELF entry assembly. It is reached only after the inherited normal
+function/native-child, realm, host coherence, argument, frame/stack quota and
+interrupt guards, and after the existing shared leaf alternatives have missed.
+
+The grammar is 4..16 bytes: two integer arguments (indices0..3), current captured
+cell values or integer constants; a binary arithmetic, bit/shift or comparison
+operation; optionally an arithmetic-result comparison with a constant or logical
+not; then return. Captured cells are read anew on each invocation; this does not
+cache a value or require the cell to be immutable between calls.
+
+Probes do not allocate, call JS/C, release values or write arguments, captured
+cells or VM state. An admitted return decrements the existing interrupt counter
+once. Objects, floats, BigInt, uninitialized cells, unsupported bytecode, integer
+overflow and negative-zero arithmetic use the inherited call protocol with its
+original arguments. No new JS frame, runtime field or private ABI offset exists.
+The existing red-zone scratch and SysV RAX/RDX JSValue return convention apply.
+
+src/x86/linux/integer-expression.c owns a private one-byte atomic mode and
+cold environment lookup, outside the interpreter translation unit. A preserved
+six-GPR/CFI-covered initialization entry runs after the inherited stack guard
+and before private red-zone views are established. Both new ASM workers append
+after existing constructors; platform source inclusion is LINUX_X86_64 only.
+
+For a fresh-process ablation, set QJS_DISABLE_NATIVE_INT_EXPRESSION_LEAF to any
+value, including0. It retains the original native child call. This is a process
+control, not a live runtime/API setting. PORTABLE and Windows do not include
+this worker; they continue to use their existing implementations.
+
+Qualification on GCC13.3/binutils2.42, Ubuntu24.04 x86-64
+------------------------------------------------------
+934/934 native CTest pass, including seven control/fallback fixture modes.
+tests/test_linux_integer_expression.js compares36892 results and exceptions,
+including live/detached captured cells, TDZ, overflow, -0, coercion with GC,
+late bytecode misses, shifts and operand orders. Default and explicit0/1 disable
+modes pass independently. Two new complete Test262 runs, ON and OFF0, both
+match the accepted failure identities:65/81152 inherited errors,31fixed,
+0new/changed,4925excluded,5954skipped, pinned corpus de8e621.
+
+The measured CLI, fully tested CLI and installed/relocated CLI have SHA256
+855bd6833fda9f29fc27b46c7ac161a8ff8bd79877139c4b382a486121b7facd.
+An independent installed public C consumer passes ON/OFF0/OFF1, with GC,
+host reentry, changing captures and a foreign-realm fallback. New function FDEs,
+PIE/PIC, CET, nonexecuting stack and local engine calls are checked. All19 source
+pins remain unchanged. A fresh PORTABLE configure retains the identical engine
+compile inputs; this is not a new PORTABLE runtime qualification. Windows
+runtime source is unchanged; no new Windows performance claim is made.
+
+Layout and performance limits
+-----------------------------
+The linked register VM and Linux entry initializer retain exactly their old
+addresses and bytes; the main VM table positions also remain. LegacyCallInternal
+retains its entry and size, but some relocation bytes differ. Some native entry
+constructors move16 bytes. Do not claim full executable/data layout identity.
+No PGO, padding, fixed image base or favorable-address selection is used.
+
+Original calibrated lazy-collections repeats about10..13% less time; four
+paired processes per image average96.84ms accepted and85.64ms new. Current stock
+NG0.15.1 averages70.19ms, so this workload still has a22% gap to stock. A fresh
+MinGW original-body comparison is about80.95ms; cross-OS means are descriptive,
+not proof of an isolated compiler/ABI cost. Full native generator execution is
+not implemented by this leaf and remains a larger separate feature decision.
+
+The original JetStream17 subset screen has1.64% less normalized elapsed time.
+Four complete V8-v7 processes average1713.06 accepted vs1768.40 new points.
+These are bounded screens, not confidence intervals or proof that every suite
+change is caused by the leaf. Retain per-case regressions and raw samples.
+
+In particular, eight paired prettier processes average898.23ms accepted vs
+934.31ms new, about4.0% more time and4.2% added cost relative to stock853.69ms.
+It remains a measured cost with broad process spread, not a closed regression.
+The original micro57 user-CPU screen has a3.83% aggregate time increase dominated
+by a string_build1 calibration/mode outlier which does not repeat in the original
+selected confirmation. A separate wall-clock57 diagnostic is0.86% slower; it
+does not replace the upstream score. Clock source and calibration N are retained.
+Engine peak RSS is effectively unchanged in the full screen, with no frame or
+runtime-state growth. Acceptance weighs these explicit costs against the real
+lazy gain and the full macro screens; it does not require every old best sample.
+
+Audit evidence is retained outside the product source in the local maintenance
+boundary-protocol-r1/FINAL-REPORT.txt and FINAL-REPORT.json, together with raw
+original suites, confirmations, ELF comparisons, profiles, hashes and negative
+contexts. Profiles repeating400 bodies are diagnostic; original scores use2.

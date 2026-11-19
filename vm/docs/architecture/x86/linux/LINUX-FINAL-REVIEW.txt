@@ -1,0 +1,527 @@
+Final original suite screens,2026-11-11
+=======================================
+Fresh archive SDK screens; two reversed blocks are not confidence intervals. Native whole CLI/archive equals accepted8c exactly; no new runtime optimization and no new runtime code cost. Historical costs remain explicit.
+
+Pinned stock:QuickJS-NG0.15.1 bf8988f,not Bellard2026.
+CPU2,serial two reversed blocks,normal ASLR,allocator256,no PGO/address tuning.
+Micro uses original user-CPU clock/calibration;Jet17 uses retained two formal
+body iterations per block;V8 uses complete original v7 calibration/errors.
+All samples/negative modes and actual engine memory are retained externally.
+No fresh JSC/Bellard2026/Node comparison is claimed. This is a selected17
+JetStream body-time comparison,not an official JetStream aggregate score.
+
+V8-v7 original whole scores,higher is better:
+MinGW-retained-c25: 1906.112, 1920.439
+MinGW-archive8c: 1917.750, 1935.365
+stock-ng0151: 997.299, 985.662
+archive-portable: 1262.270, 1266.788
+archive-native: 1915.639, 1924.328
+
+V8-v7 per-case score(mean of two processes):
+case | MinGW-retained-c25 | MinGW-archive8c | stock-ng0151 | archive-portable | archive-native
+Richards | 1381.77 | 1395.16 | 763.15 | 518.15 | 1428.30
+DeltaBlue | 1307.85 | 1313.78 | 853.25 | 672.38 | 1325.01
+Crypto | 1530.51 | 1530.32 | 843.63 | 903.09 | 1543.26
+RayTrace | 1797.85 | 1826.48 | 1358.14 | 1403.54 | 1622.72
+EarleyBoyer | 2713.21 | 2710.18 | 1714.45 | 2159.14 | 2618.30
+RegExp | 1468.28 | 1512.82 | 256.50 | 1704.88 | 1716.32
+Splay | 3457.54 | 3445.96 | 2452.05 | 2801.87 | 3339.46
+NavierStokes | 2622.29 | 2622.04 | 1160.95 | 1435.76 | 2600.21
+
+JetStream17 body milliseconds,lower is better:
+case | stock NG | product PORTABLE | product native | native RSS KiB(range)
+Air | 67.284 | 51.628 | 50.829 | 7444..7444
+delta-blue | 156.500 | 194.671 | 102.384 | 5504..5632
+Babylon | 108.624 | 100.443 | 71.931 | 13076..13076
+cdjs | 559.891 | 534.462 | 287.098 | 8064..8192
+FlightPlanner | 77.140 | 46.055 | 39.000 | 68400..68404
+pdfjs | 312.672 | 289.204 | 164.825 | 20876..20880
+typescript-octane | 2857.896 | 3102.447 | 2229.209 | 150760..150764
+crypto | 145.112 | 136.232 | 78.540 | 5632..5760
+richards | 222.257 | 342.452 | 133.126 | 5504..5632
+json-parse-inspector | 131.094 | 74.882 | 39.047 | 72420..72544
+json-stringify-inspector | 140.564 | 106.403 | 23.367 | 47840..47968
+acorn-wtb | 3280.911 | 2361.360 | 1922.973 | 53336..53468
+prettier-wtb | 874.220 | 810.090 | 889.971 | 38240..38244
+async-fs | 337.542 | 234.453 | 193.489 | 9984..10112
+lazy-collections | 68.705 | 73.005 | 83.004 | 5888..5888
+js-tokens | 227.544 | 154.153 | 164.825 | 5632..5632
+bigint-noble-ed25519 | 307.297 | 249.870 | 256.709 | 11904..12032
+
+Original micro57 ns/op,lower is better;mean[raw process pair]:
+Adaptive N and user-CPU-clock modes remain visible. Large separated modes
+are not a stable micro-wide gain or a newly introduced runtime cost.
+case | stock NG | product PORTABLE | product native
+empty_loop | 11.825[12.680,10.970] | 12.590[12.580,12.600] | 5.180[5.180,5.180]
+date_now | 61.800[61.200,62.400] | 54.700[57.800,51.600] | 49.500[49.400,49.600]
+prop_read | 15.890[15.180,16.600] | 24.140[24.080,24.200] | 5.595[5.600,5.590]
+prop_write | 11.965[11.950,11.980] | 21.775[21.750,21.800] | 5.495[5.490,5.500]
+prop_create | 100.000[100.500,99.500] | 56.130[56.130,56.130] | 49.255[49.500,49.010]
+prop_delete | 49.025[53.740,44.310] | 45.020[35.240,54.800] | 111.100[111.000,111.200]
+array_read | 17.180[17.160,17.200] | 16.760[16.500,17.020] | 5.440[5.440,5.440]
+array_write | 26.350[26.300,26.400] | 7.835[7.840,7.830] | 4.590[4.590,4.590]
+array_prop_create | 30.400[28.500,32.300] | 13.720[13.700,13.740] | 12.355[12.350,12.360]
+array_length_decr | 24.270[23.710,24.830] | 24.105[24.050,24.160] | 32.000[31.960,32.040]
+array_hole_length_decr | 36.290[36.210,36.370] | 34.925[35.750,34.100] | 43.685[43.210,44.160]
+array_push | 42.050[41.900,42.200] | 42.400[41.400,43.400] | 39.080[39.960,38.200]
+array_pop | 93.000[93.200,92.800] | 79.460[79.600,79.320] | 43.950[44.200,43.700]
+typed_array_read | 16.815[16.880,16.750] | 14.675[14.320,15.030] | 5.660[5.660,5.660]
+typed_array_write | 31.700[30.840,32.560] | 12.070[12.250,11.890] | 5.480[5.460,5.500]
+global_read | 5.725[5.750,5.700] | 5.590[5.530,5.650] | 3.640[3.640,3.640]
+global_write | 5.730[5.710,5.750] | 5.790[5.800,5.780] | 3.400[3.440,3.360]
+global_write_strict | 5.770[5.730,5.810] | 5.790[5.790,5.790] | 3.385[3.380,3.390]
+local_destruct | 45.170[45.170,45.170] | 47.790[47.830,47.750] | 48.210[48.250,48.170]
+global_destruct | 59.565[59.630,59.500] | 62.125[62.750,61.500] | 63.315[63.500,63.130]
+global_destruct_strict | 59.500[59.250,59.750] | 62.690[63.000,62.380] | 64.875[63.000,66.750]
+func_call | 27.645[27.740,27.550] | 27.130[27.130,27.130] | 15.500[15.450,15.550]
+closure_var | 29.000[29.000,29.000] | 28.690[28.750,28.630] | 11.085[20.350,1.820]
+int_arith | 12.350[12.370,12.330] | 12.170[12.130,12.210] | 9.900[9.890,9.910]
+float_arith | 21.800[21.800,21.800] | 24.450[24.460,24.440] | 15.365[15.680,15.050]
+map_set | 268.750[262.000,275.500] | 259.250[258.000,260.500] | 268.750[274.000,263.500]
+map_delete | 281.500[277.000,286.000] | 254.500[257.000,252.000] | 260.750[263.500,258.000]
+weak_map_set | 110.950[196.550,25.350] | 95.000[95.000,95.000] | 51.960[90.900,13.020]
+weak_map_delete | 372.100[368.400,375.800] | 227.950[224.100,231.800] | 223.500[224.200,222.800]
+array_for | 17.495[17.550,17.440] | 17.120[17.040,17.200] | 10.080[10.080,10.080]
+array_for_in | 85.650[85.400,85.900] | 73.100[72.500,73.700] | 72.955[72.950,72.960]
+array_for_of | 24.175[24.200,24.150] | 33.075[32.800,33.350] | 27.300[27.300,27.300]
+math_min | 44.575[44.400,44.750] | 43.700[43.400,44.000] | 37.900[38.100,37.700]
+object_null | 62.700[62.600,62.800] | 55.100[55.000,55.200] | 60.450[60.500,60.400]
+regexp_ascii | 409.900[400.200,419.600] | 278.200[275.500,280.900] | 272.500[270.200,274.800]
+regexp_utf16 | 394.550[396.100,393.000] | 276.250[275.200,277.300] | 269.550[271.000,268.100]
+string_build1 | 101.650[101.500,101.800] | 88.790[88.860,88.720] | 77.700[77.620,77.780]
+string_build2 | 103.900[103.800,104.000] | 89.750[89.740,89.760] | 84.600[84.600,84.600]
+string_concat0 | 64.390[63.800,64.980] | 73.230[73.060,73.400] | 50.725[48.150,53.300]
+string_concat1 | 108.350[108.600,108.100] | 100.100[100.750,99.450] | 90.575[86.900,94.250]
+string_concat2 | 381.300[375.400,387.200] | 364.800[366.000,363.600] | 329.000[328.400,329.600]
+string_concat3 | 2313.000[2314.000,2312.000] | 2202.000[2202.000,2202.000] | 2029.500[2026.000,2033.000]
+string_slice1 | 83.130[82.960,83.300] | 81.170[81.440,80.900] | 77.660[77.300,78.020]
+string_slice2 | 111.850[101.100,122.600] | 137.975[137.450,138.500] | 122.975[121.150,124.800]
+string_slice3 | 83.230[83.160,83.300] | 74.970[75.100,74.840] | 65.840[65.860,65.820]
+sort_bench | 1.690[1.690,1.690] | 1.685[1.720,1.650] | 0.375[0.400,0.350]
+int_to_string | 67.000[67.000,67.000] | 52.610[52.620,52.600] | 66.700[66.670,66.730]
+int_toString | 79.000[79.000,79.000] | 60.265[61.430,59.100] | 76.585[76.670,76.500]
+float_to_string | 369.170[367.170,371.170] | 338.585[339.170,338.000] | 348.250[346.830,349.670]
+float_toString | 384.085[384.170,384.000] | 352.420[352.670,352.170] | 358.250[357.170,359.330]
+float_toFixed | 179.335[178.000,180.670] | 139.000[140.330,137.670] | 149.335[149.000,149.670]
+float_toPrecision | 193.415[191.000,195.830] | 161.170[161.670,160.670] | 160.670[158.670,162.670]
+float_toExponential | 195.670[194.670,196.670] | 161.665[164.000,159.330] | 160.000[160.670,159.330]
+string_to_int | 119.750[119.000,120.500] | 136.000[140.000,132.000] | 83.300[83.200,83.400]
+string_to_float | 165.750[165.000,166.500] | 177.750[177.500,178.000] | 78.600[78.600,78.600]
+bigint64_arith | 91.250[91.600,90.900] | 72.700[73.000,72.400] | 78.750[79.100,78.400]
+bigint256_arith | 154.200[153.600,154.800] | 130.000[130.000,130.000] | 141.000[140.000,142.000]
+
+Geometric mean normalized elapsed changes(percent;each case equal weight):
+{
+  "micro57": {
+    "stock-ng0151": -30.88369040399804,
+    "archive-portable": -23.041929336555523
+  },
+  "JetStream17": {
+    "stock-ng0151": -40.66572627753713,
+    "archive-portable": -31.437784081611998
+  }
+}
+
+Slower-than-stock screen flags(over3percent);not newly introduced code costs:
+{
+  "micro57": [
+    {
+      "case": "prop_delete",
+      "extra_time_stock_percent": 126.61907190209072
+    },
+    {
+      "case": "array_length_decr",
+      "extra_time_stock_percent": 31.85002060156572
+    },
+    {
+      "case": "array_hole_length_decr",
+      "extra_time_stock_percent": 20.377514466795276
+    },
+    {
+      "case": "local_destruct",
+      "extra_time_stock_percent": 6.730130617666585
+    },
+    {
+      "case": "global_destruct",
+      "extra_time_stock_percent": 6.295643414756991
+    },
+    {
+      "case": "global_destruct_strict",
+      "extra_time_stock_percent": 9.03361344537814
+    },
+    {
+      "case": "array_for_of",
+      "extra_time_stock_percent": 12.92657704239919
+    },
+    {
+      "case": "string_slice2",
+      "extra_time_stock_percent": 9.946356727760385
+    }
+  ],
+  "JetStream17": [
+    {
+      "case": "lazy-collections",
+      "extra_time_stock_percent": 20.81224369494055
+    }
+  ]
+}
+
+Jet17 extra native time vs PORTABLE,priced in stock percentage points:
+{
+  "Air": {
+    "extra_time_vs_portable_stock_pp": -1.1882380043021725,
+    "extra_time_vs_stock_pct": -24.456970030253654
+  },
+  "delta-blue": {
+    "extra_time_vs_portable_stock_pp": -58.96967721941903,
+    "extra_time_vs_stock_pct": -34.5788644692226
+  },
+  "Babylon": {
+    "extra_time_vs_portable_stock_pp": -26.24880321107181,
+    "extra_time_vs_stock_pct": -33.78028796580378
+  },
+  "cdjs": {
+    "extra_time_vs_portable_stock_pp": -44.18083162615051,
+    "extra_time_vs_stock_pct": -48.722519204627936
+  },
+  "FlightPlanner": {
+    "extra_time_vs_portable_stock_pp": -9.14668135857388,
+    "extra_time_vs_stock_pct": -49.443220119251585
+  },
+  "pdfjs": {
+    "extra_time_vs_portable_stock_pp": -39.77927366435947,
+    "extra_time_vs_stock_pct": -47.28497652094639
+  },
+  "typescript-octane": {
+    "extra_time_vs_portable_stock_pp": -30.5552790312742,
+    "extra_time_vs_stock_pct": -21.99826865668505
+  },
+  "crypto": {
+    "extra_time_vs_portable_stock_pp": -39.75677365892421,
+    "extra_time_vs_stock_pct": -45.876023133900205
+  },
+  "richards": {
+    "extra_time_vs_portable_stock_pp": -94.18173555839552,
+    "extra_time_vs_stock_pct": -40.10267393153819
+  },
+  "json-parse-inspector": {
+    "extra_time_vs_portable_stock_pp": -27.335451414451274,
+    "extra_time_vs_stock_pct": -70.21438896666241
+  },
+  "json-stringify-inspector": {
+    "extra_time_vs_portable_stock_pp": -59.07330139047912,
+    "extra_time_vs_stock_pct": -83.37601866772913
+  },
+  "acorn-wtb": {
+    "extra_time_vs_portable_stock_pp": -13.361745155404138,
+    "extra_time_vs_stock_pct": -41.38905768938462
+  },
+  "prettier-wtb": {
+    "extra_time_vs_portable_stock_pp": 9.137402484498931,
+    "extra_time_vs_stock_pct": 1.8016917938275423
+  },
+  "async-fs": {
+    "extra_time_vs_portable_stock_pp": -12.135879185587116,
+    "extra_time_vs_stock_pct": -42.67707029485145
+  },
+  "lazy-collections": {
+    "extra_time_vs_portable_stock_pp": 14.552851149304711,
+    "extra_time_vs_stock_pct": 20.81224369494055
+  },
+  "js-tokens": {
+    "extra_time_vs_portable_stock_pp": 4.689972049362585,
+    "extra_time_vs_stock_pct": -27.56367999155922
+  },
+  "bigint-noble-ed25519": {
+    "extra_time_vs_portable_stock_pp": 2.225698774879565,
+    "extra_time_vs_stock_pct": -16.462181913736394
+  }
+}
+
+Micro native vs PORTABLE costs,in stock percentage points:
+{
+  "empty_loop": {
+    "extra_time_vs_portable_stock_pp": -62.66384778012685,
+    "extra_time_vs_stock_pct": -56.194503171247355
+  },
+  "date_now": {
+    "extra_time_vs_portable_stock_pp": -8.414239482200651,
+    "extra_time_vs_stock_pct": -19.902912621359214
+  },
+  "prop_read": {
+    "extra_time_vs_portable_stock_pp": -116.70862177470109,
+    "extra_time_vs_stock_pct": -64.78917558212713
+  },
+  "prop_write": {
+    "extra_time_vs_portable_stock_pp": -136.0635185959047,
+    "extra_time_vs_stock_pct": -54.07438361888842
+  },
+  "prop_create": {
+    "extra_time_vs_portable_stock_pp": -6.875000000000007,
+    "extra_time_vs_stock_pct": -50.745000000000005
+  },
+  "prop_delete": {
+    "extra_time_vs_portable_stock_pp": 134.7883732789393,
+    "extra_time_vs_stock_pct": 126.61907190209072
+  },
+  "array_read": {
+    "extra_time_vs_portable_stock_pp": -65.8905704307334,
+    "extra_time_vs_stock_pct": -68.33527357392316
+  },
+  "array_write": {
+    "extra_time_vs_portable_stock_pp": -12.314990512333965,
+    "extra_time_vs_stock_pct": -82.58064516129032
+  },
+  "array_prop_create": {
+    "extra_time_vs_portable_stock_pp": -4.490131578947363,
+    "extra_time_vs_stock_pct": -59.358552631578945
+  },
+  "array_length_decr": {
+    "extra_time_vs_portable_stock_pp": 32.52987227029254,
+    "extra_time_vs_stock_pct": 31.85002060156572
+  },
+  "array_hole_length_decr": {
+    "extra_time_vs_portable_stock_pp": 24.138881234499877,
+    "extra_time_vs_stock_pct": 20.377514466795276
+  },
+  "array_push": {
+    "extra_time_vs_portable_stock_pp": -7.895362663495839,
+    "extra_time_vs_stock_pct": -7.063020214030913
+  },
+  "array_pop": {
+    "extra_time_vs_portable_stock_pp": -38.18279569892472,
+    "extra_time_vs_stock_pct": -52.74193548387096
+  },
+  "typed_array_read": {
+    "extra_time_vs_portable_stock_pp": -53.6128456735058,
+    "extra_time_vs_stock_pct": -66.3395777579542
+  },
+  "typed_array_write": {
+    "extra_time_vs_portable_stock_pp": -20.788643533123025,
+    "extra_time_vs_stock_pct": -82.71293375394322
+  },
+  "global_read": {
+    "extra_time_vs_portable_stock_pp": -34.061135371179034,
+    "extra_time_vs_stock_pct": -36.419213973799124
+  },
+  "global_write": {
+    "extra_time_vs_portable_stock_pp": -41.71029668411867,
+    "extra_time_vs_stock_pct": -40.663176265270515
+  },
+  "global_write_strict": {
+    "extra_time_vs_portable_stock_pp": -41.68110918544195,
+    "extra_time_vs_stock_pct": -41.334488734835354
+  },
+  "local_destruct": {
+    "extra_time_vs_portable_stock_pp": 0.929820677440783,
+    "extra_time_vs_stock_pct": 6.730130617666585
+  },
+  "global_destruct": {
+    "extra_time_vs_portable_stock_pp": 1.9978175102828806,
+    "extra_time_vs_stock_pct": 6.295643414756991
+  },
+  "global_destruct_strict": {
+    "extra_time_vs_portable_stock_pp": 3.672268907563029,
+    "extra_time_vs_stock_pct": 9.03361344537814
+  },
+  "func_call": {
+    "extra_time_vs_portable_stock_pp": -42.069090251401704,
+    "extra_time_vs_stock_pct": -43.93199493579309
+  },
+  "closure_var": {
+    "extra_time_vs_portable_stock_pp": -60.70689655172413,
+    "extra_time_vs_stock_pct": -61.775862068965516
+  },
+  "int_arith": {
+    "extra_time_vs_portable_stock_pp": -18.380566801619445,
+    "extra_time_vs_stock_pct": -19.83805668016194
+  },
+  "float_arith": {
+    "extra_time_vs_portable_stock_pp": -41.67431192660551,
+    "extra_time_vs_stock_pct": -29.518348623853207
+  },
+  "map_set": {
+    "extra_time_vs_portable_stock_pp": 3.5348837209302326,
+    "extra_time_vs_stock_pct": 0.0
+  },
+  "map_delete": {
+    "extra_time_vs_portable_stock_pp": 2.2202486678507993,
+    "extra_time_vs_stock_pct": -7.371225577264651
+  },
+  "weak_map_set": {
+    "extra_time_vs_portable_stock_pp": -38.79224876070302,
+    "extra_time_vs_stock_pct": -53.16809373591709
+  },
+  "weak_map_delete": {
+    "extra_time_vs_portable_stock_pp": -1.1959150765923108,
+    "extra_time_vs_stock_pct": -39.93550120935233
+  },
+  "array_for": {
+    "extra_time_vs_portable_stock_pp": -40.240068591025995,
+    "extra_time_vs_stock_pct": -42.38353815375822
+  },
+  "array_for_in": {
+    "extra_time_vs_portable_stock_pp": -0.16929363689433277,
+    "extra_time_vs_stock_pct": -14.821949795680101
+  },
+  "array_for_of": {
+    "extra_time_vs_portable_stock_pp": -23.888314374353683,
+    "extra_time_vs_stock_pct": 12.92657704239919
+  },
+  "math_min": {
+    "extra_time_vs_portable_stock_pp": -13.01177790241166,
+    "extra_time_vs_stock_pct": -14.974761637689282
+  },
+  "object_null": {
+    "extra_time_vs_portable_stock_pp": 8.532695374800639,
+    "extra_time_vs_stock_pct": -3.5885167464114853
+  },
+  "regexp_ascii": {
+    "extra_time_vs_portable_stock_pp": -1.3905830690412269,
+    "extra_time_vs_stock_pct": -33.52037082215175
+  },
+  "regexp_utf16": {
+    "extra_time_vs_portable_stock_pp": -1.6981371182359621,
+    "extra_time_vs_stock_pct": -31.681662653656062
+  },
+  "string_build1": {
+    "extra_time_vs_portable_stock_pp": -10.909985243482526,
+    "extra_time_vs_stock_pct": -23.561239547466794
+  },
+  "string_build2": {
+    "extra_time_vs_portable_stock_pp": -4.956689124157849,
+    "extra_time_vs_stock_pct": -18.57555341674688
+  },
+  "string_concat0": {
+    "extra_time_vs_portable_stock_pp": -34.95107936014911,
+    "extra_time_vs_stock_pct": -21.22223947817985
+  },
+  "string_concat1": {
+    "extra_time_vs_portable_stock_pp": -8.790955237655737,
+    "extra_time_vs_stock_pct": -16.405168435625285
+  },
+  "string_concat2": {
+    "extra_time_vs_portable_stock_pp": -9.388932599003413,
+    "extra_time_vs_stock_pct": -13.716233936532907
+  },
+  "string_concat3": {
+    "extra_time_vs_portable_stock_pp": -7.457846952010376,
+    "extra_time_vs_stock_pct": -12.256809338521402
+  },
+  "string_slice1": {
+    "extra_time_vs_portable_stock_pp": -4.222302417899682,
+    "extra_time_vs_stock_pct": -6.580055335017443
+  },
+  "string_slice2": {
+    "extra_time_vs_portable_stock_pp": -13.410818059901654,
+    "extra_time_vs_stock_pct": 9.946356727760385
+  },
+  "string_slice3": {
+    "extra_time_vs_portable_stock_pp": -10.969602306860503,
+    "extra_time_vs_stock_pct": -20.89390844647361
+  },
+  "sort_bench": {
+    "extra_time_vs_portable_stock_pp": -77.51479289940829,
+    "extra_time_vs_stock_pct": -77.81065088757396
+  },
+  "int_to_string": {
+    "extra_time_vs_portable_stock_pp": 21.029850746268664,
+    "extra_time_vs_stock_pct": -0.4477611940298498
+  },
+  "int_toString": {
+    "extra_time_vs_portable_stock_pp": 20.658227848101273,
+    "extra_time_vs_stock_pct": -3.0569620253164453
+  },
+  "float_to_string": {
+    "extra_time_vs_portable_stock_pp": 2.618035051602233,
+    "extra_time_vs_stock_pct": -5.666765988568956
+  },
+  "float_toString": {
+    "extra_time_vs_portable_stock_pp": 1.5178931746878903,
+    "extra_time_vs_stock_pct": -6.726375672051765
+  },
+  "float_toFixed": {
+    "extra_time_vs_portable_stock_pp": 5.762957593330906,
+    "extra_time_vs_stock_pct": -16.728469066272623
+  },
+  "float_toPrecision": {
+    "extra_time_vs_portable_stock_pp": -0.25851149083576763,
+    "extra_time_vs_stock_pct": -16.929917534834438
+  },
+  "float_toExponential": {
+    "extra_time_vs_portable_stock_pp": -0.850922471508162,
+    "extra_time_vs_stock_pct": -18.229672407625074
+  },
+  "string_to_int": {
+    "extra_time_vs_portable_stock_pp": -44.008350730688925,
+    "extra_time_vs_stock_pct": -30.438413361169093
+  },
+  "string_to_float": {
+    "extra_time_vs_portable_stock_pp": -59.81900452488688,
+    "extra_time_vs_stock_pct": -52.579185520361996
+  },
+  "bigint64_arith": {
+    "extra_time_vs_portable_stock_pp": 6.630136986301367,
+    "extra_time_vs_stock_pct": -13.698630136986301
+  },
+  "bigint256_arith": {
+    "extra_time_vs_portable_stock_pp": 7.133592736705578,
+    "extra_time_vs_stock_pct": -8.560311284046684
+  }
+}
+Micro actual child peak RSS KiB:
+{"stock-ng0151": [9012, 9144], "archive-portable": [11116, 7276], "archive-native": [6752, 6756]}
+V8 actual Linux child peak RSS KiB(Windows not collected in this harness):
+{"MinGW-retained-c25": [null, null], "MinGW-archive8c": [null, null], "stock-ng0151": [162936, 162904], "archive-portable": [181716, 181844], "archive-native": [182420, 182484]}
+V8 native vs PORTABLE costs,stockLinux percentage points(no cross-OS attribution):
+{
+  "Richards": {
+    "extra_time_vs_portable_stock_pp": -93.83122077478097,
+    "extra_time_vs_stock_pct": -46.593209996947735
+  },
+  "DeltaBlue": {
+    "extra_time_vs_portable_stock_pp": -62.51127070499022,
+    "extra_time_vs_stock_pct": -35.60541198389602
+  },
+  "Crypto": {
+    "extra_time_vs_portable_stock_pp": -38.75059477647805,
+    "extra_time_vs_stock_pct": -45.33337654594368
+  },
+  "RayTrace": {
+    "extra_time_vs_portable_stock_pp": -12.923453570048142,
+    "extra_time_vs_stock_pct": -16.158179481663648
+  },
+  "EarleyBoyer": {
+    "extra_time_vs_portable_stock_pp": -13.918745735517295,
+    "extra_time_vs_stock_pct": -34.51095975883833
+  },
+  "RegExp": {
+    "extra_time_vs_portable_stock_pp": -0.10002716787274633,
+    "extra_time_vs_stock_pct": -85.05520017782608
+  },
+  "Splay": {
+    "extra_time_vs_portable_stock_pp": -14.098929406895426,
+    "extra_time_vs_stock_pct": -26.573701280850457
+  },
+  "NavierStokes": {
+    "extra_time_vs_portable_stock_pp": -36.169117329443885,
+    "extra_time_vs_stock_pct": -55.308586831949725
+  }
+}
+
+Interpretation and stop decision
+Native runtime bytes equal accepted8c;delivery adds no interpreter changes.
+Differences from prior runs of these same bytes are run/mode observations,
+not a new optimization or an isolated ABI attribution. Ray/Earley/Splay
+source-platform differences remain visible;whole parity does not erase them.
+Prior confirmed costs and negative modes remain in the historical reports.
+The earlier async-fs cost is not hidden by the whole-suite improvement.
+Retain accepted8c. All current over3percent stock flags also appear in the historical performance review,including slow prop_delete populations. Full original calibration/raw pairs retained. Native-vs-PORTABLE costs are configuration tradeoffs,not an incremental8c-code ablation. No new code change is credited or accepted on these flags;remaining costs are deferred unless a representative application budget justifies a bounded remedy.
+Original whole-suite and literal counters give no worthwhile bounded
+runtime remedy. Apply-scope/REST variants stay parked. Async/GC redesign
+needs a separately justified scope. This is not an architecture ceiling.
+Reopen only for a representative measured gap,concrete bounded remedy,
+repeatable net suite benefit,stock-priced costs,memory and correctness.
+
+Raw current evidence:maintenance/linux-final-review-20261111.
+Final source/SDK hashes and qualification scope are in the bundled manifest.

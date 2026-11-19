@@ -1,0 +1,72 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 ordinary constructors
+==================================
+
+Target: Linux/glibc little-endian LP64, GCC/AAPCS64, QEMU functional scope.
+The backend remains explicit LINUX_AARCH64; AUTO remains PORTABLE until P5.
+This supplement does not complete the original22 mechanism inventory.
+
+The accepted source-owned GNU constructor factory supplies the complete
+ordinary non-derived constructor admission and same-activation root3 push.
+The typed C opcode boundary retains JS_CreateFromCtor, original target/realm
+checks, stack/segment allocation, formal ownership, quota, interrupts and the
+complete original fallback. Native construction does not claim a no-C push:
+it avoids recursive JS_CallInternal for admitted ordinary constructor bodies.
+The source factory's default invocation emits the same six original outputs;
+the AArch64 caller supplies its already-reviewed loop explicitly.
+
+A guarded native root3 return retains the inherited32-cell nonlast cleanup
+bound and original capture/last-reference fallback. It restores the physical
+parent, segment cursor and exact used-byte count. Parent PC/SP are committed
+to the shared state before either native or C host-result consumption.
+An immediate primitive result transfers the receiver out of its owning slot;
+the unchanged ascending host consumer releases the remaining call operands.
+A heap result uses the actual typed constructor-result owner: objects replace
+the receiver, heap primitives retain it, and original observable Free paths
+retain their original order. Consumed tail calls resume their exact C labels
+and never execute an already-observed call again.
+
+The complete C executor retains original catch-marker/iterator-close,
+append/apply and exception cleanup as dependencies. Its owned put_array_el
+body uses the exact accepted Bellard writable-array-length guard, including
+strict readonly length errors. This is not native iterator checkpoint,
+apply forwarding, virtual arguments or constructor-argument family parity;
+those mechanisms remain separately open.
+
+The independent QJS_INTERP_FRAME_CONSTRUCT_CONTINUATION CMake option compiles
+this supplement OFF. QJS_DISABLE_FRAME_CONSTRUCT_CONTINUATION is tested by
+presence,including0. The existing host-return,iterator,varargs,slow/shared,
+publication,register and legacy controls retain their original meanings.
+In particular,host-return OFF lets a Symbol-returning tail finish and retire
+root3 in the original complete C resume2 path;it need not use native pop.
+
+No runtime/frame/register-state fields or strong roots are added. JSFrame is
+128bytes; register state is168bytes. The original root discriminator is used.
+One4byte constructor policy is added;64bytes of passive TLS counters exist
+only in instrumented images. The original seven observing-helper prefix and
+17-word publication bank remain;two actual typed observing boundaries are
+added for constructor opcode entry and owning heap-result return. Existing
+Clean/Dirty/OFF derivation and actual compiler/assembler CFI checks cover them.
+
+Evidence: linux-arm64-constructors-20261113. Eight original-result cohorts,
+independent controls,public allocator/GC/realm/reentry/OOM tests,actual path
+counters,read-only original/fixed PC/SP and C-tail observations,compiled-OFF
+VM/relocation/CFI equality,and unchanged default C/x86 output checks.
+See FINAL.json there for full frozen-source qualification status;targeted
+checks alone do not establish whole-corpus or release qualification.
+Installed CONSTRUCTORS.json and AARCH64-CONSTRUCTORS.json bind generated
+headers and their actual source owners. QEMU results do not establish ARM
+hardware speed,PMU behavior or physical process memory usage.
+
+Shared executor supplement
+--------------------------
+The iterator family now shares the complete C owner through extended_calls.py.
+Constructor and iterator compile options remain independent. EXTENDED-CALLS.json
+is the generated-header owner;CONSTRUCTORS.json references that receipt.
+Every valid target base dispatch entry must survive the complete map. A prior
+candidate with missing THIS_FUNC/set_name entries was rejected by full Test262;
+its good unit totals did not qualify it. The current independent regression and
+image checks enforce the inherited semantic dispatch relationship.

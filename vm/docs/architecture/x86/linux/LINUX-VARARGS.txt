@@ -1,0 +1,98 @@
+Native spread, intrinsic apply and literal owners on Linux x86_64
+================================================================
+
+This module carries the accepted GNU algorithms into the actual Linux core TU.
+tools/elf/varargs_native.py derives direct_call_text/fusion_call_text from
+tools/generate/varargs.py and intrinsic apply from mingw-apply-forward.c.
+tools/elf/literal_shapes.py derives iterator-literal.py, ordinary_literal.c and
+its native assembly kernels. Frozen owners and normal generation receipts bind
+the source, actual compiler types and native dispatch. No COFF object, Windows
+calling ABI or copied assembly file is used; no pinned upstream file changes.
+
+Spread/apply ownership
+----------------------
+Direct apply bytecode owns a snapshot of every actual argument, including
+extras, with capacity=max(actual,formal). Arena growth reloads the rooted array
+before copying. The existing enter/return/capture/interrupt/exception owner is
+retained. Single-spread fusion requires the exact accepted opcode pattern,
+original array iterator and next identities, live descriptors/realm/prototype
+guards, ready target and existing capacity. It allocates nothing before its
+guarded commit. Other iterators, accessors, changed intrinsics and misses retain
+the complete original path, including constructor spread and abrupt completion.
+
+Intrinsic Function.prototype.apply forwarding uses the existing 16-byte owning
+argument prefix and ordinary root2 child plus an 80-byte logical native frame.
+Its real SysV state-only bridge returns0=miss,1=resumed,2=event. The exact
+intrinsic/magic/realm/length/shape/capacity/poll guards remain. Logical apply is
+visible in backtraces. Prefix owners, cached C views and paused JS-next output
+tops remain distinct; inactive owners are cleared and C boundaries commit
+quota before lending the existing typed TLS anchor.
+
+Activation-owned shapes and scalar cohorts
+-----------------------------------------
+Every physical VM entry, including the native SysV root/borrowed-child entries,
+uses one literal facade. It saves/restores the caller's state padding flags and
+call-cache replacement-counter pointer. Ordinary entry starts with a 24-byte
+lazy stack owner. A repeated eligible literal may allocate an 864-byte scope;
+extended iterator/varargs entry uses an 864-byte full stack scope. The shared
+legacy checkpoint prefix is336 bytes. Old/new shapes are strong external roots,
+never bytecode GC edges. Live shape/prototype/normal-data/extensibility/COW and
+capacity guards protect object creation and transitions. Cleanup restores the
+caller's pointer and commits quota before releasing roots or native prototypes.
+Consumed define-field RHS values leave the published stack before core calls.
+
+The optional scope has64 buckets and at most16 chunks of16 records. Actual
+compiler sizes:site40,record48,chunk784,scope864,lazy24 bytes. Thus lazy extra
+heap is bounded by864+16*784=13408 bytes per physical owner, excluding allocator
+overhead; a full stack owner needs at most12544 bytes of chunk heap. The maximum
+528 old/new shape-reference slots is a structural bound, not a measured RSS.
+Reachable JS object graphs retained by these shape/prototype roots are additional
+and can exceed the cache storage bound; peak memory remains a whole-suite gate.
+Allocation failure retains the original opcode without throwing a new error.
+No JSFrame128/state168/public type grows. Image/layout cost must still be
+measured on the actual whole product; none of these bounds proves a speedup.
+
+Accepted native insert2, three typeof forms, primitive predicate and five
+truthiness kernels use compiler-checked Linux fields and the existing VM CFA.
+Dirty variants derive from the existing publication factory. Classification
+extends only the shared VM leaf cohort; standalone root/child leaves keep their
+immutable length guards and reject the16-byte predicate they do not implement.
+
+Qualification and controls
+--------------------------
+The current normal strict build passes715 CTests. The existing public C fixture
+has default and97-actual/99-formal variants, rather than duplicate C files.
+Each host verifies66 cyclic resources,132 C probes,66 cross-realm GC reentries,
+three interrupts, logical backtraces and zero complete allocation ledgers.
+Public class-prototype APIs make the shape cache hold finalizable cyclic native
+prototypes; actual native transitions are observed before GC/reset/cleanup.
+Every allocation-fault point recovers against the same compiled public object
+linked to current, prior and stock NG archives. Current full Test262 native-on,
+varargs-off and literal-shapes-off each test81152 cases:65 inherited failures,
+31 fixed,0 new/changed,with exact portable failure/fix identities. ELF/SDK/
+standalone evidence is separately bound to these final current images.
+
+Controls are by presence, including0, in fresh processes. Varargs controls:
+QJS_DISABLE_FRAME_VARARGS, QJS_DISABLE_FRAME_VARARGS_DIRECT,
+QJS_DISABLE_FRAME_VARARGS_FUSION, QJS_DISABLE_FRAME_APPLY_DIRECT and the
+existing QJS_DISABLE_FRAME_CALL_FORWARD. Literal controls:
+QJS_DISABLE_FRAME_ORDINARY_LITERAL, QJS_DISABLE_FRAME_ORDINARY_LITERAL_TRANSITION,
+QJS_DISABLE_FRAME_ITERATOR_LITERAL_SHAPES, QJS_DISABLE_FRAME_ITERATOR_LITERAL_TRANSITION,
+QJS_DISABLE_FRAME_LITERAL_LAZY, QJS_DISABLE_FRAME_LITERAL_REPEAT_GUARD,
+QJS_DISABLE_FRAME_LITERAL_SPARE and QJS_DISABLE_FRAME_LITERAL_VM_HIT.
+QJS_ORDINARY_LITERAL_FAIL_CACHE_ALLOC and QJS_LITERAL_LAZY_FAIL_ALLOC exercise
+optional-allocation misses. Scalar controls:QJS_DISABLE_FRAME_STACK_INSERT,
+QJS_DISABLE_FRAME_TYPEOF, QJS_DISABLE_FRAME_PREDICATE,
+QJS_DISABLE_FRAME_TRUTHINESS and QJS_DISABLE_FRAME_NUMBER_TRUTH.
+Observation uses QJS_OBSERVE_FRAME_APPLY_DIRECT and
+QJS_OBSERVE_FRAME_ORDINARY_LITERAL. Counters and intrusive GDB observations
+prove routes/ownership only; they are not performance or suite path rates.
+
+This closes these direct/fused/apply/literal dependencies, not the entire GNU
+port. Independent slow-array natural-hit qualification and remaining property/
+prototype/indexed/RegExp/BigInt/compiler supplements must be reviewed explicitly.
+Weak VM lifetime links stay opt-in/defaultOFF; MSVC-only coroutine segments are
+outside GNU scope. Whole micro57/Jet17/V8-v7 screens, current Windows/configuration
+and source-package gates remain. No PGO, fixed address, padding search or local
+performance variant was introduced. Complete default-active mechanisms before
+local tuning. Stock here means NG0.15.1 bf8988f, not Bellard2026.

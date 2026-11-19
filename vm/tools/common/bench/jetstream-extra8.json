@@ -1,0 +1,187 @@
+{
+  "schema": 1,
+  "suite": "JetStream 3.0 additional eight workloads",
+  "repository": "https://github.com/WebKit/JetStream",
+  "revision": "06785cf861ac44855f168cbbe829278c2802e6de",
+  "cases": [
+    {
+      "name": "json-parse-inspector",
+      "files": [
+        "SeaMonster/inspector-json-payload.js.z",
+        "SeaMonster/json-parse-inspector.js"
+      ],
+      "purpose": "JSON parse and object allocation",
+      "deterministic_random": false,
+      "preload": {},
+      "async": false
+    },
+    {
+      "name": "json-stringify-inspector",
+      "files": [
+        "SeaMonster/inspector-json-payload.js.z",
+        "SeaMonster/json-stringify-inspector.js"
+      ],
+      "purpose": "JSON serialization, strings and numbers",
+      "deterministic_random": false,
+      "preload": {},
+      "async": false
+    },
+    {
+      "name": "acorn-wtb",
+      "files": [
+        "web-tooling-benchmark/dist/acorn.bundle.js",
+        "web-tooling-benchmark/benchmark.js"
+      ],
+      "purpose": "JavaScript tooling / parser and formatter",
+      "deterministic_random": false,
+      "preload": {
+        "BUNDLE": "web-tooling-benchmark/dist/acorn.bundle.js",
+        "angular-material-20.1.6.css": "web-tooling-benchmark/third_party/angular-material-20.1.6.css",
+        "backbone-1.6.1.js": "web-tooling-benchmark/third_party/backbone-1.6.1.js",
+        "bootstrap-5.3.7.css": "web-tooling-benchmark/third_party/bootstrap-5.3.7.css",
+        "foundation-6.9.0.css": "web-tooling-benchmark/third_party/foundation-6.9.0.css",
+        "jquery-3.7.1.js": "web-tooling-benchmark/third_party/jquery-3.7.1.js",
+        "lodash.core-4.17.21.js": "web-tooling-benchmark/third_party/lodash.core-4.17.21.js",
+        "lodash-4.17.4.min.js.map": "web-tooling-benchmark/third_party/lodash-4.17.4-actually-a-source-map.min.js",
+        "mootools-core-1.6.0.js": "web-tooling-benchmark/third_party/mootools-core-1.6.0.js",
+        "preact-8.2.5.js": "web-tooling-benchmark/third_party/preact-8.2.5.js",
+        "preact-10.27.1.min.module.js.map": "web-tooling-benchmark/third_party/preact-10.27.1.min.module-actually-a-source-map.js",
+        "redux-5.0.1.min.js": "web-tooling-benchmark/third_party/redux-5.0.1.min.js",
+        "redux-5.0.1.esm.js": "web-tooling-benchmark/third_party/redux-5.0.1.esm.js",
+        "source-map.min-0.5.7.js.map": "web-tooling-benchmark/third_party/source-map.min-0.5.7-actually-a-source-map.js",
+        "source-map/lib/mappings.wasm": "web-tooling-benchmark/third_party/source-map/lib/mappings.wasm",
+        "speedometer-es2015-test-2.0.js": "web-tooling-benchmark/third_party/speedometer-es2015-test-2.0.js",
+        "todomvc/react/app.jsx": "web-tooling-benchmark/third_party/todomvc/react/app.jsx",
+        "todomvc/react/footer.jsx": "web-tooling-benchmark/third_party/todomvc/react/footer.jsx",
+        "todomvc/react/todoItem.jsx": "web-tooling-benchmark/third_party/todomvc/react/todoItem.jsx",
+        "todomvc/typescript-angular.ts": "web-tooling-benchmark/third_party/todomvc/typescript-angular.ts",
+        "underscore-1.13.7.js": "web-tooling-benchmark/third_party/underscore-1.13.7.js",
+        "underscore-1.13.7.min.js.map": "web-tooling-benchmark/third_party/underscore-1.13.7-actually-a-source-map.min.js",
+        "vue-3.5.18.runtime.esm-browser.js": "web-tooling-benchmark/third_party/vue-3.5.18.runtime.esm-browser.js"
+      },
+      "async": true
+    },
+    {
+      "name": "prettier-wtb",
+      "files": [
+        "web-tooling-benchmark/dist/prettier.bundle.js",
+        "web-tooling-benchmark/benchmark.js"
+      ],
+      "purpose": "JavaScript tooling / parser and formatter",
+      "deterministic_random": false,
+      "preload": {
+        "BUNDLE": "web-tooling-benchmark/dist/prettier.bundle.js",
+        "angular-material-20.1.6.css": "web-tooling-benchmark/third_party/angular-material-20.1.6.css",
+        "backbone-1.6.1.js": "web-tooling-benchmark/third_party/backbone-1.6.1.js",
+        "bootstrap-5.3.7.css": "web-tooling-benchmark/third_party/bootstrap-5.3.7.css",
+        "foundation-6.9.0.css": "web-tooling-benchmark/third_party/foundation-6.9.0.css",
+        "jquery-3.7.1.js": "web-tooling-benchmark/third_party/jquery-3.7.1.js",
+        "lodash.core-4.17.21.js": "web-tooling-benchmark/third_party/lodash.core-4.17.21.js",
+        "lodash-4.17.4.min.js.map": "web-tooling-benchmark/third_party/lodash-4.17.4-actually-a-source-map.min.js",
+        "mootools-core-1.6.0.js": "web-tooling-benchmark/third_party/mootools-core-1.6.0.js",
+        "preact-8.2.5.js": "web-tooling-benchmark/third_party/preact-8.2.5.js",
+        "preact-10.27.1.min.module.js.map": "web-tooling-benchmark/third_party/preact-10.27.1.min.module-actually-a-source-map.js",
+        "redux-5.0.1.min.js": "web-tooling-benchmark/third_party/redux-5.0.1.min.js",
+        "redux-5.0.1.esm.js": "web-tooling-benchmark/third_party/redux-5.0.1.esm.js",
+        "source-map.min-0.5.7.js.map": "web-tooling-benchmark/third_party/source-map.min-0.5.7-actually-a-source-map.js",
+        "source-map/lib/mappings.wasm": "web-tooling-benchmark/third_party/source-map/lib/mappings.wasm",
+        "speedometer-es2015-test-2.0.js": "web-tooling-benchmark/third_party/speedometer-es2015-test-2.0.js",
+        "todomvc/react/app.jsx": "web-tooling-benchmark/third_party/todomvc/react/app.jsx",
+        "todomvc/react/footer.jsx": "web-tooling-benchmark/third_party/todomvc/react/footer.jsx",
+        "todomvc/react/todoItem.jsx": "web-tooling-benchmark/third_party/todomvc/react/todoItem.jsx",
+        "todomvc/typescript-angular.ts": "web-tooling-benchmark/third_party/todomvc/typescript-angular.ts",
+        "underscore-1.13.7.js": "web-tooling-benchmark/third_party/underscore-1.13.7.js",
+        "underscore-1.13.7.min.js.map": "web-tooling-benchmark/third_party/underscore-1.13.7-actually-a-source-map.min.js",
+        "vue-3.5.18.runtime.esm-browser.js": "web-tooling-benchmark/third_party/vue-3.5.18.runtime.esm-browser.js"
+      },
+      "async": true
+    },
+    {
+      "name": "async-fs",
+      "files": [
+        "generators/async-file-system.js"
+      ],
+      "purpose": "Promises, async iteration and DataView",
+      "deterministic_random": true,
+      "preload": {},
+      "async": true
+    },
+    {
+      "name": "lazy-collections",
+      "files": [
+        "generators/lazy-collections.js"
+      ],
+      "purpose": "Generator pipelines",
+      "deterministic_random": false,
+      "preload": {},
+      "async": false
+    },
+    {
+      "name": "js-tokens",
+      "files": [
+        "generators/js-tokens.js"
+      ],
+      "purpose": "Generators, sticky and Unicode regular expressions",
+      "deterministic_random": false,
+      "preload": {},
+      "async": false
+    },
+    {
+      "name": "bigint-noble-ed25519",
+      "files": [
+        "bigint/web-crypto-sham.js",
+        "bigint/noble-ed25519-bundle.js",
+        "bigint/noble-benchmark.js"
+      ],
+      "purpose": "BigInt and typed arrays in Ed25519",
+      "deterministic_random": true,
+      "preload": {},
+      "async": true
+    }
+  ],
+  "files": {
+    "JetStreamDriver.js": "6f149240db50d30f70e9a96f7b2f23f4bc55f65ba1a577879d3c9b15ae52dc3e",
+    "LICENSE": "a6f297ba05d893eb4aa5a996f05c4343df87d7857aa210e763a4e4463b7192f0",
+    "SeaMonster/inspector-json-payload.js.z": "1732d22ea0b5e3f1d02739b84454fb9a6382aa59d471f2a7e516929dfac46e4a",
+    "SeaMonster/json-parse-inspector.js": "643c191b4592764b106f6a326d65472cfeb385f7434fee4fc00f32ed61818a00",
+    "SeaMonster/json-stringify-inspector.js": "c8d90a113d4f9e193a394119c62068d37384ccf62daa1bedc58a640b60194671",
+    "bigint/noble-benchmark.js": "2211d6e4822b1026c386e270ab3671da7b69d52fa86ba4cef118fb63d03ceb14",
+    "bigint/noble-ed25519-bundle.js": "7e37aac8ed298029e4dba7ad4f99494052035321bdf66a73606e2cc6babce5ae",
+    "bigint/web-crypto-sham.js": "433a8d05b69784329ca6284492ff1493ba5a41ba750b5a12b14a70ae8024d1da",
+    "generators/async-file-system.js": "de465059c82bb114b6703c29ff7bdfd188b5645e486b89400b022e0f0555d1d0",
+    "generators/js-tokens.js": "45765de04a117192f2319ef8086f4d2e8b945f487dc65355d337a59e1c609711",
+    "generators/lazy-collections.js": "1edf7b9e9254b756814d30a3cb5cdbedb8c2000a305b12b21406a9d9472c755c",
+    "web-tooling-benchmark/LICENSE": "6ac90e92f1bd02574dc70ec431a32faa96c1de6a7b1c3327d0ea4991511cb060",
+    "web-tooling-benchmark/benchmark.js": "95c1c41a2eaaadafaeeb4631fed0219ffe6843bb7e8bb1d7976b93bd2553a165",
+    "web-tooling-benchmark/dist/acorn.LICENSE.txt": "50b038c89e45e34fb77c4c98f18d5e39655a5db5b3696dc0b01acdbf454f19de",
+    "web-tooling-benchmark/dist/acorn.bundle.js": "6a74806332cd866ca687115129f5f60709946779527da4a0adae27ba6b58fc34",
+    "web-tooling-benchmark/dist/prettier.LICENSE.txt": "41e7d738e81d47515b20c447d0799b417f5cd5e117a23bb7145a9d687696419f",
+    "web-tooling-benchmark/dist/prettier.bundle.js": "ef5950f1512320c9aecaa1a18e2fcca1a91ec926bc53781aba97c9b62543a723",
+    "web-tooling-benchmark/src/acorn.mjs": "f01ab4c4899af8b4f82270fb1cd9bbd2b7febdded45ec9c2024462f077b1ac46",
+    "web-tooling-benchmark/src/prettier.mjs": "72bcbf0c6d31ca023ca9dae68adcc772e213e27aacd5a5c74c57d03332b152b4",
+    "web-tooling-benchmark/third_party/angular-material-20.1.6.css": "7d0ab24a2b2bcb76c1dc7fe13393a9942aa2d10608d59f755b889d86695ef1c1",
+    "web-tooling-benchmark/third_party/backbone-1.6.1.js": "bf19a1f9974b65bac1e90330fcf6a785d60f70f444ab588b5ec1268a569a4cab",
+    "web-tooling-benchmark/third_party/bootstrap-5.3.7.css": "e2952d5169b9b1c16766828645b077cf3b4da90160772833bd86983d0a224161",
+    "web-tooling-benchmark/third_party/foundation-6.9.0.css": "4b26aaebe722cbc8db34e6673f2dd212531a842a8ff245eb595b2f91a784fc96",
+    "web-tooling-benchmark/third_party/jquery-3.7.1.js": "eb8e34a840daaa32aaac855f938c76d67783055b1b79fe97511e5d502281bff1",
+    "web-tooling-benchmark/third_party/lodash-4.17.4-actually-a-source-map.min.js": "5504fde25ae90fef57b6524fd7de951439c28e0ff93dedc86c905562ee5af930",
+    "web-tooling-benchmark/third_party/lodash.core-4.17.21.js": "b345d7332d071002e48e563bed4164472b78770e827739e7ffd3166b16926d19",
+    "web-tooling-benchmark/third_party/mootools-core-1.6.0.js": "0924b884f3b90ff1a83c234b835d60dab47919c237511f9e5014596c72345ea2",
+    "web-tooling-benchmark/third_party/preact-10.27.1.min.module-actually-a-source-map.js": "3363d09a3e61d531f0f1d66b09d4422ce23847428122c0e12e9eab129915dfd9",
+    "web-tooling-benchmark/third_party/preact-8.2.5.js": "105e5c502a851039f0d2a46404827b6e21426709de97d9d369fb7141181787b0",
+    "web-tooling-benchmark/third_party/redux-5.0.1.esm.js": "6883b5cd8e0432f3a8afc31c0c0cbc5d8f326f96dd46f6b826eba9641ab21c90",
+    "web-tooling-benchmark/third_party/redux-5.0.1.min.js": "ede13715143b60e3d24d15b3bc9477ea9e606c8d6fe32d423e01dd7e9b056568",
+    "web-tooling-benchmark/third_party/source-map.min-0.5.7-actually-a-source-map.js": "42867a11af4416b14450c462a08fd3815ee117f98e9f8e8fc9a8ac4c12147d85",
+    "web-tooling-benchmark/third_party/source-map/lib/mappings.wasm": "37cefcf2a41eb27127de929980441657b7443c3fecfe7adeb69b1eb2e45e2abe",
+    "web-tooling-benchmark/third_party/speedometer-es2015-test-2.0.js": "f34b4bfa85d4f0f7a0723126aa91844bec7efc594e6aa73c09990e1e88f068e1",
+    "web-tooling-benchmark/third_party/todomvc/react/app.jsx": "a00db94fd89fe64c70dff1e52b6bc2a5aaa0fc6e308c0021deacc3003ba3d247",
+    "web-tooling-benchmark/third_party/todomvc/react/footer.jsx": "844e491e516569c9d9609a44fbc05a161066ecc3dcc577af3d69b48c4ecfb92b",
+    "web-tooling-benchmark/third_party/todomvc/react/todoItem.jsx": "786a3650004ad024873b0870b2dc779ea7446bba8ed57b99b09ef042f295e4ab",
+    "web-tooling-benchmark/third_party/todomvc/typescript-angular.ts": "9c05953e2ae15879a701f622d8c5de233eaa53450d3586d4c257318758b58217",
+    "web-tooling-benchmark/third_party/underscore-1.13.7-actually-a-source-map.min.js": "ce01afb3fa73b0a4dc367c900c694fa40c5b12cf610bed6a9344b1baa646b33b",
+    "web-tooling-benchmark/third_party/underscore-1.13.7.js": "30008e9e2dce72504b16a4068691580a0de6c59a7ccdd4b9cf44fac7c57ae8f8",
+    "web-tooling-benchmark/third_party/vue-3.5.18.runtime.esm-browser.js": "2f63e0c14cc22f0b6eec2e9f321cf8592b9ad06000e17bc8c7d34bc7fdb75083"
+  },
+  "policy": "Selection frozen before timing. Original work bodies, preparation, deterministic randomness and validation preserved. Custom shell subset timings, not official JetStream scores.",
+  "validation": "Extra JSON round trips, cross-engine result fingerprints/counts, and RFC8032 section7.1 test1. Supplemental work is outside timing and memory observation."
+}

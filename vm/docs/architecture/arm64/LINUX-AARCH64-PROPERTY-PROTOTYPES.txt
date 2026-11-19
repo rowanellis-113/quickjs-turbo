@@ -1,0 +1,78 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 activation and persistent prototype hints
+======================================================
+
+This experimental supplement imports the complete original ProtoLoadFill,
+ProtoPersistentFill and ProtoDirectConfigure C owners. Only opaque x86 state
+offsets and ISA-specific accesses become actual compiler-typed AAPCS64 fields
+and atomic operations. Native input/source/type receipts bind those owners.
+No pinned upstream source or public layout changes. AUTO stays PORTABLE.
+
+After a proven own-property absence,get_field2 can reuse the existing private
+16x32byte JSFrameCallSite array plus8replacement bytes. Two ways per PC bucket
+use marker-1,disjoint from real nonnegative argument counts. Real JS call-site
+learning shares this array and remains intact. The private key holds only a
+weak identity. Every hit rederives the current holder from the live receiver
+or current bytecode realm,and checks holder identity,live property count,
+atom and plain data descriptor before reading the CURRENT property value.
+The receiver remains an owning operand,and method lookup duplicates only the
+result. No cached pointer is dereferenced,no new GC root is retained.
+
+The shared weak128x32byte table plus64replacement bytes uses the complete
+original atomic writer. It stores holder,packed atom+slot and marker before
+the release PC store. Native acquire reads need not form a coherent multiple
+field snapshot:one captured atom+slot is validated against the current live
+holder. An old or torn identity can therefore only miss or rediscover a valid
+current slot. No cached holder is followed. Private promotion copies CURRENT
+PC/holder plus that validated atom+slot and retries the normal guards.
+
+Only a fully validated shared hit with a FULL private bucket and original
+DirectData.mode1 can bypass the returning C try. This includes Object/Array
+and guarded primitive String methods;String/Array length semantics retain
+their original owners. Direct OFF or incomplete guards retain the complete
+original fill and learning path. Ordinary deep-chain probing skips immediate
+prototype hits to preserve original learning policy,and retains the original
+bounded32chain walk and observing fallback for unsupported cases.
+
+The only added helper call,JS_FrameAArch64ProtoFill(state*),uses measured
+private frame/PC/SP fields. Its full C body performs no JS call,GC,allocation
+or free. Publishing these PRIVATE cached values is sufficient;runtime SF can
+remain Dirty until the existing observing boundary. The helper preserves
+callee-saved registers and the x25 publication token. Complete actual FDE and
+natural read-only VM backtraces are checked. No physical VM save area grows.
+
+QJS_DISABLE_AARCH64_PROPERTY_PROTOTYPES disables this whole supplement by
+presence,including0. Original QJS_DISABLE_PROTO_LOAD_CACHE,
+QJS_DISABLE_PROTO_LOAD_PERSIST and QJS_DISABLE_PROTO_DIRECT remain independent.
+Base/core IC OFF does not disable these independent original mechanisms;
+compile-time IC OFF still uses native own hash and live method continuations.
+Register OFF and legacy retain original execution. Number method lookup is
+the separate previously qualified primitive supplement.
+
+The24focused modes cover private ways,persistent promotion,FULL bucket Object
+and String direct hits,ordinary deep chains,live mutations/accessor conversion,
+negative misses,length shadowing,own-property shadowing,GC/reentry/realms and
+zero allocator ledgers. The two-way fixture PUBLICLY warms its JS leaf first:
+a cold JS call would correctly occupy another shared private way. It never
+forces private cache memory or changes the original learner. Separate4pthread
+tests use independent runtimes;research controls also execute on4host cores.
+
+Actual target geometry remains JSFrame128/JSFrameRegisterState168,with no new
+runtime/frame field or strong root. Logical new static storage is4210bytes;
+instrumented-only passive TLS adds16words/128bytes. ELF alignment and code
+size are separately reviewed. These are not physical RSS measurements.
+
+Whole qualification is separate from focused checks:freeze source,fresh
+release/instrumented/noGit builds,same81152Test262 corpus and known errors,
+installed SDK/qjsc/wire exchange,pins,release observer absence and old platform
+checks. QEMU proves functional behavior,not physical ARM speed or weak-memory
+hardware stress. Final P5 and the full22family migration remain open.
+
+The native generic writable own-property hash/M3 continuation and remaining
+last-reference store consumers are now implemented in the separate
+LINUX-AARCH64-REFERENCE-STORES.txt supplement,pending its full qualification. Global
+binding/Symbol and indexed kernels remain explicitly assigned to their own
+original families. Passing this supplement does not close those mechanisms.

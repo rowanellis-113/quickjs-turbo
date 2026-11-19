@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "source_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "cutils_sha256": "b93331edd1bf86e1c0b516657d0b16b95bba5f24d799d9824df16f903173b5c2",
+  "async_generator": {
+    "source_functions": {
+      "js_async_generator_resume_next": "0f95ce2a1ac99b830e1dca20537c86b0351cac620e2aaf2dab1c0d3f7d80fbaf",
+      "js_async_generator_next": "64f3237acd6e719b35ea10a19e83145052478027965b947cc0fef785873a54b9",
+      "js_async_generator_resolve_function": "fb83a397c31a4c154af1c739758cdcbf68c8a694a108750bd8af7ad411a512db",
+      "js_async_generator_await": "bfccdf31049e5e6dcb6f11b867972e7186de008c8bb6c0425f669760c3ea5c70",
+      "js_async_generator_resolve_or_reject": "db9c74d4934dff1cb036de03e7ffe83168b06191f51a24332f92c1e2a42a7ede",
+      "js_async_generator_completed_return": "fe6ef8867f2c362afec09f52de034d0fad553237304bc3638b68d9fa6d4e15ad",
+      "js_promise_new": "26d245bb0e3c77cf87c354433fc18d1dbb8634db4bd716ab1200e77cfa6daf6d",
+      "js_promise_resolve_function_call": "2e16e672723a20472d72cf3df1b09b253224e4266e0b9df8ed6a6a9bcace4e83",
+      "fulfill_or_reject_promise": "5b0c98fef52d3a86868300928d1b7216ee83b84fe708b9f7b36b3258b63cc5d7",
+      "js_create_resolving_functions": "ff9ae100d77dcae982b12760e3a0808cdfacd9dc3907cc607d717ef9ccd2b254"
+    },
+    "promise_types_sha256": "75b125383a60bebc21b9279801e0d405696cd6c63caa972ad6e036031f00bec7",
+    "generator_types_sha256": "cbe2f410ed22c5e319bd5a896ae002ba5fda22d863f32a58ec87207286e53b9d"
+  }
+}

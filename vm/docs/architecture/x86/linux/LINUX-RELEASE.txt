@@ -1,0 +1,95 @@
+Current Linux native module release,2026-11-12:see LINUX-VIRTUAL-ARGUMENTS.txt
+for exact CLI/library hashes,source-derived independent C types/signatures,
+fresh946native/211portableCTest,fullON/OFFTest262 and measured suite costs.
+The clean source archive reproduces the qualified actual CLI/library;the
+per-SDK manifest preserves unchanged Windows/portable runtime provenance.
+The earlier closeout below is historical and is not relabeled as a fresh run.
+
+Linux native update: see LINUX-VIRTUAL-ARGUMENTS.txt for the newly qualified forwarding worker and final V8-jitless comparison. The cross-platform8c closeout below is retained as history; unchanged SDKs keep their original provenance.
+
+Qualified Linux and Windows delivery,2026-11-11
+===============================================
+Runtime:8c1b9ce9fab9a298249a6aeb4d13ce6f337ce8bd.
+Pinned base:QuickJS-NG0.15.1 bf8988fc401e737f9946cd10a3463b48aab0fd7e.
+All19 upstream pins remain exact. The bundled manifest identifies the final
+documentation commit,source archive,SDK archives and six-gate audit. Runtime
+source/build/native input bytes are bound independently;documentation updates
+do not relabel previous builds as fresh builds of a later documentation commit.
+
+Clean builds and SDKs
+--------------------
+One canonical8c Git archive(833regular files,noGit/oldobjects) was independently
+extracted and built on both OSes through the documented product entry points.
+Linux native934/934CTest,product PORTABLE211/211,strict minimal native and real
+missing-binutils AUTO fallback compile/run pass. Strict native rejects the same
+invalid tool. Windows nativeMinGW307/307,nativeMSVC292/292,PORTABLE211/211 pass.
+All installed SDKs were moved and independently consumed with find_package.
+Both Windows native SDKs pass all8nonvolatile-register unwind checks. Linux
+public reference-slot and GC/reentry consumers pass their explicit modes.
+
+Linux:Ubuntu24.04 x86-64,GCC13.3,binutils2.42,CMake3.28,Ninja1.11,Python3.12.
+Windows:MinGW GCC13.1/binutils2.40 or MSVC14.50.35717,CMake4.1.2,Ninja1.12.1,
+Python3.13. Compiler profiles remain checked;other versions need qualification.
+Clang policy simulation is not an actual native Clang qualification. Build/run
+commands,dependencies,static-library consumers and fallbacks:BUILDING.txt.
+Normal builds need no Git,old binary,profiler,Node or comparison corpus.
+
+Compatibility scope
+-------------------
+FullTest262 corpus:de8e621cdba4f40cff3cf244e6cfb8cb48746b4a. Actual56753file
+inventory and allGitblob contents were reverified,with identical config/errors.
+Three FRESH Windows full runs(MinGW/MSVC/PORTABLE) each have65/81152 inherited
+failures,31fixed,4925excluded,5954skipped,0new/changed failure identities.
+StockNG has96inherited failures. Four prior Linux full records(stock/PORTABLE/
+native/native-slotOFF0) are bound by ENTIRE actual runner bytes,canonical input
+bytes and original raw-log hashes. ZERO new Linux fullTest262 runs are claimed
+for this closeout. Product failure/fixed identities match across both OSes.
+
+Public16-byte SysV JSValue,private register VM,calls/returns/tails,ownership,
+captured cells,quotas,interrupts,GC publication,exceptions,reentry,realm/OOM and
+serialization remain tested. Actual fresh archive image/relocatedSDK has PIE,
+PIC,CET,noTEXTREL,noengineJUMP_SLOT,nonexecuting stack and complete selected
+native FDEs. Actual native property hits,deep single VM activation and unwind
+are checked. This is native execution,not a thunk into recursive JS calls.
+
+Exact Linux artifacts from fresh canonical8c archive
+--------------------------------------------------
+native qjs:06bfa236537394f72617b3e325ae33004d7f83852886257688a66e579baa7fe1
+native run-test262:b257493c4555f5195888b8fe5b785b9857e921a77d4c0f0b13fd1bbe5d4ec76b
+native libqjs.a:8415ebca1d28f46cba9c7b37e94019142e8c96e9a270cc468d5b5093c8650837
+PORTABLE qjs:6e5b459c4dc9b449a05fbb4fd146687bfe09a46c035ffff85a86c7be2f98b495
+PORTABLE run-test262:b07f40a8f53e48b391375a9a053fafac9a8a73e3e847d702ec40e12b596cb6a4
+PORTABLE libqjs.a:a5b6c4cc900c8dd538861459b3d1fe6cb2e9288a0e0d2ed4a998031cf3f7de22
+The complete CLI/runner/library bytes equal the prior qualified runtime images.
+Fresh MinGW/MSVC/portable Windows artifact hashes are in the bundled manifest.
+Original immutable90e3bf3/7bb3293/70638ed deliveries retain their own provenance;
+their package hashes or historical scores are not renamed as current results.
+
+Performance and end condition
+-----------------------------
+LINUX-FINAL-REVIEW.txt gives all57micro,17JetStream and8V8-v7 rows from actual
+fresh archive/relocated SDKs,stockNG and productPORTABLE. Full original V8 also
+reruns the actual retainedMinGWc25image and fresh archiveMinGW in reversed
+order. Original clocks/calibration,modes,normalASLR,CPU2 and actual engine RSS
+are retained. This is a bounded screen,not a confidence interval,official
+JetStream total,isolated cross-OS ABI attribution or all-cases parity claim.
+LINUX-PERFORMANCE.txt and component documents retain historical confirmed costs.
+
+Original-caller counters show near-identical argument/apply/literal/shape routes
+on Linux and MinGW;missing admission/repeated scope allocation hypotheses are
+not supported. Apply-scope/REST experiments remain parked,not shipped. No new
+runtime feature was accepted in this closeout. Source-platform per-case gaps
+and native costs remain explicit;whole-suite parity does not erase them.
+
+The default-active GNU mechanism set is carried. DefaultOFF weak VM links,
+MSVC-only coroutine native segments/additional method learning and ordinary
+async output elision retain the boundaries in LINUX-MECHANISM-COVERAGE.txt.
+Async-generator capability ownership is carried. Native generator continuations
+and GC redesign need a separately justified scope. This is not an architecture
+ceiling. Reopen for a measured representative gap and a bounded remedy with
+repeatable net benefit,stock-priced costs,memory and correctness evidence.
+No PGO,padding,fixed base,address search or favorable-mode selection is used.
+
+The original six gates in LINUX-PORT.txt remain the audit contract. Current
+source/SDK manifests and the final audit are external to the tracked product.
+Raw profiles/builds/experiments remain external;normal users need none of them.

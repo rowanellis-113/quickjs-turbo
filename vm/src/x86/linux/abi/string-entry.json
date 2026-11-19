@@ -1,0 +1,12 @@
+{
+  "schema": 1,
+  "owners": {
+    "asm/x86/win64/mingw64/mingw-string_index_entry.S": "25fca53ce1616912e1dbd3507bf521436fbdabab4365789272f4f5890f75533f",
+    "tools/x86/win64/coff/retained_routes.py": "24e29202765f9fee56e147b9beaff234197786f606c859b45ab37ecbc88def45",
+    "src/x86/win64/mingw64/mingw-string_index.c": "52b05fc68bb9e82e3bd4d8851719cf72154ff3cc982d83daa4718306456feec0"
+  },
+  "profile": "Actual measured inline JSString/JSValue fields,SysV helper and existing VM CFA144;complete Clean/Dirty source equivalence",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "new_strong_roots": 0
+}

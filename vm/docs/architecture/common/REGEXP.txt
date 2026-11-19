@@ -1,0 +1,43 @@
+Guarded RegExp flags batching
+============================
+The Win64 builtin worker proves each live canonical RegExp receiver and its
+immediate ordinary prototype, then checks all eight flag getters by property
+name, string-atom type, descriptor kind, native ABI, function identity and
+magic. It reads the bytecode flags once and constructs the same flags string.
+It retains no object, shape, realm or atom cache and adds no public fields.
+
+Only when no interrupt poll or stack guard is due does it debit eight polls
+as a group. Otherwise the original ordered property/getter path runs, retaining
+already selected getters across interrupts and observing later mutations.
+Own overrides, proxies, noncanonical/foreign shapes, renamed or swapped getters
+and generic receivers keep the existing protocol. String keys and same-text
+Symbol descriptions must remain distinct; the maintained fresh-realm test
+reconstructs the exact slots and catches the rejected prototype of this change.
+
+QJS_DISABLE_REGEXP_FLAGS_BATCH disables the new batch path when present,
+including value 0. QJS_DISABLE_REGEXP_FLAGS_LEAF disables the complete flags-leaf
+optimization. These developer controls initialize with the existing control
+byte; live descriptor validation is repeated on every call. The independent
+coroutine controls and all portable behavior keep their prior semantics.
+
+The design borrows the fixed JSC flags implementation's use of pre-existing
+property names, adapted to QuickJS without additional runtime/realm fields.
+It does not assume JSC's layouts, ownership or calling ABI can be copied.
+
+Retained primary costs are part of this accepted tradeoff. MSVC regexp_ascii
+and regexp_utf16 are about 9.93%/9.58% slower than90ea211, costing 3.85/3.75 stock
+percentage points while retaining about 134.53%/133.31% stock throughput gains.
+MSVC string_build2 costs 8.55% elapsed / 6.90 stock pp and retains 14.14% stock throughput
+gain; string_concat0 costs 3.35% / 1.72 pp; float_to_string costs 4.04% / 3.51 pp.
+GNU prop_delete costs 2.46% / 2.04 pp and retains 17.92% stock throughput gain.
+These original SDK values are retained even when diagnostic copy outcomes are
+better. Same-file batch-off does not remove those selected costs. Their exact
+timing mechanism remains unproven; no claim of a semantic or ASLR cause is made.
+
+For an upstream upgrade, review the generator's pinned flags/getter bodies and
+prototype initializer order, all private layout/enum/ABI checks, atom type and
+eight-poll accounting before updating guards. Keep the prototype/Symbol, poll
+boundary/abort, realm, GC, OOM and same-image disabled-path tests. Both native
+compilers and the portable fallback must still build and qualify. The two
+implementation paths are src/x86/win64/common/quickjs-regexp-flags.inc and
+tools/generate/regexp.py; the original 19 upstream inputs are untouched.

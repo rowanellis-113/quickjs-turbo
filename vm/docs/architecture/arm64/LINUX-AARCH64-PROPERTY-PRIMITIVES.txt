@@ -1,0 +1,69 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 live methods and logical length
+============================================
+
+The accepted semantic owners are tools/generate/length.py,number-property.py,
+proto-load.py and their complete common C bodies. Their hashes,actual compiler
+types and the native ARM implementation are bound by the primitive-property
+contract. No Win64 registers,offsets,aggregate ABI or object code is imported.
+
+OP_get_length reads the original string code-unit length or a fast Array's
+logical length property. It never substitutes dense element count. Integer
+and floating Array lengths are retained exactly. A native hit requires a
+nonlast receiver reference and consumes it once. Last release,unsupported
+representations/classes and disabled policies retain the original C owner.
+
+OP_get_field2 may read a live plain data property on the calling bytecode
+realm's String/Number prototype. String length and integer atoms keep their
+original route. Number retains the accepted original holder-class guard and
+complete atomic/environment policy initialization. Its once-only cold call is
+standard AAPCS64 void(void),with no JS/runtime/GC/allocation access;the native
+handler then reloads every volatile input. A read-only natural debugger stop
+verifies this call's VM backtrace and aligned physical stack.
+
+Ordinary and Array method receivers may also use the accepted live own/hash
+lookup and bounded32-edge prototype walk. Exotic prototype absence,accessors,
+missing or unusual descriptors retain original observing C. Results are
+duplicated before push and the method receiver remains owned by its caller.
+There are no cached holder pointers,new strong roots,allocations,last releases
+or observing calls on these native hits. A normal active four-way PIC site
+still enters its original learner first;the supplement does not bypass it.
+
+QJS_DISABLE_AARCH64_PROPERTY_PRIMITIVES uses process presence including0 and
+disables this entire supplement. QJS_DISABLE_PROTO_LOAD_CACHE independently
+disables primitive String methods;QJS_DISABLE_NUMBER_PROPERTY_FAST disables
+Number methods;QJS_DISABLE_NATIVE_LENGTH disables native logical length.
+Original register/legacy controls retain their original paths. Compile-time
+QJS_PROPERTY_IC=OFF and process QJS_DISABLE_AARCH64_PROPERTY_IC disable the
+base PIC only,so these independent live methods/length can still execute.
+
+The public-API fixture first exercises natural String.prototype.slice
+AUTOINIT resolution,then repeats the unchanged caller body. The warm panel
+requires64 native String method hits,zero property opcode C steps,64 borrowed
+builtin views,62 lifetime-cache hits and64 natural VM/builtin unwind plus
+GC/foreign-realm reentry observations. Initialization remains observable and
+is never forced through private memory or weakened to obtain native counts.
+
+Further checks cover live prototype replacement and deletion,accessors with
+GC,foreign String/Number class prototypes and getter-returned fresh methods,
+UTF16 code-unit length,empty dense Arrays with nonzero logical length and
+floating length4294967295. Original stack/quota/publication/invoke/return/
+shared/component controls and fresh-runtime allocation failures retain zero
+final allocator ledgers. Compiled IC ON/OFF class-host tests attribute the
+preceding C-step count to the exact property opcode and direct/fallback call.
+
+JSFrame,register state and physical VM save areas do not grow. The complete
+accepted static length policy is40 logical bytes and Number policy is1 byte;
+ELF alignment is accounted separately. Only instrumented images add the
+eight-word passive TLS counter bank;release images require both its data and
+reader to be absent. This is not a measurement of hardware RSS or ARM speed.
+
+Own-bytecode hint tails and borrowed-slot PICs are implemented in the separate
+PROPERTY-HINTS supplement. Activation/persistent/direct prototype hints,
+forwarding and other original Linux families remain migration work. Focused
+checks do not replace full same-corpus Test262,installed/noGit SDK,wire and
+cross-platform final qualification. AUTO remains PORTABLE. QEMU qualifies
+functional execution only;physical ARM performance remains unverified.

@@ -1,0 +1,43 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 ordinary numeric-array own-property leaf
+=====================================================
+
+This ports the complete accepted array_own.S algorithm, not the indexed VM or
+instanceof family. Actual GCC input measures every class/shape/value/refcount
+offset and the descriptor bitfield. The original source owner and complete C
+fallback body remain fingerprinted. All 19 upstream files stay byte-exact.
+
+The leaf receives bool(ctx=x0,object=x1,uint32 index=w2,result=x3) under AAPCS64.
+It admits ordinary nonfast JS arrays, numeric atoms below2^31 and existing own
+normal data properties. It follows the original shape hash chain,duplicates
+negative-tag reference values before returning and borrows the receiver.
+Nondefault writable/configurable data flags are accepted;accessors,varrefs,
+prototype holes,Proxy,nonarrays and high indices keep the original algorithm.
+
+Every miss preserves all four incoming arguments and tail-branches into the
+original complete array/arguments/mapped-arguments/typed-array C helper. Its
+large-BigInt allocation/OOM and output contract are retained. No private ABI,
+struct mirror,frame/state/runtime field,extra allocation or release TLS grows.
+The actual native entry has a complete leaf FDE,does not modify SP or AAPCS64
+callee-saved registers and makes no nested call. All original core and extracted
+consumers after the helper definition use the same compiler-typed entry.
+
+QJS_INTERP_FRAME_ARRAY_OWN=OFF is an independent build control. It retains the
+original C input rather than a second handwritten fallback. Existing register
+and frame runtime controls do not disable this independent core C helper.
+Instrumented builds alone carry32 TLS bytes:entry/native hit/fallback/reserved.
+The ordinary release has neither these counters nor their public-test reader.
+
+Current development evidence:the complete original public fixture,typed
+fallback fault/recovery,GC/reentry and zero allocation ledgers;32 consecutive
+real JS integer lookup hits;read-only actual leaf/VM unwind and saved-register
+return comparison. Source/build controls,full same-corpus and SDK/noGit audit
+remain required before qualification. QEMU is functional evidence,not physical
+ARM speed or RSS. The original22-family/P0-P5 migration is still incomplete.
+
+Source:asm/arm64/linux/array-own.S;tools/arm64/array_own.py;
+src/arm64/linux/abi/array-own.json;tests/aarch64/array-own.c.
+Evidence:D:/js-engines-research/linux-arm64-array-own-20261113.

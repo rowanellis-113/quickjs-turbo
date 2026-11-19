@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "tools/common/c_extract/length_c.py": "8fef4330dd0dcd743713e06dd0bc2a7341a469cc6902b2bc856350f7fd642785",
+    "src/common/kernel/number-property.inc": "3a47e0faba61174808ed458551a1f9bdc31e12de91337d1a3918ad4d7c0972ec",
+    "src/common/kernel/proto-load.inc": "0a413d22e9a0dd9c8fb1a2609671d05b11d89d81cf73c57e3010ec2cb9c446aa",
+    "src/common/call/quickjs-interpreter-ops.inc": "51f551fbbb7a2afc99221abcde7259d0dd31dff432a9e1f3b52fa81ac91330e6",
+    "asm/arm64/common/register-property-primitives.inc": "fa3c1600226b8f54420d1634a2f6997cb75d297a2043a7c355416b02f23d5946",
+    "asm/arm64/common/register-property-ic.inc": "135d5fb9fe0df8a2e1cb128c9139cc8caf27bae60692cf3a258f670d2268c3a5",
+    "tools/arm64/workers/property_primitives.py": "f1366bc9543a5637b08012ef8693ab0c011da2256c04753709c7071c2c97b8f2"
+  },
+  "native": "Flat-string/fast-array logical length;primitive String/Number live own-data methods;ordinary/Array legacy own/live prototype method walk",
+  "lifetime": "Original live receiver/realm/shape/descriptor guards,duplicate result without consuming method receiver;never dereference a cached holder",
+  "cache_scope": "Primary four-way PIC still learns first hashed ordinary sites through original C;no claim to own-tail/persistent/direct/borrowed hint parity",
+  "pure_helper": "JS_FrameNumberPropertyConfigure(void) imports the complete original getenv/atomic policy only;no runtime,JS,GC or allocation",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "extra_strong_roots": 0,
+  "hardware_performance_qualified": false
+}

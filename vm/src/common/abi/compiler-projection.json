@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "owners": {
+    "src/common/bytecode/compiler-plan-shim.inc": "898763f55e29c1dc0754033519bef6d7454d1528aca719f11dbbb4d16e1ea7aa",
+    "src/common/bytecode/compiler-plan-view.h": "dbc4115c193723010d0fe1a3da784a92136d82561fcd22f9caa58f6c6c0fe4b2",
+    "src/common/bytecode/compiler-plan.c": "4a68c9fba29fd054bcaa365181f8a16149ed037d67a66b428fa7a1c67de73c44"
+  },
+  "accepted_windows_owners": {
+    "src/common/bytecode/compiler-plan-shim.inc": "898763f55e29c1dc0754033519bef6d7454d1528aca719f11dbbb4d16e1ea7aa",
+    "src/common/bytecode/compiler-plan-view.h": "dbc4115c193723010d0fe1a3da784a92136d82561fcd22f9caa58f6c6c0fe4b2",
+    "src/common/bytecode/compiler-plan.c": "4a68c9fba29fd054bcaa365181f8a16149ed037d67a66b428fa7a1c67de73c44"
+  },
+  "source_normalizations": {
+    "src/common/bytecode/compiler-plan.c": {
+      "accepted_sha256": "a853a32f1e523e887aec1d7e215ea19d72003dabd1659b62e27db60d412d7bef",
+      "linux_sha256": "be2cd9a61f18e9168f1c8445c86034c3eb3a4410096225e6c42832990aa91fea",
+      "kind": "Exactly two statement-separating newlines for GCC misleading-indentation Werror;no changed tokens"
+    }
+  },
+  "ABI": "Actual Linux core C types and measured ABI;no foreign object input or frozen offsets"
+}

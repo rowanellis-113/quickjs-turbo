@@ -1,0 +1,114 @@
+Formatting and source contracts
+===============================
+
+The repository uses clang-format 22.1.8 with .clang-format for ordinary C/C++
+and a whitespace-only formatter for checked-in GAS and MASM sources. The C
+settings follow the four-space, attached-control-brace convention used by
+QuickJS-NG. The assembly formatter preserves the contents and order of every
+line; labels and directives start at column one, and instructions use four
+spaces. Formatting is checked without changing files by:
+
+    python -m pip install -r vm/tools/common/format/requirements.txt
+    python vm/tools/common/format/install_powershell.py
+    npm --prefix vm ci --ignore-scripts --no-audit --no-fund
+    npm --prefix vm run format:check
+
+Use `npm --prefix vm run format` to write changes. `CLANG_FORMAT` can name the
+installed clang-format executable when it is not on PATH. All formatter versions
+are pinned. The native checker compares C tokens and string literals before
+writing and rejects assembly content changes. It does not modify interpreter
+options, source or ABI hashes on behalf of the author.
+
+The common vm/tools/common/format/run.py entry point uses an existing project-local
+build/format-tools virtual environment when present (either inside vm/ or at
+the repository root); no shell activation or persistent PATH change is needed.
+Otherwise it uses the active Python with the pinned requirements installed.
+JavaScript runs the local pinned Prettier through Node directly, using the same
+command on Windows and Linux.
+
+The 19 pinned upstream source inputs, the private upstream Unicode snapshot,
+generated source/data, checked-in compiled JavaScript snapshots, and C source
+used as text by the current generators are protected by LF-normalized SHA-256
+in tools/common/format/native-frozen.json. The 27 handwritten generator inputs are
+also checked against .clang-format; their manifest entries set format_check.
+Generated inputs and pinned upstream snapshots retain their original source
+contracts and are not rewritten by the formatter. When a protected input changes,
+review the generator anchors and results, regenerate as appropriate, and update
+its hash explicitly. Runtime C/assembly emitted into a build directory by
+Python generators is validated by the build and generator tests; it is not
+silently rewritten by the formatter.
+
+Prettier 3.9.10 checks the JavaScript sources, with the settings in
+.prettierrc.json. .prettierignore lists the byte-sensitive upstream benchmark,
+source-reflection and line-number fixtures, parser-detection fixtures, and
+sources with checked-in compiled snapshots. Those fixtures are intentionally
+preserved because their exact source, not merely execution results, is tested.
+Their normalized hashes and reasons are checked against
+tools/common/format/js-frozen.json. The external Test262 submodule and build output
+are not reformatted. The source-position functions at the start of
+tests/test_builtin.js use inline Prettier exclusions to keep their exact line
+and column assertions; the rest of that file is checked normally.
+
+Python uses Ruff 0.14.14 and ruff.toml; CMake uses cmakelang 0.6.13 and
+.cmake-format.json. tools/common/format/project.py discovers all owned Python and
+CMake sources without requiring Git metadata. Python writes compare the full
+AST and roll back the entire batch on parser errors or semantic changes.
+CMake writes preserve command/argument tokens and quoted literal contents,
+disable argument sorting and comment markup rewriting, and require idempotent
+output before writing. Embedded C/assembly strings in Python generators remain
+unchanged. The native checker also covers C++ headers/sources and assembly
+fixtures outside asm/, including tests/aarch64/*.S.
+
+Bash uses shfmt-py 4.2.0 (upstream shfmt 3.14.1), with four-space indentation,
+indented case branches and spaced redirections. Shell writes compare the full
+typed syntax tree without positions/comments, including quoted and here-document
+contents. PowerShell uses PSScriptAnalyzer 1.24.0 for four-space indentation,
+attached braces and consistent whitespace; casing and command rewriting are
+disabled. Its parser checks token contents and AST topology before any batch
+is written. Target scripts are parsed, never executed. PowerShell 7 or Windows
+PowerShell 5.1 must be available. The installer downloads the official pinned
+package, verifies SHA-256 and installs it only into build/format-tools. On
+Windows PowerShell 5.1, a verified temporary local copy accommodates .NET's
+mapped-drive loading restrictions and is removed on exit.
+
+Meson uses Meson 1.12.1 with .editorconfig and compares syntax trees while
+ignoring formatting positions and optional comma separators. The MinGW linker
+script has a conservative four-column indentation formatter that preserves
+every stripped line and its order, including all section/member selectors.
+
+.editorconfig defines the shared editor rules: UTF-8, canonical line endings,
+spaces, final newline and a 100-column target. C/C++, Python, CMake, Meson,
+build scripts and assembly use four-space indentation; JavaScript, JSON and
+YAML use two spaces. Assembly
+labels/directives stay at column one. Unbreakable literals and instructions are
+not split to satisfy the width target. Qualified source-sensitive fixtures
+retain the explicit exceptions above and in .gitattributes.
+
+The same complete policy runs in CI through `npm --prefix vm run format:check`.
+Individual write/check entry points are format:native, format:python,
+format:cmake, format:shell, format:powershell, format:meson and format:js, with
+:check variants. format:contracts:check additionally verifies file-input
+receipts in native/ABI manifests and the reference-slot Python factory-file pin.
+It never refreshes source hashes or compiler-symbol fingerprints automatically.
+The explicit factory pin must be reviewed after formatting its owner, with AST
+equivalence and generated-output/build checks. Update a source receipt only
+after reviewing the change, checking language-level equivalence and validating
+the affected generator/build. Never refresh compiled fingerprints merely to
+make a changed compiler profile pass.
+
+With the pinned requirements installed in that Python environment, formatter
+safety regressions and architecture boundary checks run with:
+
+    python -B vm/tests/common/test_format_contract.py
+    python -B vm/tests/common/test_arch_boundaries.py
+
+After formatting, run generator/ABI validation and both toolchain builds and
+tests. Whitespace can still affect source-derived generators, debug data,
+compiler layout or source-reflection tests, so a successful format check alone
+is not a correctness or performance qualification.
+
+The 2026-11-13 formatting qualification is recorded in FORMAT-VALIDATION.json:
+five backend suites passed all 3014 functional cases, 88 generator/safety unit
+tests passed, source/ABI validation passed, and the complete format policy was
+clean. Detailed local logs are under build/format-validation/. ARM64 results
+are functional QEMU qualification and make no physical ARM performance claim.

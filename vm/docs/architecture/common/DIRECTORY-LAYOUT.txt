@@ -1,0 +1,42 @@
+Product directory layout (under vm/)
+=====================================
+Upstream QuickJS-NG remains unmodified at the repository root (`../`); all
+product modifications live under `vm/`.
+Hierarchy rule inside `vm/`: common/ | arm64/ | x86/ across src/, asm/, tools/, cmake/, tests/.
+
+Shared C & common optimization owners:
+- src/common/{abi,array,bytecode,call,function,internal,io,json,kernel,linux,
+  memory,promise,property,regexp,string,value,wire}
+  (includes extracted Release C fast-path files: property/inline-properties.h,
+  property/inline-closure-properties.inc, property/inline-property-ic-storage.inc,
+  property/fast-transition-resize.inc, property/fast-get-field.inc,
+  value/instanceof-fast.inc, value/bigint-divrem-fast.inc, call/compound-leaf.inc,
+  call/fast-for-of-next.inc, kernel/fast-construct.inc,
+  kernel/fast-array-from.inc, linux/virtual-arguments-fast.inc).
+
+Architecture-specific code & assembly:
+- ARM64: src/arm64/linux/ (including abi/fast-vm.json and *-fast.inc Release
+  owners), asm/arm64/{common,linux}/.
+- x86: src/x86/{common,linux,win64/{common,internal,abi,msvc,mingw64}}/,
+  asm/x86/{linux,win64/{common,mingw64,msvc}}/.
+
+Tools & build orchestration:
+- tools/common/{abi,backports,bench,c_extract,elf,format,paths.py,modules.json}
+- tools/arm64/{build,verify,vm,workers,paths_arm64.py}
+  (tools/arm64/fast_vm/ is retired; VM specialization passes live under
+  tools/arm64/vm/ and tools/arm64/workers/).
+- tools/x86/{common/{abi,codegen,paths_x86.py},linux,win64/{build,codegen,coff}}.
+
+CMake, tests, docs, CI, registries:
+- cmake/{common,arm64,x86}/
+- tests/{common,arm64,x86}/ (upstream QuickJS tests stay untouched at ../tests/)
+- docs/architecture/{common,arm64,x86}/
+- ci/interpreter-integration.yml
+- Source, module, and native input registries: src/sources.json,
+  tools/common/modules.json, tools/x86/win64/build/native-inputs.json.
+
+Generated C/ELF/COFF artifacts belong to ../build/generated/ (under the chosen
+build directory), never the source checkout. build/, out/, and vm/node_modules/
+(optional formatter tooling) are not required in a source distribution.
+../test262/ is an optional pinned submodule. Normal builds use committed ../gen/
+snapshots and require neither Node.js nor a prior qjs executable.

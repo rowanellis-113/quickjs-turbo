@@ -1,0 +1,98 @@
+name: interpreter integration
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned format tools
+        run: |
+          python -m pip install -r vm/tools/common/format/requirements.txt
+          python vm/tools/common/format/install_powershell.py
+          npm --prefix vm ci --ignore-scripts --no-audit --no-fund
+      - name: Check all product source and build-script formats
+        run: npm --prefix vm run format:check
+      - name: Check formatter safety contracts and boundaries
+        run: |
+          python -B vm/tests/common/test_format_contract.py
+          python -B vm/tests/common/test_arch_boundaries.py
+
+  portable:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v7
+      - name: Configure portable fallback
+        run: cmake -S vm -B build/interpreter-auto -G Ninja -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=AUTO -DQJS_FRAME_BUILD_TESTS=ON
+      - name: Build and test
+        run: |
+          cmake --build build/interpreter-auto --parallel 4
+          ctest --test-dir build/interpreter-auto --output-on-failure
+          python3 -B vm/tests/x86/win64/test_vm_build.py --cmake cmake
+          python3 -B vm/tests/common/validate_layout.py
+
+  windows:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        toolchain: [msvc, mingw]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          pacboy: >-
+            cmake:p
+            ninja:p
+            toolchain:p
+      - name: Locate installed tools
+        id: tools
+        shell: msys2 {0}
+        run: |
+          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
+          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
+          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
+          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
+      - name: Build actual Win64 backend
+        shell: pwsh
+        run: |
+          python -B vm/tests/common/validate_layout.py --require-native
+          $frameBuildArguments = @{
+            Toolchain='${{ matrix.toolchain }}'; Backend='WIN64'
+            BuildPath='build/interpreter-native-${{ matrix.toolchain }}'
+            CMake='${{ steps.tools.outputs.cmake }}'; Ninja='${{ steps.tools.outputs.ninja }}'
+            Objdump='${{ steps.tools.outputs.objdump }}'; Test=$true
+          }
+          if ($frameBuildArguments.Toolchain -eq 'mingw') { $frameBuildArguments.Compiler='${{ steps.tools.outputs.gcc }}' }
+          ./vm/tools/x86/win64/build/build-baseline.ps1 @frameBuildArguments
+          python -B vm/tests/x86/win64/test_vm_build.py --cmake '${{ steps.tools.outputs.cmake }}'
+          & '${{ steps.tools.outputs.cmake }}' --build 'build/interpreter-native-${{ matrix.toolchain }}' --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw 'Unchanged native rebuild failed' }
+      - name: Build shared AUTO fallback
+        shell: pwsh
+        run: |
+          $frameBuildArguments = @{
+            Toolchain='${{ matrix.toolchain }}'; Backend='AUTO'; Shared=$true
+            BuildPath='build/interpreter-shared-${{ matrix.toolchain }}'
+            CMake='${{ steps.tools.outputs.cmake }}'; Ninja='${{ steps.tools.outputs.ninja }}'
+            Test=$true
+          }
+          if ($frameBuildArguments.Toolchain -eq 'mingw') { $frameBuildArguments.Compiler='${{ steps.tools.outputs.gcc }}' }
+          ./vm/tools/x86/win64/build/build-interpreter.ps1 @frameBuildArguments
+          $backend=Get-Content "build/interpreter-shared-${{ matrix.toolchain }}/interpreter-backend.json" -Raw | ConvertFrom-Json
+          if ($backend.effective -ne 'PORTABLE') { throw 'Shared AUTO did not select portable fallback' }

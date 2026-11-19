@@ -1,0 +1,98 @@
+Linux ordinary construction and complete slow cleanup (development)
+==================================================================
+
+The accepted ordinary constructor continuation now creates real root3 children
+in the current Linux register activation. It reuses construct-continuation.py,
+the complete original frame builder and the two call-forward.py native return
+factories under the actual measured SysV layout. This is a mechanism checkpoint,
+not whole MinGW coverage, a Linux product release or a performance baseline.
+
+Admission and ownership
+-----------------------
+The live operands must own the same ordinary bytecode constructor/new_target;
+derived/exotic/bound/proxy/new.target-dependent inputs keep the accepted original
+fallback. Original validation, arity padding, owned/borrowed/captured cells,
+nonmoving segment growth, caller-realm quota and both interrupt polls remain.
+After original js_create_from_ctor succeeds, one nonlast function reference is
+transferred to the new receiver operand. The other function owner remains live.
+All live frame cells, capture slots and state are ready before runtime publication.
+
+Root3 is a physical JS child, not root1 activation exit or root2 logical-forward
+return. Native pop restores its parent; immediate returns transfer the owned
+receiver directly. Heap primitive/object returns use the complete typed helper,
+which clears the old receiver slot before observable release. Captured-cell
+closing, original caller-operand cleanup, exceptions and tail calls retain their
+owners. The C slow executor freezes the child's exit kind before frame storage
+is reusable. No public JSValue,128-byte JS frame or168-byte state is enlarged.
+
+Complete semantic dependency and C callbacks
+--------------------------------------------
+The independent slow owner uses the original iterator/catch/gosub/ret/nip_catch/
+check_object opcode bodies, append/apply consumers and exception-marker walk.
+The existing derived short/guarded-long validators admit that opcode set with
+checked branch boundaries and original padding metadata. Base validation stays
+separate. A constructor/extended/logical-forward chain selects this complete
+owner; ordinary unaffected frames retain their base step. Caught host exceptions
+resume the live VM rather than exiting it unconditionally.
+
+Typed C wrappers for iterator start/next/close,append,apply and receiver creation
+reuse the existing slow-host coherence protocol, live frame/segment/count checks,
+atomic control, compiler TLS and restoration. A newly admitted iterator had
+bypassed this boundary through a generator: the original sharing regression
+failed at its first callback. Its real stack was captured; the fixed image
+passes the unchanged two-thread72/72-hit test and all OFF controls.
+
+Running cur_sp is restored to NULL before native resumption; consumed roots are
+cleared before finalizers/iterator-close cleanup. These C semantics do not mean
+native JS-next checkpoints,fast iterators,apply forwarding/direct fusion or
+literal-shape workers have been migrated. Argument-object/mapped-arguments and
+their specialized constructor path also remain separate.
+
+Controls
+---------
+Presence,including0,disables QJS_DISABLE_FRAME_CONSTRUCT_CONTINUATION.
+QJS_DISABLE_FRAME_ITERATOR and QJS_DISABLE_FRAME_VARARGS retain original derived
+admission. QJS_DISABLE_SLOW_HOST_SHARE disables the shared C callbacks;shared,
+register and frame controls retain their original fallbacks. No timing-path
+counter,new public API or weak target owner is added.
+
+Qualification and static cost
+-----------------------------
+The current normal Werror build passes565 CTests,ELF/CFI/PIC/CET and independent
+installed consumers. Fixture promotion preserves the fully qualified qjs,
+Test262 runner and archive bytes. Full native constructor ON/OFF Test262 each
+has65/81152 inherited failures,31 fixes and0 new/changed;exact failure/fix
+identities match the qualified portable product,not merely the totals.
+
+Actual four-mode observations prove313 root3 pushes,281 native returns,96 heap
+returns and complete slow/iterator routes in the positive fixture,with intended
+OFF paths removed. They check real parent-owned operands,initialized live fields,
+charge/segment bounds,consumer state and live caller unwind. These bounded
+correctness observations are not suite hit rates or speed.
+
+The public fixture passes24 component/reference processes:193 fresh native
+resources,33 cross-realm GC reentries,three interrupt abort/recoveries,eleven
+ordinary allocation-fault injections and a49-constructor grown-chain sweep.
+Growth is independently observed inside a real arena root3 frame. Native ON
+injects102 failures and constructor OFF101;stock/prior references also pass.
+All complete allocation/resource ledgers return to zero. The same compiled
+object is linked to stock and preceding product archives. Stock here means
+unoptimized QuickJS-NG0.15.1 on the same Linux/GCC,not Bellard2026.
+
+Static cost versus vm-leaves-r1 is+35552 executable,+45968 file and+2048
+ELF allocated-writable bytes(including relocation-readonly tables). Legacy
+CallInternal moves218992->223168(+4176) and changes37341->36066 bytes(-1275).
+All117 selected worker/entry/continuation functions have complete FDEs.
+No layout neutrality,speed or general RSS claim is made. Arena versus C-stack
+costs and whole-suite performance/memory remain final release gates.
+
+Evidence:/home/eros/port-records/linux-x86_64/constructor-r1 and
+/home/eros/port-records/linux-x86_64/test262-constructor-r1.
+Retain the first strict-build missing-caller_ctx/unused copied-label failure,
+the initial sharing regression/actual stack and the isolated prepare-only
+output-directory driver negative. None is passed engine evidence. Inherited
+species/original JSON/cold metadata OOM negatives remain separate.
+
+Next complete deferred dirty/clean publication,argument-object/constructor and
+native iterator/checkpoint/apply/shape groups,then remaining property/indexed,
+RegExp and scalar mechanisms. All six LINUX-PORT.txt gates still apply.

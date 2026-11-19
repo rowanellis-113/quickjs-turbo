@@ -1,0 +1,253 @@
+Building and running the product
+===============================
+
+Start with this fork's checkout or source archive. The pinned base is QuickJS-NG
+0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e. Updating upstream is a reviewed
+port, not part of a normal build. An extracted source archive can build without
+Git metadata. No Node.js, profiler, benchmark corpus or previous qjs is needed.
+Keep the committed gen/ files and builtin headers: they are source inputs.
+Preserve LF bytes in a Git checkout (core.autocrlf=false); source pins and native
+input hashes are checked exactly. Release archives preserve those committed bytes.
+
+Dependencies
+------------
+Windows product builds need PowerShell 5.1+, Python 3.10+, CMake 3.20+, Ninja
+and a 64-bit C compiler. Put Python, CMake and Ninja on PATH.
+
+MSVC needs Visual Studio C++ tools, the Windows SDK and ml64. The wrapper uses
+vswhere or -VisualStudioPath; an x64 developer shell also works. The native
+backend additionally needs GNU x86-64 Windows COFF as and objdump, even for MSVC.
+MinGW needs x86_64-w64-mingw32 GCC and its matching binutils. Keep its bin
+directory on PATH so compiler and program runtime DLLs can be found.
+
+Native adapters verify actual compiler output. Unknown optional profiles retain
+their original path; required adapter mismatches fail. Never bypass the checks
+to qualify a different compiler version. Inspect generated receipts for which
+features the actual compiler enabled.
+This release was qualified with MSVC toolset 14.50.35717 and MinGW GCC 13.1.0
+(Windows x86-64). Other versions need their own native validation. If a required
+adapter rejects compiler output, select PORTABLE. AUTO handles configure-time
+prerequisites; it cannot hide an unsupported code shape discovered during build.
+
+Build and run on Windows
+------------------------
+Run from the repository root; choose one compiler:
+
+  ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain msvc -Backend WIN64 -Test
+  ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain mingw -Backend WIN64 -Test
+
+Default output is build/msvc-product or build/mingw-product at the repository
+root. The wrapper enables
+the accepted backports, property cache and allocator configuration, builds the
+CLI/tools/library, and runs CTest with -Test. -Jobs controls build parallelism;
+use -Jobs 1 for the qualification procedure. Use fresh directories after changes
+to compiler, backend, native input contracts or flags.
+
+Tools outside PATH can be supplied explicitly. Substitute your installation:
+
+  $options = @{
+    Toolchain = 'msvc'; Backend = 'WIN64'; Test = $true
+    CMake = 'C:/Tools/cmake/bin/cmake.exe'
+    Ninja = 'C:/Tools/ninja/ninja.exe'
+    Objdump = 'C:/Tools/mingw/bin/objdump.exe'
+    Assembler = 'C:/Tools/mingw/bin/as.exe'
+    VisualStudioPath = 'C:/Program Files/Microsoft Visual Studio/18/BuildTools'
+    BuildPath = 'build/msvc-product'
+  }
+  ./vm/tools/x86/win64/build/build-baseline.ps1 @options
+
+For MinGW set Toolchain='mingw', Compiler='C:/Tools/mingw/bin/gcc.exe', and omit
+VisualStudioPath. Paths with spaces work; no author-machine path is required.
+If downloaded scripts carry a Windows zone mark, review/unblock the downloaded
+archive. Where machine policy permits, a process-local invocation is also usable:
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain msvc -Backend WIN64 -Test
+This does not change persistent execution policy.
+
+  ./vm/tools/x86/win64/build/run-baseline.ps1 -Toolchain msvc -Arguments @('-e', 'print(1 + 2)')
+  ./vm/tools/x86/win64/build/run-baseline.ps1 -Toolchain msvc -Arguments @('examples/hello.js')
+  ./vm/tools/x86/win64/build/run-baseline.ps1 -Toolchain msvc -Arguments @('--help')
+
+Pass the same -BuildPath to both wrappers when using a custom directory. The run
+wrapper checks the producer receipt and executable hash, sets allocator policy
+for this invocation, and restores the previous environment. Direct execution is
+also supported; use the measured product allocator setting explicitly:
+  $env:QJS_EXPERIMENT_ALLOCATOR = '256'
+  ./build/msvc-product/qjs.exe -e 'print(1 + 2)'
+Without that setting the executable works with its other allocator policy.
+Embedding applications set it before creating their first runtime, or configure
+-DQJS_DEFAULT_EXPERIMENT_ALLOCATOR=256 at compile time so scrubbed-environment
+hosts inherit the pooled allocator automatically when QJS_EXPERIMENT_ALLOCATOR
+is unset (an explicit runtime QJS_EXPERIMENT_ALLOCATOR=0 still disables it).
+
+MSVC builds default to the dynamic CRT (/MD). Pass -MsvcRuntime MT to the
+PowerShell wrappers (or -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded to CMake) for
+a static CRT (/MT) library and executable, and -DQJS_BUILD_CLI=OFF when
+embedding qjs without building the CLI or tool binaries:
+  ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain msvc -MsvcRuntime MT -DefaultExperimentAllocator 256 -Backend WIN64 -Test
+
+interpreter-backend.json records the effective backend and fallback reason.
+interpreter-build.json records tools, flags, outputs and test status; native
+builds also produce an epoch and generated adapter receipts. Plain CMake or the
+lower-level build-interpreter.ps1 does not enable the complete product profile.
+Rerun the product wrapper after a manual rebuild to refresh its output receipt.
+
+Fallbacks
+---------
+WIN64 and LINUX_X86_64 are strict. AUTO selects a supported native backend when
+prerequisites are satisfied and reports fallbacks. PORTABLE selects the C
+interpreter. The Win64 backend requires a standalone,
+static, Windows x86-64 Release/RelWithDebInfo Ninja build. Shared, debug,
+instrumented and clang-cl Win64 configurations use the portable path.
+
+  ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain mingw -Backend PORTABLE -Test
+  ./vm/tools/x86/win64/build/run-baseline.ps1 -Toolchain mingw -BuildPath build/mingw-product-portable -Arguments @('-e', 'print(42)')
+
+A simple portable C build on Linux/macOS uses the normal CMake entry:
+  cmake -S vm -B build/portable -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=PORTABLE -DQJS_FRAME_BUILD_TESTS=ON
+  cmake --build build/portable --parallel
+  ctest --test-dir build/portable --output-on-failure
+  ./build/portable/qjs -e 'print(42)'
+Python is needed by the default source overlays. This simple configuration is
+not the complete Windows product profile. Win64 qualification does not establish
+performance or execution coverage on other operating systems. Makefile/Meson
+remain upstream entry points; CMake is the product entry. Existing old option
+spellings are accepted for compatibility; conflicting spellings fail explicitly.
+
+Linux x86-64 native backend
+--------------------------
+Install GCC 13+, GNU readelf/objdump and the matching assembler/linker, Python
+3.10+, CMake 3.20+ and Ninja. The qualified toolchain is GCC 13.3,
+GNU binutils 2.42, CMake 3.28 and Ninja 1.11 on Ubuntu 24.04 x86-64. Native
+execution under WSL2 uses the same Linux ABI. Start from a fresh LF checkout on
+the Linux filesystem when using a Windows working tree as the source;preserve
+the source format rules above. Default-active GNU mechanism
+coverage and the whole-suite performance review are complete. Current qualification
+and delivery bindings are tracked in LINUX-RELEASE.txt; Windows compiler profiles never
+substitute for a measured Linux SysV contract.
+
+Build, test and install the current Linux native/common-C configuration:
+  bash vm/tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
+  QJS_EXPERIMENT_ALLOCATOR=256 ./out/sdk-linux-native/bin/qjs -e 'print(42)'
+The wrapper uses one build job by default. QJS_BUILD_JOBS may override that.
+It uses normal CMake generated C/ELF assembly sources, with the actual compiler
+private ABI measured before compilation. No old archive, executable, research
+directory, COFF patcher, Node or profiler is required to build.
+
+A minimal native configuration also works without optional product switches.
+The Linux backend prepares its required shared RegExp exec/test semantic inputs
+regardless of the portable-backend RegExp option:
+  cmake -S vm -B build/linux-minimal -G Ninja -DQJS_FRAME_BACKEND=LINUX_X86_64
+  cmake --build build/linux-minimal --parallel 1
+  ./build/linux-minimal/qjs -e 'print(42)'
+AUTO selects this backend on supported native Linux GCC x86-64 hosts. Shared
+libraries, fully static CLI, sanitizers, cross targets and unsupported native
+options currently fall back to PORTABLE in AUTO; strict native requests fail.
+Public headers and installed consumer targets are unchanged. Native BUILD.json
+binds the linked PIE image to generated inputs/compile commands; CTest includes
+Linux shared-arena/thread/GC/quota tests. Coverage is documented separately in
+LINUX-MECHANISM-COVERAGE.txt, and original scores/cost decisions in
+LINUX-FINAL-REVIEW.txt;historical costs remain in LINUX-PERFORMANCE.txt. Ordinary compilation needs neither the recorded audit
+directories nor comparison workloads.
+
+GNU tool paths may be supplied as QJS_LINUX_READELF and QJS_LINUX_OBJDUMP.
+They must exist and pass bounded GNU version probes. AUTO selects PORTABLE
+when prerequisites are unavailable; LINUX_X86_64 rejects them at configure time.
+Win64-specific entry implementation switches are not Linux options: the Linux
+product profile integrates its own native entries and component controls.
+Default-OFF weak VM call links and MSVC-only coroutine/method-learning machinery
+are outside the GNU coverage claim; ordinary async output elision is not enabled.
+
+Install and embed
+-----------------
+  cmake --install build/msvc-product --prefix out/sdk-msvc
+
+Applications use the installed headers and exported target:
+  find_package(qjs CONFIG REQUIRED)
+  target_link_libraries(your_application PRIVATE qjs)
+
+An existing consumer verifies JS-to-C-to-JS calls using only the installed SDK:
+  cmake -S vm/tests/common/consumer -B build/consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/out/sdk-msvc"
+  cmake --build build/consumer
+  ctest --test-dir build/consumer --output-on-failure
+
+Use an x64 developer shell for MSVC consumer commands: the wrapper's private
+environment is not a persistent system installation. For MinGW select its
+compiler and keep its bin directory on PATH. Use matching architecture/compiler/
+runtime settings; do not mix MSVC and MinGW static libraries. Consumers do not
+need private headers, engine build directories or generated source files.
+The qualified default MSVC (/MD) CLI imports VCRUNTIME140.dll and the Universal C
+Runtime; machines running that prebuilt CLI without Visual Studio need the
+matching x64 Visual C++ runtime installed. Static CRT (/MT) MSVC builds link the
+runtime libraries statically and import only system DLLs. System/runtime DLLs
+are not copied into this SDK.
+
+Tests and maintenance
+---------------------
+CTest runs local regression, API and interpreter checks. Full Test262 is a
+separate optional pinned submodule. update=none avoids downloading it during a
+normal clone/build. Request it explicitly, preserving raw corpus text:
+  git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init test262
+  ./build/msvc-product/run-test262.exe -m -c test262.conf -a -t 1
+The submodule command applies to a Git checkout. Standalone source archives omit
+the optional Test262 corpus; ordinary build/CTest checks do not need that corpus.
+Use the allocator setting above. Compare new and fixed failure identities with
+the known-error list; a nonzero exit alone does not distinguish inherited errors
+from regressions. Do not silently update the corpus or known-error list.
+
+Formatting is optional for building; see FORMAT.txt. Optional application
+benchmarks: vm/tools/common/bench/README.txt. Historical captures and release audit data
+belong outside the product tree. Preserve source pins, ABI checks, generator
+contracts and fallbacks during maintenance and upstream upgrades.
+
+Pinned source line endings
+--------------------------
+Canonical source archives use LF. Native sort and async-generator source guards
+use the same CRLF-to-LF normalization as QuickJSUpstreamPin.cmake,so Windows Git
+checkouts and Linux archives select the same reviewed upstream source. The
+function-body,compiler-call-site and private ABI fingerprints remain exact; a
+source edit beyond checkout line endings still requires explicit pin review.
+
+Linux AArch64 native backend (QEMU functional qualification)
+----------------------------------------------------------
+The explicit LINUX_AARCH64 backend uses Linux/glibc,LP64,little endian,GCC13+
+and Ninja. Static library/Release builds are supported;LTO,sanitizers,shared
+libraries and BTI/PAC-default compiler profiles retain PORTABLE or fail a
+strict native request. AUTO remains the conservative portable selection on ARM;
+select the explicit backend or use the dedicated product wrapper.
+
+On a native ordinary Linux/glibc ARM64 host:
+  bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk-arm64
+On Ubuntu x86-64 with the cross compiler and QEMU user emulator:
+  sudo apt install gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross qemu-user cmake ninja-build python3
+  bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk-arm64
+  QJS_EXPERIMENT_ALLOCATOR=256 qemu-aarch64 -cpu cortex-a53 -L /usr/aarch64-linux-gnu out/sdk-arm64/bin/qjs -e 'print(42)'
+The wrapper chooses the committed cross toolchain on x86-64 and ordinary native
+GCC on ARM64. QJS_TOOLCHAIN_FILE supplies an explicit alternative;the toolchain
+also accepts QJS_AARCH64_TOOLCHAIN_PREFIX,QJS_AARCH64_TARGET_ROOT and an explicit
+CMAKE_CROSSCOMPILING_EMULATOR list. Preserve the same target compiler and sysroot
+for SDK consumers. Cross executables cannot run directly on an x86 host.
+
+No installed old engine,Git checkout,Node,profiler or external benchmark corpus
+is required. Committed gen/ sources remain build inputs. Unsupported compiler/
+ABI shapes fail their target checks;PORTABLE remains the supported fallback.
+QEMU establishes functional compatibility only. Scores,host RSS or host PMU
+samples from it are not physical ARM speed/memory/profile results. Release
+qualification and source/SDK bindings are described in LINUX-AARCH64-RELEASE.txt.
+
+The original common-C ARM64 qualification wrapper remains available unchanged:
+  bash vm/tools/arm64/build/product-linux-aarch64-portable.sh build/arm64-portable out/sdk-arm64-portable
+It retains its target aggregate-ABI checks and record-portable.py receipt.
+Use product-linux-aarch64.sh for the explicit native register interpreter.
+
+Installed ARM64 SDK consumer
+---------------------------
+Use the same target compiler/sysroot. From this source checkout on x86-64:
+  cmake -S vm/tests/common/consumer -B build/arm-consumer -G Ninja -DCMAKE_TOOLCHAIN_FILE=/absolute/source/vm/cmake/arm64/toolchains/linux-aarch64-gcc.cmake -Dqjs_DIR=/absolute/sdk/lib/cmake/qjs
+  cmake --build build/arm-consumer --parallel 1
+  ctest --test-dir build/arm-consumer --output-on-failure
+On a real ARM64 host,omit CMAKE_TOOLCHAIN_FILE and use its native GCC.
+The cross toolchain intentionally searches packages only in target roots;
+qjs_DIR selects the exact external target SDK. CMAKE_PREFIX_PATH alone may be
+rerooted and miss an SDK outside the sysroot. Do not import a host x86 library.
+The release SDK also carries share/examples/quickjs-consumer and the cross
+toolchain under share/cmake,so embedding can be tested without the core source.

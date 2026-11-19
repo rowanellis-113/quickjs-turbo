@@ -1,0 +1,82 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 native global and lexical bindings
+================================================
+
+This supplement translates the complete accepted GNU global-binding family
+over the actual target compiler types. Native get_var and get_var_undef first
+probe the original bytecode-owned tagged binding cells. Original common
+publication, invalidation, realm and release owners retain every borrowed
+cell lifetime. Missing maps/cells enter the original coherent C relinker;
+lexical TDZ, accessors and unsupported descriptors retain observing owners.
+
+The activation layer reuses the existing sixteen32-byte call-cache cells and
+eight replacement bytes. Global/lexical markers are distinct from call and
+prototype markers. A cached row retains PC, mask/bucket arithmetic, atom and
+slot only. Each hit rederives the CURRENT realm and holder; it validates the
+live lexical empty bucket for global absence and the live property bounds,
+atom, plain descriptor and lexical TDZ. No cached object pointer is read.
+Matching-PC, first-vacant, second-vacant and rotating-victim fill rules retain
+the original algorithm. Nonempty lexical buckets use the full base resolver.
+
+Undefined lookup captures one aligned atomic64 mask/bucket pair with acquire
+load and release store, then validates its mask against the current lexical
+shape. It never assembles a pair from separate concurrent snapshots. The
+original process controls and greater-than4096-byte weak-cache bypass remain;
+the bytecode-cell layer is still tried first. Ordinary hash resolution remains
+native when weak/global optimization is disabled, including compiled IC OFF.
+
+Resolved-cell Symbol comparison fusion retains all original guards: Symbol
+on both sides; another owner of the consumed existing LHS; interrupt budget
+greater than one; exact strict_eq followed by if_true/if_false short or long;
+source and destination within actual bytecode bounds. It consumes only the
+existing LHS reference, skips the redundant RHS duplicate and polls once.
+Failed guards retain the original value load, duplication and C comparison.
+Short/long backward and forward branches are independently exercised.
+
+QJS_INTERP_FRAME_GLOBAL_BINDING=OFF removes these two native opcode handlers,
+controls and pure initializer, restoring the predecessor116-handler VM. Its
+entire18512-byte instrumented VM instruction stream is byte-identical to the
+qualified predecessor archive object. The default ON VM has118handlers.
+QJS_DISABLE_FRAME_GLOBAL_BINDING presence, including0, disables activation,
+undefined and Symbol hints while retaining native BC and generic resolution.
+QJS_DISABLE_FRAME_GLOBAL_UNDEFINED and QJS_DISABLE_FRAME_LARGE_GLOBAL_BYPASS
+retain their original independent process-presence semantics. Existing BC,
+property IC, own-bytecode, Symbol, register and legacy controls also remain.
+
+JS_LinuxGlobalBindingInit is a typed pure nonobserving helper. It configures
+process atomics only, without JS, GC, allocation, release or frame publication.
+The natural read-only debugger stops in a real Dirty child on its first cold
+global access. Runtime SF still denotes its logical parent; after the actual
+C call all x19-x29 and SP, all168private-state bytes and the Dirty token are
+unchanged. The natural backtrace reaches helper, native VM, AArch64 bridge,
+JS_RunFrame and the public JS_Call caller. No debugger register or memory
+writes force admission. Original seven observing helper boundaries remain.
+
+All inherited target types and constants remain equal: JSFrame128 and register
+state168. Existing520activation bytes are reused. No new frame/runtime field,
+strong root, allocation or physical stack lease is introduced. Logical static
+controls add18bytes; only instrumented images add128TLSbytes and metadata
+readers. Release images require all observers absent. Actual linked sections
+and complete VM/helper FDE, PIE, NX stack and no-WX LOAD checks remain gates.
+
+Fifty focused checks retain the original global lifecycle, invalidation,
+realm, interrupt, GC, public allocator, two-thread first-use and warmed OOM
+tests. An independent C fixture observes128BC hits; cellOFF observes63global
+and63lexical hits plus their original fills, with zero get_var C steps.
+Four immutable compiler patterns independently decode short/long true/false
+branches and prove192Symbol fusions; last-reference Symbol input falls back.
+Live replacement, undefined arithmetic and zero allocator ledgers are checked.
+Full targeted results:515ON,503compiled-IC-OFF,515compiled-global-OFF.
+The existing recursive VM test retains native depth, return and host-stack
+checks and now accounts exactly for two original call1 C fallbacks plus one
+host observation instead of requiring201eliminated C global reads.
+
+The source ABI, generated family receipt and complete original algorithm
+receipt are installed beside this document. Full fresh release/instrumented,
+same81152Test262, noGit SDK, qjsc and wire gates qualify the frozen supplement
+separately. Remaining original22-family mechanisms and final P5 stay open.
+AUTO remains PORTABLE. QEMU results prove functional behavior only; physical
+ARM performance and RSS are not qualified by emulated execution.

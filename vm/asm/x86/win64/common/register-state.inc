@@ -1,0 +1,19 @@
+/* Owned boundary-record ABI. C asserts both profiles in quickjs-interpreter-register.h. */
+.ifndef QJS_FRAME_DIAGNOSTICS
+.error "Retained assembly requires an explicit diagnostic profile"
+.endif
+.if QJS_FRAME_DIAGNOSTICS
+.equ FRAME_STATE_CACHE_NEXT, 2288
+.equ FRAME_STATE_EXCEPTION, 2296
+.equ FRAME_STATE_LITERAL_ACTIVE, 2298
+.equ FRAME_STATE_LITERAL_LAZY, 2299
+.equ FRAME_STATE_ITERATOR_DEPTH, 2300
+.equ FRAME_STATE_NATIVE_LIMIT, 2312
+.else
+.equ FRAME_STATE_CACHE_NEXT, 152
+.equ FRAME_STATE_EXCEPTION, 160
+.equ FRAME_STATE_LITERAL_ACTIVE, 162
+.equ FRAME_STATE_LITERAL_LAZY, 163
+.equ FRAME_STATE_ITERATOR_DEPTH, 164
+.equ FRAME_STATE_NATIVE_LIMIT, 72
+.endif

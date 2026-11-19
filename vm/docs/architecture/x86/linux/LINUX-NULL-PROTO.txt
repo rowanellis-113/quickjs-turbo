@@ -1,0 +1,65 @@
+Linux native null-prototype admission and allocation
+===================================================
+
+This module carries the accepted GNU NULL_PROTO mechanism. Semantic fallback
+alone did not establish parity: the previous Linux generator explicitly sent
+the two non-arguments special-object edges to interp_slow and had no dedicated
+warm allocation owner. The current entry reaches the register opcode and its
+typed SysV worker, with complete original allocation/failure semantics.
+
+Shared algorithm and ABI
+------------------------
+tools/generate/null-proto.py owns the null-only extension of the inherited
+validator. The Linux body is identical after function/section names, symbolic
+null kind, opcode-count expression and its already-present captured-readonly
+proof are normalized. Keep all original argument/local/constant/branch/stack
+bounds, require a real null opcode and retain metadata bit32. Per-runtime
+QJS_DISABLE_NATIVE_NULL_PROTO is tested by presence, including value0.
+
+tools/generate/null-arena.py supplies the complete applicable inline-header
+allocator. Linux changes only the exported name, same-TU shape-release alias
+and actual-type assertion. Keep warm empty-null-shape lookup, class/prototype/
+GC-phase guards, shape ownership before GC/allocator reentry, exact ordinary
+object initialization, both allocating failure releases and original fallback.
+There is no new arena, free list, object representation or shape-cache owner.
+
+JS_LinuxNewNullObject uses the actual SysV C aggregate ABI, checked against
+JS_NewObjectProtoClass. The VM uses its existing typed state bridge and coherent
+C scope; the Win64 hidden-result protocol is not copied. PC+2, preexisting live
+stack roots and the real bytecode realm are published before allocation. The
+owning result is committed once, SP advances16, and the running cur_sp convention
+is restored on return. Exceptions use the full inherited unwind/slow selector.
+Frame128/state168 and their GC roots are unchanged. Native-code costs are to be
+measured in the complete suites; a C scope is not a zero-cost ABI assertion.
+
+src/x86/linux/abi/null-proto.json binds the accepted owners. NULL-PROTO.json
+and NULL-PROTO-VM.json bind generated C, admission, platform sources, actual
+entry and symbols. Generation/build/ELF verifiers reject unreviewed inputs.
+
+Execution and qualification
+---------------------------
+An independent public C host linked to the accepted Windows MinGW SDK executes
+the original native opcode and allocator32 times; component-OFF executes neither.
+The ordinary JS first-cold-child control uses a different inherited route.
+Do not treat a missing cold-child hit as proof the public-root mechanism is dead.
+
+The current Linux development candidate passes927 strict CTests, including six
+fresh public null-specific modes. The public fixture covers null identity,
+cyclic live values, cross-realm calls, GC/reentry, every cold/warm allocation
+fault position, recovery and complete zero allocation ledgers. Both disable
+values, eager publication, disabled frames and disabled register VM are tested.
+Three fresh full pinned Test262 cohorts(default/component-OFF/publication-OFF)
+retain the exact portable65/81152 inherited failures,31fixed and0new/changed.
+
+Read-only normal Release observations prove actual SysV inputs, realm/current
+SF/PC/SP roots before allocation, owning aggregate results, nested return order,
+exception results and component-OFF. The public fixture reaches the allocator
+103 times(98 object results,5 exceptions); OFF has zero entries. These are
+observation counts, not hit rates, performance gains or completeness percentages.
+
+The independent installed/same-object prior-stock/standalone and complete ELF/
+FDE checks are sealed in the external source/image-bound development checkpoint.
+All19 raw upstream pins stay unchanged. This module is not whole-port acceptance.
+Finish the complete default-active source/archive-stage/ABI/execution ledger,
+then whole micro57/JetStream17/V8-v7 time/memory screens, bounded profiles and
+final current-source configuration/Windows/MSVC/Test262/LF source-package gates.

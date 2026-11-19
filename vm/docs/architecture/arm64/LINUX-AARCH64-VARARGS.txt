@@ -1,0 +1,56 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64: owned spread, fusion and intrinsic apply
+
+This experimental optimization is part of the opt-in LINUX_AARCH64 backend.
+QJS_INTERP_FRAME_VARARGS currently requires the argument, forwarding,
+constructor and iterator owners. Disabling a dependency omits these workers
+and retains the complete original semantics. AUTO still selects PORTABLE.
+
+The implementation reuses tools/elf/varargs_native.py and the original
+tools/generate/varargs.py factories without changing their x86 defaults.
+The intrinsic apply guard checks the original function identity, C prototype,
+magic and length. Its complete C owner retains the dense-list and normal-length
+checks, same-realm restriction, owned snapshot, interrupt polls, quota, cached
+segment switch and logical root2 return protocol.
+
+Direct apply and single-spread fusion retain all actual arguments, reload the
+rooted source after allocator reentry, and perform the call poll after taking
+the snapshot. Getters, custom iterators, unknown targets and guard failures use
+the original paused-call, exception and iterator-checkpoint protocol.
+
+The target compiler measures the actual source apply-record declaration and
+each field offset. Generated C assertions check that layout. The adapters use
+the actual AAPCS64 int(state) signature and existing frame/state types. No new
+runtime fields or retained JS roots are introduced. Four optional TLS counters
+exist only in instrumented builds; the original apply counters and process
+controls keep their existing meanings and presence-based disable behavior.
+
+Targeted validation covers four natural cohorts: single-spread fusion,
+prefixed snapshots, method fusion and intrinsic apply. Each cohort executes
+128 calls using 128 VM activations. Fifteen independent process modes cover
+both disable values. Three original language fixtures include 3,498 spread
+and async checks, plus apply cases with 59 GC collections. The original public
+apply host observes 33 admitted calls and 33 foreign-realm misses.
+
+Read-only GDB follows the actual apply boundary and checks the owned argv,
+logical parent, committed publication, stack alignment, callee-saved state
+and VM unwind. Compile-OFF and dependency-OFF are independent configurations.
+
+Fault fixtures use 96 fresh runtimes per mode with 2,048 actual arguments,
+recovery calls, exact quota restoration and zero allocator ledgers. They prime
+lazy iterator/apply definitions before injecting call-window faults. An
+unprimed allocation-7 recovery TypeError also reproduces on the prior image
+and disabled controls; its cause remains unproven and the negative evidence
+is retained separately. This port does not claim to fix that inherited case.
+
+Real allocator callbacks also run GC and foreign-context JS during large
+calls. Three variants across seven modes produce 35 callbacks, with owners
+and quotas restored. Source/binary bindings and raw results are retained
+outside the product source tree.
+
+Full corpus, installed-SDK and final P5 qualification remain separate gates.
+QEMU supplies functional evidence; physical ARM performance and RSS remain
+unverified.

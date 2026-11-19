@@ -1,0 +1,102 @@
+Current product source and Linux native module baseline,2026-11-12
+=================================================================
+Pinned upstream remains QuickJS-NG0.15.1;all19 source pins are unchanged.
+Linux native uses the independent forwarding C worker. Its exact artifact
+hashes,current performance tradeoffs and fresh946/211CTest plus fullON/OFF
+Test262 qualification are in LINUX-VIRTUAL-ARGUMENTS.txt. The release manifest
+binds the current source/archive and per-SDK runtime revisions.
+The other four SDKs retain their exact qualified bytes and8c runtime provenance.
+Build commands,public APIs and PORTABLE/AUTO behavior remain unchanged.
+This is a measured tradeoff baseline;the structural merge is not advertised
+as a new overall speed increment. Research/profile/build data stay outside
+the product and are not required for a clean local build.
+
+The older cross-platform closeout below is retained as explicitly dated history.
+
+Cross-platform qualification history,2026-11-11
+=========================================
+
+Runtime:8c1b9ce9fab9a298249a6aeb4d13ce6f337ce8bd.
+Pinned QuickJS-NG:0.15.1,bf8988fc401e737f9946cd10a3463b48aab0fd7e.
+All19 upstream source pins remain unchanged. The canonical product branch is
+product/turbo. It includes the accepted Windows implementation and complete
+default-active Linux port. Upstream master remains an upgrade reference.
+
+Configuration and local builds
+------------------------------
+Windows x86-64:MSVC or MinGW native WIN64 backend.
+Linux x86-64:GCC13+ native backend. PORTABLE remains the supported fallback;
+AUTO keeps the documented unsupported-platform/toolchain behavior.
+Follow BUILDING.txt or the root README for normal builds and CMake SDK use.
+No comparison engine,Node,profiler,old object or research directory is required.
+
+The measured allocator setting is explicit QJS_EXPERIMENT_ALLOCATOR=256.
+For example,on Linux after the documented product build:
+  QJS_EXPERIMENT_ALLOCATOR=256 out/sdk-linux-native/bin/qjs -e 'print(42)'
+For a Windows PowerShell session:
+  $env:QJS_EXPERIMENT_ALLOCATOR='256'
+  ./tools/run-baseline.ps1 -Toolchain mingw -Arguments @('-e','print(42)')
+Unset/off retains the original allocator factory behavior;public custom
+allocators are not silently replaced. The setting is not a public ABI change.
+
+Accepted implementation and qualification
+-----------------------------------------
+The runtime contains the prior accepted call/frame,propertyIC,string,JSON,
+regexp,array,closure,async-generator and compiler improvements,plus the Linux
+SysV register VM,ownership/publication,stack insertion and reference slots.
+LINUX-MECHANISM-COVERAGE.txt records exact routes and optional/platform limits.
+DefaultOFF weak call links,MSVC-only coroutine segments and ordinary async
+output elision retain their documented boundaries;counts are not completion
+percentages or a requirement to reproduce every LLInt design.
+
+Qualified canonical runtime archive builds:Linux native934CTest,PORTABLE211;
+Windows MinGW native307,MSVC native292,PORTABLE211. Relocated SDK consumers,
+native unwind and fallback checks passed. Test262 provenance and inherited
+failures are in LINUX-RELEASE.txt;promotion does not relabel prior Linux records
+as new full runs. This baseline adds no new runtime algorithm or ABI change.
+
+The product release reuses those exact qualified SDK bytes. Its new source
+archive additionally carries the product baseline documentation. SDK producer
+receipts keep the original build source identities;no fresh rebuild of a later
+documentation commit or new performance increment is claimed.
+
+Performance records and scope
+-----------------------------
+All-Linux same-cohort V8-v7 original scores,CPU2/serial/normalASLR,two reversed
+blocks,Ubuntu24.04/WSL2,native LinuxELF images:
+  NG0.15.1 993.7;Bellard2026-06-04 defaultO2 1465.7;
+  JSCOnly2b27eb4 LLInt/JITOFF 1596.1;Node24.13.0 jitless2374.9;
+  Turbo native+pool256 1942.7.
+JetStream selected17 geometric relative elapsed index,stockNG=100:
+  NG100;Bellard74.8;LLInt69.6;Nodejitless46.2;Turbo59.9.
+This index is not an official JetStream total. Each case/body/calibration and
+all observed modes remain in the release's reports;two blocks are not CI bounds.
+
+A separate final same-image allocator comparison observed original wholeV8:
+  Windows off1506.3/header1536.5/pool256 1917.2;
+  Linux off1766.3/header1732.1/pool256 1922.3.
+Those are different-cohort observations of the same accepted bytes,not a code
+regression or a substitute column in the five-engine comparison. Per-case
+platform gaps remain;whole scores do not establish identical native path cost.
+
+Bounded optimization exit
+--------------------------
+The last investigation decided two candidate slots using quick original
+RayTrace/EarleyBoyer/RegExp/Splay screens before expensive confirmation:
+  pool512:about+0.69%Windows/+0.68%Linux diagnostic score;parked,not promoted;
+  mimalloc:about-13.7%Windows/-2.4%Linux diagnostic score;not accepted.
+The mimalloc control used the public allocator API and the exact acceptedSDK
+archive. Its memory reduction did not establish a speed benefit;pool-specific
+safe fastpaths are part of the intervention. No mimalloc dependency is added.
+
+The entry/acceptance target was stable wholeV8>=+1%,or a target>=+5% with
+nonnegative full application result,stock-priced costs,memory and correctness.
+Neither candidate established this evidence. The small512 tendency is retained;
+it is not described as a proven zero full-suite effect. No candidate full-suite
+or newJet17 stable result is claimed. The performance round is closed after
+those two decisions;ABI/GC/core-layout redesign requires a separate measured
+application budget and bounded proposal. This is not an architecture ceiling.
+
+Profiles and experiments remain outside the product repository. The release
+contains compact decisions/results and qualification receipts,not process
+captures or optional research code required by normal builds.

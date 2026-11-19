@@ -1,0 +1,52 @@
+Linux AArch64 opcode-owned value flow and ordinary returns
+
+The native register interpreter keeps successful value operations in the
+opcode that already knows their width, keep/pop behavior and TDZ contract.
+Immediate loads, reference duplication and nonlast slot replacement return
+directly to that opcode's commit. Arithmetic operators keep their number
+classifier, result and dispatch together. Non-number and observing cases
+retain the inherited typed owner.
+
+Slot replacement still commits the incoming value, PC and SP before releasing
+the last old owner. Incoming and old values can alias. A kept incoming
+reference is duplicated before the old reference is decremented; the old
+count is reloaded after Dup. A last release publishes through the existing
+quota/reentry/finalizer boundary and never replays an already committed slot.
+
+Ordinary uncaptured returns consume callee slots once in ascending order,
+perform the original frame pop, then consume the caller's pending operands
+once in ascending order. Each consumed slot becomes undefined before an
+observing release. The original state.result owns the return value across
+that release; callee-saved cursors resume at the next slot. Captures,
+constructors and exception cases retain their original pre-consumption
+guards and cold owners. All three original/Clean/Dirty-Known return streams
+participate. An observing Known continuation restores its publication token.
+
+These paths add no public API, frame fields or physical stack frame space.
+All 19 pinned upstream inputs and the existing private compiler profiles
+remain unchanged. Source-owner receipts cover the generator and inherited
+owners; they are not replacements for private compiled fingerprints.
+
+The AArch64 backend enables QJS_AARCH64_NUMBER_DATAFLOW and
+QJS_AARCH64_LINEAR_RETURN by default. LINEAR_RETURN requires NUMBER_DATAFLOW.
+Configure LINEAR_RETURN=OFF to retain the preceding two-pass return owner
+while keeping opcode-owned value flow. Configure both options OFF to select
+the inherited assembly input. A runtime disable control still follows its
+original readers; these compile-time combinations are distinct controls.
+
+Generated assembly, receipts, macro expansion, actual machine input and
+register/unwind checks remain build inputs. Publication tests include a
+captured tail caller whose escaping closure is read after GC, preserving
+cold return coverage as ordinary no-capture returns leave the C cleanup
+owner. Return alias tests isolate observed nested-runtime counter windows
+without hiding ordinary outer returns or deleting the original assertions.
+
+Qualification binds exact images, corpus and original callers. Test262 uses
+the existing pinned corpus/configuration/known-error list in both modes;
+new and changed failure identities must remain zero. Performance keeps all
+original micro57, V8all8 and Jet17 cases, allocator policy and calibration,
+with accepted and official2026 controls in balanced order. The original
+os.cputime??os.now panel stays separate from common-elapsed diagnostics.
+Benchmark results and all adverse cases are retained outside the product
+tree. Positive full-suite increments do not establish cloud CPU stability
+or completion of the cross-architecture performance targets.

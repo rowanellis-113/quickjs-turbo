@@ -1,0 +1,75 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 argument frames, source-owned C, native Ready and access tier
+
+QJS_INTERP_FRAME_ARGUMENTS is experimental in the opt-in backend. It currently
+requires the existing forwarding and constructor owners;when either dependency
+is compiled OFF,the argument workers are omitted and legacy behavior remains.
+AUTO still selects PORTABLE. This is not complete original22/P5 qualification.
+
+The complete shared GNU C owners retain root/child/constructor/mapped/unmapped
+argument objects,16-byte records,normal/exception closure detachment,copy/borrow
+aliases,logical .call normalization and the exact virtual-apply constructor.
+Actual C aggregates,source-extracted private types and compiler-managed ELF TLS
+are used. No Win argument-register or hidden-return ABI is copied. The separate
+virtual worker compiles with the same private defines and backported input as
+the core. Original special-object C fallback and readonly argument-prefix
+candidate/negative cache are retained.
+
+Native provided-window Ready retains the original mode/arity/capacity/quota/
+caller-realm interrupt guards. Every decline precedes commitment. It initializes
+the complete original argument record,frame,locals and capture pointers,then
+selects the existing Clean/Dirty publication stream. There is no C call on this
+builder path and no new native stack frame. The private record declaration,
+signature,sizeof/offsets and bytecode metadata are measured by this target
+compiler from the same complete source owner. The common frame stays128 bytes,
+state168 bytes;only an argument frame has the inherited additional16-byte
+record. No runtime fields or new retained JS roots are introduced.
+
+All original presence controls retain0/1 disable semantics and observed atomic
+statistics. Public fixtures check mapped aliases,missing/excess actuals,
+escaped closures,prototype/descriptor behavior,GC/realm/reentry,constructor
+fallback and all allocation faults. Native counters independently distinguish
+ordinary/tail/method Ready from the typed C builder. Readonly natural debugging
+checks the actual record,published SF,unwind and AAPCS64 saved state.
+
+Native get/get2/put/length access retains the original mapped JSVarRef or
+unmapped value slots,integer/bounds/fast-array/class guards and presence policy.
+Get duplicates the value before releasing the nonlast receiver (including
+self aliases);get2 preserves the receiver for a computed method call. Put
+transfers the incoming owner and rejects last-release or receiver-alias old
+values before mutation. Length checks the original first normal descriptor
+and numeric value. All misses retain original PC/SP and owning operands. No
+C call,physical stack lease or callback is introduced. The target compiler
+measures argument class IDs in addition to all existing field offsets.
+
+Independent public fixtures cover both classes,all four actual native paths,
+escaped mapped cells,self aliases,temporary receivers,deleted/readonly/index
+accessors and changed length descriptors. Original argument/access/index/
+length/native-length/register/publication controls are separate fresh processes;
+presence0 and1 both disable. Readonly GDB follows the real relative dispatch
+entry and checks committed value/RC/operand state and the actual argument-root
+VM unwind without writing runtime state or registers.
+
+The returning .call probe now retains the complete original bounded prefix
+filter,kind2 negative cache and exact intrinsic identity/cproto/magic/length
+guards. It invokes the unchanged source C argument normalizer for candidate
+arguments and preserves the inherited producer on decline. The target adapter
+saves only state/LR in its own16-byte AAPCS64 lease,with complete CFI;the
+original caller's separate32-byte lease remains untouched. Ordinary targets
+do not enter the argument C owner. That owner performs no JS callback or
+engine allocation before its guarded complete child/logical-SF commit;the
+shared begin_c only synchronizes quota,not PC/SP publication. The successful
+commit publishes the parent's nextPC/operands and all logical wrappers before
+the child can allocate,collect or reenter.
+
+Native fixtures independently observe ordinary/tail/depth2,mapped/unmapped
+children,owned missing values,original logical depth and one VM activation.
+Fresh presence controls preserve native/deferred/leaf/borrow/forward/register
+semantics. Natural read-only debugging checks the real C owner,logical SF,
+parent publication at commit and unwind through the16-byte probe lease. Complete apply/spread/varargs and other original22 families remain
+separate migration work. Current targeted evidence does not close full
+Test262,compiled-OFF,old-platform,installed SDK/noGit or final P5 gates.
+QEMU validates functionality;physical ARM speed and RSS are unverified.

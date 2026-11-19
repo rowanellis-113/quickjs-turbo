@@ -1,0 +1,236 @@
+{
+  "schema": 1,
+  "suite": "JetStream 3.0 - ten whole application workloads",
+  "repository": "https://github.com/WebKit/JetStream",
+  "branch": "JetStream3.0",
+  "revision": "06785cf861ac44855f168cbbe829278c2802e6de",
+  "selection": "Selected by workload coverage before timing; Basic replaced solely for cross-engine compatibility after all ten reference images failed its required RegExp legacy statics.",
+  "cases": [
+    {
+      "name": "Air",
+      "purpose": "compiler backend / liveness / stack allocation",
+      "files": [
+        "ARES-6/Air/symbols.js",
+        "ARES-6/Air/tmp_base.js",
+        "ARES-6/Air/arg.js",
+        "ARES-6/Air/basic_block.js",
+        "ARES-6/Air/code.js",
+        "ARES-6/Air/frequented_block.js",
+        "ARES-6/Air/inst.js",
+        "ARES-6/Air/opcode.js",
+        "ARES-6/Air/reg.js",
+        "ARES-6/Air/stack_slot.js",
+        "ARES-6/Air/tmp.js",
+        "ARES-6/Air/util.js",
+        "ARES-6/Air/custom.js",
+        "ARES-6/Air/liveness.js",
+        "ARES-6/Air/insertion_set.js",
+        "ARES-6/Air/allocate_stack.js",
+        "ARES-6/Air/payload-gbemu-executeIteration.js",
+        "ARES-6/Air/payload-imaging-gaussian-blur-gaussianBlur.js",
+        "ARES-6/Air/payload-airjs-ACLj8C.js",
+        "ARES-6/Air/payload-typescript-scanIdentifier.js",
+        "ARES-6/Air/benchmark.js"
+      ],
+      "preload": {},
+      "deterministic_random": false,
+      "async": false
+    },
+    {
+      "name": "delta-blue",
+      "purpose": "incremental constraint solver and object calls",
+      "files": [
+        "Octane/deltablue.js"
+      ],
+      "preload": {},
+      "deterministic_random": true,
+      "async": false
+    },
+    {
+      "name": "Babylon",
+      "purpose": "JavaScript parser on four real source payloads",
+      "files": [
+        "ARES-6/Babylon/index.js",
+        "ARES-6/Babylon/benchmark.js"
+      ],
+      "preload": {
+        "airBlob": "ARES-6/Babylon/air-blob.js",
+        "basicBlob": "ARES-6/Babylon/basic-blob.js",
+        "inspectorBlob": "ARES-6/Babylon/inspector-blob.js",
+        "babylonBlob": "ARES-6/Babylon/babylon-blob.js"
+      },
+      "deterministic_random": false,
+      "async": true
+    },
+    {
+      "name": "cdjs",
+      "purpose": "collision detection simulation",
+      "files": [
+        "cdjs/constants.js",
+        "cdjs/util.js",
+        "cdjs/red_black_tree.js",
+        "cdjs/call_sign.js",
+        "cdjs/vector_2d.js",
+        "cdjs/vector_3d.js",
+        "cdjs/motion.js",
+        "cdjs/reduce_collision_set.js",
+        "cdjs/simulator.js",
+        "cdjs/collision.js",
+        "cdjs/collision_detector.js",
+        "cdjs/benchmark.js"
+      ],
+      "preload": {},
+      "deterministic_random": false,
+      "async": false
+    },
+    {
+      "name": "FlightPlanner",
+      "purpose": "route parsing and calculation",
+      "files": [
+        "RexBench/FlightPlanner/airways.js",
+        "RexBench/FlightPlanner/waypoints.js.z",
+        "RexBench/FlightPlanner/flight_planner.js",
+        "RexBench/FlightPlanner/expectations.js",
+        "RexBench/FlightPlanner/benchmark.js"
+      ],
+      "preload": {},
+      "deterministic_random": false,
+      "async": false
+    },
+    {
+      "name": "OfflineAssembler",
+      "purpose": "assembler parser on representative source files",
+      "files": [
+        "RexBench/OfflineAssembler/registers.js",
+        "RexBench/OfflineAssembler/instructions.js",
+        "RexBench/OfflineAssembler/ast.js",
+        "RexBench/OfflineAssembler/parser.js",
+        "RexBench/OfflineAssembler/file.js",
+        "RexBench/OfflineAssembler/LowLevelInterpreter.js",
+        "RexBench/OfflineAssembler/LowLevelInterpreter32_64.js",
+        "RexBench/OfflineAssembler/LowLevelInterpreter64.js",
+        "RexBench/OfflineAssembler/InitBytecodes.js",
+        "RexBench/OfflineAssembler/expected.js",
+        "RexBench/OfflineAssembler/benchmark.js"
+      ],
+      "preload": {},
+      "deterministic_random": false,
+      "async": false
+    },
+    {
+      "name": "pdfjs",
+      "purpose": "PDF processing and rendering log validation",
+      "files": [
+        "Octane/pdfjs.js"
+      ],
+      "preload": {},
+      "deterministic_random": true,
+      "async": false
+    },
+    {
+      "name": "typescript-octane",
+      "purpose": "TypeScript parse/typecheck/emit",
+      "files": [
+        "Octane/typescript-compiler.js",
+        "Octane/typescript-input.js",
+        "Octane/typescript.js"
+      ],
+      "preload": {},
+      "deterministic_random": true,
+      "async": false
+    },
+    {
+      "name": "crypto",
+      "purpose": "RSA application with integer arithmetic",
+      "files": [
+        "Octane/crypto.js"
+      ],
+      "preload": {},
+      "deterministic_random": true,
+      "async": false
+    },
+    {
+      "name": "richards",
+      "purpose": "task scheduler and object calls",
+      "files": [
+        "Octane/richards.js"
+      ],
+      "preload": {},
+      "deterministic_random": true,
+      "async": false
+    }
+  ],
+  "files": {
+    "ARES-6/Air/allocate_stack.js": "6d1d790a87271bfb9b6e737d40f85a164cf4d0b2065f3be8aae5180f9f55e607",
+    "ARES-6/Air/arg.js": "10eed28adf1d608b1749a3e864007ace76379f2bcc269b31d8579f0c309b6ec6",
+    "ARES-6/Air/basic_block.js": "b21a16549ae1780ec15d82c1e4f1efb5171e7e6b880c16d44db9567db92c556b",
+    "ARES-6/Air/benchmark.js": "b1d96280ad3279e503722fbeaa8b2fb9a11fd2925f9527151143360285d53243",
+    "ARES-6/Air/code.js": "8ccdf2ab300e0cd6ba6e4fed31f54a2a78dffaa0ade6f03e4d0a761d755ccad8",
+    "ARES-6/Air/custom.js": "6333a8e06c9f745be04c95e02aaf7d6860ec20324f5bbdc2ba05c5ff720098cb",
+    "ARES-6/Air/frequented_block.js": "e71e33da2ce28b42e764550484781b7831ccc49c8c2516b39c4ee4cc6d2171c6",
+    "ARES-6/Air/insertion_set.js": "ef1c85883dc72f1ee6984de6963eaed13933c7c178e9a686d89c6a861acd63a9",
+    "ARES-6/Air/inst.js": "9b2fa4c4ea90af49422397d0ce480bff626907ccdf5c1a3ff31b05a11d2dc405",
+    "ARES-6/Air/liveness.js": "f4b7bd5cf278fbb89ad10d408184ed783b9da81e7dcd20546e371adb1462ac36",
+    "ARES-6/Air/opcode.js": "5b221191fd56f0a5749b8bfaedb13acf6b34437234a2078c55065921a8262970",
+    "ARES-6/Air/payload-airjs-ACLj8C.js": "95ab27636293290b03eda5551b1149859cdb47171646055a532c83a8215b604c",
+    "ARES-6/Air/payload-gbemu-executeIteration.js": "02b307a4df9dfb895e02de5231976c04abbb9364ef8bf3b4f60b8e1e1a82ef39",
+    "ARES-6/Air/payload-imaging-gaussian-blur-gaussianBlur.js": "fb8b466e5af4ed716f07eeea7702e2d82a9b282c6bdea7204ef60023508be7d0",
+    "ARES-6/Air/payload-typescript-scanIdentifier.js": "5e1aaf7b0d45d14f6a7b86b06a101a0172b867349d9774e06c069856a750f859",
+    "ARES-6/Air/reg.js": "ae823c7f3f18cdb027ceeaa1d5d84f4483b32df2e774c4fc2558551abcf6ec5e",
+    "ARES-6/Air/stack_slot.js": "fb8fe535c25f6e48ed03cc59de74b07adf6e33b984430ac0b12007dd915ae3e4",
+    "ARES-6/Air/symbols.js": "2e4c2724019814e1c432da21a6a7694cc24c50200f462184c0a8951bad491e3b",
+    "ARES-6/Air/tmp.js": "3aaeca7e287c644c67a8f96ab8046aed0d712da3ba2ca726f6a0c1af51463a54",
+    "ARES-6/Air/tmp_base.js": "0a6654e601c31a0919ded5ae11aa3882aa5a1d9fb77cd3ed7905c7646688afa6",
+    "ARES-6/Air/util.js": "0787f3ff559ab833ae766ca78fed959978fe38943c1de1bc9518d6960f7feaff",
+    "ARES-6/Babylon/air-blob.js": "3928fd2e3f78c4729687539756ded7566b7e0ae262eac1873848c2fa80b2fb09",
+    "ARES-6/Babylon/babylon-blob.js": "f544b134ccbc993489c903a988614a6ccfd87879b83e2b2d4fb9312f63dcdff4",
+    "ARES-6/Babylon/basic-blob.js": "c18af02d40da281acaec1462661ba4b431f8f1c7f32df5d669a1e809648f05f8",
+    "ARES-6/Babylon/benchmark.js": "1916e37850aa61cbed83f05d3b19e3ad8f59570f3da368086c18edd51c3a7cad",
+    "ARES-6/Babylon/index.js": "d41408160a9e9c1856fbe440d91370564c063c0eeccb1980d31028c856eaa2f5",
+    "ARES-6/Babylon/inspector-blob.js": "005d8e9baaab5f5054c2f4c796c75d296031dab4a33026428dd1b8f697fb74d0",
+    "JetStreamDriver.js": "6f149240db50d30f70e9a96f7b2f23f4bc55f65ba1a577879d3c9b15ae52dc3e",
+    "LICENSE": "a6f297ba05d893eb4aa5a996f05c4343df87d7857aa210e763a4e4463b7192f0",
+    "Octane/crypto.js": "8a4b3520dcbbafe5a8694aa1de258b6feb0708c5315a80cc78dc965234a07d4c",
+    "Octane/deltablue.js": "70a23e4fe1964f0e4bcb5fff2fcfa582f51ab675be2c0d50d2753ceaff0205d6",
+    "Octane/pdfjs.js": "eb5607701448a6548e867a90ab057e17905690b295c91ce52cbf373aed2d4eff",
+    "Octane/richards.js": "3bc6056c62a17f37f851cb7ac3d070204a4de6c09fdf44bb9ac3dd26638840a8",
+    "Octane/typescript-compiler.js": "35b6587a33b40912ff0083fd7f015e1f3148aa80705a1287fff22fb5ec39a5da",
+    "Octane/typescript-input.js": "535feddf8c51a9df5c854d85dd0c4ec3ed7740bce53312d349da368836ed2af9",
+    "Octane/typescript.js": "f80ddec4612401807d4157c62189413da7bea0fb11e072b6d29818684c068955",
+    "RexBench/FlightPlanner/airways.js": "7669d7d083cc7e5f32133fb3a9b81d79806622cd185e8f9d3b73b4ca2a268901",
+    "RexBench/FlightPlanner/benchmark.js": "e5d1077c39569652539c47699280d3655038db066ae263e29b1b6aefd179e07e",
+    "RexBench/FlightPlanner/expectations.js": "86c98cb4e1b556e239b6ccf6de13fc9ec7fe3efd24c403608dde6431a00bde6e",
+    "RexBench/FlightPlanner/flight_planner.js": "a52846d3167c4cb697fb8d04cf9a32765a9e63d3d4eff213bf091254b10e9ee2",
+    "RexBench/FlightPlanner/waypoints.js.z": "0a8666ba24e8a33665f976eaa3d047b817f8e4cdc898747ac810098d61caff07",
+    "RexBench/OfflineAssembler/InitBytecodes.js": "1b471d7219f92fc338a04506d63119de0a8beb28c8e1d195c29a19444a76796f",
+    "RexBench/OfflineAssembler/LowLevelInterpreter.js": "f94a209d7c9c7b9044afc818267fba68b825b91a0be262e39afbb37bb0500053",
+    "RexBench/OfflineAssembler/LowLevelInterpreter32_64.js": "1f1a5b3a31a2d0cdefcbc1f2e345bd5fc4ae482088a5fb1f07aa479b79d44485",
+    "RexBench/OfflineAssembler/LowLevelInterpreter64.js": "ad4eecb12e9567a377d2301fa09031a0cd1e6bd6f550559a63e22ac42334ec06",
+    "RexBench/OfflineAssembler/ast.js": "2bd2a5c0fc852f319dff886cc546f171b4cea5747c14e0bea78c894df6e659c3",
+    "RexBench/OfflineAssembler/benchmark.js": "ea7b583c891603958d857a2e290174b0ac834652f26658be79192fd77cc07b80",
+    "RexBench/OfflineAssembler/expected.js": "364a5435eae9983cd975e6f31654b73f3ea3db033a558706c070f10176832425",
+    "RexBench/OfflineAssembler/file.js": "1c33e7b0c3a514fd663707c1e63b91551089f6cce111582f6fd9b22bf6c4abe9",
+    "RexBench/OfflineAssembler/instructions.js": "0cf3310346770df6a1f0378e065cae971d7268b9c47e1b5cde6578fd24493d92",
+    "RexBench/OfflineAssembler/parser.js": "a607fadba36751e4dc220ea775b01c5cf42eb598a000ff4c32ec416b9961529c",
+    "RexBench/OfflineAssembler/registers.js": "758e6e9afa9cdf1c45f09e2992c7e5c1a583e95a4784752dcb1e70d1ce5256b0",
+    "cdjs/benchmark.js": "67414da73e307c034f717ecf119c74321191ab4a0aec9d82c3516bdf1e4655e8",
+    "cdjs/call_sign.js": "438bcafd4f2c100cf60944238361ba47ebfdd6dd4834d63a5a5e2ba47d936d99",
+    "cdjs/collision.js": "cd952cc2b1c0a4b274e57fe3c8f4a75ea9d51021fab88d8f5344d6d4db3785ff",
+    "cdjs/collision_detector.js": "4a650ffc21a99ac8079fb288c7ec561d7f07671e4ed5fb0f7493f303a476159e",
+    "cdjs/constants.js": "0ce41a0cd035be98b7f4803fb88804736530b53b14e3cdcd248ca86270e47044",
+    "cdjs/motion.js": "3fb070d7a861b80ea13b40e6f82d0b8b3e142ad3a7a80f7bc3f898f45321329e",
+    "cdjs/red_black_tree.js": "34b029842e873da4c773cf50fcabb81390b09972efb164b29334c89cd2248d75",
+    "cdjs/reduce_collision_set.js": "c37076eb6f978aaff7341d7fa0a52f3af65146d81fe24bb36a0f2d20df921909",
+    "cdjs/simulator.js": "346ae609fa592b36c9c7b034875a63b9ed70c47d25a8459954919d82f933acbb",
+    "cdjs/util.js": "a26b18a12cfa203e4a1598fd508fa3ea3bfdf4dd43eec8ca206234db9a05d9fd",
+    "cdjs/vector_2d.js": "92130330ca17205a8e174c2307d6d97dc2e2507434ab41ea07c120f6bb742304",
+    "cdjs/vector_3d.js": "1fbb6d951824d35a9ecd9e7463f049a7c57b7c174c265db19c615acc2c6de526"
+  },
+  "compatibility_exclusions": [
+    {
+      "name": "Basic",
+      "reason": "RegExp.rightContext / RegExp.lastMatch are unavailable in all selected QuickJS-NG 0.15.1 and 0.17 images. No RegExp shim or workload rewrite.",
+      "evidence": "Historical compatibility exclusion; reproduce compatibility with the pinned corpus and current image manifest. This entry is not a runtime file dependency."
+    }
+  ]
+}

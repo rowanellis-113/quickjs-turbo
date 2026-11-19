@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "owners": {
+    "tools/x86/common/codegen/free-boundary.py": "a7a7cf155640cdaca3a0281e5f106e92dd2d84619244a1d5e8519d8ebf3cc3b5",
+    "tools/x86/common/codegen/add-local.py": "dd5c0f37181145bf28d31f9eca770f9aab6700bc22218f9bcd550336ad4bbd4d",
+    "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
+    "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"
+  },
+  "accepted_windows_owners": {
+    "tools/x86/common/codegen/free-boundary.py": "a7a7cf155640cdaca3a0281e5f106e92dd2d84619244a1d5e8519d8ebf3cc3b5",
+    "tools/x86/common/codegen/add-local.py": "dd5c0f37181145bf28d31f9eca770f9aab6700bc22218f9bcd550336ad4bbd4d",
+    "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
+    "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"
+  },
+  "source_normalizations": {},
+  "ABI": "Actual Linux core C types and measured SysV;no COFF input or frozen Windows offsets"
+}

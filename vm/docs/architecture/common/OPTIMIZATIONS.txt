@@ -1,0 +1,54 @@
+Integrated product components
+=============================
+
+Use BUILDING.txt to select the product configuration on the pinned QuickJS-NG
+0.15.1 public API. Ordinary upstream defaults differ. Sources are grouped by
+function/platform under common/ | arm64/ | x86/, not by historical experiment or
+benchmark name.
+
+Component                         Main owner / further documentation
+Call frames and dispatch           src/common/call, src/x86/win64, asm/x86/win64, asm/arm64
+Property get/set and method caches src/common/property
+Strings and concatenation          src/common/string
+JSON parse/stringify               src/common/json
+RegExp and Unicode                 src/common/regexp, src/common/wire; REGEXP.txt
+Arrays and sort                    src/common/array; ARRAY-SORT.txt
+Async generator capabilities       src/common/promise; ASYNC-GENERATORS.txt
+Coroutine native segments          COROUTINES.txt (MSVC; GNU keeps its C path)
+Compiler lexical planning          src/common/bytecode; COMPILER-PLAN.txt
+Resolved Symbol conditions         SYMBOL-CONDITIONS.txt (GNU and MSVC)
+Long-function regexp admission     tools/x86/common/codegen/varargs.py; AGENTS.md
+Memory and scalar backports        src/common/memory, src/common/value, tools/x86/common/codegen
+
+Cross-architecture fast-path unification:
+Optimization                       ARM64 Linux     x86_64 Linux    x86_64 Win64
+Float32Array / Float64Array VM     tools/arm64     eq_code cold-split (shared)
+Rel cmp (<,<=,>,>=) + branch fuse  vm/branch_fusion retired after x86 ablation
+Flat Latin-1 relational compare    vm/branch_fusion eq_code cold-split (shared)
+inc_loc/dec_loc for-loop backedge  vm/branch_fusion retired after x86 ablation
+Epoch IC instanceof leaf           src/common/value/instanceof-fast.inc (shared)
+Native C for_of_next + if_false8   src/common/call/fast-for-of-next.inc (shared)
+OP_array_from dense leaf           src/common/kernel/fast-array-from.inc (shared)
+Inline property storage            src/common/property/inline-*.{h,inc} (ARM64)
+BigInt stack/PM mod & construct    src/common/{value/bigint-divrem,kernel/fast-construct}.inc (ARM64)
+
+Remaining x86 -> ARM64 VM shell, entry, and cache micro-candidates were evaluated via
+Graviton2 orthogonal ablation (A0-A3) and retired because ARM64 R89 already saturated
+effective fast paths while extra shell/cache changes were neutral or layout-sensitive.
+
+Long-function admission composes the existing regexp opcode and large-code
+validator; short validation, frame ABI and bounds are retained. The environment
+switch QJS_DISABLE_FRAME_LONG_REGEXP disables it on first classification, even
+with value 0. Use a fresh process for comparison. It is targeted coverage, not
+a new regexp algorithm or a broad suite-speed claim.
+
+Component controls and fallback paths support diagnosis, embedding and compiler
+upgrades. Removing them solely to reduce file/option counts would remove useful
+compatibility guarantees. No JIT, PGO profile, fixed image base or external
+profiler is required at runtime. Portable builds retain their declared C path;
+they do not imply that Win64 native optimizations execute on another platform.
+
+Research candidates and measurement data are not product dependencies. Further
+performance work needs a reproduced application problem and a bounded plan.
+Correctness, build portability, API compatibility and upstream maintenance
+continue after open-ended performance exploration is closed.

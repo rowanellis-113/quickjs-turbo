@@ -1,0 +1,41 @@
+Default primitive-string sort
+=============================
+The original pinned js_array_sort entry, property collection, callable check,
+observable conversions, property writes and cleanup remain. An audited COFF
+route changes only its original rqsort call operand/relocation. The original
+builtin identity is retained, including other prepared custom-comparator paths.
+
+Admit 64..1,048,576 collected primitive flat 8-bit string slots only. Borrow the
+already-owned values; do not write borrowed pointers into the owned str cache.
+Stable 257-bucket MSD index partition uses a depth 32 cap, small-bucket insertion
+and nonrecursive heap fallback. Original-index ties preserve stability through
+holes. Apply the final permutation by moving complete owned ValueSlots.
+
+The optional accounted workspace is about 8.4 bytes/item and is released before
+the original commit. No allocation, polling, JS callback or refcount operation
+occurs during partition/permutation. Failure or a low-stack budget keeps the
+exact original sorter. The native kernel is bounded/nonrecursive and checks a
+4096-byte envelope. Mixed values, objects, custom comparison, ropes, wide and
+out-of-range arrays retain the original path.
+
+QJS_DISABLE_DEFAULT_STRING_RADIX is a process-cached presence control; even "0"
+disables it. There is no new public API or bytecode/runtime/object/frame field.
+
+ABI and build: MSVC uses the reviewed five-argument rqsort; GNU uses the exact
+three-argument private clone and both original root call sites. The data file
+default-string-sort.json binds source and original caller/callee code shapes.
+An unrecognized shape emits no worker references and leaves the core input
+untouched. A source pin/type change requires explicit semantic review.
+All source/data catalogues, coherent native epoch inputs and CTest fixtures are
+registered. Normal source and API compatibility tests also run under PORTABLE.
+
+GNU new C/RO/unwind contributions append to the final existing C input family;
+MSVC reuses the array C family. The sole new mode moves to an existing writable
+metadata family. This avoids extra PE output sections and retains inherited
+GNU function/data/VM RVAs. It does not promise base-independent timing. Profile
+and final performance use matching actual SDK images and standard compiler CFI.
+
+Tests cover distinct-string pointer identity/stability, deep-prefix heap fallback,
+NUL/Latin1/wide/rope cases, holes, getters/proxies, callback order, cross realms,
+GC/reentry, allocation failure, low-stack success/fallback and error cleanup.
+External boundary stress covers the 1M maximum and 1M+1 original fallback.

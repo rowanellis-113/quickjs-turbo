@@ -1,0 +1,13 @@
+/build/
+/node_modules/
+__pycache__/
+*.py[cod]
+.ruff_cache/
+!/src/common/regexp/unicode/
+!/src/common/regexp/unicode/**
+!/tools/arm64/build/
+!/tools/arm64/build/**
+!/tools/x86/linux/build/
+!/tools/x86/linux/build/**
+!/tools/x86/win64/build/
+!/tools/x86/win64/build/**

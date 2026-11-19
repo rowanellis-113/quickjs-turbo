@@ -1,0 +1,52 @@
+Linux native string-index receiver entries
+==========================================
+
+The full accepted GNU string_index_entry.S Clean body now handles the original
+receiver-object miss of get_array_el and get_array_el2. The preceding integer
+index check and every other slow edge are unchanged. Bounds,mode,PC/SP/SF
+publication,owning C step and original reload/exception continuation are reused.
+The accepted Dirty body is checked equivalent before deriving Linux Dirty
+publication. Real SysV int(JSFrameRegisterState*) bridges preserve private
+RSI/RDI;the C helper is observing and uses the existing publication proxy.
+
+This completes an actual source-route gap:the prior Linux C StringIndexStep
+algorithm was present,but reached through general array/string slow selectors.
+Passing those semantics did not prove the accepted native receiver shortcut.
+The C algorithms,character cache,frame/state layouts and strong roots are not
+extended. Both actual source owners and the retained route owner are hashed;
+CMake depends on the original ASM owner to prevent stale generated inputs.
+
+Qualification
+-------------
+The strict native build passes917 CTests and96 selected string/index/property/
+global tests. Three fresh full Test262 cohorts(default,indexOFF,publishOFF)
+retain exact portable65/81152 inherited failures,31fixed,0new/changed.
+Read-only normal Release observations verify both Clean/Dirty consume and keep
+operations,typed C input,PC+1/SP commits,owning character result,cleared consumed
+slot,retained receiver,and SF/saved-root cursors. Latin1,wide/surrogate,slice,
+range,negative/noninteger and method TypeError cases execute naturally.
+QJS_DISABLE_FRAME_STRING_INDEX by presence including0 returns to the retained
+path after its first cold configuration. PublicationOFF is eager;frameOFF has
+no native receiver entries. Bounded extra-caller observations are not timing
+or hit rates. Source-owned ELF/CFI,installed SDK,independent/private/public and
+standalone consumers must bind the same images before sealing this module.
+The original cold string metadata OOM negative remains separately retained;
+this group does not claim to fix that inherited case.
+
+On this same image,the natural slow-array/readonly proof verifies strict and
+sloppy results,clearing the consumed value before setter,PC+1 and popped roots
+before releasing the base. AppendOFF/publishOFF retain correctness;frameOFF
+has no native-array gateway events. No private register,mode,bytecode or poll
+counter is changed by either observer.
+
+Whole-port scope
+----------------
+The actual MinGW Ninja graph adds a stronger inventory basis:77 commands,
+23 direct tool roots,21 retained providers and93 static possible tool files.
+The latter include inactive branches and are not a count of optimizations or
+completion. The audit found this missing native entry;complete source/ABI/
+actual-route reconciliation remains open. Only after that closure run whole
+micro57/JetStream17/V8-v7 stock/portable/native time/memory screens,major-gap
+profiles and bounded Linux opportunities. Current Windows/MSVC/configuration/
+fullTC/literal-LF package and all six delivery gates remain required. No new
+performance or release baseline is claimed.

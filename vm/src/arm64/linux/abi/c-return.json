@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/quickjs-interpreter-register.h": "c9c63178bb3300dd2f6f0c45cefcf72c8117f0681827f0e74043a66f9169b3e3",
+    "asm/arm64/common/register-call.inc": "c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a",
+    "asm/arm64/common/register-host-return.inc": "b6a1a7a85064aef13734c74faad28ea855105e8cd8e06824e41150e063125439",
+    "src/arm64/linux/interpreter-c-entry.inc": "8d7cadc4a77e4a970d469c389bdd03e3fb026c9047d7830ad13ea0f564b7a246",
+    "tools/arm64/vm/c_return.py": "79818ff0a4ed44bc6571c9b7c79200972af78d3b5fa438a3822cc7741b607310",
+    "tools/arm64/vm/publication.py": "6ab668624903dcdaac8007208a6cc4eaae84fdf7f8c0205ac28e120aac163044"
+  },
+  "source_finish": "Original ascending finish_call interval and pending-tail behavior",
+  "source_free": "Original JS_FrameInterpFree(state,realm,owning JSValue),before/after quota owner",
+  "native": "Standard compiler JSValue x0/x1;ascending detach/decref,typed last release,exact consumed-parent tail continuation",
+  "control": "QJS_DISABLE_AARCH64_HOST_RETURN presence including0 keeps original C finish",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "physical_stack_growth": 0,
+  "hardware_performance_qualified": false
+}

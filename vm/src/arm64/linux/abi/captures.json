@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 actual LE LP64 C types",
+  "source_owners": {
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/interpreter-set-name.inc": "449f9bf540c461286546c6a852d13fc5a376530aed8cf1cd32400f49596bbda2"
+  },
+  "source_review": "Original classifier/enter_frame/FRAME_CAPTURE_BYTES/return_frame reviewed;no copied private layouts",
+  "admission": "Original kinds1,3,5 plus source-proved readonly captured kind7 when Forward dependency is compiledON;local capture table bit8. Unsupported kinds retain original entry.",
+  "allocation": "align16(sizeof(JSVarRef*)*b.var_ref_count) AFTER full operand capacity;all pointers NULL before runtime publication",
+  "ownership": "Kind5 owns formal copies;kind7 borrows provided/safe missing windows or recovers original native owned missing route when controlled;extra actuals stay parent-owned.",
+  "cleanup": "Original C close_var_refs and observing return/exception owner;native return still rejects nonzero capture tables",
+  "controls": [
+    "QJS_DISABLE_AARCH64_CAPTURED_ENTRY",
+    "QJS_DISABLE_AARCH64_OWNED_MISSING",
+    "QJS_DISABLE_AARCH64_OWNED_ARGS",
+    "QJS_DISABLE_FRAME_CAPTURED_READONLY",
+    "QJS_DISABLE_AARCH64_MISSING_WINDOW"
+  ],
+  "remaining": "Whole compatibility/SDK/old-platform/final qualification;arguments/varargs/apply and remaining original22 mechanisms are separate.",
+  "set_name": "Exact original opcode admitted with QJS_DISABLE_FRAME_SET_NAME presence control;typed observing C-step retains naming/descriptor/OOM semantics"
+}

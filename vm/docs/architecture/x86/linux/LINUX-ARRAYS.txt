@@ -1,0 +1,120 @@
+Linux array kernels and scoped sort calls
+========================================
+
+Scope and normal integration
+----------------------------
+tools/elf/array_workers.py owns the accepted dense-copy growth, default string
+radix sort, cached/prepared comparator and dense-pop C algorithms in the actual
+Linux core TU. tools/elf/array_vm.py connects the complete in-capacity native
+append block. Normal CMake binds ARRAY-WORKERS.json, the generated header, real
+compiler layout and ELF instruction stream. The pinned upstream files, public
+API and original splice/ordinary sort collection and writeback owners remain.
+
+  bash tools/build/product-linux.sh build/linux-native out/sdk-linux-native
+  ctest --test-dir build/linux-native --output-on-failure -R 'array|sort'
+
+This closes these algorithms and their typed Linux consumers. Dense-pop native
+leaf entry, builtin frame views and sparse-array own-property leaf access are
+still separate native entry/property dependencies. A compiled policy getter
+or passing original fallback is not evidence those missing paths execute.
+
+Copy, default sort and append
+----------------------------
+Only the original splice CopySubArray source call selects the shared growth
+kernel. Its original conversion/species/item/commit order, native C function
+identity, live prototype/length/attribute checks and argv-allocation alias guard
+remain. Surviving prefix elements gain their required reference; overlapping
+tail slots transfer ownership without callbacks or final release. The common
+sparse Array.length repair is already owned by the source backport layer.
+
+The complete default radix algorithm consumes real ValueSlot and sort-context
+types. The Linux dispatch calls the five-argument source rqsort, not a guessed
+GCC private clone. Stable index partition, bounded depth, insertion/heap fallback,
+optional accounted workspace and whole-owned-slot permutation are unchanged.
+Mixed values, wide/rope strings, callbacks, low stack and allocation failure
+retain the original sorter and original observable collection/conversion order.
+
+Native append enters through the original array/index/fast/refcount miss edge.
+Measured fields and bit encodings bind the shared instruction factory. Its
+commit allocates nothing, calls nothing and transfers the exact value owner.
+An extra INT32_MAX guard retains the original uint32-to-number length transition.
+Readonly append uses the complete setter with consumed-slot poisoning, published
+roots and the original exception unwinder. The optional observation counter uses
+an atomic update; no counter update occurs in the default mode.
+
+Cached and prepared comparison
+------------------------------
+Each admitted sort strongly holds its exact comparator and caches immutable
+bytecode/frame geometry once. Readonly kind3, at most two formals and no locally
+owned captured cells are required. External closed references remain attached
+to the strongly owned function; closure_var_count and local var_ref_count have
+different meanings. Writable formals, underapplication and owned local cells
+retain original admission.
+
+Cached-only comparisons use the complete shared root/growth/quota/poll/cleanup
+algorithm with the cached byte count, without repeating target validation or
+geometry calculation. Prepared comparisons reuse the complete2048-byte data
+capsule and actual typed state/header for one activation. Each invocation still
+checks live TLS owner, runtime/modes, committed cursor, idle root, frame flags,
+interrupt and physical stack. Borrowed arguments and local/operand roots obey
+the existing VM pop protocol. Grown segments and the callee are released by the
+same owning scope after success or exceptions.
+
+The kind5 scope barrier proves a stack-local cache before a cast; its coherent
+kind0 shadow preserves unrelated reentry. Kind6 identifies only an executing
+typed Linux prepared-sort capsule. Compiler-managed TLS is reused; no TLS
+variable, runtime/bytecode field or public type is added. The existing owner tag
+uses the actual state field with explicit offsetof assertions. Normal source
+calls and compiler CFI replace the Windows sret/TLS/COFF assembly boundary.
+
+Controls
+--------
+Use fresh processes. Presence, including0, disables:
+  QJS_DISABLE_ARRAY_COPY_GROW / QJS_DISABLE_DEFAULT_STRING_RADIX
+  QJS_DISABLE_DENSE_ARRAY_POP / QJS_DISABLE_FRAME_ARRAY_APPEND
+  QJS_DISABLE_CACHED_SORT_CALL / QJS_DISABLE_PREPARED_SORT_CALL
+  QJS_DISABLE_PREPARED_SORT_ENTRY
+Disabling prepared calls retains cached-only calls. Disabling the dedicated
+prepared entry retains the original sorter with scoped prepared comparison.
+Shared/register/internal/frame/bypass controls preserve their expected fallback;
+C-invoke OFF still permits the qualified C-host boundary. Native leaf controls
+do not imply an unported leaf implementation is present.
+
+Development qualification: array-family-r8
+----------------------------------------
+Current source passes322 GCC13.3 Release/Werror CTests, ELF/CFI/PIC/CET and an
+installed independent consumer. Private numeric test views come from a separate
+values-only header emitted by the same actual Linux layout probe. The normal
+engine header retains all private type/offset/compiler assertions.
+
+The public sort fixture observes2310 prepared hits and2298 state/frame reuses,
+44 GC/cross-realm reentries, interrupt exceptions and recovery. It distinguishes
+external closed references from owned captured local cells. Complete warmed
+metadata fault sweeps inject four allocation failures in both prepared ON/OFF
+modes. A recursive object comparator exceeds the fixed capsule and exercises
+grown segments and subsequent fallback; its ON/OFF sweeps inject36/35 failures,
+recover, and return all allocation ledgers to zero. The inherited
+copy fixture also passes strong-reference overlap, wide argv, prototype changes
+and GC at the real vector-reallocation window. Default-sort identity, workspace
+failure/reentry, deep-prefix and low-stack checks pass.
+
+Full pinned Test262 ON/OFF and reviewed post-guard commit observations are bound
+to the current image in the external checkpoint. Source similarity alone cannot
+reuse a prior image's result. Current qjs,runner,archive,array header and VM source
+are byte-identical to fully tested r7;only the ownership fixture/CTest list and
+documentation changed. The explicitly reused Test262 runs match exact portable
+failure/fix identities:65/81152 inherited failures,31 fixed,0 new/changed.
+The bounded fixture observes1 copy,4 pop and324 append commits,1 radix kernel
+and622 prepared invocations. Prepared OFF selects622 actual cached-geometry
+invocations; entry OFF retains622 prepared calls through the original sorter.
+Each component's OFF control removes its corresponding post-guard path. These
+counts are execution proof, not suite hit rates or performance measurements.
+Default Windows append-factory instruction arrays
+remain exactly equal with the accepted Windows layout; this is not a whole-tree
+Windows rebuild or a Linux execution proof.
+
+Static delta versus the string checkpoint is+14816 executable-section bytes and
++32 allocated writable bytes. LegacyCallInternal stays37388 bytes but moves
++3008 bytes in ELF. These facts do not establish RSS, speed or layout neutrality.
+No new performance baseline is accepted. All six LINUX-PORT.txt gates, remaining
+native mechanisms and final Windows/current-source archive qualification remain.

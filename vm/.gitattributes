@@ -1,0 +1,27 @@
+# Keep VM generators, tests, configs, and source contracts canonical LF across checkouts.
+src/** text eol=lf
+asm/** text eol=lf
+tools/** text eol=lf
+cmake/** text eol=lf
+tests/** text eol=lf
+docs/** text eol=lf
+ci/** text eol=lf
+CMakeLists.txt text eol=lf
+README.md text eol=lf
+AGENTS.md text eol=lf
+THIRD_PARTY_NOTICES.txt text eol=lf
+.clang-format text eol=lf
+.cmake-format.json text eol=lf
+.editorconfig text eol=lf
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.prettierignore text eol=lf
+.prettierrc.json text eol=lf
+package.json text eol=lf
+package-lock.json text eol=lf
+ruff.toml text eol=lf
+# Preserve the accepted regexp snapshot, including inherited upstream spacing.
+src/common/regexp/libregexp.c whitespace=-blank-at-eol
+# Keep the private Unicode upstream snapshot byte-for-byte, including spacing.
+src/common/regexp/unicode/libunicode.c whitespace=-blank-at-eol
+src/common/regexp/unicode/libunicode-table.h whitespace=-blank-at-eof

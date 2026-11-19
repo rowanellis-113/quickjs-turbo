@@ -1,0 +1,21 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "quickjs.c": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+    "quickjs-opcode.h": "0054b0c45fd091afa308c3fb93b5862e0b071235918d3d73e413d23fce388bbc",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/large-code-policy.inc": "400f532cbcba9e505a142768f8ddbfb1a8b54e99b60297ec75dff963979d1061",
+    "src/common/regexp/interpreter-literal.inc": "1afa968ea62f8ff247c984aeb81a12ef3c5f903419056c450207b648f0dd4b69",
+    "tools/common/elf/admission_c.py": "c288e4ff83321d2de1eca92b40efe11de39c3d6b420c8819f8f5df68b534f272",
+    "tools/arm64/vm/admission.py": "78a873014502d940bcc076ac0d584a82f60116b7b93586747ab27743b63abe27",
+    "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882"
+  },
+  "opcode": "Actual compiler OP_regexp;source definition1byte/pop2/push1/no immediate",
+  "ownership": "Original constructor consumes both owning operands;clear slots before observing allocation,keep PC/SP/quota/exception continuation",
+  "admission": "Original short unchanged;derived regexp short and complete65536 long source validator with checked int64 targets and original bitmap/stack guard/controls",
+  "frame_growth": 0,
+  "state_growth": 0,
+  "hardware_performance_qualified": false
+}

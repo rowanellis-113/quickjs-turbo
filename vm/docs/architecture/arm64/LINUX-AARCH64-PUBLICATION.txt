@@ -1,0 +1,74 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Deferred frame publication on Linux AArch64
+==========================================
+
+This is the original Linux publication protocol adapted to actual ARM owners,
+not an x86 register/offset translation. x25 is the relative dispatch-table base
+and private helper output token. The public AAPCS64 VM still preserves incoming
+x19..x28,FP/LR. JSFrame128,register-state168,save112/144 and GC roots do not grow.
+
+tools/arm64/publication.py derives copies of the complete current ARM
+instruction owners. The original stream/table are retained for component OFF.
+Clean redirects exactly eight calls/two returns. Fully initialized borrowed or
+owned/captured native children and ordinary child pops select Dirty without an
+eager runtime.current_stack_frame store. The root still publishes its actual
+external parent. No saved_sp,cur_sp,GC cursor or quota field is repurposed.
+
+Every actual observing C call in the derived stream goes through a leaf tail
+proxy. The current six are slow step,typed direct/shared class host,finish_call,
+consumed tail-parent return and regexp constructor. A proxy publishes x22 when
+Dirty,selects Clean,preserves x0..x8 and tail-enters its actual typed AAPCS64 C
+callee. No SP adjustment or hidden C activation is introduced. Proxy CFA0 and
+the entire enlarged VM retain complete FDE coverage. Future C/indirect transfers
+must pass the explicit source/generator classification gate. There are no pure
+C helper exceptions in the current ARM stream; x86 pure leaves remain separate
+unported families rather than being silently treated as ported.
+
+Dirty known returns derive independent callee/caller guard and release phases
+from the original ARM return body. The original root,capture,alias-count and
+finalizer guards and exact C cleanup continuation remain. Known ordinary pop
+retains its Dirty token without reselecting it. The inherited32-cell nonlast-RC
+admission limit is unchanged; its compatible cleanup fallback does not close
+the other outstanding native-call/leaf mechanisms.
+
+All three256-entry tables use1024 relative read-only bytes each. The linked
+image checker requires their actual LOAD to be read-only,all signed destinations
+inside the VM's FDE,and zero dynamic relocations into these table ranges.
+GNU AArch64 ld currently maps .rodata in its shared R-X text LOAD;the checker
+records that actual execute permission. Data-page NX was not an inherited
+publication requirement. No linker-layout option is added to change that fact.
+There is no writable table copy or runtime table initialization. Only the
+existing atomic activation-policy cache changes. The process-presence switch
+QJS_DISABLE_DEFERRED_FRAME_PUBLISH includes both0 and1 and retains the entire
+original eager path. Use fresh processes for controls.
+
+The source contains eight parameter-only GAS macros,with one reviewed nested
+edge ARM_FLOAT_COMPARE->ARM_NUMBER. Copies expand only that checked syntax;
+GAS still resolves the original .if expressions. check_publication.py compiles
+the retained and expanded OFF owners with the actual compile_commands flags
+and independently checks allocated RX/RO,CFI and relocation bytes for equality.
+The default x86 generator is separately compared between distinct source trees.
+
+Instrument-only TLS scalar counters observe actual push/pop,known phases,
+Clean/Dirty C handoffs and coherence. They retain no frame/JSValue addresses,
+never classify admission,write runtime state or force a control. Release images
+must omit the counters and reader. The public path fixture naturally covers
+all six proxy types,borrowed/owned children,tail-parent cleanup,GC/cross-context
+reentry,65 repeated quota restorations and130 native unwind observations.
+Original public publication semantics,cyclic-resource/finalizer/backtrace,
+interrupt and all allocation-failure checks run with seven process controls.
+
+Development found a real derived-slow fallthrough defect:the original slow
+exit falls into the adjacent public epilogue;an appended copy needs an explicit
+branch to that original epilogue. The natural regexp and call-owner regressions
+detected it. Negative logs and a read-only debugger backtrace are preserved in
+linux-arm64-publication-20261112. No source expectation was weakened. An initial
+path-fixture regexp was Clean by construction;the corrected workload first
+executes a real child call and verifies the intended Dirty regexp proxy.
+
+This mechanism still needs the frozen full-corpus/SDK qualification. It does
+not close the original22-family P4 inventory or final P5/old-platform audit.
+QEMU qualifies functionality only,not real ARM speed,PMU or engine-only RSS.

@@ -1,0 +1,73 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 reference-slot release and generic own-property writes
+==================================================================
+
+The shared reference-store continuation retains the complete accepted GNU
+incoming-value/finalizer ordering. Every caller already derives its CURRENT
+live local,argument or capture pvalue slot. set duplicates incoming ownership;
+put transfers the consumed operand. A last old-value release commits the new
+slot and next PC/SP before the original typed JS_FrameInterpFree owner. The
+continuation publishes both private state/frame and public SF PC/SP,then
+uses the existing observing publication proxy when Dirty. It never rewrites
+the live slot after a callback. No new C helper or private release protocol.
+
+The actual compiler's inherited JSValue Free witness proves state/context in
+x0/x1 and payload/tag in x2/x3. Actual complete VM/helper/proxy FDE and natural
+unwind remain checked. The read-only debugger stops at an actual Dirty-child
+Free callsite derived from linked instructions,and confirms private/public
+PC/SP,frame,logical parent,coherent runtime SF and Clean publication token.
+It never forces private values or admission.
+
+Existing QJS_DISABLE_NATIVE_SLOT_STORE process-presence policy,including0,
+disables both nonlast and last native reference-store paths. The ARM policy
+is snapshotted per process as before;the new continuation adds no initializer,
+runtime padding use or policy storage. Scalar stores retain prior behavior.
+
+The independent generic put_field kernel restores the complete accepted GNU
+live own-property hash route when PICs are unavailable or disabled. It checks
+an owning Object receiver with nonlast consumption and an existing writable,
+plain,nonlength own descriptor. Referenced old values retain the original C
+fallback,as in the accepted GNU foundation;the independent four-way PIC keeps
+its already qualified nonlast reference replacement. No shape/atom/pointer
+cache,allocation,last release or C call occurs in a generic native put.
+Active initial PIC learning and transition/growth owners remain unchanged.
+Compile-time IC OFF now retains this native put handler too. Independent
+QJS_DISABLE_AARCH64_PROPERTY_STORES presence,including0,disables this generic
+write without disabling base PICs,own-read hints or reference-slot release.
+
+20focused modes include14semantic controls and6OOM controls. Each semantic
+mode has129old-value finalizers across attached captures,detached captures,
+noncaptured locals and a real prepared non-tail JS child. The finalizer sees
+17,reenters to replace the live slot with99,and a subsequent public callback
+and fresh source read both see99. Error.stack naturally includes storeAttached
+and storeDriver in the child cohort. Independent-runtime GC,reentry,actual VM
+unwind and exact stack-quota restoration are checked. A direct return of the
+assignment value is deliberately not mistaken for a fresh slot read:the
+original compiler retains that expression result even in the legacy engine.
+
+The property cohort preserves active PIC learning and proves64generic own
+writes under core/base/compiled IC OFF with zero C put_field steps.10scalar/
+heap RHS tags retain exact Object.is semantics. Readonly,accessor+GC and array
+length writes keep original observable owners. Every process uses public API
+allocation ledgers with exact zero final live blocks/bytes.
+
+Each OOM mode uses96fresh runtimes and faults public allocation requests
+during object creation or the finalizer's own allocation. Normal/exception
+results,born/finalized balance,exact restored quota and zero ledgers hold.
+The20tests pass with PIC compiled ON and OFF. Full targeted totals are465ON
+and453OFF. These are functional QEMU results,not hardware timing or RSS.
+
+Measured JSFrame128/RegisterState168 and all inherited core/owned constants
+stay unchanged. No new runtime/frame field,strong root,physical stack bytes,
+static control or allocation. Only instrumented images add8TLSwords/64bytes;
+release requires both bank and getter absent. Original7observing and2pure
+helper families remain exactly the same. All14default x86 generator files
+and actual core preprocessed/object bytes remain equal to the frozen parent.
+
+Freeze and fresh release/instrumented/noGit builds,full same81152Test262,
+installed SDK/qjsc/wire,pins,linked memory and final old-platform checks still
+qualify this supplement separately. Global binding/Symbol,indexed and other
+remaining22family mechanisms stay open. AUTO remains PORTABLE until P5 closes.

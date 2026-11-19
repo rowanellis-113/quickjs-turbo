@@ -1,0 +1,94 @@
+Linux source-owned JSON family
+=============================
+
+Scope and integration
+---------------------
+tools/elf/json_workers.py assembles the accepted common parser/writer,
+reviver/replacer traversal, source records, Unicode code-unit handling and
+direct quote algorithms in the actual generated Linux core translation unit.
+It reuses tools/generate/json-callback.py source preparation; default Win64
+source output remains unchanged. No COFF input, copied private struct ABI or
+Windows TLS/assembly/unwind carrier is used by this Linux owner.
+
+The ordinary CMake native generation edge emits quickjs-linux-json.h and
+JSON-WORKERS.json. PREPARE.json and BUILD.json bind both outputs. The linked
+ELF must contain the declared JSON entries; actual builtin table targets are
+included in the compiler-measured CET checks. Existing upstream source pins,
+public declarations, serialization and unsupported-path fallbacks are retained.
+
+Mechanisms and ownership
+------------------------
+Public JS_ParseJSON/JS_JSONStringify and the two JSON builtin method-table
+entries select the new family. Original internal/public fallback bodies stay
+available under owned legacy names. The parse callback chain is value-only,
+ASCII source, Unicode code units, then original core. Guards retain the full
+source context whenever arguments, captures or the callable profile can
+observe it; the actual reviver call still receives three arguments.
+
+Source records retain values and atoms in their per-parse arena, with local
+storage, growing storage and an object-key index. Unicode coordinates are
+code-unit coordinates. Mutation, duplicate keys, negative zero, numeric source
+spelling, surrogates and exceptions retain the original semantics. Arena,
+input, root, result and prepared-frame cleanup stay in the same typed owner.
+
+Readonly and owned-formal replacers use the already integrated prepared capsule
+and compiler TLS. Value/source batches have the accepted size/profile guards;
+missing formals, disabled controls and unsupported callees retain the original
+typed entry. Direct quote code appends to the live StringBuffer, with scalar,
+Latin-1 and UTF-16 paths, rather than changing callback traversal ownership.
+
+toJSON uses the common typed cache backend. Each hit rechecks the live ordinary
+hashed object, receiver, shape, property bound, atom and property kind, then
+reloads the current property value. The cached shape is a weak integer, not a
+dereferenced pointer or GC root. Independently read relaxed atomic cache fields
+remain safe under those live checks. Linux uses compiler-generated SysV C;
+the Windows leaf-selector assembly and its offsets are not reused.
+
+Controls and normal tests
+-------------------------
+Use a fresh process: controls are cached. QJS_JSON_MODE=127 selects the original
+JSON path. The presence-disable controls, including value0, are:
+  QJS_DISABLE_JSON_REVIVER_VALUE / QJS_DISABLE_JSON_VALUE_PREPARED
+  QJS_DISABLE_JSON_REVIVER_SOURCE / QJS_DISABLE_JSON_SOURCE_PREPARED
+  QJS_DISABLE_JSON_SOURCE_CODEUNITS / QJS_DISABLE_JSON_CALLBACK_WRITE
+  QJS_DISABLE_JSON_DIRECT_QUOTE / QJS_DISABLE_JSON_TOJSON_SLOT
+Shared prepared-callback, arity and register-interpreter controls also apply.
+
+  bash tools/build/product-linux.sh build/linux-native out/sdk-linux-native
+  ctest --test-dir build/linux-native --output-on-failure -R '^linux-native-json-'
+
+Development qualification: json-family-r4
+---------------------------------------
+A clean GCC13.3 Release/Werror build passes272 CTests, ELF/CFI/PIC/CET checks and
+independent installed consumers, including direct public JSON API calls,
+syntax-error handling and recovery. JSON tests compare130 checks and a result
+digest independently established on stock NG0.15.1 and the prior product.
+Fifteen control cases assert active/disabled prepared execution with GC and
+cross-realm reentry. Two fresh-runtime six-operation fault sweeps inject509/553
+allocation failures, recover, and release the complete allocation ledger.
+
+Actual linked-image observations enter the parser/writer, value/ASCII/Unicode
+walkers, prepared batches, owned/readonly callbacks and direct quote paths.
+Corresponding controls remove those paths. A reviewed, image-bound toJSON
+success block records95 cache hits and1 learn; both are0 under its OFF control
+and mode127. These are semantic-fixture observations, not benchmark hit rates.
+
+The current Test262 runner is byte-identical to the fully tested JSON r3 runner.
+Its ON/mode127 results match the unchanged portable baseline, including all
+failure/fix identities:65/81152 inherited failures,31 fixed,0 new/changed. The
+corpus, configuration, error list and current runner hashes are revalidated.
+Raw build, path, fault and corpus evidence lives outside the product tree.
+
+Known inherited fault and remaining gates
+----------------------------------------
+The optional reproducer below fails on purpose: the runParse allocation fault1
+retains366 bytes after runtime release. The same failure was independently
+reproduced on stock NG, the pre-JSON native archive and JSON mode127. This is
+retained as an inherited defect, not included in the passing fault sweeps:
+  QJS_JSON_MODE=127 build/linux-native/linux-json-family fault runParse 1
+
+No JSON speedup or new performance baseline is accepted by this integration.
+Complete the remaining string/array/sort and native call/iterator/property/
+RegExp families before whole-suite comparisons and justified profiles. All six
+LINUX-PORT.txt gates, final Windows current-source requalification and literal
+LF-source-archive qualification remain required for the complete port.

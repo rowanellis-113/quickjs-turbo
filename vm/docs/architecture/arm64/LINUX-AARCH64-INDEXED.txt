@@ -1,0 +1,61 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental AArch64 indexed/append/instanceof tier
+==================================================
+
+Scope and source ownership
+--------------------------
+The actual GCC/AAPCS64 implementation retains the complete accepted dense
+array,integer TypedArray and sparse own-data algorithms from generate-register
+and indexed_own_native. Every miss precedes mutation. Reads duplicate heap
+values before a nonlast receiver decrement; get2 preserves the receiver.
+Native stores accept primitive old slots only. Conversion,accessors,holes,
+last references,immutable or out-of-bounds views retain the complete C owner.
+Uint32 values above INT32_MAX are boxed as exact inline doubles.
+
+The capacity append guard retains live count/capacity,extensibility,normal
+array prototype and writable-length checks. No allocator,callback or failing
+guard follows the value/count/length/refcount commit. Its original readonly
+gateway and fault/exception semantics remain in the shared source factory.
+
+The native instanceof entry calls the complete original bounded,pure proof
+through an actual int(JSContext*,JSValue*) AAPCS64 boundary. It retains the
+intrinsic identity/prototype/poll/alias ownership guards. Rejected proofs and
+observed/disabled modes retain the original complete C operator.
+
+The complete narrow indexed C steps preserve original release order while
+publishing consumed key/RHS slots and result/SP before reentrant releases.
+All pending exceptions and unselected opcodes retain the complete existing
+constructor/iterator/forward/varargs executor. The shared factory's original
+x86 defaults and generated runtime C/core bytes remain unchanged.
+
+Target contract
+---------------
+All types,fields,class IDs and descriptor masks come from the actual target
+C input,including the original policy declarations and immutable-buffer
+field. Original frame/state sizes remain128/168 bytes. There is no runtime
+field,new root or Release TLS. Instrumentation adds only ten numeric TLS
+counters. Source/generator/ABI receipts and actual linked FDEs are checked.
+The pure helper retains the current Clean/Dirty publication token and fixed
+VM CFA;it does not require an observing SF boundary.
+
+Controls and qualification
+--------------------------
+QJS_INTERP_FRAME_INDEXED is the independent compile control. At least one
+existing complete constructor,iterator or forwarding executor must exist;
+otherwise the full original fallback remains. Runtime process-presence
+controls,including values0 and1,retain their original scopes:
+QJS_DISABLE_FRAME_INDEXED_OWN,QJS_DISABLE_FRAME_INDEXED_STEP,
+QJS_DISABLE_FRAME_SLOW_DIRECT,QJS_DISABLE_FRAME_ARRAY_APPEND,
+QJS_DISABLE_FRAME_INSTANCEOF_STEP,QJS_DISABLE_FRAME_INSTANCEOF_LEAF,
+QJS_DISABLE_FRAME_INSTANCEOF and the broad register/frame controls.
+Disabling a narrow C step does not disable independent dense/typed leaves.
+
+External linux-arm64-indexed-20261113 evidence records ten real128-call
+cohorts,25 fresh process modes,unmodified upstream semantic fixtures,public
+GC/reentry/OOM tests and natural read-only VM/helper unwind observation.
+Whole frozen Test262/SDK/noGit qualification remains separate and pending.
+AUTO stays PORTABLE until every original migration gate closes. QEMU checks
+functionality only;physical ARM performance and RSS remain unverified.

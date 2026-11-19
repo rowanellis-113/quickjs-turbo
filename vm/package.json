@@ -1,0 +1,26 @@
+{
+  "name": "quickjs-ng-product-format",
+  "private": true,
+  "scripts": {
+    "format": "python tools/common/format/run.py --write",
+    "format:check": "python tools/common/format/run.py --check",
+    "format:native": "python tools/common/format/run.py --write --language native",
+    "format:native:check": "python tools/common/format/run.py --check --language native",
+    "format:python": "python tools/common/format/run.py --write --language python",
+    "format:python:check": "python tools/common/format/run.py --check --language python",
+    "format:cmake": "python tools/common/format/run.py --write --language cmake",
+    "format:cmake:check": "python tools/common/format/run.py --check --language cmake",
+    "format:contracts:check": "python tools/common/format/run.py --check --language contracts",
+    "format:js": "python tools/common/format/run.py --write --language js",
+    "format:js:check": "python tools/common/format/run.py --check --language js",
+    "format:shell": "python tools/common/format/run.py --write --language shell",
+    "format:shell:check": "python tools/common/format/run.py --check --language shell",
+    "format:meson": "python tools/common/format/run.py --write --language meson",
+    "format:meson:check": "python tools/common/format/run.py --check --language meson",
+    "format:powershell": "python tools/common/format/run.py --write --language powershell",
+    "format:powershell:check": "python tools/common/format/run.py --check --language powershell"
+  },
+  "devDependencies": {
+    "prettier": "3.9.10"
+  }
+}

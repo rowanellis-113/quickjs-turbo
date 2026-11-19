@@ -1,0 +1,29 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+AArch64 source-owned native insert3
+===================================
+This carries the complete accepted GNU insert3 kernel:obj key value becomes
+value obj key value. Exactly one original JS owner is duplicated;no C call,
+allocation,last-reference release,extra JS frame or runtime/state field occurs.
+The actual target compiler measures the existing policy field and reference
+header. The original source factory and C opcode remain source-hash bound.
+
+QJS_INTERP_FRAME_STACK_INSERT is an independent compile control;the inherited
+indexed policy owner must be available. QJS_DISABLE_FRAME_STACK_INSERT uses
+presence,including0. It also disables the already-carried insert2,so this is
+not a pure one-new-kernel ablation. Incoming Clean/Dirty dispatch state stays
+unchanged on hits;disabled execution reaches its original observing C owner.
+
+The kernel belongs to the inherited VM activation/CFI. Release adds no TLS;
+instrumentation alone has one8byte passive counter. Source pins,public ABI,
+frame/state/runtime geometry and existing original C semantics are unchanged.
+No physical ARM speed/RSS claim follows from functional QEMU validation.
+
+The original5185case language test and160finalizer/386GC-reentry/3interrupt
+host fixture remain exact. Added public calls observe128primitive,128heap and
+128ordinary native-child insertions plus independent0/1process controls.
+Complete current-source compatibility/SDK and remaining scalar/predicate call
+families remain part of the original migration gates;this increment alone does
+not close P4/P5. Previously frozen string qualifiers are unaffected.

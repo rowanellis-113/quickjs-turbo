@@ -1,0 +1,255 @@
+"""Own complete shared string kernels in actual Linux core types and SysV C."""
+
+import hashlib
+import json
+import re
+from c_workers import module, replace_one
+
+
+def generate(
+    source,
+    output,
+    core,
+    adapter,
+    layout,
+    *,
+    compat_header="src/common/linux/interpreter-linux-compat.inc",
+):
+    from common.paths import source_text, source_file
+    from string_rope import equality_function
+
+    raw = source_file(source, "quickjs.c").read_text()
+    _, equality = equality_function(raw)
+    if core.count(equality) != 1:
+        raise ValueError("Review existing complete common rope-equality algorithm")
+    local_source = module(source, "local-string-c").generate(source, None, source_owned=True)
+    matches = [
+        m[0] for m in adapter.FUNCTION.finditer(local_source) if m[2] == "JS_FrameAddLocalString"
+    ]
+    if len(matches) != 1:
+        raise ValueError("Review complete add_loc string source")
+    local = matches[0]
+    local = replace_one(
+        local,
+        "    unsigned char *mode=(unsigned char *)state->rt+offsetof(JSRuntime,module_loader_has_attr)+3;\n",
+        "",
+        "replace native add_loc policy location",
+    )
+    begin = local.index("    const char *flag;")
+    end = local.index("    assert(tag_is_string", begin)
+    local = (
+        local[:begin]
+        + """    if (linux_string_policy(&qjs_linux_string_local_add_mode, "QJS_DISABLE_NATIVE_ADD_LOCAL") != 1)
+        return JS_FrameInterpSlow(state);
+"""
+        + local[end:]
+    )
+    local = local.replace("LOCAL_STRING_CODE", "LINUX_STRING_CODE")
+    control = source_text(source, "string-concat-control.inc")
+    control = control.replace(".qjsem$strings", ".bss.qjs_strings")
+    control = control.replace(
+        "unsigned char JS_FrameLocalRopeModeGet(void)",
+        '__attribute__((section(".text.qjs_strings"), noipa))\nunsigned char JS_FrameLocalRopeModeGet(void)',
+    )
+    concat = source_text(source, "string-concat-rope.inc")
+    concat = concat.replace(
+        "JSValue JS_FrameSharedConcatRope(",
+        '__attribute__((section(".text.qjs_strings"), noipa))\nJSValue JS_FrameSharedConcatRope(',
+        1,
+    )
+    append = source_text(source, "string-local-rope-append.inc")
+    append = append.replace("LOCAL_STRING_CODE", "LINUX_STRING_CODE")
+    append = append.replace("FRAME_INLINE", "inline __attribute__((always_inline))")
+    append = re.sub(r"\bJS_FrameInterpAddTrampoline\b", "JS_FrameLinuxStringConcat", append)
+    append = re.sub(r"\bqjs_frame_core_js_new_string_rope\b", "js_new_string_rope", append)
+    locale = (source / "src/common/string/locale-compare.inc").read_text()
+    boundary = "/* Native compound interpreter entry."
+    if locale.count(boundary) != 1:
+        raise ValueError("Review ordinary locale kernel and compound-entry dependency")
+    if layout["property_ic"]:
+        locale = replace_one(
+            locale,
+            "#if defined(_WIN64) && (defined(__GNUC__) || defined(_MSC_VER)) && defined(QJS_PROPERTY_IC)",
+            "#if defined(QJS_PROPERTY_IC)",
+            "actual-type Linux compound owner",
+        )
+        locale = replace_one(
+            locale,
+            "#define COMPOUND_NOINLINE __attribute__((noipa))",
+            "#define COMPOUND_NOINLINE LINUX_STRING_CODE",
+            "isolated Linux compound helper",
+        )
+        locale = replace_one(
+            locale,
+            "sizeof(JSFunctionBytecode) == 152",
+            "sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode",
+            "compound measured bytecode size",
+        )
+        locale = replace_one(
+            locale,
+            "offsetof(JSFunctionBytecode, property_ic) == 144",
+            "offsetof(JSFunctionBytecode, property_ic) == QJS_ABI_OFF_JSFunctionBytecode_property_ic",
+            "compound measured IC field",
+        )
+        locale = replace_one(
+            locale,
+            "sizeof(JSPropertyICSite) == 64",
+            "sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite",
+            "compound measured IC site",
+        )
+        locale = replace_one(
+            locale,
+            "sizeof(JSPropertyICWay) == 40",
+            "sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay",
+            "compound measured IC way",
+        )
+    else:
+        locale = locale[: locale.index(boundary)]
+    locale = locale.replace(".qjslfm", ".bss.qjs_strings")
+    locale = locale.replace(
+        "JSValue JS_FrameLocaleCompare(", "LINUX_STRING_CODE JSValue JS_FrameLocaleCompare(", 1
+    )
+    policy = source_text(source, "string-linux-boundaries.inc")
+    small_path = source_file(source, "string-small-char.c")
+    small = small_path.read_text()
+    small = replace_one(
+        small,
+        '#include "src/common/call/interpreter-retained-context.inc"',
+        "",
+        "actual-type small character owner",
+    )
+    small = small.replace("FRAME_INLINE", "inline __attribute__((always_inline))")
+    small = small.replace("FRAME_CODE", "LINUX_STRING_CODE").replace(
+        ".qjzzpm", ".bss.qjs_small_chars"
+    )
+    small = re.sub(r"\bqjs_frame_core_js_new_string_char\b", "js_new_string_char", small)
+    small = re.sub(r"\bqjs_frame_core___JS_NewAtom\b", "__JS_NewAtom", small)
+    functions = {m[2]: m[0] for m in adapter.FUNCTION.finditer(core)}
+    original_char = functions["js_new_string_char"]
+    marker = "/* LINUX_OWNED_ORIGINAL_CHAR_CONSTRUCTOR */"
+    core = replace_one(
+        core, original_char, marker, "retain consuming original character constructor"
+    )
+    character_routes = len(re.findall(r"\bjs_new_string_char\(", core))
+    if character_routes < 7:
+        raise ValueError("Review every original single-character call route")
+    core = re.sub(r"\bjs_new_string_char\b", "JS_FrameSmallCharNew", core)
+    core = replace_one(
+        core,
+        marker,
+        "JSValue JS_FrameSmallCharNew(JSContext *, uint16_t);\n" + original_char,
+        "original constructor and cached-call declaration",
+    )
+    free_runtime = functions["JS_FreeRuntime"]
+    cleanup = replace_one(
+        free_runtime,
+        "JS_RunGC(rt);",
+        "JS_FrameSmallCharCleanupGC(rt);",
+        "exact shutdown cache ownership boundary",
+    )
+    core = replace_one(
+        core,
+        free_runtime,
+        "void JS_FrameSmallCharCleanupGC(JSRuntime *);\n" + cleanup,
+        "runtime shutdown cache cleanup owner",
+    )
+    index_path = source_file(source, "string-index.c")
+    index = index_path.read_text()
+    boundary = "#include <stdatomic.h>"
+    if index.count(boundary) != 1:
+        raise ValueError("Review shared string data accessors and index kernel")
+    index = index[index.index(boundary) :]
+    index = index.replace("FRAME_CODE", "LINUX_STRING_CODE").replace(
+        ".qjzzpm", ".bss.qjs_string_index"
+    )
+    index = re.sub(r"\bJS_FrameSlowDirectSelect\b", "JS_FrameInterpSlow", index)
+    forward = """
+int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *);
+int JS_FrameLinuxStringConcat(JSFrameRegisterState *);
+"""
+    text = (
+        control
+        + "\n"
+        + concat
+        + "\n"
+        + forward
+        + "\n"
+        + policy
+        + "\n"
+        + local
+        + "\n"
+        + append
+        + "\n"
+        + locale
+        + "\n"
+        + small
+        + "\n"
+        + index
+    )
+    path = output / "quickjs-linux-strings.h"
+    path.write_text(text)
+    old = 'JS_CFUNC_DEF("localeCompare", 1, js_string_localeCompare )'
+    if core.count(old) != 1:
+        raise ValueError("Review exact localeCompare method route")
+    core = replace_one(
+        core,
+        old,
+        old.replace("js_string_localeCompare", "JS_FrameLocaleCompare"),
+        "localeCompare method",
+    )
+    table = "static const JSCFunctionListEntry js_string_proto_funcs[] = {"
+    core = replace_one(
+        core,
+        table,
+        "JSValue JS_FrameLocaleCompare(JSContext *, JSValueConst, int, JSValueConst *);\n" + table,
+        "locale method prototype",
+    )
+    record = dict(
+        status="generated-shared-string-kernels-not-qualified",
+        generated_sha256=hashlib.sha256(text.encode()).hexdigest(),
+        entries=[
+            "JS_FrameSharedConcatRope",
+            "JS_FrameLocalRopeModeGet",
+            "JS_FrameLinuxSharedConcatSelect",
+            "JS_FrameLinuxStringConcat",
+            "JS_FrameLinuxStringAdd",
+            "JS_FrameAddLocalString",
+            "JS_FrameLocalRopeAppendStep",
+            "JS_FrameLocaleCompare",
+            "JS_FrameSmallCharNew",
+            "JS_FrameSmallCharCleanupGC",
+            "JS_FrameStringIndexStep",
+            "JS_FrameLinuxStringSlow",
+        ]
+        + (["JS_FrameLocaleCompareCompound"] if layout["property_ic"] else []),
+        equality=dict(
+            route="existing common js_eq_slow body",
+            body_sha256=hashlib.sha256(equality.encode()).hexdigest(),
+        ),
+        small_char=dict(
+            source_sha256=hashlib.sha256(small_path.read_bytes()).hexdigest(),
+            original_call_routes=character_routes,
+            cleanup_routes=1,
+            owner_slots=16,
+            characters_per_slot=256,
+        ),
+        string_index=dict(
+            source_sha256=hashlib.sha256(index_path.read_bytes()).hexdigest(),
+            opcodes=["get_array_el", "get_array_el2"],
+            fallback="original typed C step",
+        ),
+        method_routes=[
+            dict(method="String.prototype.localeCompare", target="JS_FrameLocaleCompare")
+        ],
+        private_types="actual core/frame types;no private compiler clones or guessed runtime bytes",
+        compound=dict(
+            enabled=bool(layout["property_ic"]),
+            source_sha256=hashlib.sha256(
+                (source / "src/common/string/locale-compare.inc").read_bytes()
+            ).hexdigest(),
+            ownership="Same actual core/method owner;nonobserving cold proof and live PIC/hash/builtin/string proof",
+        ),
+        remaining_dependencies="Other string/call/constructor/publication supplements remain separate groups",
+    )
+    (output / "STRING-WORKERS.json").write_text(json.dumps(record, indent=2) + "\n")
+    return core + '\n#include "quickjs-linux-strings.h"\n', record

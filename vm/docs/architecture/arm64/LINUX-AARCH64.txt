@@ -1,0 +1,130 @@
+Linux AArch64 / glibc portable cross build
+=========================================
+This guide documents the common C fallback and its ABI foundation. For the
+current native register backend,use LINUX-AARCH64-RELEASE.txt and
+tools/build/product-linux-aarch64.sh. The commands below deliberately select
+PORTABLE;they do not describe the native implementation's coverage.
+
+Initial target: little-endian LP64 Linux, GCC 13, baseline armv8-a.
+The ARM64 work starts from accepted x86_64 source 8ea5e29, pinned NG 0.15.1.
+The first deliverable uses PORTABLE with the accepted common C overlays.
+It does not contain an AArch64 register VM or the x86_64 native call assembly.
+The existing Windows/Linux x86_64 backends and release remain separate.
+
+The product build script also enables QJS_AARCH64_BUILD_ABI_CHECKS. These build
+separate call-ABI foundation executables; no bridge object is added to qjs.
+The base backend remains PORTABLE. The private core field-name catalogue lives
+in src/internal/abi/core-fields.json; offsets are measured per target, never copied.
+Shared frame instructions live in asm/arm64/common; ELF symbols and unwind
+directives live in asm/arm64/linux. The foundation currently rejects BTI/PAC,
+sanitizers and LTO explicitly; ordinary C fallback builds can omit the checks.
+
+Ubuntu 24.04 x86_64 build host (including WSL2)
+--------------------------------------------
+Install dependencies using your normal package-management privileges:
+  sudo apt-get update
+  sudo apt-get install --no-install-recommends cmake ninja-build python3 \
+    gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu libc6-dev-arm64-cross \
+    qemu-user gdb-multiarch
+
+From a checkout or unpacked source archive:
+  bash tools/build/product-linux-aarch64-portable.sh \
+    build/linux-aarch64-portable out/sdk-linux-aarch64-portable
+  QJS_EXPERIMENT_ALLOCATOR=256 qemu-aarch64 -cpu cortex-a53 \
+    -L /usr/aarch64-linux-gnu out/sdk-linux-aarch64-portable/bin/qjs \
+    -e 'print(6 * 7)'
+
+The build is serial by default. Affinity may be set on the script's parent:
+  taskset -c 2 bash tools/build/product-linux-aarch64-portable.sh
+Use a fresh build directory for a different compiler, toolchain or generator.
+Do not apply the x86_64-only product-linux.sh to an ARM target.
+
+The toolchain file uses the GNU compiler's own sysroot/specs and a separate
+library/package search root. It does not point the target linker at host x86
+libraries. Overrides: QJS_AARCH64_TOOLCHAIN_PREFIX, QJS_AARCH64_TARGET_ROOT,
+QJS_AARCH64_QEMU_CPU, QJS_AARCH64_QEMU_LD_PREFIX (CMake cache variables).
+An explicit CMAKE_CROSSCOMPILING_EMULATOR argv list takes precedence.
+QEMU is optional for manual cross compilation; the qualification build script
+requires it because that script also executes the CTests.
+
+On native ARM64 Linux the same PORTABLE wrapper selects the host compiler and
+runs the tests directly; it does not require QEMU or cross-compiler executables.
+For example, with GCC 13 installed:
+  CC=gcc-13 CXX=g++-13 bash tools/build/product-linux-aarch64-portable.sh \
+    build/arm64-portable out/sdk-arm64-portable
+QJS_TOOLCHAIN_FILE explicitly selects another toolchain when needed. Inspect
+ARM64-BUILD.json execution_mode rather than assuming a cross or native run.
+
+tools/elf/screen.py and check-test262.py accept --cpu for hosts without CPU 2;
+the default remains CPU 2. The selected CPU must be allowed and is recorded in
+the results. Source checkouts bind their Git revision and dirty state. A source
+archive instead needs SOURCE-TRANSFER.json with a nonempty files dictionary of
+relative paths and SHA-256 values; every declared file is verified before a
+run. The archive base_commit is provenance, not a claim of a clean Git checkout.
+
+The shared common C routes include the declared correctness overlays, complete
+integer payload stores, mixed-number paths, Map pointer hashes, pool allocator,
+property IC and closure templates, bounded compiler planning, portable RegExp
+and wire support. Consult generated/backports/BACKPORTS.json for exact inputs.
+QJS_EXPERIMENT_ALLOCATOR=256 enables the qualified pool mode in a fresh process.
+Function names and environment controls inherited from native tests do not
+prove native ARM execution. In this deliverable their C semantics are tested.
+
+Testing and provenance
+----------------------
+CTest uses the target's CMAKE_CROSSCOMPILING_EMULATOR. A Python test that starts
+a target executable itself receives an explicit --runner argv prefix.
+tools/elf/check-test262.py and screen.py accept an engine JSON object with:
+  "runner": ["/usr/bin/qemu-aarch64", "-cpu", "cortex-a53", "-L",
+             "/usr/aarch64-linux-gnu"],
+  "guest_machine": 183,
+  "timeout_seconds": 7200
+Keep name/binary/env fields as in their normal native engine descriptions.
+Guest ELF and emulator are hashed separately. Emulator maps/PIDs and host RSS
+must never be presented as native guest mappings or engine-only memory.
+
+Use the same pinned Test262 corpus, configuration and known-error list as the
+accepted build. Run a stock ARM engine first and compare actual failure
+identities and messages, not an x86 historical failure count. Review platform
+differences explicitly; do not add ignores to admit a candidate.
+The old upstream bug1221 resource fixture expects 12 nested-RegExp OOMs. The
+accepted compiler can avoid those allocations (0 OOMs); preserve that mismatch
+and validate the unchanged product fixture and accepted x86 image separately.
+The local wire_interop public C fixture supports write/read file operations
+for exchange between separately linked stock/optimized and x86_64/ARM images.
+
+The installed share/doc/quickjs/ARM64-BUILD.json binds executable/archive hashes,
+every archive member's AArch64 machine check, compiler, cache, source pins,
+owned source input hashes and generated compiler inputs. It is a build receipt,
+not an assertion that Test262 or a native ARM VM has been qualified.
+When foundation checks are enabled, AARCH64-LAYOUT.json records actual types,
+bitfields, compiler features and the type-checked JS_CallInternal declaration.
+AARCH64-CALL-ABI.json records PIE, nonexecutable stack, complete FDEs, reviewed
+inputs and evidence that bridge symbols are absent from both qjs and libqjs.a.
+The natural-call tests cover five assembly/reference-C routes, owning results,
+GC/reentry, stack arguments, signed flags, callee-saved registers and real unwind.
+The private-call test is a matching-type fixture, not admission into an actual
+register VM or proof of a private compiler clone's machine signature.
+No-Git archives record content hashes with source_commit/source_dirty null.
+
+QEMU functional results cover the exercised paths under the recorded model.
+QEMU wall/CPU time includes emulation; its process RSS includes translated code
+and emulator state. Host perf samples QEMU/TCG. These do not establish ARM
+hardware speed, PMU behavior or engine-only memory. The later physical-hardware
+qualification and its measured costs are in LINUX-AARCH64-HARDWARE.txt.
+The glibc used by the initial sysroot is not a promise of older-distro support;
+inspect actual required symbol versions and qualify each supported baseline.
+
+Native backend
+---------------
+The separate native backend and its measured ABI,CFI,ownership and complete
+mechanism inventory are described in LINUX-AARCH64-REGISTER.txt and
+LINUX-AARCH64-MECHANISMS.json. This portable SDK keeps its original C owner.
+Both SDKs require their own source-bound acceptance and relocated consumer
+proof. LINUX-AARCH64-HARDWARE.txt records the separately verified physical
+ARM host,engine RSS,software-perf windows and PMU availability boundaries.
+
+References:
+https://github.com/ARM-software/abi-aa/blob/2026Q3/aapcs64/aapcs64.rst
+https://cmake.org/cmake/help/v3.28/variable/CMAKE_CROSSCOMPILING_EMULATOR.html
+https://www.qemu.org/docs/master/user/main.html

@@ -1,0 +1,38 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental Linux AArch64 numeric and compiler workers
+=======================================================
+The complete accepted GNU primitive BigInt/add_loc ownership, release policy,
+short decimal converter and bounded compiler projection are reused from their
+original source factories. Target bindings use actual GCC AAPCS64 declarations,
+measured BigInt/FD/LabelSlot layouts and glibc FPCR rounding constants.
+
+QJS_INTERP_FRAME_NATIVE_NUMERIC and QJS_INTERP_FRAME_COMPILER_PROJECTION are
+independent compile controls. The latter also requires CONTEXT_OOM. Both OFF
+must retain the previous core/VM implementation. Process disable controls are
+presence based, including value 0. Original fallback arithmetic, exceptions,
+allocator ownership and nonnearest conversion remain intact.
+
+Compiler planning runs in an independent generated C translation unit with
+actual source types and target flags. No runtime metadata or frame extension
+is introduced. Numeric local mode uses only the measured inherited padding;
+instrumented builds alone add twelve TLS observation counters.
+
+NUMERIC-WORKERS.json records both producers and actual semantic owners. Its
+numeric loop digest binds the intermediate factory output in numeric-source;
+VM.json separately binds the final loop after literal/extended composition.
+Both stages are checked. Production Release has no observation counters.
+
+Qualification is pending full current-source CTest, Test262, no-Git SDK and
+independent controls. QEMU establishes functionality, not ARM hardware speed.
+Remaining string/local-string and scalar/fused call leaves are separate work.
+
+Allocator reentry qualification uses public JS calls at old-value release and
+checks that the captured local already contains its replacement. The complete
+callee-saved sentinel covers x19..x29, d8..d15 and SP alignment across cold,
+nonlast, last and generic release. GC runs after returning from the allocator.
+The additional nested-GC-inside-free probe aborts identically in the prior
+literal engine and current candidate, with both local controls. That retained
+negative is an inherited limitation, not a passing compatibility claim.

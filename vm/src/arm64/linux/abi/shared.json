@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 AAPCS64 LE LP64/GCC",
+  "source_owners": {
+    "src/common/call/quickjs-interpreter-shared.inc": "c153ad8947da20f3547652f142d34ba7ddf8cfda128241e2451ecd1c8eac7a83",
+    "src/common/call/interpreter-shared-types.inc": "3c221bce68db0e433c44f11c8c59132e0988514ea6f4d514f5bca39320d7fae6",
+    "src/common/linux/interpreter-linux-shared-tls.inc": "0c2d7e0f133304b286ee14dbe72ecafcd3e4c28769ac21d88bb4ac912a5f0c81",
+    "src/common/call/interpreter-slow-host.inc": "9ff6491b530105e0f3025d768fb280a49481f5fbd9d3627a8bfdb672660b3853",
+    "src/common/call/interpreter-slow-host-declare.inc": "31cf9aaf57d37bfadc65d4289934eafab836b5502d3159bb230351fc00be66d5",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "tools/common/c_extract/generate_shared_host.py": "00011b8c5dd92494207cdc2204ddd88ac7f03717de0e387b79034d3494bef14e"
+  },
+  "ancestral_shared_sha256": "b07d1901e9d91c79673773f35267cf48442a28f8497630429b051d679527f696",
+  "algorithm": "Complete common coherent-host/arena-child/quota/capture/exception/TLS owners;actual type definition factored without cloning",
+  "architecture": "Compiler-managed ELF TLS and typed AAPCS64 host/VM/JSValue calls;no Windows TLS offsets or SysV register ABI",
+  "runtime_padding": "Actual offsetof(current_stack_frame)-5,checked against preceding in_free and existing frame/internal/register/host leases",
+  "blocked_activations": "Kind3 around every actual ARM VM activation;kind1 before shared child allocation;restore exact previous TLS on every exit",
+  "commitment": "AArch64 shared and retained-scoped host adapters charge once and refresh committed snapshot before publishing kind0",
+  "validation": "Two concurrent runtimes/threads;GC;cross-runtime finalizer and allocator reentry;foreign realm/this/captures;exceptions;quota;OOM;OFF0/1 and actual CFI",
+  "hardware_performance_qualified": false
+}

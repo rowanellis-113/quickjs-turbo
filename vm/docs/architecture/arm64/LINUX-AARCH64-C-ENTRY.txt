@@ -1,0 +1,80 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Dedicated Linux AArch64 C invocation and builtin workers
+=======================================================
+
+The full GNU LP64 C invocation and builtin view owners now live under src/call/.
+The old x86 include entries remain shims. Their C definitions are retained
+byte-for-byte except the reviewed common-to-common builtin include routing.
+An actual accepted/candidate x86 build proves equal preprocessed tokens and
+object bytes,including these owners. The14 default generator files also match.
+
+src/arm64/linux/interpreter-c-entry.inc is a dedicated typed AAPCS64 backend.
+The target compiler handles JSValue aggregate and primitive floating arguments,
+callee saves,physical stack and CFI. The generic/magic worker creates the real
+C SF,borrows actual values,pads at most255 formal cells with undefined,keeps
+actual argc,and restores SF/ELF TLS/active state/quota after the live C target.
+Numeric f_f/f_f_f has direct and independent trampoline controls,exact primitive
+guards and original js_number boxing. Other types/prototypes retain core.
+
+The gate commits original deferred data-frame quota once with begin_c+finish_c
+before publishing kind0. A shallow call and one after120 native JS children
+therefore use the same physical C owner. Both the native and retained paths see
+the same coherent charge. Admission checks register/direct/shared/scoped policy,
+actual current SF,interrupt boundary,live class/prototype,realm runtime and C
+stack headroom. All misses keep the complete original typed bridges under
+Host*SharedOriginal. The public header and19 upstream pins do not change.
+
+Actual compiler geometry is checked independently in the linked ELF:96-byte C
+header,128-byte native scope and128-byte builtin view,using the actual common
+168-byte register state and128-byte JS data frame. No private struct clone,
+foreign ISA offset,COFF patch or Windows TLS convention is imported. The
+instrumented generic worker's measured fixed prologue is272 bytes,plus optional
+borrowed padding up to4080. Its checked reserve is the actual scope+view sizes
+plus512 C bytes. This is a target implementation cost,not a speed/RSS claim.
+
+String.slice and default decimal Number.toString use the full accepted semantic
+bodies and typed live function identities. The inherited view owns its actual
+SF/anchor/slot/active/transient fields. Modes cover caller window,C-stack view,
+transient segment and live geometry. Exact segment/quota ownership is retained.
+Every invocation resets dormant release ownership;missing-argument padding can
+overwrite the old view with undefined values. General C Slow invalidates the
+activation geometry owner;all constructors keep the original flag clearing.
+
+Array.pop is routed to its complete accepted C worker. Its initialized-policy
+native leaf checks actual argc/method/prototype/identity,array flags,dense count
+and writable int length,then moves the owning tail. Sparse/nonextensible/extra
+argument/identity misses retain C/core. Shift is unchanged. All inherited
+process-presence controls,including explicit0 and1,remain effective.
+
+Execution qualification includes the unchanged720 public ABI cases:every call
+is observed in the actual new generic worker during GC,with one VM frame and
+no gate/C-step activation below it. The original numeric/view workload covers
+693 calls,754 live views,778 GC/foreign reentries,primitive/coercing/missing/
+throwing inputs and both numeric lanes. Window/stack/transient controls prove
+their actual owner. Original allocation-failure/recovery and dense-pop200 last
+receiver allocator reentries/finalizers pass. Read-only observers and counts
+are instrument-only;release images check their absence and all real FDEs.
+
+The additional dormant-window fixture executes64 native eleven-formal/zero-
+actual children across128 GC/probe observations and64 quota restorations. It
+reuses the same real window after padding its inactive bytes. All8 modes pass.
+Dense leaf count203 includes202 nonempty and1 empty transfer;the first cold pop
+correctly initializes policy through the retained C body. Source/negative
+records are retained outside the product;no inherited test was weakened.
+
+The original C-entry tier spilled C results through state.result and used
+source C finish_call. The current standard aggregate return and native owning
+consumer are described separately in LINUX-AARCH64-C-RETURN.txt,including the
+retained original consumer and all exception/last-release ownership guards.
+Actual hot builtin lifetime-cache count is0 while unported property/forwarding
+C steps invalidate it. Existing hot source is not execution proof;qualify it
+later through natural callers after those dependencies land. The720 no-step
+observations concern the callee activation,not its subsequent cleanup.
+
+This tier has346 targeted checks. Fresh full same-corpus/SDK qualification is
+separate. All original22 families and P5/old-platform audit remain requirements.
+AUTO stays PORTABLE. QEMU qualifies functionality only;real ARM performance,
+PMU attribution and engine-only memory remain unverified.

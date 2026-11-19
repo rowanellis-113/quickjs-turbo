@@ -1,0 +1,40 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Linux AArch64 array copy and sort C owners
+
+QJS_INTERP_FRAME_ARRAY_SORT is an independent compile control in the opt-in
+LINUX_AARCH64 backend. AUTO remains PORTABLE. This carries the complete
+accepted array-copy/dense-growth and default-string radix,cached-comparator
+and prepared-comparator C algorithms. Original collection,conversion,species,
+property/exception ordering and commit owners remain the original functions.
+
+tools/elf/array_workers.py remains the common source factory;its existing
+x86 default output must remain byte-identical. AArch64 retains its already
+qualified dense-pop owner and excludes the unported native append gateway.
+The only source ISA adaptation in cached sort is the actual SP read;the full
+optional capsule-workspace/quota predicate is unchanged. There are no Windows
+TLS reads:the complete accepted Linux owner uses compiler-managed ELF TLS.
+
+Sort capsules use the real JSFrame/JSFrameSegment/JSFrameRegisterState types.
+The accepted strong comparator ownership,cached immutable geometry,private
+kind5/kind6 barrier andkind0 shadow,poll/realm/quota/root,nonmoving arena growth,
+conditional owner restoration and normal/exception/OOM cleanup are preserved.
+Every sizeof/offsetof check uses actual target compiler declarations;no core
+type mirrors or new public/runtime/frame/state fields are introduced.
+
+Original process-presence 0/1 controls include QJS_DISABLE_ARRAY_COPY_GROW,
+QJS_DISABLE_DEFAULT_STRING_RADIX,QJS_DISABLE_CACHED_SORT_CALL,
+QJS_DISABLE_PREPARED_SORT_CALL,QJS_DISABLE_PREPARED_SORT_ENTRY and the existing
+register/shared/internal/frame/bypass/C-invoke controls. The component entry
+or C-invoke controls are not pure whole-sort ablations;cached/prepared C
+ownership can remain active exactly as in the accepted Linux implementation.
+
+Unmodified original fixtures validate actual prepared reuse,GC/foreign realm
+reentry/interrupts,strong alias/lifetime/species behavior,copy-phase allocation
+GC,all normal/grown-capsule allocation faults and recovery. Readonly numeric
+observer constants come directly from THIS compiler-generated ABI header.
+
+Native append,remaining array/indexed opcode kernels and original22/P5 full
+qualification remain OPEN. QEMU establishes functionality,not ARM speed/RSS.

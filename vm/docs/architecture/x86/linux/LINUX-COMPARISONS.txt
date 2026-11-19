@@ -1,0 +1,87 @@
+GNU native comparisons on Linux x86_64
+=====================================
+
+This is a development mechanism group in the full GNU port. The complete
+coverage,whole-suite time/memory,configuration,current Windows and source-package
+gates in LINUX-PORT.txt remain required. No speed baseline is established here.
+
+Shared source and actual ABI
+----------------------------
+tools/elf/comparisons.py extracts the complete accepted GNU loose/strict kernels
+and common strict body/reference/identity fragments. It verifies all eight
+semantic-owner hashes,the pinned core,the actual retained strict C fallback and
+the measured string bit layout. Actual C assertions cover JSValue16/tag8,
+string24/slice parent+start and inline reference layout. No private C structs or
+compiler-clone signature is copied.
+
+The private VM already uses the common register convention. The native entry
+adds only process controls and the existing int(state*) SysV bridges for pure
+environment/atomic configuration. The cold strict initializer saves its operator
+selector in the existing scratch32 window;the ordinary bridge preserves RSI/RDI.
+The helpers do not allocate engine values,observe engine state,invoke JS or GC.
+Deferred publication therefore classifies only those exact helpers as pure.
+
+Complete Clean/Dirty source kernels compare equal after label normalization and
+the original64-byte statistics-bank shift. The existing publication factory
+derives actual Linux Dirty labels and original observing C fallback boundaries.
+It preserves immutable ELF dispatch tables and both prior operands on a miss.
+No frame128,state168,public ABI,bytecode format or per-bytecode tail grows.
+
+Strict strings preserve live ownership guards,alias counts,flat/slice/indirect
+views,narrow/wide/mixed-width comparisons,the original length/content bounds,
+numeric/NaN/-0 behavior and complete original C fallback. Reference identity
+consumes object/Symbol slots only when both counts remain positive. Last owners
+retain original finalizer order and cleanup.
+
+Loose equality preserves string delegation,null/undefined/immediate lanes,
+nonlast refcount consumption and the live HTMLDDA check. Coercible objects,
+exceptions,other tags and final owners retain complete inherited semantics.
+
+The ordinary C strict-opcode helper also has its accepted identity tier. Its
+actual SysV leaf receives(ctx=RDI,sp=RSI,is_neq=DL),has CFA8,and tail-enters an
+actual-signature C wrapper on every miss. Only the original two core calls and
+two generated opcode C calls are routed. The original strict helper is retained.
+The C identity tier remains independent of the VM reference control,as on GNU
+Windows. No stale second slot is freed twice after a successful consumption.
+
+Controls and ownership
+----------------------
+Presence disables,including value0;use fresh processes:
+  QJS_DISABLE_LINUX_COMPARISONS       complete added group,including C tier
+  QJS_DISABLE_LINUX_STRICT_COMPARE    new VM strict tier
+  QJS_DISABLE_LINUX_LOOSE_COMPARE     new VM loose tier
+  QJS_DISABLE_LINUX_C_IDENTITY        ordinary C identity tier
+  QJS_DISABLE_FRAME_REFERENCE_EQUALITY original VM object/Symbol reference lane
+  QJS_DISABLE_FRAME_LOOSE_EQ          original complete loose lanes
+  QJS_DISABLE_FRAME_LOOSE_EQ_STRINGS  original loose string delegation
+  QJS_DISABLE_FRAME_LOOSE_EQ_NULL     original loose null lanes
+  QJS_DISABLE_FRAME_LOOSE_EQ_OBJECT_NULL original ordinary-object/null lane
+
+The shared reference configuration retains the independent large-global mode
+word as well. Provisioning that scalar is not proof that every large-global
+mechanism has been migrated;the complete GNU inventory still requires review.
+Modes/statistics are process scalars in dedicated late ELF families. There are
+no object/shape caches,new strong roots or new per-runtime heap owners.
+
+Validation boundaries
+---------------------
+tests/test_linux_comparisons.js covers complement/symmetry,reference/last-owner
+semantics,cold/Dirty execution,short/wide/sliced/rope strings,mixed numbers,
+BigInt,proxies and getter/coercion GC/throws. native_linux_comparisons.c reuses
+the accepted25-value differential cube and finalizer ordering,through both
+public JS calls and the actual SysV C entry. It adds natural interrupt abort/
+recovery,VM last-owner cases and public-allocator OOM/recovery with zero ledgers.
+
+Read-only observations on the unchanged Release image verify actual Clean/Dirty
+commits,exact PC+1/SP-16 and Boolean storage,nonlast decrement pairs including
+aliases,C leaf arguments/returns and helper RSI/RDI preservation. Independent
+component controls and original Clean/Dirty observation banks remain checked.
+No private interrupt count or runtime register/value is overwritten for a proof.
+
+The default strict numeric tier includes lanes already handled by the enabled
+base numeric comparator. Alternate configuration coverage remains part of the
+whole-port configuration gate;do not infer every redundant lane executes from
+symbol existence. Full pinned Test262 uses exact portable failure/fix identities.
+Independent installed SDK/same-object stock/prior/standalone consumers and ELF/
+CFI/PIE/CET checks are separate source-bound evidence. Static sizes and hit counts
+are not whole-suite speed or measured RSS.

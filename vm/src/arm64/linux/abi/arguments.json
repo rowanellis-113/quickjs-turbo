@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "target": "Linux/glibc/GCC AAPCS64",
+  "source_owners": {
+    "src/common/kernel/ordinary-arguments.c": "475a54e367848dee29a1beee10b83b69027f55d24212bb6560e3032b28100333",
+    "src/common/kernel/argument-constructor.c": "d54092a5d61a19b4babeeb4fa0cebefe0c14bdb46d06e61220f4fe890485dfaa",
+    "tools/common/elf/arguments_c.py": "a8e31ca1840b84115ce1da3ef64f8f0823d8b3d8cb7e02d05576a9c24df69daf",
+    "tools/common/elf/virtual_arguments_c.py": "295b3a12fa34b27b1417e00cdb8988715b5c3e52df08e7aebde0ca257e8e94a2",
+    "src/common/linux/interpreter-virtual-arguments.inc": "e0e0cb35e1d145c1278e503850cfc4d54d6f6647669d82c4f16154769344257e",
+    "src/common/call/interpreter-arguments-special.inc": "95c1d9e5ba04620a7d40997b22488df97d3d3c9360e951954cd707a582cb5833",
+    "src/arm64/linux/interpreter-arguments.inc": "4534349667f33a2ed6fe79a3c27cb53545e9bf457d88caf043cc07d41fb34302",
+    "asm/arm64/common/register-arguments.inc": "a27e5e08e41f1a1c9a435197397257e81c89cb52aab9b599da8e598244e881be",
+    "asm/arm64/linux/forwarding-probe.S": "b01877da56ec4d879ca76765d230f1138125e13046f5d7ecd74a04aa3de84949"
+  },
+  "frame_growth": 0,
+  "state_growth": 0,
+  "private_record_bytes": 16,
+  "whole_qualification": false,
+  "native_ready": true,
+  "native_access": true,
+  "native_forward_probe": true
+}

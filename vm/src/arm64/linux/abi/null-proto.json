@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "target": "Linux/glibc/GCC AAPCS64",
+  "source_owners": {
+    "tools/common/elf/null_proto_c.py": "dae5c11c44cf48128e64c3973af7989312cd58970fec7e8c10559682612301ba",
+    "tools/common/c_extract/null_arena_c.py": "e367fae11e3c7066ddea6c0cb5a03169cf8863ba1f58c37f6d187e02c7906c73",
+    "src/common/linux/interpreter-null-proto.inc": "cd3ec0149063a62fe20e93238e24aae15cc76291c10c6ae7b2744d5ecc7f64a8",
+    "src/common/call/interpreter-slow-host.inc": "9ff6491b530105e0f3025d768fb280a49481f5fbd9d3627a8bfdb672660b3853",
+    "src/common/call/interpreter-current-function-null.inc": "e4b605a7966e3ebb0f55373ecb6a07373b48c930b057363839d073b0d5f1890c",
+    "asm/arm64/common/register-null-proto.inc": "a9363550c3059717c39f1ebb74d1030e9833f6b52b9afaaed3a14172cb3311ec"
+  },
+  "scope": "Complete original bounded null-only admission,typed native opcode and warm inline-header allocator;no new representation or fields"
+}

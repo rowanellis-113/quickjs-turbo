@@ -1,0 +1,94 @@
+GNU property family: Linux native development integration
+=========================================================
+
+The accepted GNU own-bytecode, Number, ProtoLoad, persistent/direct/live-chain,
+borrowed-slot PIC, resolved Symbol condition and native length source factories
+are integrated with actual Linux core types and existing SysV bridge ownership.
+No Windows object, CRT pointer patch or guessed private compiler signature is
+used. This is a development integration,not whole-port or speed acceptance.
+
+Both actual compiler and maintained serialized-reader allocations reserve the
+original zeroed tail:6+min(original allocation bytes,2048). Native hint probes
+retain the2048 code-length guard even though Linux admits larger code. The
+original bytecode owner/free releases the tail;serialization remains unchanged.
+There is no independent cache allocation/free hook,public field or JS root.
+The per-bytecode reservation can be up to2054 bytes and is a real memory cost;
+the final memory gate must measure it with the application/suite workloads.
+
+Linux original/Clean/Dirty dispatch tables stay RELRO. Instead of changing PE
+pointer tables,every native hint/PIC entry checks the same monotonic control.
+Optional enlarged-calloc failure serializes permanent OFF before returning
+original-size storage. An already-entered no-C/no-GC probe can only hold an
+older enlarged live bytecode. There is no later re-enable. A normal ELF static
+constructor initializes the independent primitive policies before public use;
+pre-constructor producers retain the original permanent-OFF rule.
+
+The original two-way activation holder hints share the32-byte call-site slots
+through memcpy,with marker-1 distinct from every valid argc. The persistent
+second level retains128 weak32-byte records and64 replacement bytes. Native
+promotion validates one captured packed atom/slot against the actual current
+holder. Direct loads only use a fully validated snapshot when both private
+ways are full. Deeper live lookup retains the bounded32-prototype walk and
+all original exotic/data/atom guards. Cached pointers are never dereferenced
+without deriving and validating the live holder. No strong root was added.
+
+Number and String probes use the actual calling bytecode realm. Number's cold
+initializer and the pure persistent fill use explicit int(state*) SysV bridges.
+Returning native try/direct probes have real CALL slots and CFA8;their JMP
+continuations retain VM CFA144. Dirty copies use the existing publication
+factory. Borrowed local/argument/captured receivers retain the exact four-way
+PIC proof and materialize the original owned operand before any failed probe.
+The accepted Symbol branch fusion preserves its original one conditional poll.
+Length reads logical Array prop[0],not dense count;String length remains UTF16
+code units. Last release and unsupported cases keep the full original path;
+argument-object length keeps its previous native continuation.
+
+Process controls retain presence semantics(including0):
+QJS_DISABLE_NATIVE_OWN_BYTECODE,QJS_DISABLE_FRAME_LOCAL_FIELD,
+QJS_DISABLE_SYMBOL_CASE,QJS_DISABLE_NUMBER_PROPERTY_FAST,
+QJS_DISABLE_PROTO_LOAD_CACHE,QJS_DISABLE_PROTO_LOAD_PERSIST,
+QJS_DISABLE_PROTO_DIRECT,QJS_DISABLE_NATIVE_LENGTH.
+Extra method IC learning is selected by the accepted MSVC-only profile,so it
+is excluded from default-active GNU parity. The independent legacy PE reference
+and large-global configuration writes are not own-tail dependencies;they are
+not silently treated as migrated Linux mechanisms by this integration.
+
+Current qualification is external and source-bound:linux-gcc-properties-r7
+passes793 strict CTests and three full pinned Test262 cohorts,each65/81152
+inherited failures,31fixed,0new/changed,with exact portable identities. All19
+upstream pins remain byte-exact. ELF/PIE/CET/CFI checks cover322 selected FDEs.
+An independent installed find_package consumer and standalone archive pass the
+new producer/reader/realm/GC protocol and reader allocation sweep;the same public
+object also passes against prior9431921 and stock NG0.15.1 archives. Existing
+indexed direct/coercion public hosts and OOM controls continue to pass the SDK.
+
+Read-only observers verify actual own-slot hits,borrowed PIC,Number/String/
+Array length,holder/native promotion/direct loads,live deep data and6939 Symbol
+fusions with exact reference/SP/target and one original conditional poll. The
+relevant component OFFs decline;cache-OFF still permits the original independent
+live-chain leaf. Pure-Symbol functions without a property site do not create an
+IC slab;the unchanged accepted Symbol fixture proves that precondition naturally.
+Counts are bounded fixture observations,not speed or application path rates.
+
+Actual compiler allocations105/142/160 and reader12/13/14 in the public fault
+fixture exercise all three observed nested bytecodes per producer. Every failed
+optional reservation returns original-size storage and permanently sets OFF;
+subsequent recovery allocations stay original-sized and all ledgers are zero.
+This targeted proof is distinct from the retained generic compiler fault corpus:
+resolve_scope_var OOM crashes and cold builtin recovery negatives also occur in
+the prior/stock references. They are not reported as passed sweeps or assigned
+to this migration from offsets alone. The source-bound research records retain
+raw failures,including stock's one-allocation shifts in late cases.
+
+Initial r6 accidentally enabled the PE inline global-cell metadata route while
+activating borrowed loads. Actual module observation rejected it despite nine
+small route tests passing. The Linux borrowed selector is now separate;the
+measured Linux global-cell emitter remains authoritative. No guard was weakened.
+
+Static image delta versus9431921:+27368 file,+9552 executable sections,+4360
+allocated writable bytes. Frame128/state168/public layout and GC root count do
+not grow. The bounded zeroed bytecode tail is a real per-function heap cost.
+Whole-application peak memory and speed still require the final port screens;
+no performance baseline,PGO,address or padding selection was introduced here.
+The full port still needs remaining RegExp/BigInt/compiler/platform coverage,
+independent slow-array route review and ALL six gates in LINUX-PORT.txt.

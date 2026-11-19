@@ -1,0 +1,23 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
+  "source_owners": {
+    "tools/common/elf/publication_c.py": "73d106e57032d460a62665ab3b694e23d82efd0b6e5a1c650e2a1ae0f6282f14",
+    "tools/common/c_extract/publish_boundary_c.py": "e1d8f1d7e91ae80ba8af1f34b4a92f69d5f1549b45c3c8d09e8683da69277fc9",
+    "src/common/linux/interpreter-publish.inc": "2721d01cee0f07efd9a8e6961fe25a92e888aeba60f91992bd5f717b3568de35",
+    "asm/arm64/common/register-call.inc": "c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a",
+    "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/interpreter-shared-types.inc": "3c221bce68db0e433c44f11c8c59132e0988514ea6f4d514f5bca39320d7fae6",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "tools/arm64/vm/publication.py": "6ab668624903dcdaac8007208a6cc4eaae84fdf7f8c0205ac28e120aac163044"
+  },
+  "protocol": "Immutable relative OFF/Clean/Dirty tables;deferred initialized child push/ordinary pop;all observing C transfers through tail publication proxies",
+  "returns": "Exact source-owned root/capture/finalizer fallbacks;derived independent Dirty callee/caller phases",
+  "physical_stack_growth": 0,
+  "frame_growth": 0,
+  "state_growth": 0,
+  "extra_GC_roots": 0,
+  "control": "QJS_DISABLE_DEFERRED_FRAME_PUBLISH presence including0",
+  "hardware_performance_qualified": false
+}

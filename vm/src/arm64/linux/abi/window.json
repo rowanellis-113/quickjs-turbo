@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "qualification": "reviewed native counterpart of the original C missing-arity readonly window",
+  "source_owners": {
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f"
+  },
+  "native_guards": [
+    "prepared readonly callee with no local var-ref table",
+    "caller has no local var-ref table",
+    "caller is last allocation on its own segment",
+    "padded argument end fits caller segment capacity",
+    "child capacity uses extended mark only when allocator and caller segments are the same",
+    "combined deferred charge and C stack reserve fit before any mutation",
+    "original caller-realm interrupt poll"
+  ],
+  "commit": [
+    "extend owner.used and caller.frame_bytes by positive added bytes",
+    "charge added bytes in original state owner",
+    "fill only missing cells with undefined",
+    "initialize original child header/locals before publication"
+  ],
+  "source_fallback": "retains original C window or shallow/owned argument builder before native commit",
+  "review_note": "The source hash is a semantic review gate, not an automatic compiler-shape refresh. Offsets and opcode constants remain measured from actual target types."
+}

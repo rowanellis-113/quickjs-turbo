@@ -1,0 +1,25 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+max_line_length = 100
+trim_trailing_whitespace = true
+
+[*.{js,mjs,json,yml,yaml}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[{quickjs.c,quickjs.h,quickjs-opcode.h,quickjs-atom.h,quickjs-c-atomics.h,cutils.h,list.h,dtoa.c,dtoa.h,libregexp.c,libregexp.h,libregexp-opcode.h,libunicode.c,libunicode.h,libunicode-table.h,quickjs-libc.c,quickjs-libc.h,qjs.c,qjsc.c}]
+trim_trailing_whitespace = false
+insert_final_newline = false
+
+# Source-sensitive upstream fixtures retain their qualified checkout bytes.
+[{tests/microbench.js,tests/function_source.js,tests/test_for_of_line_numbers.js,tests/detect_module/*.js,examples/hello.js,examples/hello_module.js,examples/test_fib.js}]
+end_of_line = crlf
+trim_trailing_whitespace = false

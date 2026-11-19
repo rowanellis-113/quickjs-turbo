@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "target": "Linux AArch64 LE LP64/glibc/GCC",
+  "source_owners": {
+    "tools/common/c_extract/proto_direct_c.py": "8a33a9cb63cc8f3360eafbc48bff320575e1be35845647e69bf1531449608933",
+    "src/common/kernel/proto-load.inc": "0a413d22e9a0dd9c8fb1a2609671d05b11d89d81cf73c57e3010ec2cb9c446aa",
+    "src/common/kernel/proto-persistent.inc": "c7fd61e147b3dcb171c7f6ee6eb0d967632587dd871502239697d4cfcce9a821",
+    "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
+    "src/common/call/quickjs-interpreter-register.h": "c9c63178bb3300dd2f6f0c45cefcf72c8117f0681827f0e74043a66f9169b3e3",
+    "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
+    "src/common/call/quickjs-interpreter-shared.inc": "c153ad8947da20f3547652f142d34ba7ddf8cfda128241e2451ecd1c8eac7a83",
+    "tools/arm64/workers/property_prototypes.py": "3a179efc97cf1c755ef2444271369ca5f3b5a2419bfe92eb516d39c41e24aa27",
+    "asm/arm64/common/register-property-prototypes.inc": "03c941170d31327cd0729baea089ddf5ac661660edf17f1f640d5bd5665f7b46",
+    "asm/arm64/common/register-property-primitives.inc": "fa3c1600226b8f54420d1634a2f6997cb75d297a2043a7c355416b02f23d5946",
+    "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7"
+  },
+  "scope": "Complete original activation two-way,atomic weak persistent two-way,promotion/full-bucket direct snapshot and original fill/deep/live fallbacks",
+  "lifetime": "Existing typed activation16x32table plus8replacement bytes,global weak128x32+64;no cached pointer dereference or roots",
+  "native_snapshot": "Acquire aligned scalar reads;one captured atom_slot validated on current live holder;no coherent multi-field snapshot required",
+  "observing": false,
+  "frame_growth": 0,
+  "state_growth": 0,
+  "extra_strong_roots": 0,
+  "hardware_performance_qualified": false
+}

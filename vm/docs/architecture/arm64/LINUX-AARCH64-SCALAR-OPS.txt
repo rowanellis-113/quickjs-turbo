@@ -1,0 +1,16 @@
+Current coverage and release validation:LINUX-AARCH64-RELEASE.txt and the
+product ACCEPTANCE.json. Per-tier pending/count statements below are historical
+implementation notes;they do not override the current complete mechanism map.
+
+Experimental complete base scalar opcode family
+===============================================
+22 source-owned base opcodes missing in the prior actual ARM dispatch are
+carried directly,with real measured atom bits/constants and existing frame
+fields. Integer overflow,-0,division,ToPrimitive/null receiver and last-owner
+fallbacks retain original PC/SP/ownership and observing C boundaries.
+No new JS/state/runtime fields or physical VM stack are needed. Noncalling
+hits retain the incoming Clean/Dirty token. Independent policy and optional
+instruction counters stay outside the inherited core. CompiledOFF excludes
+the wrapper and handlers;processOFF retains original C opcode execution.
+QEMU proves functionality only;whole qualification and original all22/P0-P5
+release audit remain required. No physical ARM performance is claimed.
