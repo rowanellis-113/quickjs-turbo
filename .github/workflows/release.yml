@@ -1,162 +1,285 @@
-name: release
+name: Release
 
 on:
-  pull_request:
   push:
     tags:
-      - "v*.*.*"
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-  check_meson_version:
-    runs-on: ubuntu-22.04
-    if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+  linux-x86_64:
+    name: SDK Linux x86-64
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - name: install meson and ninja
-        run: |
-          pip install --upgrade meson ninja
-      - name: check meson version
-        run: |
-          MESON_VERSION=$(meson introspect meson.build --projectinfo | jq -r '.version')
-          test "${{ github.ref_name }}" = "v${MESON_VERSION}"
 
-  linux:
-    runs-on: ubuntu-22.04
-    strategy:
-      fail-fast: false
-      matrix:
-        arch: [aarch64, armv7, riscv64, x86, x86_64]
+      - name: Install toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-13 g++-13 binutils cmake ninja-build python3
+
+      - name: Build, CTest & install SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=4 \
+            bash vm/tools/x86/linux/build/product-linux.sh \
+              build/linux-x86_64 \
+              dist/quickjs-turbo-linux-x86_64-sdk
+          CC=gcc-13 CXX=g++-13 cmake -S vm/tests/common/consumer -B build/consumer-linux-x86_64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-linux-x86_64-sdk"
+          cmake --build build/consumer-linux-x86_64 --parallel 4
+          ctest --test-dir build/consumer-linux-x86_64 --output-on-failure
+          tar -C dist -czf quickjs-turbo-linux-x86_64-sdk.tar.gz quickjs-turbo-linux-x86_64-sdk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-linux-x86_64
+          path: quickjs-turbo-linux-x86_64-sdk.tar.gz
+
+  linux-aarch64:
+    name: SDK Linux ARM64
+    runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
-      - uses: jirutka/setup-alpine@v1
-        with:
-          arch: ${{matrix.arch}}
-          packages: "build-base make cmake"
-      - name: build
-        shell: alpine.sh {0}
-        run: |
-          mkdir build
-          cd build
-          cmake -DQJS_BUILD_WERROR=ON -DQJS_BUILD_CLI_STATIC=ON ..
-          cd ..
-          cmake --build build --target qjs_exe -j$(getconf _NPROCESSORS_ONLN)
-          cmake --build build --target qjsc -j$(getconf _NPROCESSORS_ONLN)
-          mv build/qjs build/qjs-linux-${{matrix.arch}}
-          mv build/qjsc build/qjsc-linux-${{matrix.arch}}
-      - name: check
-        shell: alpine.sh {0}
-        run: |
-          file build/*-linux-${{matrix.arch}}
-      - name: upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: qjs-linux-${{matrix.arch}}
-          path: build/*-linux-${{matrix.arch}}
 
-  macos:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v7
-      - name: build
+      - name: Install toolchain
+        shell: bash
         run: |
-          mkdir build
-          cd build
-          cmake -DCMAKE_OSX_ARCHITECTURES="x86_64;arm64" -DQJS_BUILD_WERROR=ON ..
-          make -j$(getconf _NPROCESSORS_ONLN)
-          make -C .. amalgam # writes build/quickjs-amalgam.zip
-          mv qjs qjs-darwin
-          mv qjsc qjsc-darwin
-      - name: check
-        run: |
-          lipo -info build/qjs-darwin build/qjsc-darwin
-      - name: upload amalgamation
-        uses: actions/upload-artifact@v7
-        with:
-          name: quickjs-amalgam.zip
-          path: build/quickjs-amalgam.zip
-          compression-level: 0 # already compressed
-      - name: upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: qjs-darwin
-          path: build/*-darwin
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            gcc-13 g++-13 binutils cmake ninja-build python3
 
-  windows:
+      - name: Build, CTest & install SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=4 \
+            bash vm/tools/arm64/build/product-linux-aarch64.sh \
+              build/linux-aarch64 \
+              dist/quickjs-turbo-linux-aarch64-sdk
+          CC=gcc-13 CXX=g++-13 cmake -S vm/tests/common/consumer -B build/consumer-linux-aarch64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-linux-aarch64-sdk"
+          cmake --build build/consumer-linux-aarch64 --parallel 4
+          ctest --test-dir build/consumer-linux-aarch64 --output-on-failure
+          tar -C dist -czf quickjs-turbo-linux-aarch64-sdk.tar.gz quickjs-turbo-linux-aarch64-sdk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-linux-aarch64
+          path: quickjs-turbo-linux-aarch64-sdk.tar.gz
+
+  windows-x86_64:
+    name: SDK Windows x86-64 (${{ matrix.slug }})
     runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
-        arch: [x86, x86_64]
-    defaults:
-      run:
-        shell: msys2 {0}
+        include:
+          - slug: msvc-md
+            toolchain: msvc
+            runtime: MD
+          - slug: msvc-mt
+            toolchain: msvc
+            runtime: MT
+          - slug: mingw
+            toolchain: mingw
+            runtime: ""
     steps:
+      - name: Configure Git LF endings before checkout
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw "Failed to configure core.autocrlf" }
+
       - uses: actions/checkout@v7
-      - name: Setup MSYS2
-        uses: msys2/setup-msys2@v2
+
+      - uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{ matrix.arch == 'x86' && 'mingw32' || 'ucrt64' }}
-          install: >-
-            git
-            make
+          msystem: UCRT64
+          update: true
           pacboy: >-
             cmake:p
             ninja:p
             toolchain:p
-      - name: build
-        run: |
-          make
-          mv build/qjs.exe build/qjs-windows-${{matrix.arch}}.exe
-          mv build/qjsc.exe build/qjsc-windows-${{matrix.arch}}.exe
-      - name: check
-        run: |
-          file build/qjs-windows-${{matrix.arch}}.exe
-          ldd build/qjs-windows-${{matrix.arch}}.exe build/qjsc-windows-${{matrix.arch}}.exe
-      - name: upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: qjs-windows-${{matrix.arch}}
-          path: build/*-windows-${{matrix.arch}}.exe
 
-  wasi:
-    runs-on: ubuntu-22.04
+      - name: Locate MSYS2 UCRT64 tools
+        id: tools
+        shell: msys2 {0}
+        run: |
+          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
+          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
+          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
+          echo "gxx=$(cygpath -am "$(command -v g++)")" >> "$GITHUB_OUTPUT"
+          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
+          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
+          echo "ucrt_bin=$(cygpath -aw /ucrt64/bin)" >> "$GITHUB_OUTPUT"
+
+      - name: Build, CTest & package SDK
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cmake = '${{ steps.tools.outputs.cmake }}'
+          $ninja = '${{ steps.tools.outputs.ninja }}'
+          $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
+          if ('${{ matrix.toolchain }}' -eq 'mingw') {
+            $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+          }
+
+          $buildDir = "build/${{ matrix.slug }}"
+          $sdkName = "quickjs-turbo-windows-x86_64-${{ matrix.slug }}-sdk"
+          $sdkDir = "$PWD/dist/$sdkName"
+
+          $buildArgs = @{
+            Toolchain = '${{ matrix.toolchain }}'
+            Backend   = 'WIN64'
+            BuildPath = $buildDir
+            CMake     = $cmake
+            Ninja     = $ninja
+            Objdump   = '${{ steps.tools.outputs.objdump }}'
+            Assembler = '${{ steps.tools.outputs.as }}'
+            Jobs      = 4
+            Test      = $true
+          }
+          if ('${{ matrix.toolchain }}' -eq 'msvc') {
+            $buildArgs.MsvcRuntime = '${{ matrix.runtime }}'
+            if ('${{ matrix.runtime }}' -eq 'MT') {
+              $buildArgs.DefaultExperimentAllocator = '256'
+            }
+          } else {
+            $buildArgs.Compiler = '${{ steps.tools.outputs.gcc }}'
+          }
+          ./vm/tools/x86/win64/build/build-baseline.ps1 @buildArgs
+
+          & $cmake --install $buildDir --prefix $sdkDir
+          if ($LASTEXITCODE -ne 0) { throw "cmake --install failed" }
+
+          if ('${{ matrix.toolchain }}' -eq 'msvc') {
+            $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+            $vsPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+            if (-not $vsPath) { throw "Visual Studio installation not found" }
+            & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+
+            $rt = if ('${{ matrix.runtime }}' -eq 'MT') { 'MultiThreaded' } else { 'MultiThreadedDLL' }
+            $consumerDir = "build/consumer-${{ matrix.slug }}"
+            & $cmake -S vm/tests/common/consumer -B $consumerDir -G Ninja `
+              "-DCMAKE_MAKE_PROGRAM=$ninja" `
+              -DCMAKE_BUILD_TYPE=Release `
+              "-DCMAKE_MSVC_RUNTIME_LIBRARY=$rt" `
+              "-DCMAKE_PREFIX_PATH=$sdkDir"
+            if ($LASTEXITCODE -ne 0) { throw "MSVC consumer configure failed" }
+            & $cmake --build $consumerDir --parallel 4
+            if ($LASTEXITCODE -ne 0) { throw "MSVC consumer build failed" }
+            & $ctest --test-dir $consumerDir --output-on-failure
+            if ($LASTEXITCODE -ne 0) { throw "MSVC consumer CTest failed" }
+
+            if ('${{ matrix.runtime }}' -eq 'MT') {
+              python -B vm/ci/verify_pe_imports.py --allow KERNEL32.dll "$sdkDir/bin/qjs.exe" "$sdkDir/bin/qjsc.exe"
+              if ($LASTEXITCODE -ne 0) { throw "Static CRT PE import verification failed" }
+            }
+          } else {
+            & $cmake -S vm/tests/common/consumer -B build/consumer-mingw -G Ninja `
+              "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}" `
+              "-DCMAKE_CXX_COMPILER=${{ steps.tools.outputs.gxx }}" `
+              "-DCMAKE_MAKE_PROGRAM=$ninja" `
+              -DCMAKE_BUILD_TYPE=Release `
+              "-DCMAKE_PREFIX_PATH=$sdkDir"
+            if ($LASTEXITCODE -ne 0) { throw "MinGW consumer configure failed" }
+            & $cmake --build build/consumer-mingw --parallel 4
+            if ($LASTEXITCODE -ne 0) { throw "MinGW consumer build failed" }
+            & $ctest --test-dir build/consumer-mingw --output-on-failure
+            if ($LASTEXITCODE -ne 0) { throw "MinGW consumer CTest failed" }
+          }
+
+          Compress-Archive -Path $sdkDir -DestinationPath "$sdkName.zip" -Force
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-windows-${{ matrix.slug }}
+          path: quickjs-turbo-windows-x86_64-${{ matrix.slug }}-sdk.zip
+
+  macos-arm64:
+    name: SDK macOS ARM64 (PORTABLE)
+    runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
-      - name: setup wasi-sdk
-        run: |
-          wget -nv https://github.com/WebAssembly/wasi-sdk/releases/download/wasi-sdk-29/wasi-sdk-29.0-x86_64-linux.deb -P /tmp
-          sudo apt install /tmp/wasi-sdk*.deb
-      - name: build
-        run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=/opt/wasi-sdk/share/cmake/wasi-sdk.cmake -DQJS_BUILD_WERROR=ON
-          make -C build qjs_exe
-          mv build/qjs build/qjs-wasi.wasm
-      - name: build wasi reactor
-        run: |
-          cmake -B build -DCMAKE_TOOLCHAIN_FILE=/opt/wasi-sdk/share/cmake/wasi-sdk.cmake -DQJS_BUILD_WERROR=ON -DQJS_WASI_REACTOR=ON
-          make -C build qjs_wasi
-          mv build/qjs.wasm build/qjs-wasi-reactor.wasm
-      - name: upload
-        uses: actions/upload-artifact@v7
-        with:
-          name: qjs-wasi
-          path: |
-            build/qjs-wasi.wasm
-            build/qjs-wasi-reactor.wasm
 
-  upload-to-release:
-    needs: [linux, macos, windows, wasi, check_meson_version]
-    runs-on: ubuntu-22.04
+      - name: Build, CTest & package SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null 2>&1 || brew install ninja
+          cmake -S vm -B build/macos-arm64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQJS_FRAME_BACKEND=PORTABLE \
+            -DQJS_FRAME_BUILD_TESTS=ON \
+            -DQJS_BACKPORT_CONTEXT_OOM=ON \
+            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
+            -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
+            -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
+            -DQJS_BACKPORT_VALUE64_INIT=ON \
+            -DQJS_BACKPORT_MIXED_NUMBERS=ON \
+            -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
+            -DQJS_PROPERTY_IC=ON \
+            -DQJS_BACKPORT_PORTABLE_REGEXP=ON \
+            -DCMAKE_INSTALL_PREFIX="$PWD/dist/quickjs-turbo-macos-arm64-portable-sdk"
+          cmake --build build/macos-arm64 --parallel 4
+          ctest --test-dir build/macos-arm64 --output-on-failure --parallel 4
+          cmake --install build/macos-arm64
+          cmake -S vm/tests/common/consumer -B build/consumer-macos -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-macos-arm64-portable-sdk"
+          cmake --build build/consumer-macos --parallel 4
+          ctest --test-dir build/consumer-macos --output-on-failure
+          tar -C dist -czf quickjs-turbo-macos-arm64-portable-sdk.tar.gz quickjs-turbo-macos-arm64-portable-sdk
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-macos-arm64
+          path: quickjs-turbo-macos-arm64-portable-sdk.tar.gz
+
+  publish:
+    name: Generate SHA256SUMS & Publish Release
+    needs:
+      - linux-x86_64
+      - linux-aarch64
+      - windows-x86_64
+      - macos-arm64
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
     steps:
-      - name: get assets
+      - name: Download SDK artifacts
         uses: actions/download-artifact@v8
         with:
-          path: build
+          path: release-assets
           merge-multiple: true
-      - run: ls -R build
-      - name: release
-        if: ${{ startsWith(github.ref, 'refs/tags/v') }}
+
+      - name: Generate SHA256SUMS.txt
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd release-assets
+          sha256sum *.tar.gz *.zip | sort -k2 > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-sha256sums
+          path: release-assets/SHA256SUMS.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v3
         with:
-          files: |
-            build/*
+          generate_release_notes: true
+          files: release-assets/*

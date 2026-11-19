@@ -31,7 +31,7 @@ CMake, tests, docs, CI, registries:
 - cmake/{common,arm64,x86}/
 - tests/{common,arm64,x86}/ (upstream QuickJS tests stay untouched at ../tests/)
 - docs/architecture/{common,arm64,x86}/
-- ci/interpreter-integration.yml
+- ci/{verify_pe_imports.py,verify_test262.py,test_ci_helpers.py} (GitHub Actions workflows live at ../.github/workflows/)
 - Source, module, and native input registries: src/sources.json,
   tools/common/modules.json, tools/x86/win64/build/native-inputs.json.
 

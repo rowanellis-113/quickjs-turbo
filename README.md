@@ -101,6 +101,7 @@ Measured on physical AWS Graviton2 (`Neoverse-N1`, Linux/glibc, GCC 13, `QJS_EXP
 quickjs-turbo/
 ├── CMakeLists.txt, quickjs.c, quickjs.h, ...   # Untouched QuickJS-NG 0.15.1 upstream core
 ├── tests/, examples/, docs/, gen/              # Untouched upstream tests, examples, docs & gen snapshots
+├── .github/workflows/                          # QuickJS-Turbo CI, Test262 & SDK release pipelines
 └── vm/                                         # All QuickJS-Turbo modifications & build/CI/test assets
     ├── CMakeLists.txt                          # Product CMake entry (-S vm)
     ├── src/{common,arm64,x86}/                 # C fast paths, ABI manifests & extracted workers
@@ -109,7 +110,7 @@ quickjs-turbo/
     ├── tools/{common,arm64,x86}/               # Codegen, ELF/COFF adapters, formatters & build wrappers
     ├── tests/{common,arm64,x86}/               # Native, C/API, JS semantics, ABI & DAG boundary tests
     ├── docs/architecture/{common,arm64,x86}/   # Architecture contracts, build guide & benchmark records
-    └── ci/interpreter-integration.yml          # Multi-OS CI pipeline definition
+    └── ci/                                     # CI verification helpers (PE import & Test262 gates)
 ```
 
 ---
@@ -186,7 +187,7 @@ Consumer targets link cleanly via CMake (`find_package(qjs CONFIG REQUIRED)`, `t
 Contributions — from fast-path optimizations, architecture ports, and bug fixes to benchmark methodology improvements and upstream sync updates — are very welcome. Please follow these engineering and verification contracts before opening a PR:
 
 1. **Respect the `vm/` Overlay & One-Way Architecture DAG**:
-   - Keep all modifications inside [`vm/`](vm/). Upstream files outside `vm/` (aside from this `README.md`) must remain byte-for-byte identical to pinned QuickJS-NG `bf8988fc401e737f9946cd10a3463b48aab0fd7e`.
+   - Keep all modifications inside [`vm/`](vm/). Upstream files outside `vm/` (aside from `README.md` and `.github/`) must remain byte-for-byte identical to pinned QuickJS-NG `bf8988fc401e737f9946cd10a3463b48aab0fd7e`.
    - Maintain the strict dependency hierarchy `common/ → {arm64/, x86/}` across `src/`, `asm/`, `tools/`, `cmake/`, and `tests/`. Verify with:
      ```sh
      python -B vm/tests/common/test_arch_boundaries.py

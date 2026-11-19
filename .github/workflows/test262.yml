@@ -1,0 +1,331 @@
+name: Test262
+
+on:
+  schedule:
+    - cron: "0 3 * * 0"
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Target backend to run Test262 against
+        type: choice
+        default: all
+        options:
+          - all
+          - linux-x86_64
+          - linux-aarch64
+          - windows-msvc
+          - windows-mingw
+          - portable
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test262-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  linux-x86_64:
+    name: Test262 Linux x86-64
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'linux-x86_64'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize pinned Test262 corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout --depth 1 test262 \
+            || git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout test262
+
+      - name: Install toolchain & build run-test262
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-13 binutils cmake ninja-build python3
+          CC=gcc-13 cmake -S vm -B build/test262-linux-x86_64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQJS_FRAME_BACKEND=LINUX_X86_64 \
+            -DQJS_FRAME_BUILD_TESTS=OFF \
+            -DQJS_BACKPORT_CONTEXT_OOM=ON \
+            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
+            -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
+            -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
+            -DQJS_BACKPORT_VALUE64_INIT=ON \
+            -DQJS_BACKPORT_MIXED_NUMBERS=ON \
+            -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
+            -DQJS_PROPERTY_IC=ON \
+            -DQJS_BACKPORT_PORTABLE_REGEXP=ON
+          cmake --build build/test262-linux-x86_64 --target run-test262 --parallel 4
+
+      - name: Run Test262 verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B vm/ci/verify_test262.py \
+            --runner build/test262-linux-x86_64/run-test262 \
+            --name linux-x86_64 \
+            --output build/test262-linux-x86_64/report.json
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test262-linux-x86_64
+          path: |
+            build/test262-linux-x86_64/report.json
+            build/test262-linux-x86_64/linux-x86_64.stdout
+            build/test262-linux-x86_64/linux-x86_64.stderr
+
+  linux-aarch64:
+    name: Test262 Linux ARM64
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'linux-aarch64'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize pinned Test262 corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout --depth 1 test262 \
+            || git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout test262
+
+      - name: Install toolchain & build run-test262
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-13 binutils cmake ninja-build python3
+          CC=gcc-13 cmake -S vm -B build/test262-linux-aarch64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQJS_FRAME_BACKEND=LINUX_AARCH64 \
+            -DQJS_FRAME_BUILD_TESTS=OFF \
+            -DQJS_BUILD_LIBC=ON \
+            -DQJS_BACKPORT_CONTEXT_OOM=ON \
+            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
+            -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
+            -DQJS_BACKPORT_VALUE64_INIT=ON \
+            -DQJS_BACKPORT_MIXED_NUMBERS=ON \
+            -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
+            -DQJS_PROPERTY_IC=ON \
+            -DQJS_BACKPORT_PORTABLE_REGEXP=ON \
+            -DQJS_AARCH64_VM_INSTRUMENT=OFF
+          cmake --build build/test262-linux-aarch64 --target run-test262 --parallel 4
+
+      - name: Run Test262 verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B vm/ci/verify_test262.py \
+            --runner build/test262-linux-aarch64/run-test262 \
+            --name linux-aarch64 \
+            --output build/test262-linux-aarch64/report.json
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test262-linux-aarch64
+          path: |
+            build/test262-linux-aarch64/report.json
+            build/test262-linux-aarch64/linux-aarch64.stdout
+            build/test262-linux-aarch64/linux-aarch64.stderr
+
+  portable:
+    name: Test262 PORTABLE C
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'portable'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Initialize pinned Test262 corpus
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout --depth 1 test262 \
+            || git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout test262
+
+      - name: Build run-test262 (PORTABLE)
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends gcc-13 cmake ninja-build python3
+          CC=gcc-13 cmake -S vm -B build/test262-portable -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DQJS_FRAME_BACKEND=PORTABLE \
+            -DQJS_FRAME_BUILD_TESTS=OFF \
+            -DQJS_BACKPORT_CONTEXT_OOM=ON \
+            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
+            -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
+            -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
+            -DQJS_BACKPORT_VALUE64_INIT=ON \
+            -DQJS_BACKPORT_MIXED_NUMBERS=ON \
+            -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
+            -DQJS_PROPERTY_IC=ON \
+            -DQJS_BACKPORT_PORTABLE_REGEXP=ON
+          cmake --build build/test262-portable --target run-test262 --parallel 4
+
+      - name: Run Test262 verification
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B vm/ci/verify_test262.py \
+            --runner build/test262-portable/run-test262 \
+            --name portable \
+            --output build/test262-portable/report.json
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test262-portable
+          path: |
+            build/test262-portable/report.json
+            build/test262-portable/portable.stdout
+            build/test262-portable/portable.stderr
+
+  windows-msvc:
+    name: Test262 Windows MSVC
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'windows-msvc'
+    runs-on: windows-latest
+    steps:
+      - name: Configure Git LF endings before checkout
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw "Failed to configure core.autocrlf" }
+
+      - uses: actions/checkout@v7
+
+      - name: Initialize pinned Test262 corpus
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout --depth 1 test262
+          if ($LASTEXITCODE -ne 0) {
+            git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout test262
+            if ($LASTEXITCODE -ne 0) { throw "Failed to initialize test262 submodule" }
+          }
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          pacboy: >-
+            cmake:p
+            ninja:p
+            toolchain:p
+
+      - name: Locate MSYS2 tools
+        id: tools
+        shell: msys2 {0}
+        run: |
+          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
+          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
+          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
+          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
+
+      - name: Build WIN64 MSVC & run Test262
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          ./vm/tools/x86/win64/build/build-baseline.ps1 `
+            -Toolchain msvc `
+            -Backend WIN64 `
+            -BuildPath build/test262-msvc `
+            -CMake '${{ steps.tools.outputs.cmake }}' `
+            -Ninja '${{ steps.tools.outputs.ninja }}' `
+            -Objdump '${{ steps.tools.outputs.objdump }}' `
+            -Assembler '${{ steps.tools.outputs.as }}' `
+            -Jobs 4
+          python -B vm/ci/verify_test262.py `
+            --runner build/test262-msvc/run-test262.exe `
+            --name windows-msvc `
+            --output build/test262-msvc/report.json
+          if ($LASTEXITCODE -ne 0) { throw "Test262 verification failed for windows-msvc" }
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test262-windows-msvc
+          path: |
+            build/test262-msvc/report.json
+            build/test262-msvc/windows-msvc.stdout
+            build/test262-msvc/windows-msvc.stderr
+
+  windows-mingw:
+    name: Test262 Windows MinGW
+    if: github.event_name != 'workflow_dispatch' || inputs.target == 'all' || inputs.target == 'windows-mingw'
+    runs-on: windows-latest
+    steps:
+      - name: Configure Git LF endings before checkout
+        shell: pwsh
+        run: |
+          git config --global core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw "Failed to configure core.autocrlf" }
+
+      - uses: actions/checkout@v7
+
+      - name: Initialize pinned Test262 corpus
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout --depth 1 test262
+          if ($LASTEXITCODE -ne 0) {
+            git -c core.autocrlf=false -c submodule.test262.update=checkout submodule update --init --checkout test262
+            if ($LASTEXITCODE -ne 0) { throw "Failed to initialize test262 submodule" }
+          }
+
+      - uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          pacboy: >-
+            cmake:p
+            ninja:p
+            toolchain:p
+
+      - name: Locate MSYS2 tools
+        id: tools
+        shell: msys2 {0}
+        run: |
+          echo "cmake=$(cygpath -am "$(command -v cmake)")" >> "$GITHUB_OUTPUT"
+          echo "ninja=$(cygpath -am "$(command -v ninja)")" >> "$GITHUB_OUTPUT"
+          echo "gcc=$(cygpath -am "$(command -v gcc)")" >> "$GITHUB_OUTPUT"
+          echo "objdump=$(cygpath -am "$(command -v objdump)")" >> "$GITHUB_OUTPUT"
+          echo "as=$(cygpath -am "$(command -v as)")" >> "$GITHUB_OUTPUT"
+          echo "ucrt_bin=$(cygpath -aw /ucrt64/bin)" >> "$GITHUB_OUTPUT"
+
+      - name: Build WIN64 MinGW & run Test262
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $env:Path = "${{ steps.tools.outputs.ucrt_bin }};$env:Path"
+          ./vm/tools/x86/win64/build/build-baseline.ps1 `
+            -Toolchain mingw `
+            -Backend WIN64 `
+            -BuildPath build/test262-mingw `
+            -CMake '${{ steps.tools.outputs.cmake }}' `
+            -Ninja '${{ steps.tools.outputs.ninja }}' `
+            -Compiler '${{ steps.tools.outputs.gcc }}' `
+            -Objdump '${{ steps.tools.outputs.objdump }}' `
+            -Assembler '${{ steps.tools.outputs.as }}' `
+            -Jobs 4
+          python -B vm/ci/verify_test262.py `
+            --runner build/test262-mingw/run-test262.exe `
+            --name windows-mingw `
+            --output build/test262-mingw/report.json
+          if ($LASTEXITCODE -ne 0) { throw "Test262 verification failed for windows-mingw" }
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test262-windows-mingw
+          path: |
+            build/test262-mingw/report.json
+            build/test262-mingw/windows-mingw.stdout
+            build/test262-mingw/windows-mingw.stderr

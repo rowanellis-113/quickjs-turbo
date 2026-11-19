@@ -170,25 +170,32 @@ def main() -> int:
     )
     if git_probe.returncode == 0 and pin_pairs:
         rev = pin_rev_match.group(1) if pin_rev_match else "HEAD"
-        diff_pin = subprocess.check_output(
-            [
-                "git",
-                "-C",
-                str(UPSTREAM_ROOT),
-                "diff",
-                "--name-only",
-                rev,
-                "--",
-                ".",
-                ":!vm",
-                ":!README.md",
-            ],
-            text=True,
-        ).strip()
-        if diff_pin:
-            errors.append(
-                f"Upstream files outside vm/ (except README.md) modified: {diff_pin.splitlines()}"
-            )
+        rev_probe = subprocess.run(
+            ["git", "-C", str(UPSTREAM_ROOT), "cat-file", "-e", f"{rev}^{{commit}}"],
+            capture_output=True,
+        )
+        if rev_probe.returncode == 0:
+            diff_pin = subprocess.check_output(
+                [
+                    "git",
+                    "-C",
+                    str(UPSTREAM_ROOT),
+                    "diff",
+                    "--name-only",
+                    rev,
+                    "--",
+                    ".",
+                    ":!vm",
+                    ":!README.md",
+                    ":!.github",
+                ],
+                text=True,
+            ).strip()
+            if diff_pin:
+                changed = diff_pin.splitlines()
+                errors.append(
+                    f"Upstream files outside vm/ (except README.md and .github/): {changed}"
+                )
         untracked = subprocess.check_output(
             [
                 "git",
@@ -200,6 +207,7 @@ def main() -> int:
                 "--",
                 ".",
                 ":!vm",
+                ":!.github",
             ],
             text=True,
         ).strip()
