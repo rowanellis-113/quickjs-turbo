@@ -348,13 +348,45 @@ def generate(
         "    JSCFunction *builtin_has_instance=&js_function_hasInstance;\n",
         "actual same-TU intrinsic identity",
     )
+    instof_inc = source_file(source, "src/common/value/instanceof-fast.inc").read_text(
+        encoding="utf-8"
+    )
+    instof_inc = replace_one(
+        instof_inc,
+        "static FastInstOfEntry fast_instof_cache[16];",
+        "static _Thread_local FastInstOfEntry fast_instof_cache[16];\n"
+        "static inline bool fast_instof_holder_live(JSObject *ctor, const JSObject *holder)\n"
+        "{\n"
+        "    JSObject *cur = ctor;\n"
+        "    for (unsigned d = 0; cur && d < 16; d++, cur = cur->shape->proto) {\n"
+        "        if (cur->is_exotic)\n"
+        "            return false;\n"
+        "        if (cur == holder)\n"
+        "            return true;\n"
+        "    }\n"
+        "    return false;\n"
+        "}",
+        "instanceof-fast TLS cache & live holder check",
+    )
+    instof_inc = replace_one(
+        instof_inc,
+        "                   e->ctx == ctx && e->holder &&\n"
+        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_size &&\n"
+        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
+        "                   e->ctx == ctx && e->holder && fast_instof_holder_live(ctor, e->holder) &&\n"
+        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_count &&\n"
+        "                   e->holder->shape->prop[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
+        "                   !(e->holder->shape->prop[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
+        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
+        "instanceof-fast live holder validation",
+    )
     leaf = replace_one(
         leaf,
         "FRAME_CODE int JS_FrameSlowDirectTryInstanceOfLeaf(JSContext *ctx, JSValue *sp)\n{",
         "#ifdef QJS_PROPERTY_IC\n"
         "#define QJS_FAST_INSTANCEOF_CTX_ENTRY\n"
-        '#include "src/common/value/instanceof-fast.inc"\n'
-        "#undef QJS_FAST_INSTANCEOF_CTX_ENTRY\n"
+        + instof_inc.rstrip()
+        + "\n#undef QJS_FAST_INSTANCEOF_CTX_ENTRY\n"
         "#endif\n"
         "FRAME_CODE int JS_FrameSlowDirectTryInstanceOfLeaf(JSContext *ctx, JSValue *sp)\n"
         "{\n"

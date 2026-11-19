@@ -49,11 +49,89 @@ def _specialize_c_owners(source, output):
         "static FastCtorMeta fast_ctor_cache[64];",
         "static _Thread_local FastCtorMeta fast_ctor_cache[64];",
     )
+    fast_ctor_inc = _replace_exact(
+        fast_ctor_inc,
+        "        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch) {\n"
+        "        JSValue pval = callee->prop[m->proto_slot].u.value;",
+        "        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch &&\n"
+        "        m->proto_slot < (uint32_t)callee->shape->prop_count &&\n"
+        "        callee->shape->prop[m->proto_slot].atom == JS_ATOM_prototype &&\n"
+        "        (callee->shape->prop[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
+        "        JSValue pval = callee->prop[m->proto_slot].u.value;",
+        1,
+        "fast_construct proto_slot descriptor guard",
+    )
+    fast_ctor_inc = _replace_exact(
+        fast_ctor_inc,
+        "        if (m->tier == 4)\n"
+        "            return JS_FrameInterpProperty_call_constructor(state);\n"
+        "        JSValue iv = proto_obj->prop[m->init_slot].u.value;\n"
+        "        if (JS_IsObject(iv)) {\n"
+        "            JSObject *ifo = JS_VALUE_GET_OBJ(iv);\n"
+        "            if ((uintptr_t)ifo == m->init_fn_id && !ifo->is_exotic &&\n"
+        "                (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&\n"
+        "                (uintptr_t)ifo->shape->proto == m->fn_proto_id && ifo->shape->proto->is_prototype &&\n"
+        "                !ifo->shape->proto->is_exotic &&\n"
+        "                (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id) {\n"
+        "                JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;\n"
+        "                if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)\n"
+        "                    init_b = ifo->u.func.function_bytecode;\n"
+        "            }\n"
+        "        }",
+        "        if (m->tier == 4)\n"
+        "            return JS_FrameInterpProperty_call_constructor(state);\n"
+        "        if (m->init_slot < (uint32_t)proto_obj->shape->prop_count &&\n"
+        "            (proto_obj->shape->prop[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
+        "            JSValue iv = proto_obj->prop[m->init_slot].u.value;\n"
+        "            if (JS_IsObject(iv)) {\n"
+        "                JSObject *ifo = JS_VALUE_GET_OBJ(iv);\n"
+        "                if ((uintptr_t)ifo == m->init_fn_id && ifo->class_id == JS_CLASS_BYTECODE_FUNCTION &&\n"
+        "                    !ifo->is_exotic && (uintptr_t)ifo->shape == m->init_fn_shape_id &&\n"
+        "                    ifo->shape->proto && (uintptr_t)ifo->shape->proto == m->fn_proto_id &&\n"
+        "                    ifo->shape->proto->is_prototype && !ifo->shape->proto->is_exotic &&\n"
+        "                    (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id &&\n"
+        "                    m->apply_slot < (uint32_t)ifo->shape->proto->shape->prop_count &&\n"
+        "                    ifo->shape->proto->shape->prop[m->apply_slot].atom == JS_ATOM_apply &&\n"
+        "                    (ifo->shape->proto->shape->prop[m->apply_slot].flags & JS_PROP_TMASK) ==\n"
+        "                        JS_PROP_NORMAL) {\n"
+        "                    JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;\n"
+        "                    if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)\n"
+        "                        init_b = ifo->u.func.function_bytecode;\n"
+        "                }\n"
+        "            }\n"
+        "        }",
+        1,
+        "fast_construct init_slot and apply_slot guards",
+    )
     instof_inc = _tls_fast_inc(
         source,
         "src/common/value/instanceof-fast.inc",
         "static FastInstOfEntry fast_instof_cache[16];",
-        "static _Thread_local FastInstOfEntry fast_instof_cache[16];",
+        "static _Thread_local FastInstOfEntry fast_instof_cache[16];\n"
+        "static inline bool fast_instof_holder_live(JSObject *ctor, const JSObject *holder)\n"
+        "{\n"
+        "    JSObject *cur = ctor;\n"
+        "    for (unsigned d = 0; cur && d < 16; d++, cur = cur->shape->proto) {\n"
+        "        if (cur->is_exotic)\n"
+        "            return false;\n"
+        "        if (cur == holder)\n"
+        "            return true;\n"
+        "    }\n"
+        "    return false;\n"
+        "}",
+    )
+    instof_inc = _replace_exact(
+        instof_inc,
+        "                   e->ctx == ctx && e->holder &&\n"
+        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_size &&\n"
+        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
+        "                   e->ctx == ctx && e->holder && fast_instof_holder_live(ctor, e->holder) &&\n"
+        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_count &&\n"
+        "                   e->holder->shape->prop[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
+        "                   !(e->holder->shape->prop[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
+        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
+        1,
+        "instanceof-fast live holder validation",
     )
     fg_inc = _tls_fast_inc(
         source,
@@ -66,6 +144,29 @@ def _specialize_c_owners(source, output):
         "src/common/call/compound-leaf.inc",
         "static CLCacheEntry cl_cache[64];",
         "static _Thread_local CLCacheEntry cl_cache[64];",
+    )
+    cl_inc = _replace_exact(
+        cl_inc,
+        "typedef struct {\n    JSContext *ctx;\n    JSFunctionBytecode *b;",
+        "typedef struct {\n    JSContext *ctx;\n    uint64_t epoch;\n    JSFunctionBytecode *b;",
+        1,
+        "compound-leaf epoch field",
+    )
+    cl_inc = _replace_exact(
+        cl_inc,
+        "    if (unlikely(e->b != b || e->ctx != ctx || e->bc_len != len || e->bc_head != head ||\n"
+        "                 e->bc_tail != tail)) {\n"
+        "        memset(e, 0, sizeof(*e));\n"
+        "        e->ctx = ctx;\n"
+        "        e->b = b;",
+        "    if (unlikely(e->epoch != state->rt->property_ic_epoch || e->b != b || e->ctx != ctx ||\n"
+        "                 e->bc_len != len || e->bc_head != head || e->bc_tail != tail)) {\n"
+        "        memset(e, 0, sizeof(*e));\n"
+        "        e->ctx = ctx;\n"
+        "        e->epoch = state->rt->property_ic_epoch;\n"
+        "        e->b = b;",
+        1,
+        "compound-leaf epoch check and store",
     )
     fast_includes = (
         "\n#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
@@ -191,6 +292,44 @@ def _specialize_c_owners(source, output):
         "    static struct {",
         "    static _Thread_local struct {",
     )
+    va_fast_inc = _replace_exact(
+        va_fast_inc,
+        "        recv_obj->shape->proto == va_cache[va_slot].proto) {\n"
+        "        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;\n"
+        "        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function) {\n"
+        "            func = pv;\n"
+        "            function = va_cache[va_slot].function;\n"
+        "            apply = va_cache[va_slot].apply;\n"
+        "            callee = JS_MKPTR(JS_TAG_OBJECT, apply);\n"
+        "            b = va_cache[va_slot].callee_b;\n"
+        "            goto va_cached_hit;\n"
+        "        }\n"
+        "    }",
+        "        va_cache[va_slot].proto != NULL && recv_obj->shape->proto == va_cache[va_slot].proto &&\n"
+        "        !va_cache[va_slot].proto->is_exotic &&\n"
+        "        va_cache[va_slot].method_slot < (uint32_t)va_cache[va_slot].proto->shape->prop_count &&\n"
+        "        va_cache[va_slot].proto->shape->prop[va_cache[va_slot].method_slot].atom ==\n"
+        "            get_u32(p + 7) &&\n"
+        "        (va_cache[va_slot].proto->shape->prop[va_cache[va_slot].method_slot].flags &\n"
+        "         JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
+        "        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;\n"
+        "        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function &&\n"
+        "            va_cache[va_slot].function->class_id == JS_CLASS_BYTECODE_FUNCTION &&\n"
+        "            !va_cache[va_slot].function->is_exotic &&\n"
+        "            va_cache[va_slot].function->u.func.function_bytecode ==\n"
+        "                va_cache[va_slot].callee_b &&\n"
+        "            js_linux_virtual_arguments_data(va_cache[va_slot].function, JS_ATOM_apply, &callee) &&\n"
+        "            JS_IsObject(callee) && JS_VALUE_GET_OBJ(callee) == va_cache[va_slot].apply) {\n"
+        "            func = pv;\n"
+        "            function = va_cache[va_slot].function;\n"
+        "            apply = va_cache[va_slot].apply;\n"
+        "            b = va_cache[va_slot].callee_b;\n"
+        "            goto va_cached_hit;\n"
+        "        }\n"
+        "    }",
+        1,
+        "virtual-arguments live proto/apply guard",
+    )
     va_path = output / "quickjs-linux-virtual-arguments.c"
     va_path.write_text(
         '#include "quickjs-linux-virtual-arguments-private.h"\n'
@@ -293,6 +432,22 @@ def _specialize_c_owners(source, output):
         "#endif",
         1,
         "core property-ic-storage include",
+    )
+    core = _replace_exact(
+        core,
+        "rt->property_ic_epoch = 1;",
+        "\n#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+        "    rt->property_ic_epoch = 1;\n"
+        "#else\n"
+        "    {\n"
+        "        static uint64_t qjs_arm_ic_epoch_seq;\n"
+        "        rt->property_ic_epoch =\n"
+        "            (__atomic_add_fetch(&qjs_arm_ic_epoch_seq, UINT64_C(1) << 32, __ATOMIC_RELAXED)) |\n"
+        "            1u;\n"
+        "    }\n"
+        "#endif\n",
+        1,
+        "core unique per-runtime property_ic_epoch",
     )
     for pat, expected in (
         (r"js_realloc\(ctx,\s*p->prop,\s*(sizeof\(new_prop\[0\]\)\s*\*\s*new_size)\)", 2),
