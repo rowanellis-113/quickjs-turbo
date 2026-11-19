@@ -3,15 +3,52 @@ name: Release
 on:
   push:
     tags:
-      - "v*"
+      - "v*-turbo.*"
   workflow_dispatch:
+    inputs:
+      publish_release:
+        description: Create tag & publish GitHub Release from vm/VERSION on main
+        type: boolean
+        default: false
 
 permissions:
   contents: read
 
 jobs:
+  meta:
+    name: Resolve & Validate Release Version
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+      tag: ${{ steps.resolve.outputs.tag }}
+      upstream_version: ${{ steps.resolve.outputs.upstream_version }}
+      upstream_revision: ${{ steps.resolve.outputs.upstream_revision }}
+      prerelease: ${{ steps.resolve.outputs.prerelease }}
+      make_latest: ${{ steps.resolve.outputs.make_latest }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve version & enforce QuickJS-NG pin
+        id: resolve
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            python3 -B vm/ci/release_version.py \
+              --tag "${GITHUB_REF}" \
+              --github-output "$GITHUB_OUTPUT"
+          else
+            if [[ "${{ inputs.publish_release }}" == "true" && "${GITHUB_REF}" != "refs/heads/main" ]]; then
+              echo "Refusing publish_release from non-main ref: ${GITHUB_REF}" >&2
+              exit 1
+            fi
+            python3 -B vm/ci/release_version.py \
+              --github-output "$GITHUB_OUTPUT"
+          fi
+
   linux-x86_64:
     name: SDK Linux x86-64
+    needs: meta
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -28,24 +65,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TAG="${{ needs.meta.outputs.tag }}"
+          SDK_NAME="quickjs-turbo-${TAG}-linux-x86_64-sdk"
           CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=4 \
             bash vm/tools/x86/linux/build/product-linux.sh \
               build/linux-x86_64 \
-              dist/quickjs-turbo-linux-x86_64-sdk
+              "dist/${SDK_NAME}"
           CC=gcc-13 CXX=g++-13 cmake -S vm/tests/common/consumer -B build/consumer-linux-x86_64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-linux-x86_64-sdk"
+            -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-linux-x86_64 --parallel 4
           ctest --test-dir build/consumer-linux-x86_64 --output-on-failure
-          tar -C dist -czf quickjs-turbo-linux-x86_64-sdk.tar.gz quickjs-turbo-linux-x86_64-sdk
+          python3 -B vm/ci/release_version.py \
+            --write-sdk-metadata "dist/${SDK_NAME}" \
+            --platform linux-x86_64 \
+            --git-sha "${{ github.sha }}"
+          tar -C dist -czf "${SDK_NAME}.tar.gz" "${SDK_NAME}"
 
       - uses: actions/upload-artifact@v7
         with:
           name: sdk-linux-x86_64
-          path: quickjs-turbo-linux-x86_64-sdk.tar.gz
+          path: quickjs-turbo-*-linux-x86_64-sdk.tar.gz
 
   linux-aarch64:
     name: SDK Linux ARM64
+    needs: meta
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
@@ -62,24 +106,31 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          TAG="${{ needs.meta.outputs.tag }}"
+          SDK_NAME="quickjs-turbo-${TAG}-linux-aarch64-sdk"
           CC=gcc-13 CXX=g++-13 QJS_BUILD_JOBS=4 \
             bash vm/tools/arm64/build/product-linux-aarch64.sh \
               build/linux-aarch64 \
-              dist/quickjs-turbo-linux-aarch64-sdk
+              "dist/${SDK_NAME}"
           CC=gcc-13 CXX=g++-13 cmake -S vm/tests/common/consumer -B build/consumer-linux-aarch64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-linux-aarch64-sdk"
+            -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-linux-aarch64 --parallel 4
           ctest --test-dir build/consumer-linux-aarch64 --output-on-failure
-          tar -C dist -czf quickjs-turbo-linux-aarch64-sdk.tar.gz quickjs-turbo-linux-aarch64-sdk
+          python3 -B vm/ci/release_version.py \
+            --write-sdk-metadata "dist/${SDK_NAME}" \
+            --platform linux-aarch64 \
+            --git-sha "${{ github.sha }}"
+          tar -C dist -czf "${SDK_NAME}.tar.gz" "${SDK_NAME}"
 
       - uses: actions/upload-artifact@v7
         with:
           name: sdk-linux-aarch64
-          path: quickjs-turbo-linux-aarch64-sdk.tar.gz
+          path: quickjs-turbo-*-linux-aarch64-sdk.tar.gz
 
   windows-x86_64:
     name: SDK Windows x86-64 (${{ matrix.slug }})
+    needs: meta
     runs-on: windows-latest
     strategy:
       fail-fast: false
@@ -121,8 +172,9 @@ jobs:
             $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
           }
 
+          $tag = '${{ needs.meta.outputs.tag }}'
           $buildDir = "build/${{ matrix.slug }}"
-          $sdkName = "quickjs-turbo-windows-x86_64-${{ matrix.slug }}-sdk"
+          $sdkName = "quickjs-turbo-$tag-windows-x86_64-${{ matrix.slug }}-sdk"
           $sdkDir = "$PWD/dist/$sdkName"
 
           $buildArgs = @{
@@ -186,15 +238,22 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer CTest failed" }
           }
 
+          python -B vm/ci/release_version.py `
+            --write-sdk-metadata $sdkDir `
+            --platform "windows-x86_64-${{ matrix.slug }}" `
+            --git-sha "${{ github.sha }}"
+          if ($LASTEXITCODE -ne 0) { throw "Failed to write SDK version metadata" }
+
           Compress-Archive -Path $sdkDir -DestinationPath "$sdkName.zip" -Force
 
       - uses: actions/upload-artifact@v7
         with:
           name: sdk-windows-${{ matrix.slug }}
-          path: quickjs-turbo-windows-x86_64-${{ matrix.slug }}-sdk.zip
+          path: quickjs-turbo-*-windows-x86_64-${{ matrix.slug }}-sdk.zip
 
   macos-arm64:
     name: SDK macOS ARM64 (PORTABLE)
+    needs: meta
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -204,6 +263,8 @@ jobs:
         run: |
           set -euo pipefail
           command -v ninja >/dev/null 2>&1 || brew install ninja
+          TAG="${{ needs.meta.outputs.tag }}"
+          SDK_NAME="quickjs-turbo-${TAG}-macos-arm64-portable-sdk"
           cmake -S vm -B build/macos-arm64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DQJS_FRAME_BACKEND=PORTABLE \
@@ -217,25 +278,30 @@ jobs:
             -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
             -DQJS_PROPERTY_IC=ON \
             -DQJS_BACKPORT_PORTABLE_REGEXP=ON \
-            -DCMAKE_INSTALL_PREFIX="$PWD/dist/quickjs-turbo-macos-arm64-portable-sdk"
+            -DCMAKE_INSTALL_PREFIX="$PWD/dist/${SDK_NAME}"
           cmake --build build/macos-arm64 --parallel 4
           ctest --test-dir build/macos-arm64 --output-on-failure --parallel 4
           cmake --install build/macos-arm64
           cmake -S vm/tests/common/consumer -B build/consumer-macos -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$PWD/dist/quickjs-turbo-macos-arm64-portable-sdk"
+            -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-macos --parallel 4
           ctest --test-dir build/consumer-macos --output-on-failure
-          tar -C dist -czf quickjs-turbo-macos-arm64-portable-sdk.tar.gz quickjs-turbo-macos-arm64-portable-sdk
+          python3 -B vm/ci/release_version.py \
+            --write-sdk-metadata "dist/${SDK_NAME}" \
+            --platform macos-arm64-portable \
+            --git-sha "${{ github.sha }}"
+          tar -C dist -czf "${SDK_NAME}.tar.gz" "${SDK_NAME}"
 
       - uses: actions/upload-artifact@v7
         with:
           name: sdk-macos-arm64
-          path: quickjs-turbo-macos-arm64-portable-sdk.tar.gz
+          path: quickjs-turbo-*-macos-arm64-portable-sdk.tar.gz
 
   publish:
     name: Generate SHA256SUMS & Publish Release
     needs:
+      - meta
       - linux-x86_64
       - linux-aarch64
       - windows-x86_64
@@ -244,6 +310,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v7
+
       - name: Download SDK artifacts
         uses: actions/download-artifact@v8
         with:
@@ -263,9 +331,47 @@ jobs:
           name: release-sha256sums
           path: release-assets/SHA256SUMS.txt
 
+      - name: Generate structured release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -B vm/ci/release_version.py \
+            --write-release-notes release-notes.md \
+            --git-sha "${{ github.sha }}"
+          cat release-notes.md
+
       - name: Publish GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v3
-        with:
-          generate_release_notes: true
-          files: release-assets/*
+        if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish_release == true)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${{ needs.meta.outputs.tag }}"
+          UPSTREAM="${{ needs.meta.outputs.upstream_version }}"
+          PRERELEASE="${{ needs.meta.outputs.prerelease }}"
+          TITLE="QuickJS-Turbo ${TAG} (QuickJS-NG ${UPSTREAM})"
+          NOTES_HEADER="$(cat release-notes.md)"
+          if [[ "${PRERELEASE}" == "true" ]]; then
+            MODE_FLAGS=(--prerelease --latest=false)
+          else
+            MODE_FLAGS=(--latest)
+          fi
+
+          if gh release view "${TAG}" >/dev/null 2>&1; then
+            gh release upload "${TAG}" release-assets/* --clobber
+          elif [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" ]]; then
+            gh release create "${TAG}" release-assets/* \
+              --target "${{ github.sha }}" \
+              --title "${TITLE}" \
+              --notes "${NOTES_HEADER}" \
+              --generate-notes \
+              "${MODE_FLAGS[@]}"
+          else
+            gh release create "${TAG}" release-assets/* \
+              --verify-tag \
+              --title "${TITLE}" \
+              --notes "${NOTES_HEADER}" \
+              --generate-notes \
+              "${MODE_FLAGS[@]}"
+          fi

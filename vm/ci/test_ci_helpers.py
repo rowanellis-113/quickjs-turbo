@@ -16,6 +16,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import install_win64_mingw
+import release_version
 import verify_pe_imports
 import verify_test262
 
@@ -86,7 +87,7 @@ def _create_mock_runner(tmp: Path, payload: dict) -> Path:
         return runner
     runner = tmp / "run-test262"
     runner.write_text(
-        f"#!/bin/sh\nexec \"{sys.executable}\" -B \"{impl}\" \"$@\"\n",
+        f'#!/bin/sh\nexec "{sys.executable}" -B "{impl}" "$@"\n',
         encoding="utf-8",
         newline="\n",
     )
@@ -181,8 +182,7 @@ class VerifyTest262Tests(unittest.TestCase):
                 tmp,
                 {
                     "stdout": (
-                        "test262/test/known/fixed_target.js:3: "
-                        "OK, fixed error: TypeError: old\n"
+                        "test262/test/known/fixed_target.js:3: OK, fixed error: TypeError: old\n"
                     ),
                     "stderr": "Result: 2/100 errors, 4 excluded, 1 fixed\n",
                     "exit_code": 1,
@@ -289,6 +289,105 @@ class InstallWin64MinGWTests(unittest.TestCase):
             self.assertEqual(parsed["cmake"], fake_cmake.as_posix())
             self.assertEqual(parsed["gcc"], (bin_dir / "gcc.exe").as_posix())
             self.assertEqual(parsed["mingw_bin"], str(bin_dir))
+
+
+class ReleaseVersionTests(unittest.TestCase):
+    def _make_vm_tree(self, root: Path, version: str, upstream_version: str = "0.15.1") -> Path:
+        cmake_dir = root / "cmake"
+        cmake_dir.mkdir(parents=True, exist_ok=True)
+        (root / "VERSION").write_text(f"{version}\n", encoding="utf-8", newline="\n")
+        (cmake_dir / "QuickJSUpstreamPin.cmake").write_text(
+            "\n".join(
+                [
+                    'set(QJS_UPSTREAM_REVISION "bf8988fc401e737f9946cd10a3463b48aab0fd7e")',
+                    f'set(QJS_UPSTREAM_VERSION "{upstream_version}")',
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
+        return root
+
+    def test_official_and_prerelease_versions_and_tag_validation(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            vm_official = self._make_vm_tree(root / "official", "0.15.1-turbo.1")
+            info = release_version.resolve_release_info(vm_official)
+            self.assertEqual(info.version, "0.15.1-turbo.1")
+            self.assertEqual(info.tag, "v0.15.1-turbo.1")
+            self.assertFalse(info.prerelease)
+            self.assertTrue(info.make_latest)
+            self.assertEqual(
+                release_version.validate_tag(info, "refs/tags/v0.15.1-turbo.1"), "v0.15.1-turbo.1"
+            )
+
+            vm_pre = self._make_vm_tree(root / "pre", "0.15.1-turbo.2-rc.1")
+            pre = release_version.resolve_release_info(vm_pre)
+            self.assertEqual(pre.tag, "v0.15.1-turbo.2-rc.1")
+            self.assertTrue(pre.prerelease)
+            self.assertFalse(pre.make_latest)
+
+    def test_rejects_invalid_or_mismatched_versions_and_tags(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            for idx, bad_ver in enumerate(("0.16.0-turbo.1", "0.15.1-turbo.0", "0.15.1")):
+                vm_bad = self._make_vm_tree(root / f"bad_{idx}", bad_ver)
+                self.assertEqual(release_version.main(["--vm-root", str(vm_bad)]), 1)
+
+            vm_good = self._make_vm_tree(root / "good", "0.15.1-turbo.1")
+            self.assertEqual(
+                release_version.main(["--vm-root", str(vm_good), "--tag", "v0.15.1-turbo.2"]), 1
+            )
+
+    def test_writes_github_output_sdk_metadata_and_release_notes(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            vm_dir = self._make_vm_tree(root / "vm", "0.15.1-turbo.1")
+            gh_out = root / "gh_output.txt"
+            sdk_dir = root / "sdk"
+            notes_md = root / "notes.md"
+            sha = "0123456789abcdef0123456789abcdef01234567"
+
+            rc = release_version.main(
+                [
+                    "--vm-root",
+                    str(vm_dir),
+                    "--tag",
+                    "refs/tags/v0.15.1-turbo.1",
+                    "--github-output",
+                    str(gh_out),
+                    "--write-sdk-metadata",
+                    str(sdk_dir),
+                    "--platform",
+                    "linux-x86_64",
+                    "--write-release-notes",
+                    str(notes_md),
+                    "--git-sha",
+                    sha,
+                ]
+            )
+            self.assertEqual(rc, 0)
+
+            parsed = dict(
+                line.split("=", 1) for line in gh_out.read_text(encoding="utf-8").splitlines()
+            )
+            self.assertEqual(parsed["version"], "0.15.1-turbo.1")
+            self.assertEqual(parsed["tag"], "v0.15.1-turbo.1")
+            self.assertEqual(parsed["upstream_version"], "0.15.1")
+            self.assertEqual(parsed["prerelease"], "false")
+            self.assertEqual(parsed["make_latest"], "true")
+
+            sdk_meta = json.loads((sdk_dir / "quickjs-turbo-version.json").read_text("utf-8"))
+            self.assertEqual(sdk_meta["product"], "quickjs-turbo")
+            self.assertEqual(sdk_meta["tag"], "v0.15.1-turbo.1")
+            self.assertEqual(sdk_meta["platform"], "linux-x86_64")
+            self.assertEqual(sdk_meta["git_sha"], sha)
+
+            notes_text = notes_md.read_text(encoding="utf-8")
+            self.assertIn("v0.15.1-turbo.1", notes_text)
+            self.assertIn("0.15.1", notes_text)
+            self.assertIn(sha, notes_text)
 
 
 if __name__ == "__main__":

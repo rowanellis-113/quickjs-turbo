@@ -1,11 +1,16 @@
 name: Test262
 
 on:
+  push:
+    branches:
+      - main
+    tags:
+      - "v*-turbo.*"
+  pull_request:
+    branches:
+      - main
   schedule:
     - cron: "0 3 * * 0"
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
     inputs:
       target:
@@ -24,8 +29,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: test262-${{ github.ref }}
-  cancel-in-progress: false
+  group: test262-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   linux-x86_64:
@@ -35,7 +40,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Cache pinned Test262 corpus
+        id: cache-test262
+        uses: actions/cache@v6
+        with:
+          path: |
+            test262
+            .git/modules/test262
+          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+
       - name: Initialize pinned Test262 corpus
+        if: steps.cache-test262.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -88,7 +103,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Cache pinned Test262 corpus
+        id: cache-test262
+        uses: actions/cache@v6
+        with:
+          path: |
+            test262
+            .git/modules/test262
+          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+
       - name: Initialize pinned Test262 corpus
+        if: steps.cache-test262.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -142,7 +167,17 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Cache pinned Test262 corpus
+        id: cache-test262
+        uses: actions/cache@v6
+        with:
+          path: |
+            test262
+            .git/modules/test262
+          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+
       - name: Initialize pinned Test262 corpus
+        if: steps.cache-test262.outputs.cache-hit != 'true'
         shell: bash
         run: |
           set -euo pipefail
@@ -201,7 +236,17 @@ jobs:
 
       - uses: actions/checkout@v7
 
+      - name: Cache pinned Test262 corpus
+        id: cache-test262
+        uses: actions/cache@v6
+        with:
+          path: |
+            test262
+            .git/modules/test262
+          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+
       - name: Initialize pinned Test262 corpus
+        if: steps.cache-test262.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -259,7 +304,17 @@ jobs:
 
       - uses: actions/checkout@v7
 
+      - name: Cache pinned Test262 corpus
+        id: cache-test262
+        uses: actions/cache@v6
+        with:
+          path: |
+            test262
+            .git/modules/test262
+          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+
       - name: Initialize pinned Test262 corpus
+        if: steps.cache-test262.outputs.cache-hit != 'true'
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'

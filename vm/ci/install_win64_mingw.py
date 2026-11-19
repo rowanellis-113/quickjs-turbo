@@ -17,8 +17,7 @@ import urllib.request
 RELEASE_TAG = "13.1.0-16.0.5-11.0.0-msvcrt-r5"
 ARCHIVE_NAME = "winlibs-x86_64-posix-seh-gcc-13.1.0-mingw-w64msvcrt-11.0.0-r5.7z"
 URL = (
-    "https://github.com/brechtsanders/winlibs_mingw/releases/download/"
-    f"{RELEASE_TAG}/{ARCHIVE_NAME}"
+    f"https://github.com/brechtsanders/winlibs_mingw/releases/download/{RELEASE_TAG}/{ARCHIVE_NAME}"
 )
 SHA256 = "4aa182a6ecf05140e66189ef38673482cb910164d2b8ee65c9297b080445deb5"
 

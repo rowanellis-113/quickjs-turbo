@@ -104,13 +104,14 @@ quickjs-turbo/
 ├── .github/workflows/                          # QuickJS-Turbo CI, Test262 & SDK release pipelines
 └── vm/                                         # All QuickJS-Turbo modifications & build/CI/test assets
     ├── CMakeLists.txt                          # Product CMake entry (-S vm)
+    ├── VERSION                                 # QuickJS-Turbo release version (v<upstream>-turbo.<N>)
     ├── src/{common,arm64,x86}/                 # C fast paths, ABI manifests & extracted workers
     ├── asm/{arm64,x86}/                        # Native assembly VM & bridge templates
     ├── cmake/{common,arm64,x86}/               # Backend policies, ABI probes, epochs & test registration
     ├── tools/{common,arm64,x86}/               # Codegen, ELF/COFF adapters, formatters & build wrappers
     ├── tests/{common,arm64,x86}/               # Native, C/API, JS semantics, ABI & DAG boundary tests
     ├── docs/architecture/{common,arm64,x86}/   # Architecture contracts, build guide & benchmark records
-    └── ci/                                     # CI verification helpers (PE import & Test262 gates)
+    └── ci/                                     # CI version, PE import & Test262 verification helpers
 ```
 
 ---
@@ -179,6 +180,12 @@ cmake --build build/consumer && ctest --test-dir build/consumer --output-on-fail
 ```
 
 Consumer targets link cleanly via CMake (`find_package(qjs CONFIG REQUIRED)`, `target_link_libraries(your_app PRIVATE qjs)` or `qjs::qjs`). For static-CRT C/C++11 hosts or sandboxed workers that clear environment variables, configure with `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded`, `-DQJS_DEFAULT_EXPERIMENT_ALLOCATOR=256`, and optionally `-DQJS_BUILD_CLI=OFF` for a library-only build. Otherwise, set `QJS_EXPERIMENT_ALLOCATOR=256` before runtime creation when using the pooled allocator. See [`BUILDING.txt`](vm/docs/architecture/common/BUILDING.txt) for full options and cross-compilation details.
+
+### Versioning & Releases
+
+- **Version Scheme (`v<upstream>-turbo.<N>`)**: [`vm/VERSION`](vm/VERSION) tracks the product release version starting at `0.15.1-turbo.1` (tag `v0.15.1-turbo.1`), where `<upstream>` must match `QJS_UPSTREAM_VERSION` in [`QuickJSUpstreamPin.cmake`](vm/cmake/QuickJSUpstreamPin.cmake) and `<N>` increments independently for each QuickJS-Turbo release (`-alpha.<K>`, `-beta.<K>`, or `-rc.<K>` optional for prereleases).
+- **Automated Test262 & CI Gates**: Every push/PR to `main` runs both [`ci.yml`](.github/workflows/ci.yml) (formatting, receipts, contracts, native/portable/sanitizer builds) and [`test262.yml`](.github/workflows/test262.yml) across Linux `x86-64`, Linux `ARM64`, `PORTABLE`, Windows `MSVC`, and Windows `MinGW`.
+- **Publishing a Release**: [`release.yml`](.github/workflows/release.yml) builds versioned SDK archives with embedded `quickjs-turbo-version.json` and `SHA256SUMS.txt` either when pushing a validated tag (`git tag -a v0.15.1-turbo.1 -m "..." && git push origin v0.15.1-turbo.1`) or via manual GitHub Actions `workflow_dispatch` on `main` with `publish_release=true`.
 
 ---
 

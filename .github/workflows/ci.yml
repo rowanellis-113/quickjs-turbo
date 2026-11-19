@@ -66,6 +66,7 @@ jobs:
           python -B vm/tests/arm64/test_publication_directive.py
           python -B vm/tests/x86/linux/test_elf_machine_x86.py
           python -B vm/tests/arm64/test_elf_machine_arm64.py
+          python -B vm/ci/release_version.py
           python -B vm/ci/test_ci_helpers.py
 
   linux-x86_64:
