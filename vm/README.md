@@ -15,7 +15,8 @@ V8 `--jitless`), and contributing guidelines.
 This checkout keeps upstream QuickJS-NG 0.15.1 untouched at the repository
 root and consolidates all interpreter optimizations and build rules under `vm/`.
 The product configuration supports native Windows x86-64 with MSVC or MinGW GCC,
-native Linux x86-64 with GCC 13+, and a portable C fallback. See [integrated components](docs/architecture/common/OPTIMIZATIONS.txt).
+native Linux x86-64 with GCC 13+, and a portable C fallback. See [integrated components](docs/architecture/common/OPTIMIZATIONS.txt)
+and [Hybrid RC and generational partial cycle GC](docs/architecture/common/HYBRID-GC.txt).
 Linux ARM64/glibc also has an explicit AAPCS64 register backend and a common C
 fallback. See [ARM64 build and release scope](docs/architecture/arm64/LINUX-AARCH64-RELEASE.txt).
 The [ARM64 hardware report](docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt) records native

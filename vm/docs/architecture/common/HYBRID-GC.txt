@@ -77,13 +77,46 @@ Verification & measured impact
 Validated against vm/tests/common/test_hybrid_gc_ab.js across default,
 QJS_DISABLE_HYBRID_GC=1, QJS_DISABLE_PARTIAL_CYCLE=1, QJS_DISABLE_FAST_RC=1,
 and pooled-allocator modes, plus differential Test262 (42,497 tests, 0 diff),
-Linux x86-64 ELF/CET/DWARF unwind checks, Linux AArch64 (QEMU), and Clang
-ASan+UBSan.
+Linux x86-64 ELF/CET/DWARF unwind checks (958/958 CTests), Linux AArch64
+(QEMU, 1,261/1,261 native and 225/225 PORTABLE CTests), Windows MinGW AUTO
+Shared PORTABLE (160/160 CTests), and GCC ASan+UBSan (221/221 CTests).
 
-Key paired ABBA improvements on Linux x86-64 (Release):
-- Resident heap + cyclic garbage churn (hybrid_bench): -33.6% runtime (~1.50x)
-- Acyclic DTO allocation churn: -4.2% runtime
-- Local slot overwrite churn: -6.5% runtime
-- Deep tree synchronous reclamation: -7.4% runtime (-336 KB RSS)
-- String slice churn (micro57): -9.6% to -11.0% runtime
-- Official V8-v7 composite: +0.54% with +4 KB RSS delta (zero RSS bloat)
+Key paired ABBA benchmarks on Linux x86-64 (Release, CPU2 serial, FramePool 512):
+
+hybrid_bench.js (elapsed ms, lower is better; RSS KiB):
+Workload               Baseline    Hybrid_OFF  Partial_Only  Fast_RC_Only  Full_V2    Delta vs Base
+resident_cycle_churn   314.47      312.43      213.39        306.31        208.91     -33.56% (1.50x)
+resident_acyclic_dto   455.62      478.66      479.67        442.39        436.51     -4.19%
+local_slot_loop        700.77      702.66      704.42        659.65        655.19     -6.50%
+deep_tree_free         502.20      503.15      502.52        470.47        465.19     -7.37%
+Peak RSS (KiB)         35,472      35,600      35,200        35,598        35,136     -336 KiB (-0.95%)
+
+Official V8-v7 (score, higher is better; full-heap scans cut by 85.8%):
+Case           Baseline    Hybrid_OFF  Full_V2     Delta vs Base
+Overall        2,020.28    2,001.20    2,031.21    +0.54% (85.5% of V8 --jitless 2,375)
+Richards       1,454.76    1,471.65    1,460.77    +0.41%
+DeltaBlue      1,334.88    1,332.28    1,345.45    +0.79%
+Crypto         1,550.47    1,552.36    1,560.59    +0.65%
+RayTrace       1,987.76    1,992.37    2,058.54    +3.56%
+EarleyBoyer    2,810.21    2,735.09    2,785.51    -0.88%
+RegExp         1,813.38    1,689.48    1,725.69    -4.84% (+2.14% vs Hybrid_OFF)
+Splay          3,373.73    3,333.72    3,529.11    +4.61%
+NavierStokes   2,704.01    2,754.86    2,723.59    +0.72%
+Peak RSS KiB   183,306     183,296     183,310     +4 KiB (+0.002%)
+
+JetStream 9-case confirmation (body ms, lower is better):
+Case                      Baseline   Full_V2    Delta      RSS delta (KiB)
+Babylon                   70.46      69.23      -1.75%     +28
+json-parse-inspector      37.41      36.77      -1.72%     +120
+Air                       49.60      48.82      -1.58%     +776
+delta-blue                98.29      97.04      -1.27%     0
+FlightPlanner             36.54      36.26      -0.75%     -2,436
+cdjs                      265.67     268.67     +1.13%     +772 (-3.90% vs Hybrid_OFF)
+json-stringify-inspector  21.63      21.95      +1.49%     +120
+lazy-collections          77.53      78.88      +1.74%     0
+richards                  113.44     121.36     +6.98%     +128 (Hybrid_OFF: 121.87)
+
+micro57 paired highlights (ns/op): string_slice1 70.990 -> 63.390 (-10.71%),
+string_slice2 124.125 -> 112.225 (-9.59%), string_slice3 64.530 -> 57.430 (-11.00%),
+string_concat1 80.630 -> 76.410 (-5.23%), weak_map_set 96.330 -> 79.250 (-17.73%),
+array_for 10.010 -> 8.945 (-10.64%), bigint64_arith 80.140 -> 72.930 (-9.00%).

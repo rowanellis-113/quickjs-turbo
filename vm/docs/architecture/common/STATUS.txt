@@ -1,26 +1,27 @@
-Product status,2026-11-11
-=========================
-Pinned QuickJS-NG0.15.1,bf8988fc401e737f9946cd10a3463b48aab0fd7e;19pins intact.
-Accepted runtime8c1b9ce;final source/documentation revision is in the bundled
-release manifest. No new runtime optimization was accepted during closeout.
+Product status, 2026-11-20 (v0.15.1-turbo.3)
+============================================
+Pinned QuickJS-NG 0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e; 19 pins intact.
+Current release tracks vm/VERSION 0.15.1-turbo.3 (following feature merge
+8e4593d / v0.15.1-turbo.2) integrating Hybrid Reference Counting + Generational
+Partial Cycle GC + Synchronous Fast RC (see HYBRID-GC.txt and OPTIMIZATIONS.txt).
 
-Independent clean archive builds pass Linux native934/934CTest,PORTABLE211/211,
-Windows MinGW307/307,MSVC292/292,PORTABLE211/211. Strict minimal native,realAUTO
-fallback/strict rejection,all movedSDK public consumers and bothWin native
-unwind consumers pass. Linux actual native execution,CFI/CET/PIE/PIC/WX pass.
+Clean CTest qualification across all targets:
+- Linux x86-64 LINUX_X86_64: 958/958 (plus 2/2 SDK consumer & -DQJS_HYBRID_GC=OFF checks)
+- Linux ARM64 LINUX_AARCH64 (QEMU): 1,261/1,261; ARM64 PORTABLE (QEMU): 225/225
+- Portable ASan+UBSan: 221/221
+- Windows x86-64: MinGW WIN64 310/310, MSVC WIN64 295/295, MinGW AUTO Shared PORTABLE 160/160
+Formatting (clang-format 22.1.8, ruff 0.14.14, cmakelang 0.6.13, shfmt,
+PSScriptAnalyzer 1.24.0, Prettier 3.9.10) and 13 repository contracts pass.
 
-Three freshWindows fullTest262 runs each65/81152 inherited failures,31fixed,
-0new/changed exact identities. Four earlierLinux full records are bound by
-complete runner/input/raw-log hashes;no freshLinux full run is claimed here.
-Unmodified stockNG has96failures. Scope/hashes/toolchains:LINUX-RELEASE.txt.
+Linux x86-64 V8-v7 whole score: 2,031.21 (2.04x vs stock QuickJS-NG 993.7,
+1.39x vs Bellard QuickJS 2026 1,465.7, 85.5% of Node 24 --jitless 2,374.9;
+peak RSS 183,310 KiB). Hybrid GC reduces full-heap trial-deletion scans on
+V8-v7 by 85.8%, accelerates cyclic garbage churn by 33.56% (1.50x), deep tree
+destruction by 7.37% (-336 KiB RSS), and string slices by 9.6-11.0%.
+Differential Test262 on the pinned suite shows 0 new failures across 42,497
+cases (historical full 81,152 corpus: 65 inherited failures vs stock NG's 96,
+31 fixed).
 
-Current original57micro/17JetStream/8V8-v7 rows,memory and cost decisions:
-LINUX-FINAL-REVIEW.txt. Older component/performance records remain historical.
-Source-platform whole-suite comparison is qualified as a screen;per-case gaps
-remain. No officialJetStream total,all-cases-improved or architecture-ceiling
-claim. Default GNU mechanisms and optional boundaries:LINUX-MECHANISM-COVERAGE.
-
-Feature work is frozen at the best qualified baseline. Reopen for a measured
-representative gap,a bounded remedy and repeatable net benefit with stock-priced
-costs,memory/correctness review. Apply-scope/REST candidates remain external.
-Build/profile/benchmark artifacts stay outside the clean product source.
+Full per-case ABBA metrics and historical records:
+- PRODUCT-BASELINE.txt, HYBRID-GC.txt, and LINUX-FINAL-REVIEW.txt
+- LINUX-RELEASE.txt, LINUX-AARCH64-HARDWARE.txt, and LINUX-MECHANISM-COVERAGE.txt

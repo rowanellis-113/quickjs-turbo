@@ -1,3 +1,32 @@
+Current product baseline, 2026-11-20 (v0.15.1-turbo.3)
+======================================================
+Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
+all 19 upstream source pins are unchanged. Release v0.15.1-turbo.3 integrates
+Hybrid Reference Counting + Generational Partial Cycle GC + Synchronous Fast
+RC (HYBRID-GC.txt) across LINUX_X86_64, LINUX_AARCH64, and PORTABLE builds
+(QJS_HYBRID_GC=ON by default; WIN64 COFF-patched builds retain their pinned
+machine-code core).
+
+Current cross-platform CTest qualification:
+- Linux x86-64 LINUX_X86_64: 958/958 (plus 2/2 SDK consumer & -DQJS_HYBRID_GC=OFF checks)
+- Linux ARM64 LINUX_AARCH64 (QEMU): 1,261/1,261; ARM64 PORTABLE (QEMU): 225/225
+- Portable ASan+UBSan: 221/221
+- Windows x86-64: MinGW WIN64 310/310, MSVC WIN64 295/295, MinGW AUTO Shared PORTABLE 160/160
+
+Updated All-Linux V8-v7 scores (CPU2 / serial / normal ASLR, Ubuntu 24.04 / WSL2):
+  NG 0.15.1 993.7; Bellard 2026-06-04 default O2 1465.7;
+  JSCOnly 2b27eb4 LLInt/JIT OFF 1596.1; Node 24.13.0 jitless 2374.9;
+  Turbo v0.15.1-turbo.3 native 2031.21 (2.04x vs QuickJS-NG, 85.5% of V8 --jitless;
+  peak RSS 183,310 KiB).
+
+Paired ABBA Hybrid GC gains (Linux x86-64, CPU2 serial, FramePool 512):
+  resident_cycle_churn: 314.47 -> 208.91 ms (-33.56%, 1.50x)
+  resident_acyclic_dto: 455.62 -> 436.51 ms (-4.19%)
+  local_slot_loop:      700.77 -> 655.19 ms (-6.50%)
+  deep_tree_free:       502.20 -> 465.19 ms (-7.37%, RSS 35,472 -> 35,136 KiB)
+Full per-case ABBA metrics and ablation details: HYBRID-GC.txt and
+LINUX-FINAL-REVIEW.txt.
+
 Current product source and Linux native module baseline,2026-11-12
 =================================================================
 Pinned upstream remains QuickJS-NG0.15.1;all19 source pins are unchanged.

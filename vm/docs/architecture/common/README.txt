@@ -7,6 +7,7 @@ DIRECTORY-LAYOUT.txt: owned sources, generators and platform backends.
 REGEXP.txt: search and builtin fast paths, guards and upgrade obligations.
 STATUS.txt: current version and support boundaries.
 OPTIMIZATIONS.txt: integrated components, controls and maintenance scope.
+HYBRID-GC.txt: hybrid reference counting, generational partial cycle GC, fast synchronous RC and controls.
 ARRAY-SORT.txt: array sort implementation and observable semantics.
 ASYNC-GENERATORS.txt: async generator capability ownership and controls.
 COMPILER-PLAN.txt: guarded compiler planning and upgrade contracts.

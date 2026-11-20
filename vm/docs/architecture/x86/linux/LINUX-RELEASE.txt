@@ -1,3 +1,28 @@
+Current v0.15.1-turbo.3 release qualification, 2026-11-20
+=============================================================
+Tracks vm/VERSION 0.15.1-turbo.3 (following Hybrid RC + Generational Partial
+Cycle GC merge at 8e4593d / v0.15.1-turbo.2) on pinned QuickJS-NG 0.15.1
+bf8988fc401e737f9946cd10a3463b48aab0fd7e (all 19 upstream pins exact).
+
+Verification matrix completed cleanly on Linux x86-64 / ARM64 QEMU / Windows:
+- Linux x86-64 LINUX_X86_64: 958/958 CTests (including interpreter-hybrid-gc-*
+  across default / off / no-partial / no-fast-rc / pool512), 2/2 installed SDK
+  C/C++ consumers, -DQJS_HYBRID_GC=OFF control, ELF/CET (linked_cet_property=3,
+  2,398 FDEs covering JS_LinuxHybridDropString1), GDB >5000-frame deep stack
+  unwind, and 14-symbol mod 64 alignment parity.
+- Linux ARM64 (QEMU): LINUX_AARCH64 1,261/1,261 CTests (with
+  QJS_HYBRID_INLINE_PROPERTIES guard) and ARM64 PORTABLE 225/225 CTests.
+- Portable ASan+UBSan: 221/221 CTests (including 5 hybrid-gc modes), 0 errors/leaks.
+- Windows x86-64: MSVC WIN64 295/295, MinGW GCC 13.1 WIN64 310/310, MinGW AUTO
+  Shared PORTABLE 160/160 (hybrid_gc=true), test_vm_core_routes 21/21, test_vm_build 22/22.
+- Differential Test262: 43/42,497 errors (0 diff vs pre-merge baseline).
+- Formatting & Contracts: format:check (clang-format 22.1.8, ruff 0.14.14,
+  cmakelang 0.6.13, shfmt, PSScriptAnalyzer 1.24.0, Prettier 3.9.10),
+  contracts.py (573/573), test_arch_boundaries.py, validate_layout.py pass.
+
+Suite scores & ablation details: LINUX-FINAL-REVIEW.txt and HYBRID-GC.txt.
+Historical release provenance below is retained unchanged:
+
 Current Linux native module release,2026-11-12:see LINUX-VIRTUAL-ARGUMENTS.txt
 for exact CLI/library hashes,source-derived independent C types/signatures,
 fresh946native/211portableCTest,fullON/OFFTest262 and measured suite costs.
