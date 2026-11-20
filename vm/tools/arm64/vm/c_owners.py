@@ -397,6 +397,7 @@ def _specialize_c_owners(source, output):
         "#define QJS_INLINE_PROPERTY_DEFINE_REALLOC_RT\n"
         "#endif\n"
         '#include "src/common/property/inline-properties.h"\n'
+        "#define QJS_HYBRID_INLINE_PROPERTIES 1\n"
         "#undef QJS_INLINE_PROPERTY_DEFINE_REALLOC_RT\n"
         "#undef QJS_VM_INSTRUMENT\n\n"
     )

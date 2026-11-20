@@ -264,5 +264,7 @@
   "linux-slice-native.inc": "src/common/kernel/slice-native.inc",
   "string-concat-control.inc": "src/common/kernel/string-control.inc",
   "string-small-char.c": "src/common/kernel/small-char.c",
-  "string-index.c": "src/common/kernel/string-index.c"
+  "string-index.c": "src/common/kernel/string-index.c",
+  "hybrid-gc.h": "src/common/memory/hybrid-gc.h",
+  "hybrid-gc.inc": "src/common/memory/hybrid-gc.inc"
 }

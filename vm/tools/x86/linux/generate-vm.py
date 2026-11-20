@@ -23,6 +23,130 @@ import sys
 from control_flow import property_note
 
 
+def apply_hybrid_gc_native(stream, handlers, layout):
+    offs = layout["offsets"]
+    if "JSRuntime.drc_ok" not in offs or offs["JSGCObjectHeader.ref_count"] != 0:
+        return [], []
+    if (
+        layout["constants"].get("JS_TAG_STRING") != -7
+        or layout["constants"].get("JS_TAG_STRING_ROPE") != -6
+    ):
+        raise ValueError("Unexpected string tag encoding for fast drop")
+    ids = {name: i for i, name in enumerate(stream["opcodes"])}
+    code = stream["code"]
+    fast_arr_byte, fast_arr_mask = layout["bits"]["JSObject.fast_array"][0]
+    cls_array = layout["constants"]["JS_CLASS_ARRAY"]
+
+    # Pillar 4a: Keep interp_drop in hot .text; splice ref_count > 1 inline fast-dec
+    # and ref_count == 1 string/rope non-reloading leaf release into interp_property_slow_drop.
+    if handlers.get("drop") != "interp_drop":
+        raise ValueError("Unexpected drop handler: " + repr(handlers.get("drop")))
+    cold_code = stream["cold_code"]
+    slow_drop_idx = cold_code.index("interp_property_slow_drop:")
+    cold_code[slow_drop_idx + 1 : slow_drop_idx + 1] = [
+        "mov rax, QWORD PTR [r13-16]",
+        "mov r10, QWORD PTR [rbx+56]",
+        f"cmp BYTE PTR [r10+{offs['JSRuntime.drc_ok']}], 1",
+        "jne interp_property_slow_drop_c",
+        "cmp DWORD PTR [rax+0], 1",
+        "je interp_property_slow_drop_rc1",
+        "jl interp_property_slow_drop_c",
+        "dec DWORD PTR [rax+0]",
+        "sub r13, 16",
+        "add r12, 1",
+        "movzx eax, BYTE PTR [r12]",
+        "jmp QWORD PTR [rdi+rax*8]",
+        "interp_property_slow_drop_rc1:",
+        "mov edx, DWORD PTR [r13-8]",
+        "sub edx, -7",
+        "cmp edx, 1",
+        "ja interp_property_slow_drop_c",
+        "call JS_LinuxHybridDropString1",
+        "sub r13, 16",
+        "add r12, 1",
+        "movzx eax, BYTE PTR [r12]",
+        "jmp QWORD PTR [rdi+rax*8]",
+        "interp_property_slow_drop_c:",
+    ]
+    cold_code.append(".fill 48, 1, 0x90")
+
+    # Pillar 4b: Borrowed Dense-Array DRC on interp_get_loc0_loc1 with 0-mod-64 dead-shadow NOP alignment
+    loc01_idx = code.index("interp_get_loc0_loc1:")
+    code[loc01_idx + 1 : loc01_idx + 1] = [
+        f"cmp BYTE PTR [r12+1], {ids['get_array_el']}",
+        "je JS_LinuxBorrowedLoc01ArrayGet",
+        "interp_get_loc0_loc1_fallback:",
+    ]
+    loc01_end = code.index("jmp QWORD PTR [rdi+rax*8]", loc01_idx)
+    code[loc01_end + 1 : loc01_end + 1] = [".fill 52, 1, 0x90"]
+    borrowed_loc01 = [
+        "mov r10, QWORD PTR [rbx+56]",
+        f"cmp BYTE PTR [r10+{offs['JSRuntime.drc_ok']}], 1",
+        "jne interp_get_loc0_loc1_fallback",
+        f"cmp WORD PTR [rbp+{offs['JSStackFrame.var_ref_count']}], 0",
+        "jne interp_get_loc0_loc1_fallback",
+        "cmp DWORD PTR [r14+8], -1",
+        "jne interp_get_loc0_loc1_fallback",
+        "cmp DWORD PTR [r14+24], 0",
+        "jne interp_get_loc0_loc1_fallback",
+        "mov r8, QWORD PTR [r14+0]",
+        f"cmp WORD PTR [r8+{offs['JSObject.class_id']}], {cls_array}",
+        "jne interp_get_loc0_loc1_fallback",
+        f"test BYTE PTR [r8+{fast_arr_byte}], {fast_arr_mask}",
+        "jz interp_get_loc0_loc1_fallback",
+        "mov ecx, DWORD PTR [r14+16]",
+        "test ecx, ecx",
+        "js interp_get_loc0_loc1_fallback",
+        f"cmp ecx, DWORD PTR [r8+{offs['JSObject.u.array.count']}]",
+        "jae interp_get_loc0_loc1_fallback",
+        f"mov r9, QWORD PTR [r8+{offs['JSObject.u.array.u.values']}]",
+        "shl rcx, 4",
+        "mov rax, QWORD PTR [r9+rcx]",
+        "mov rdx, QWORD PTR [r9+rcx+8]",
+        "test edx, edx",
+        "jns borrowed_loc01_push",
+        "inc DWORD PTR [rax+0]",
+        "borrowed_loc01_push:",
+        "mov QWORD PTR [r13], rax",
+        "mov QWORD PTR [r13+8], rdx",
+        "add r13, 16",
+        "add r12, 2",
+        "movzx eax, BYTE PTR [r12]",
+        "jmp QWORD PTR [rdi+rax*8]",
+        ".fill 292, 1, 0x90",
+    ]
+
+    drop_str1_leaf = [
+        "push rdi",
+        ".cfi_adjust_cfa_offset 8",
+        ".cfi_offset rdi, -16",
+        "push rsi",
+        ".cfi_adjust_cfa_offset 8",
+        ".cfi_offset rsi, -24",
+        "sub rsp, 8",
+        ".cfi_adjust_cfa_offset 8",
+        "mov rdi, r10",
+        "mov rsi, rax",
+        "call js_hybrid_drop_string1",
+        "add rsp, 8",
+        ".cfi_adjust_cfa_offset -8",
+        "pop rsi",
+        ".cfi_restore rsi",
+        ".cfi_adjust_cfa_offset -8",
+        "pop rdi",
+        ".cfi_restore rdi",
+        ".cfi_adjust_cfa_offset -8",
+        "ret",
+        ".fill 864, 1, 0x90",
+    ]
+
+    return [
+        ("JS_LinuxBorrowedLoc01ArrayGet", borrowed_loc01),
+    ], [
+        ("JS_LinuxHybridDropString1", drop_str1_leaf),
+    ]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", type=Path, required=True)
@@ -289,6 +413,11 @@ def main():
 
             slot_blocks, slot_contract = append_slots(source, stream, layout)
             blocks += slot_blocks
+        hybrid_blocks, hybrid_leaves = [], []
+        if native_c_invoke:
+            hybrid_blocks, hybrid_leaves = apply_hybrid_gc_native(stream, handlers, layout)
+            blocks += hybrid_blocks
+            forward_leaves += hybrid_leaves
         publication = None
         publish_blocks, publish_proxies = [], []
         if native_c_invoke:
@@ -313,6 +442,7 @@ def main():
         defined = {
             "JS_FrameInterp",
             "JS_FrameInterpHostDispatch",
+            *(["js_hybrid_drop_string1"] if hybrid_leaves else []),
             *(name for name, _ in blocks + returning),
         }
         for rows in [stream["code"], *(rows for _, rows in blocks + returning)]:
@@ -372,7 +502,8 @@ def main():
             "/* Generated real Linux ELF; development VM foundation. */",
             ".intel_syntax noprefix",
             '.section .text.qjs_linux_vm,"ax",@progbits',
-            ".p2align 4",
+            ".p2align 6" if hybrid_blocks else ".p2align 4",
+            *([".fill 16, 1, 0x90"] if hybrid_blocks else []),
             ".globl " + root,
             ".hidden " + root,
             ".type " + root + ",@function",
@@ -625,6 +756,7 @@ def main():
                 else []
             )
             + (["JS_FrameSlowDirectData"] if indexed_contract else [])
+            + (["js_hybrid_drop_string1"] if hybrid_leaves else [])
         ):
             lines.insert(2, ".hidden " + target)
         for target in comparison_contract["globals"] if comparison_contract else []:
@@ -741,6 +873,7 @@ def main():
                 + global_blocks
                 + stack_insert_blocks
                 + slot_blocks
+                + hybrid_blocks
             ],
             direct_only_vm_functions=[
                 name
@@ -759,6 +892,7 @@ def main():
                 + global_blocks
                 + stack_insert_blocks
                 + slot_blocks
+                + hybrid_blocks
                 if name not in destinations
             ],
             indirect_destinations=sorted(rewrite(name) for name in destinations),

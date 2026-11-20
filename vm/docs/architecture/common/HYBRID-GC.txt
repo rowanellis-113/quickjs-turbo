@@ -1,0 +1,89 @@
+Hybrid Reference Counting and Generational Partial Cycle GC
+===============================================================
+
+QuickJS-Turbo retains QuickJS's deterministic immediate reference counting
+while replacing whole-heap cycle scanning and recursive destruction hotspots
+with an integrated four-pillar memory reclamation pipeline. Upstream public
+headers and original struct field offsets remain unchanged.
+
+Architecture overview
+---------------------
+1. Generational boundary-node partial trial-deletion:
+   A single sentinel node (JSRuntime.hybrid_gc_boundary_node) is inserted at
+   the tail of JSRuntime.gc_obj_list after every collection. Objects allocated
+   since the last collection sit after this boundary and are tagged with a
+   1-bit hybrid_young flag inside JSGCObjectHeader (reclaimed from padding
+   alongside gc_obj_type : 3 without growing JSGCObjectHeader or shifting any
+   public/private field offsets).
+   Minor collections traverse only O(|Young| + |OutEdges(Young)|) without
+   maintaining runtime write barriers:
+   - Outgoing edges from young objects to older objects stop at !hybrid_young.
+   - Because QuickJS stores complete reference counts on every object, any
+     old-to-young or stack/external reference naturally leaves the target
+     young object's trial ref_count > 0.
+   - Minor collection resets the boundary node cleanly and falls back to full
+     trial-deletion after 8 consecutive minor collections, when heap growth
+     exceeds 1.75x the post-full baseline, or near malloc_limit.
+
+2. Specialized inline GC graph walker:
+   JS_HYBRID_DEFINE_WALKER specializes decref, scan1, and scan2 walks inline
+   for ordinary JS_CLASS_OBJECT and JS_CLASS_ARRAY nodes (no weak refs),
+   folding normal properties, accessors, detached VarRefs, autoinit properties,
+   prototype shape links, and dense arrays without indirect mark_children
+   callbacks. Property IC weak prototype-shape edges are preserved cleanly
+   across minor collections (js_hybrid_ic_minor_propagate,
+   js_hybrid_ic_minor_restore, and js_property_ic_gc_prune).
+
+3. Iterative O(1)-C-stack synchronous RC destruction:
+   JS_FreeValue and JS_FreeValueRT stay minimal frameless leaves on the hot
+   path. When a JS_TAG_OBJECT drops to ref_count == 0 outside cycle removal,
+   js_hybrid_free_object_root releases acyclic trees iteratively via an intrusive
+   LIFO stack over JSGCObjectHeader.link.next without growing the C call stack
+   or re-linking gc_zero_ref_count_list.
+   - Inline properties (ARM64 fast VM, QJS_HYBRID_INLINE_PROPERTIES) are
+     checked via !qjs_inline_property_current(obj) before freeing obj->prop.
+   - Pooled allocator blocks (is_frame_pool) read capacity directly from the
+     prefix header via js_hybrid_usable_size_nonnull without indirect mf calls.
+
+4. Native VM borrowed-copy & fast string/rope leaf drop:
+   - On Linux x86-64, interp_property_slow_drop handles ref_count > 1 inline
+     and dispatches ref_count == 1 JS_TAG_STRING / JS_TAG_STRING_ROPE drops
+     through a non-reloading helper (JS_LinuxHybridDropString1 ->
+     js_hybrid_drop_string1).
+   - JS_LinuxBorrowedLoc01ArrayGet performs borrowed dense-array indexed loads
+     when var_ref_count == 0 and drc_ok == 1, while preserving 64-byte
+     (0 mod 64) hot VM instruction phase alignment.
+
+Backend selection & runtime controls
+------------------------------------
+Optimization                      ARM64 Linux   x86_64 Linux   Portable C   x86_64 Win64
+Generational partial cycle GC     ON            ON             ON           COFF-pinned core
+Iterative fast RC destruction     ON            ON             ON           COFF-pinned core
+Native VM drop & borrowed array   --            ON             --           COFF-pinned core
+
+- Build-time CMake option: -DQJS_HYBRID_GC=ON (default ON on non-COFF source
+  builds; bypassed automatically when QJS_BACKPORT_NATIVE_MODULES=ON).
+- Runtime ablation / diagnostics environment variables (evaluated at runtime
+  creation via js_hybrid_gc_init):
+  - QJS_DISABLE_HYBRID_GC=1      Disable all Hybrid GC & Fast RC mechanisms.
+  - QJS_DISABLE_PARTIAL_CYCLE=1  Disable minor collection & inline full walker.
+  - QJS_DISABLE_FAST_RC=1        Disable fast object root free, pool size fast
+                                 path, and native drc_ok VM leaf paths.
+  - QJS_HYBRID_GC_REPORT=1       Print JSON GC counters to stderr on runtime
+                                 teardown.
+
+Verification & measured impact
+------------------------------
+Validated against vm/tests/common/test_hybrid_gc_ab.js across default,
+QJS_DISABLE_HYBRID_GC=1, QJS_DISABLE_PARTIAL_CYCLE=1, QJS_DISABLE_FAST_RC=1,
+and pooled-allocator modes, plus differential Test262 (42,497 tests, 0 diff),
+Linux x86-64 ELF/CET/DWARF unwind checks, Linux AArch64 (QEMU), and Clang
+ASan+UBSan.
+
+Key paired ABBA improvements on Linux x86-64 (Release):
+- Resident heap + cyclic garbage churn (hybrid_bench): -33.6% runtime (~1.50x)
+- Acyclic DTO allocation churn: -4.2% runtime
+- Local slot overwrite churn: -6.5% runtime
+- Deep tree synchronous reclamation: -7.4% runtime (-336 KB RSS)
+- String slice churn (micro57): -9.6% to -11.0% runtime
+- Official V8-v7 composite: +0.54% with +4 KB RSS delta (zero RSS bloat)

@@ -21,8 +21,13 @@ option(QJS_BACKPORT_MAP_POINTER_HASH
 option(QJS_BACKPORT_PORTABLE_REGEXP
        "Use accepted common RegExp and wire semantics in the C backend" OFF)
 option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" OFF)
+option(QJS_HYBRID_GC "Build hybrid reference counting with generational partial cycle collection"
+       ON)
 if(QJS_PROPERTY_IC AND NOT QJS_BACKPORT_CONTEXT_OOM)
     message(FATAL_ERROR "Property IC requires the declared core overlay")
+endif()
+if(QJS_HYBRID_GC AND NOT QJS_BACKPORT_CONTEXT_OOM)
+    message(FATAL_ERROR "Hybrid GC requires the declared core source overlay")
 endif()
 if(QJS_BACKPORT_PORTABLE_REGEXP AND NOT QJS_BACKPORT_CONTEXT_OOM)
     message(FATAL_ERROR "Portable RegExp compatibility requires the declared core source overlay")
@@ -111,6 +116,10 @@ function(qjs_apply_declared_backports target)
     if(QJS_PROPERTY_IC)
         list(APPEND backport_launcher --property-ic)
     endif()
+    # Native object-module binary adapters pin original core function bytes.
+    if(QJS_HYBRID_GC AND NOT QJS_BACKPORT_NATIVE_MODULES)
+        list(APPEND backport_launcher --hybrid-gc)
+    endif()
     set(backport_generation ${backport_launcher})
     list(APPEND backport_launcher --)
     get_target_property(existing_launcher ${target} C_COMPILER_LAUNCHER)
@@ -152,7 +161,10 @@ function(qjs_apply_declared_backports target)
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/property/property-ic-lifetime.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/cvm_segments_c.py"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/cvm-native-segments.inc"
-                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/cvm-native-segment-opcodes.inc")
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/cvm-native-segment-opcodes.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/hybrid_gc.py"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.h"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.inc")
     set_property(
         SOURCE "${QJS_UPSTREAM_DIR}/quickjs-libc.c"
         APPEND

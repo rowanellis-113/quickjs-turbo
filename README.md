@@ -47,6 +47,7 @@ export default {
 
 - **Fast Where JITs Are Banned**: Strict `W^X` compliance (zero executable heap pages) with full DWARF CFI / Win64 SEH unwind support — ready for iOS, consoles, locked-down containers, CLI tools, and edge workers.
 - **Up to 6× Faster on Hot Workloads**: Native register dispatch + inline caches deliver **`6.69×` RegExp**, **`6.02×` `JSON.stringify`**, **`5.74×` array writes**, and **`2.84×` property reads** over stock QuickJS-NG `0.15.1`.
+- **Hybrid RC + Generational Partial Cycle GC**: Preserves deterministic immediate reference counting while cutting full-heap trial-deletion scans by ~86% (**`1.5×` faster cyclic garbage churn**) and accelerating synchronous object/string reclamation with zero RSS overhead.
 - **True Drop-In Compatibility**: Unmodified `quickjs.h` C API/ABI. Validated on every commit against **`81,152` Test262 cases** (`0` regressions, **`31` upstream bugs fixed**).
 - **Cross-Platform Native Speed**: Dedicated assembly VMs for **Linux `x86-64`**, **Windows `x86-64`** (`MSVC` & `MinGW`, `~1.94×` V8-v7), and **Linux `ARM64`** (`1.50×` over Bellard QuickJS `2026` on Graviton2), plus an automatic `PORTABLE` C fallback for macOS and other targets.
 
@@ -88,7 +89,7 @@ All QuickJS-Turbo optimizations live cleanly inside [`vm/`](vm/), keeping upstre
 
 - **[Build, Static CRT & Embedding Guide](vm/docs/architecture/common/BUILDING.txt)**
 - **[Benchmark Suites & Methodology](vm/docs/architecture/common/PRODUCT-BASELINE.txt)** · **[x86-64 Report](vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt)** · **[ARM64 Report](vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt)**
-- **[Optimization Deep Dive](vm/docs/architecture/common/OPTIMIZATIONS.txt)** · **[Contributor & Measurement Policy](vm/AGENTS.md)**
+- **[Optimization Deep Dive](vm/docs/architecture/common/OPTIMIZATIONS.txt)** · **[Hybrid RC & Cycle GC](vm/docs/architecture/common/HYBRID-GC.txt)** · **[Contributor & Measurement Policy](vm/AGENTS.md)**
 
 ---
 

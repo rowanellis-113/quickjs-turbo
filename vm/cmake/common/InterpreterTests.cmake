@@ -873,6 +873,34 @@ if(QJS_BACKPORT_CONTEXT_OOM)
     endif()
 endif()
 
+if(QJS_HYBRID_GC
+   AND QJS_BACKPORT_CONTEXT_OOM
+   AND NOT QJS_BACKPORT_NATIVE_MODULES)
+    foreach(hybrid_mode default off no-partial no-fast-rc)
+        add_test(NAME interpreter-hybrid-gc-${hybrid_mode}
+                 COMMAND qjs_exe --std
+                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_hybrid_gc_ab.js")
+        set_tests_properties(
+            interpreter-hybrid-gc-${hybrid_mode}
+            PROPERTIES PASS_REGULAR_EXPRESSION "HYBRID_GC_AB_TORTURE_OK" FAIL_REGULAR_EXPRESSION
+                       "Error:|Assertion failed")
+    endforeach()
+    set_tests_properties(interpreter-hybrid-gc-off PROPERTIES ENVIRONMENT "QJS_DISABLE_HYBRID_GC=1")
+    set_tests_properties(interpreter-hybrid-gc-no-partial PROPERTIES ENVIRONMENT
+                                                                     "QJS_DISABLE_PARTIAL_CYCLE=1")
+    set_tests_properties(interpreter-hybrid-gc-no-fast-rc PROPERTIES ENVIRONMENT
+                                                                     "QJS_DISABLE_FAST_RC=1")
+    if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+        add_test(NAME interpreter-hybrid-gc-pool512
+                 COMMAND qjs_exe --std
+                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_hybrid_gc_ab.js")
+        set_tests_properties(
+            interpreter-hybrid-gc-pool512
+            PROPERTIES ENVIRONMENT "QJS_EXPERIMENT_ALLOCATOR=512" PASS_REGULAR_EXPRESSION
+                       "HYBRID_GC_AB_TORTURE_OK" FAIL_REGULAR_EXPRESSION "Error:|Assertion failed")
+    endif()
+endif()
+
 add_test(NAME interpreter-arch-boundaries
          COMMAND "${Python3_EXECUTABLE}" -B
                  "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_arch_boundaries.py")

@@ -38,6 +38,7 @@ parser.add_argument("--narrow-value-readers", action="store_true")
 parser.add_argument("--mixed-numbers", action="store_true")
 parser.add_argument("--map-pointer-hash", action="store_true")
 parser.add_argument("--property-ic", action="store_true")
+parser.add_argument("--hybrid-gc", action="store_true")
 parser.add_argument("--native-string-module", action="store_true")
 parser.add_argument("--native-array-length-module", action="store_true")
 parser.add_argument("--native-regexp-test-module", action="store_true")
@@ -268,6 +269,18 @@ if args.property_ic:
             source="src/common/property/property-ic.inc",
         )
     )
+if args.hybrid_gc:
+    from hybrid_gc import core_overlay as hybrid_gc_overlay
+
+    patched = hybrid_gc_overlay(patched)
+    fixes.append(
+        dict(
+            mechanism="Hybrid RC + generational partial cycle GC + synchronous iterative fast RC",
+            private_layout="Reorder JSGCObjectHeader before JSRuntime and append hybrid GC / fast-free state; all original offsets unchanged",
+            source="src/common/memory/hybrid-gc.inc",
+            ablation="QJS_DISABLE_HYBRID_GC / QJS_DISABLE_PARTIAL_CYCLE / QJS_DISABLE_FAST_RC",
+        )
+    )
 
 # A small borrowed compiler view; all analyses compile in a separate C TU.
 compiler_marker = "\n\n/* create a function object from a function definition. The function"
@@ -384,6 +397,7 @@ receipt = dict(
     mixed_numbers=args.mixed_numbers,
     map_pointer_hash=args.map_pointer_hash,
     property_ic=args.property_ic,
+    hybrid_gc=args.hybrid_gc,
 )
 (output / "BACKPORTS.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
 if args.generate_only:

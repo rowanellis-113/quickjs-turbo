@@ -97,6 +97,7 @@
     "tests/common/native_vm_unwind.h",
     "tests/common/native_wire.c",
     "tests/common/test_c_source_match.py",
+    "tests/common/test_hybrid_gc_ab.js",
     "tests/common/linux/test_linux_admission.js",
     "tests/common/linux/test_linux_arguments.js",
     "tests/common/linux/test_linux_array_append.js",

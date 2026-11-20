@@ -18,10 +18,11 @@ Coroutine native segments          COROUTINES.txt (MSVC; GNU keeps its C path)
 Compiler lexical planning          src/common/bytecode; COMPILER-PLAN.txt
 Resolved Symbol conditions         SYMBOL-CONDITIONS.txt (GNU and MSVC)
 Long-function regexp admission     tools/x86/common/codegen/varargs.py; AGENTS.md
-Memory and scalar backports        src/common/memory, src/common/value, tools/x86/common/codegen
+Memory and scalar backports        src/common/memory, src/common/value, tools/x86/common/codegen; HYBRID-GC.txt
 
 Cross-architecture fast-path unification:
 Optimization                       ARM64 Linux     x86_64 Linux    x86_64 Win64
+Hybrid RC & partial cycle GC       src/common/memory/hybrid-gc.{h,inc} (ARM64/x86_64/Portable; Win64 retains COFF-pinned core)
 Float32Array / Float64Array VM     tools/arm64     eq_code cold-split (shared)
 Rel cmp (<,<=,>,>=) + branch fuse  vm/branch_fusion retired after x86 ablation
 Flat Latin-1 relational compare    vm/branch_fusion eq_code cold-split (shared)

@@ -12,7 +12,8 @@ Shared C & common optimization owners:
   property/fast-transition-resize.inc, property/fast-get-field.inc,
   value/instanceof-fast.inc, value/bigint-divrem-fast.inc, call/compound-leaf.inc,
   call/fast-for-of-next.inc, kernel/fast-construct.inc,
-  kernel/fast-array-from.inc, linux/virtual-arguments-fast.inc).
+  kernel/fast-array-from.inc, linux/virtual-arguments-fast.inc,
+  memory/hybrid-gc.h, memory/hybrid-gc.inc).
 
 Architecture-specific code & assembly:
 - ARM64: src/arm64/linux/ (including abi/fast-vm.json and *-fast.inc Release

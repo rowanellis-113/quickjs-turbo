@@ -49,6 +49,9 @@ def main():
     core, compiler, flags = actual_input.core, actual_input.compiler, actual_input.flags
     command, prelude = actual_input.command, actual_input.prelude
     keys, expressions = requests(catalogue, receipt["property_ic"])
+    if "drc_ok" in prelude:
+        keys.append(("offsets", "JSRuntime.drc_ok"))
+        expressions.append("offsetof(JSRuntime, drc_ok)")
     lines = [
         prelude,
         "#include <stdint.h>\n#include <stddef.h>",

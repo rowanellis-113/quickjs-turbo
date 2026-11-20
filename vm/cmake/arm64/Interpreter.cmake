@@ -114,6 +114,8 @@ file(
     CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/*.inc"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/*.h"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/*.inc"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/property/*.h"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/property/*.inc"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/*.inc"
@@ -437,6 +439,7 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/src/arm64/linux/interpreter-observe.h"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/vm/__init__.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/workers/__init__.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/hybrid_gc.py"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
             "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
     VERBATIM)
