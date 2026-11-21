@@ -901,6 +901,16 @@ if(QJS_HYBRID_GC
     endif()
 endif()
 
+if(QJS_BACKPORT_CONTEXT_OOM)
+    add_test(NAME interpreter-keyed-async-fastpaths
+             COMMAND qjs_exe --std
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_keyed_async_fastpaths.js")
+    set_tests_properties(
+        interpreter-keyed-async-fastpaths
+        PROPERTIES PASS_REGULAR_EXPRESSION "KEYED_ASYNC_FASTPATHS_OK" FAIL_REGULAR_EXPRESSION
+                   "KEYED_ASYNC_FASTPATHS_FAIL|Error:|Assertion failed")
+endif()
+
 add_test(NAME interpreter-arch-boundaries
          COMMAND "${Python3_EXECUTABLE}" -B
                  "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_arch_boundaries.py")

@@ -2,6 +2,7 @@
 
 import argparse
 import hashlib
+import importlib
 import json
 from pathlib import Path
 import re
@@ -13,7 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from arm64.paths_arm64 import activate_arm64_tools, source_file
 
 activate_arm64_tools()
-from elf64 import Elf64
+Elf64 = importlib.import_module("elf64").Elf64
 
 
 def sha(path):
@@ -697,7 +698,10 @@ def main():
         raise ValueError("Register VM executable must be PIE")
     symbols = {s["name"]: s for s in elf.symbols() if s["type"] == 2 and s["size"]}
     end = next(s for s in elf.symbols() if s["name"] == "qjs_aarch64_vm_end")
-    if end["value"] != symbols["JS_FrameInterp"]["value"] + symbols["JS_FrameInterp"]["size"]:
+    vm_entry = symbols["JS_FrameInterp"]
+    if vm_entry["value"] % 64:
+        raise ValueError("Register VM entry must retain its 64-byte instruction alignment")
+    if end["value"] != vm_entry["value"] + vm_entry["size"]:
         raise ValueError("VM unwind observation marker does not bound the real function")
     names = (
         "JS_FrameInterp",

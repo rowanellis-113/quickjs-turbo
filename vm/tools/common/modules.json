@@ -5,6 +5,8 @@
   "portable_regexp": "common/backports/portable_regexp.py",
   "property_ic": "common/backports/property_ic.py",
   "hybrid_gc": "common/backports/hybrid_gc.py",
+  "keyed_async": "common/backports/keyed_async.py",
+  "linux-inline-objects": "x86/linux/inline_objects.py",
   "closure_templates": "common/backports/closure_templates.py",
   "property_ic_native": "x86/common/codegen/property_ic_native.py",
   "qualified_ops": "common/backports/qualified_ops.py",

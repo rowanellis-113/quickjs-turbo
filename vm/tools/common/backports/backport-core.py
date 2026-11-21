@@ -247,6 +247,15 @@ if args.map_pointer_hash:
             adaptation="Bellard uint64 multiply/high-word mixing; preserve NG tables, masks, equality and ordered record list",
         )
     )
+from keyed_async import core_overlay as keyed_async_overlay
+
+patched = keyed_async_overlay(patched)
+fixes.append(
+    dict(
+        mechanism="Unified Map/Set string-key hash with short rope flattening and capability-free ordinary async output",
+        sources=["src/common/value/map-string-keys.inc", "src/common/promise/async-output.inc"],
+    )
+)
 if args.property_ic:
     from property_ic import core_overlay
 

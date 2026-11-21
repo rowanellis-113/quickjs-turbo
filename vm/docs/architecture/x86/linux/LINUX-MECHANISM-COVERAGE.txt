@@ -115,6 +115,15 @@ commits incoming ownership before finalizers. Paired profiles,component
 controls,whole original suites and explicit layout costs are retained.
 See LINUX-REFERENCE-SLOTS.txt;this does not imply all per-case parity.
 
+Ordinary literal reserve (shared across Linux x86-64, Win64 MinGW and
+Linux AArch64 via ordinary-literal.c): a cold, empty cache site may reserve
+4/8/16 slots for a bounded prefix of simple value/define_field pairs, reusing
+any existing empty reserved shape for the same prototype/tier. The reserve
+sizes use distinct shape hash seeds, including for subsequent transitions;
+ordinary object construction and its initial capacity are unchanged. No new
+opcode, frame state or public ABI is involved. The existing ordinary-literal,
+transition and spare disable controls also bypass this hint.
+
 Continue original reversed micro57/JetStream17/V8-v7 comparisons against
 prior/stock Linux AND the actual MinGW image. Confirm material costs,then
 profile the real remaining routes before changing another mechanism.

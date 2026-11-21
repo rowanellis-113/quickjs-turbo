@@ -276,6 +276,150 @@ static FRAME_INLINE bool ord_transition(JSShape *a, JSShape *b, JSAtom atom)
             return false;
     return bp[a->prop_count].atom == atom && bp[a->prop_count].flags == JS_PROP_C_W_E;
 }
+
+/* Only a simple value push followed by define_field contributes to the hint.
+   Stop at the first complex initializer, control flow, or nested literal. */
+static FRAME_INLINE unsigned ord_literal_value_op_size(unsigned op)
+{
+    switch (op) {
+    case OP_push_minus1:
+    case OP_push_0:
+    case OP_push_1:
+    case OP_push_2:
+    case OP_push_3:
+    case OP_push_4:
+    case OP_push_5:
+    case OP_push_6:
+    case OP_push_7:
+    case OP_push_empty_string:
+    case OP_undefined:
+    case OP_null:
+    case OP_push_false:
+    case OP_push_true:
+    case OP_get_loc0:
+    case OP_get_loc1:
+    case OP_get_loc2:
+    case OP_get_loc3:
+    case OP_get_arg0:
+    case OP_get_arg1:
+    case OP_get_arg2:
+    case OP_get_arg3:
+    case OP_get_var_ref0:
+    case OP_get_var_ref1:
+    case OP_get_var_ref2:
+    case OP_get_var_ref3:
+        return 1;
+    case OP_push_i8:
+    case OP_push_const8:
+    case OP_get_loc8:
+        return 2;
+    case OP_push_i16:
+    case OP_get_loc:
+    case OP_get_loc_check:
+    case OP_get_arg:
+    case OP_get_var_ref:
+    case OP_get_var_ref_check:
+        return 3;
+    case OP_push_i32:
+    case OP_push_const:
+    case OP_push_atom_value:
+        return 5;
+    default:
+        return 0;
+    }
+}
+
+static FRAME_INLINE uint32_t ord_shape_initial_hash(JSObject *proto)
+{
+    uint32_t h = hash32(1u + (uint32_t)(uintptr_t)proto);
+    if (sizeof(proto) > 4)
+        h = hash32(h + (uint32_t)((uint64_t)(uintptr_t)proto >> 32));
+    return h;
+}
+
+static FRAME_CODE JSValue ord_literal_new(JSContext *ctx, JSObject *proto,
+                                          const JSFunctionBytecode *b, const uint8_t *pc)
+{
+#if QJS_ABI_HAS_PREFIX_RC
+    (void)proto;
+    (void)b;
+    (void)pc;
+    return JS_NewObject(ctx);
+#else
+    const uint8_t *end = b->byte_code_buf + b->byte_code_len;
+    unsigned fields = 0;
+    while (fields < 16 && pc < end) {
+        unsigned size = ord_literal_value_op_size(*pc);
+        if (!size || end - pc < (ptrdiff_t)(size + 5u) || pc[size] != OP_define_field)
+            break;
+        pc += size + 5u;
+        fields++;
+    }
+    if (fields <= JS_PROP_INITIAL_SIZE)
+        return JS_NewObject(ctx);
+
+    unsigned reserve = fields <= 4 ? 4 : (fields <= 8 ? 8 : 16);
+    JSRuntime *rt = ctx->rt;
+    /* Separate reserve families before exposing the shape. For equal ordered
+       properties each transition extends the seed by a bijective hash step,
+       so neither the empty seed nor its descendants match ordinary lookup. */
+    uint32_t hash = ord_shape_initial_hash(proto) ^ hash32(reserve);
+    uint32_t bucket = hash >> (32 - rt->shape_hash_bits);
+    for (JSShape *sh = rt->shape_hash[bucket]; sh != NULL; sh = sh->shape_hash_next) {
+        if (sh->hash == hash && sh->proto == proto && sh->prop_count == 0 &&
+            sh->prop_size == (int)reserve && sh->prop_hash_mask == reserve - 1) {
+            return qjs_literal_core_JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT,
+                                                          NULL);
+        }
+    }
+
+    if (2 * (rt->shape_hash_count + 1) > rt->shape_hash_size && rt->shape_hash_bits < 30) {
+        int new_bits = rt->shape_hash_bits + 1;
+        int new_size = 1 << new_bits;
+        JSShape **new_table = js_malloc_rt(rt, sizeof(new_table[0]) * (size_t)new_size);
+        if (new_table) {
+            memset(new_table, 0, sizeof(new_table[0]) * (size_t)new_size);
+            for (int i = 0; i < rt->shape_hash_size; i++) {
+                for (JSShape *s1 = rt->shape_hash[i], *next; s1 != NULL; s1 = next) {
+                    next = s1->shape_hash_next;
+                    uint32_t h1 = s1->hash >> (32 - new_bits);
+                    s1->shape_hash_next = new_table[h1];
+                    new_table[h1] = s1;
+                }
+            }
+            js_free_rt(rt, rt->shape_hash);
+            rt->shape_hash_bits = new_bits;
+            rt->shape_hash_size = new_size;
+            rt->shape_hash = new_table;
+            bucket = hash >> (32 - new_bits);
+        }
+    }
+
+    size_t hash_bytes = (size_t)reserve * sizeof(uint32_t);
+    void *sh_alloc =
+        js_malloc(ctx, hash_bytes + sizeof(JSShape) + (size_t)reserve * sizeof(JSShapeProperty));
+    if (!sh_alloc)
+        return JS_EXCEPTION;
+    memset(sh_alloc, 0, hash_bytes + sizeof(JSShape));
+    JSShape *shape = (JSShape *)(void *)((uint32_t *)sh_alloc + reserve);
+    JS_REF_COUNT(shape) = 1;
+    add_gc_object(rt, &shape->header, JS_GC_OBJ_TYPE_SHAPE);
+    if (proto)
+        js_dup(JS_MKPTR(JS_TAG_OBJECT, proto));
+    shape->proto = proto;
+    shape->prop_hash_mask = reserve - 1;
+    shape->prop_size = (int)reserve;
+    shape->hash = hash;
+    shape->is_hashed = true;
+    shape->shape_hash_next = rt->shape_hash[bucket];
+    rt->shape_hash[bucket] = shape;
+    rt->shape_hash_count++;
+    /* The constructor consumes the factory reference on both success and OOM.
+       The ordinary site takes its existing independent reference on success. */
+    return qjs_literal_core_JS_NewObjectFromShape(ctx, shape, JS_CLASS_OBJECT, NULL);
+#endif
+}
+
 FRAME_CODE int JS_FrameOrdinaryLiteralStep(JSFrameRegisterState *s)
 {
     unsigned mode = atomic_load_explicit(&JS_FrameOrdinaryLiteralMode, memory_order_relaxed),
@@ -368,7 +512,10 @@ FRAME_CODE int JS_FrameOrdinaryLiteralStep(JSFrameRegisterState *s)
             v = qjs_literal_core_JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, NULL);
         } else {
             ord_count(mode, 4);
-            v = JS_NewObject(ctx);
+            if (!entry->new_shape && !(mode & (8 | 2048)))
+                v = ord_literal_new(ctx, prototype, frame->bytecode, pc + 1);
+            else
+                v = JS_NewObject(ctx);
             if (!JS_IsException(v) && !entry->new_shape) {
                 sh = JS_VALUE_GET_OBJ(v)->shape;
                 JS_REF_COUNT(sh)++;

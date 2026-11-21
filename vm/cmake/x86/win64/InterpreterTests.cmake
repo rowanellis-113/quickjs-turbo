@@ -43,6 +43,27 @@ if(QJS_ENABLE_INTERP_FRAME
         interpreter-argument-constructor-host-off-zero
         PROPERTIES ENVIRONMENT
                    "QJS_OBSERVE_FRAME_ARGUMENTS=1;QJS_DISABLE_FRAME_ARGUMENTS_CONSTRUCTOR=0")
+    add_executable(interpreter-test-literal-reserve tests/common/native_literal_reserve.c)
+    target_compile_features(interpreter-test-literal-reserve PRIVATE c_std_11)
+    target_compile_options(interpreter-test-literal-reserve PRIVATE -UNDEBUG)
+    target_link_libraries(interpreter-test-literal-reserve PRIVATE qjs)
+    add_test(NAME interpreter-literal-reserve-on COMMAND interpreter-test-literal-reserve)
+    add_test(NAME interpreter-literal-reserve-spare-off COMMAND interpreter-test-literal-reserve
+                                                                off)
+    add_test(NAME interpreter-literal-reserve-transition-off
+             COMMAND interpreter-test-literal-reserve off)
+    add_test(NAME interpreter-literal-reserve-ordinary-off COMMAND interpreter-test-literal-reserve
+                                                                   off)
+    set_tests_properties(
+        interpreter-literal-reserve-on interpreter-literal-reserve-spare-off
+        interpreter-literal-reserve-transition-off interpreter-literal-reserve-ordinary-off
+        PROPERTIES PASS_REGULAR_EXPRESSION "LITERAL_RESERVE_OK" TIMEOUT 120)
+    set_tests_properties(interpreter-literal-reserve-spare-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_LITERAL_SPARE=0")
+    set_tests_properties(interpreter-literal-reserve-transition-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL_TRANSITION=0")
+    set_tests_properties(interpreter-literal-reserve-ordinary-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL=0")
 endif()
 
 if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR

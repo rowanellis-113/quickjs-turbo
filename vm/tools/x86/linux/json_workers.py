@@ -46,7 +46,17 @@ def _adapt(source, output, text, adapter):
         text,
     )
     text = text.replace("QJS_STACK_POINTER(sp);", '__asm__ volatile("movq %%rsp,%0" : "=r"(sp));')
-    return text, {}
+    old = "                prop = js_realloc(p->ctx, o->prop, sizeof(JSProperty) * (size_t)e->to->prop_size);"
+    if text.count(old) != 3:
+        raise ValueError("Review the three JSON property storage growth boundaries")
+    text = text.replace(
+        old,
+        "#ifdef QJS_HYBRID_INLINE_PROPERTIES\n"
+        "                prop = qjs_inline_property_realloc(\n"
+        "                    p->ctx, o, sizeof(JSProperty) * (size_t)e->to->prop_size);\n"
+        "#else\n" + old + "\n#endif",
+    )
+    return text, {"inline_prop_growth_sites": 3}
 
 
 def generate(source, output, core, adapter, layout):

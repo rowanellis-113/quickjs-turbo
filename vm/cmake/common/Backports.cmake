@@ -164,7 +164,10 @@ function(qjs_apply_declared_backports target)
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/call/cvm-native-segment-opcodes.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/hybrid_gc.py"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.h"
-                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.inc")
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/keyed_async.py"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/map-string-keys.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/promise/async-output.inc")
     set_property(
         SOURCE "${QJS_UPSTREAM_DIR}/quickjs-libc.c"
         APPEND

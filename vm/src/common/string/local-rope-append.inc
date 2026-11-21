@@ -107,6 +107,8 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
                     memcpy(str8(leaf) + leaf_length, str8(suffix), suffix_length);
                     str8(leaf)[leaf_length + suffix_length] = '\0';
                 }
+                if (unlikely(leaf->hash))
+                    leaf->hash = 0;
                 leaf->len = leaf_length + suffix_length;
                 root->len = (uint32_t)length;
                 root->depth = (uint8_t)depth;

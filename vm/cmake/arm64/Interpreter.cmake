@@ -440,6 +440,7 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/vm/__init__.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/workers/__init__.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/hybrid_gc.py"
+            "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/keyed_async.py"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
             "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
     VERBATIM)

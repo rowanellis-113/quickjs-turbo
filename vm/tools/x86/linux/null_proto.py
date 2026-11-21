@@ -140,6 +140,12 @@ def generate(source, output, core, layout, *, admission_header="quickjs-linux-ad
     body = body.replace("JS_FrameNewNullObject", "JS_LinuxNewNullObject")
     body = replace_one(
         body,
+        "    p->is_prototype = 0;",
+        "    p->__gc_mark = 0;\n    p->is_prototype = 0;",
+        "null-object birth initializes the inline storage bit to zero",
+    )
+    body = replace_one(
+        body,
         "QJS_ABI_HAS_PREFIX_RC == 0 && QJS_ABI_REF_COUNT_OFFSET == 0",
         "offsetof(JSObject,header.ref_count)==0 && offsetof(JSShape,header.ref_count)==0",
         "actual same-TU inline ownership assertion",

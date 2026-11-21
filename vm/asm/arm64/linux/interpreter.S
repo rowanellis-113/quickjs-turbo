@@ -14,7 +14,9 @@
 #error BTI/PAC register executor is not qualified yet
 #endif
 .text
-.p2align 2
+// Keep the entry and its internal dispatch layout on a 64-byte instruction line
+// boundary, independent of the size of the C code linked before this object.
+.p2align 6
 .global JS_FrameInterp
 .hidden JS_FrameInterp
 .type JS_FrameInterp,%function

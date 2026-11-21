@@ -31,7 +31,7 @@
     "asm/arm64/common/register-string-append.inc": "5457b349603ebb2eeeeedb642d4d0209cd6f375cd64d8a0fdd5c3fea242b18dd",
     "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
     "asm/arm64/common/register-varargs.inc": "5f57f79164c20f2940fc29923c4d8bf161a991d3676f45cf6178ae78f4945264",
-    "asm/arm64/linux/interpreter.S": "12941e6bf48f37f5fc98751c77b33da6d6d13d0d619008baca92b485b84d8835",
+    "asm/arm64/linux/interpreter.S": "caf2819f1081525458669f6eed9b4f09ef174e58bd3709d81d3e851cb43823c0",
     "quickjs-opcode.h": "0054b0c45fd091afa308c3fb93b5862e0b071235918d3d73e413d23fce388bbc",
     "quickjs.c": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
     "tools/arm64/vm/number_dataflow.py": "4706d912a71260b5c967e058f91d25a1de4515a6e7aa4647e50b1e96d14f9cc6",

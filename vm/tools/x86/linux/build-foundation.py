@@ -230,6 +230,10 @@ JSValue JS_LinuxCallPublicFallback(JSContext *ctx, JSValueConst func_obj, JSValu
         from null_proto import generate as generate_null_proto
 
         text = generate_null_proto(source, output, text, layout)
+    if vm and vm.get("native_c_invoke"):
+        from inline_objects import core_storage
+
+        text = core_storage(text, property_ic=layout["property_ic"])
     generated = output / "quickjs-linux-foundation.c"
     generated.write_text(text)
     commands = json.loads((build / "compile_commands.json").read_text())

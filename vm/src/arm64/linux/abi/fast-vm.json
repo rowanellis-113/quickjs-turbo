@@ -6,7 +6,7 @@
     "quickjs.c": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
     "quickjs.h": "8011dd97fbeb1cc551020f90dde4b4f21f83a6145b6254b5e815f6d885ed3874",
     "quickjs-opcode.h": "0054b0c45fd091afa308c3fb93b5862e0b071235918d3d73e413d23fce388bbc",
-    "asm/arm64/linux/interpreter.S": "12941e6bf48f37f5fc98751c77b33da6d6d13d0d619008baca92b485b84d8835",
+    "asm/arm64/linux/interpreter.S": "caf2819f1081525458669f6eed9b4f09ef174e58bd3709d81d3e851cb43823c0",
     "asm/arm64/common/register-ops.inc": "7aad6f2b49041f5bb8c924e7816ae544af650bff771d3216f5d7c3ea53c1ada4",
     "asm/arm64/common/register-scalar-ops.inc": "a283cad5653d0342a7931486478a882f3e5fd479aed4aaabdd8b18bdbe6c2c52",
     "asm/arm64/common/register-property-ic.inc": "135d5fb9fe0df8a2e1cb128c9139cc8caf27bae60692cf3a258f670d2268c3a5",

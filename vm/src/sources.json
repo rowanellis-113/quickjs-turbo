@@ -266,5 +266,7 @@
   "string-small-char.c": "src/common/kernel/small-char.c",
   "string-index.c": "src/common/kernel/string-index.c",
   "hybrid-gc.h": "src/common/memory/hybrid-gc.h",
-  "hybrid-gc.inc": "src/common/memory/hybrid-gc.inc"
+  "hybrid-gc.inc": "src/common/memory/hybrid-gc.inc",
+  "map-string-keys.inc": "src/common/value/map-string-keys.inc",
+  "async-output.inc": "src/common/promise/async-output.inc"
 }

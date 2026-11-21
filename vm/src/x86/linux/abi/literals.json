@@ -2,7 +2,7 @@
   "schema": 1,
   "owners": {
     "tools/x86/common/codegen/iterator-literal.py": "01d72a67046c0bdb490f012974713c7232932b13a94904806a43cae4fec11ac8",
-    "src/x86/win64/mingw64/mingw-ordinary_literal.c": "cae86e4a0e8418868f26655f68464fb07432d4d37a9a718d8f837f0041e80b9c",
+    "src/x86/win64/mingw64/mingw-ordinary_literal.c": "7348ae7c0bfb03defde112d7ed848c1c84b1efdc09e508023d6c7b190de36248",
     "asm/x86/win64/mingw64/mingw-ordinary_literal_entry.S": "39c6aee27ff8a2d1c9497144d3633a1248409056bc95e616a1daea2e431a42b9",
     "tools/x86/win64/coff/retained_routes.py": "24e29202765f9fee56e147b9beaff234197786f606c859b45ab37ecbc88def45"
   },

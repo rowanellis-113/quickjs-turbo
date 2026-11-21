@@ -185,7 +185,7 @@
       "format_check": true
     },
     "src/common/string/local-rope-append.inc": {
-      "sha256": "0c1dc8ecbde0aed7f89e4c71a3c2ab9f5c52e55a366015f0cef39003f650f619",
+      "sha256": "15dc42e03e22acb6a2d720cf1fb6f40e0e88d2ba9c511033c9fa36fecab1a3a2",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },

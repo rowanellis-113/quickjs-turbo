@@ -906,6 +906,23 @@ set_tests_properties(linux-native-literal-oom-off-zero PROPERTIES ENVIRONMENT
                                                                   "QJS_DISABLE_LINUX_ADMISSION=0")
 set_tests_properties(linux-native-literal-oom-off-one PROPERTIES ENVIRONMENT
                                                                  "QJS_DISABLE_LINUX_ADMISSION=1")
+add_executable(linux-literal-reserve tests/common/native_literal_reserve.c)
+target_compile_options(linux-literal-reserve PRIVATE -UNDEBUG)
+target_link_libraries(linux-literal-reserve PRIVATE qjs)
+add_test(NAME linux-native-literal-reserve-on COMMAND linux-literal-reserve)
+add_test(NAME linux-native-literal-reserve-spare-off COMMAND linux-literal-reserve off)
+add_test(NAME linux-native-literal-reserve-transition-off COMMAND linux-literal-reserve off)
+add_test(NAME linux-native-literal-reserve-ordinary-off COMMAND linux-literal-reserve off)
+set_tests_properties(
+    linux-native-literal-reserve-on linux-native-literal-reserve-spare-off
+    linux-native-literal-reserve-transition-off linux-native-literal-reserve-ordinary-off
+    PROPERTIES PASS_REGULAR_EXPRESSION "LITERAL_RESERVE_OK" TIMEOUT 120)
+set_tests_properties(linux-native-literal-reserve-spare-off
+                     PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_LITERAL_SPARE=0")
+set_tests_properties(linux-native-literal-reserve-transition-off
+                     PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL_TRANSITION=0")
+set_tests_properties(linux-native-literal-reserve-ordinary-off
+                     PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL=0")
 foreach(mode on off-zero off-one)
     add_test(NAME linux-native-global-cells-${mode}
              COMMAND qjs_exe

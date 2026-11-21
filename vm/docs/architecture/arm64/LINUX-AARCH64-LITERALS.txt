@@ -30,7 +30,12 @@ weakening its pinned predecessor,transfers the only RHS owner and clears the
 popped slot. Every miss leaves incoming operands/PC/SP unchanged and reaches
 the exact original typed C lifetime owner through coherent publication.
 Object allocation retains that original C allocator rather than a guessed
-private malloc ABI.
+private malloc ABI. On cold empty literal sites (with ordinary/transition/spare
+controls enabled), a bounded prefix of simple value/define_field pairs may
+reserve 4/8/16 slots using isolated shape-hash seeds (reusing existing empty
+reserved shapes for the same prototype/tier); 4/8-slot objects co-allocate
+inline with JSObject under inline-properties.h without altering ordinary
+JS_NewObject capacity or transitions.
 
 Native insert2,typeof value/function/undefined and string/rope/object/number
 truth cohorts retain the complete original tag,nonlast reference,HTMLDDA,

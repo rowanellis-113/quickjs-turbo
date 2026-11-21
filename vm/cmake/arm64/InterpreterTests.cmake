@@ -3343,6 +3343,26 @@ if(qjs_arm_literals_enabled)
             endforeach()
         endforeach()
     endforeach()
+    add_executable(aarch64-literal-reserve tests/common/native_literal_reserve.c)
+    target_compile_options(aarch64-literal-reserve PRIVATE -UNDEBUG)
+    target_link_libraries(aarch64-literal-reserve PRIVATE qjs)
+    add_test(NAME interpreter-aarch64-literal-reserve-on COMMAND aarch64-literal-reserve)
+    add_test(NAME interpreter-aarch64-literal-reserve-spare-off COMMAND aarch64-literal-reserve off)
+    add_test(NAME interpreter-aarch64-literal-reserve-transition-off COMMAND aarch64-literal-reserve
+                                                                             off)
+    add_test(NAME interpreter-aarch64-literal-reserve-ordinary-off COMMAND aarch64-literal-reserve
+                                                                           off)
+    set_tests_properties(
+        interpreter-aarch64-literal-reserve-on interpreter-aarch64-literal-reserve-spare-off
+        interpreter-aarch64-literal-reserve-transition-off
+        interpreter-aarch64-literal-reserve-ordinary-off
+        PROPERTIES PASS_REGULAR_EXPRESSION "LITERAL_RESERVE_OK" TIMEOUT 180)
+    set_tests_properties(interpreter-aarch64-literal-reserve-spare-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_LITERAL_SPARE=0")
+    set_tests_properties(interpreter-aarch64-literal-reserve-transition-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL_TRANSITION=0")
+    set_tests_properties(interpreter-aarch64-literal-reserve-ordinary-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_FRAME_ORDINARY_LITERAL=0")
 endif()
 
 # Original GNU numeric owners, with actual AAPCS64 release and FPCR controls.
