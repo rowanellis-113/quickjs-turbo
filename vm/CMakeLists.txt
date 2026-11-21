@@ -287,7 +287,9 @@ if(QJS_ENABLE_UBSAN)
     list(APPEND qjs_sources "${qjs_ubsan_libunicode_out}")
 endif()
 
-if((QJS_BACKPORT_PORTABLE_REGEXP OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
+if((QJS_BACKPORT_PORTABLE_REGEXP
+    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64"
+    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
    AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
     # Linux native workers require this shared engine and its wire translation;
     # the portable backend selects the same ordinary C through its option.
@@ -360,6 +362,23 @@ if(QJS_ENABLE_INTERP_FRAME)
             asm/arm64/linux/forwarding-prepared.S
             src/common/internal/interpreter-env.c
             src/arm64/linux/interpreter-policy.c)
+    elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+        include(cmake/x86/macos/Interpreter.cmake)
+        add_library(qjs-core OBJECT "${qjs_macos_core}" "${qjs_macos_numeric}"
+                                    "${qjs_macos_projection}" "${qjs_macos_virtual_arguments}")
+        target_compile_definitions(
+            qjs-core
+            PRIVATE QJS_INTERP_FRAME_LINUX QJS_INTERP_FRAME_INTERNAL_ENTRY
+                    QJS_INTERP_FRAME_REGISTER_ABI QJS_LINUX_REGISTER_FOUNDATION
+                    QJS_INTERP_FRAME_LINUX_SHARED)
+        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+            target_compile_definitions(qjs-core PRIVATE QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+        endif()
+        target_include_directories(
+            qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
+                                    "${qjs_macos_native_dir}" "${qjs_macos_abi_dir}")
+        list(APPEND qjs_sources "${qjs_macos_vm}" "${qjs_macos_bridges}" "${qjs_macos_entry}"
+             src/common/internal/interpreter-env.c)
     else()
         include(cmake/x86/linux/Interpreter.cmake)
         add_library(qjs-core OBJECT "${qjs_linux_core}" "${qjs_linux_numeric}"
@@ -440,6 +459,8 @@ endif()
 qjs_apply_declared_backports(qjs)
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
     target_sources(qjs PRIVATE src/x86/linux/integer-expression.c)
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+    target_sources(qjs PRIVATE "${qjs_macos_int_expr}")
 endif()
 target_compile_definitions(qjs PRIVATE ${qjs_defines})
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
@@ -696,6 +717,8 @@ endif()
 option(QJS_FRAME_BUILD_TESTS "Build and register frame integration tests" OFF)
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
     include(cmake/x86/linux/Install.cmake)
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+    include(cmake/x86/macos/Install.cmake)
 endif()
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
     include(cmake/arm64/Install.cmake)
@@ -711,6 +734,8 @@ if(QJS_FRAME_BUILD_TESTS)
         include(cmake/arm64/InterpreterTests.cmake)
     elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
         include(cmake/x86/linux/InterpreterTests.cmake)
+    elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+        include(cmake/x86/macos/InterpreterTests.cmake)
     endif()
 endif()
 

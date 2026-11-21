@@ -43,6 +43,34 @@ def generate(source, output, core, adapter, layout):
         + local[end:]
     )
     local = local.replace("LOCAL_STRING_CODE", "LINUX_STRING_CODE")
+    old_concat = "    result=JS_ConcatString(ctx,js_dup(*pv),sp[-1]);"
+    new_concat = """    if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING && JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {
+        JSString *p1 = JS_VALUE_GET_STRING(*pv);
+        JSString *p2 = JS_VALUE_GET_STRING(sp[-1]);
+        if (p2->len == 0) {
+            JS_FreeValue(ctx, sp[-1]);
+            js_frame_finish_c(state);
+            return 2;
+        }
+        if (p1->header.ref_count == 1 && !p1->atom_type && p1->is_wide_char == p2->is_wide_char &&
+            js_malloc_usable_size(ctx, p1) >=
+                sizeof(*p1) + (((size_t)p1->len + (size_t)p2->len) << p1->is_wide_char) + 1 -
+                    p1->is_wide_char) {
+            if (p1->is_wide_char) {
+                memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1);
+                p1->len += p2->len;
+            } else {
+                memcpy(str8(p1) + p1->len, str8(p2), p2->len);
+                p1->len += p2->len;
+                str8(p1)[p1->len] = '\\0';
+            }
+            JS_FreeValue(ctx, sp[-1]);
+            js_frame_finish_c(state);
+            return 2;
+        }
+    }
+    result=JS_ConcatString(ctx,js_dup(*pv),sp[-1]);"""
+    local = replace_one(local, old_concat, new_concat, "in-place add_loc string append")
     control = source_text(source, "string-concat-control.inc")
     control = control.replace(".qjsem$strings", ".bss.qjs_strings")
     control = control.replace(
@@ -108,6 +136,22 @@ def generate(source, output, core, adapter, layout):
         "JSValue JS_FrameLocaleCompare(", "LINUX_STRING_CODE JSValue JS_FrameLocaleCompare(", 1
     )
     policy = source_text(source, "string-linux-boundaries.inc")
+    policy = replace_one(
+        policy,
+        "    result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);",
+        """    if (JS_VALUE_GET_TAG(sp[-2]) == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-2])->len == 0 &&
+        JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_INT) {
+        result = JS_ToString(ctx, sp[-1]);
+        JS_FreeValue(ctx, sp[-2]);
+    } else if (JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-1])->len == 0 &&
+               JS_VALUE_GET_TAG(sp[-2]) == JS_TAG_INT) {
+        result = JS_ToString(ctx, sp[-2]);
+        JS_FreeValue(ctx, sp[-1]);
+    } else {
+        result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);
+    }""",
+        "fast empty-string + int concat",
+    )
     small_path = source_file(source, "string-small-char.c")
     small = small_path.read_text()
     small = replace_one(

@@ -9,5 +9,7 @@ __pycache__/
 !/tools/arm64/build/**
 !/tools/x86/linux/build/
 !/tools/x86/linux/build/**
+!/tools/x86/macos/build/
+!/tools/x86/macos/build/**
 !/tools/x86/win64/build/
 !/tools/x86/win64/build/**

@@ -50,7 +50,7 @@ export default {
 - **Cross-Platform Object, Collection & Async Fast Paths**: Shared literal capacity reservation (**`2.98–3.49×`** on 5-field object literals), unified `Map`/`Set` string-key hashing + short-rope flattening (**`2.12–3.52×`** flat / **`1.58–2.52×`** rope lookups), capability-free ordinary `async` / `Promise.resolve` primitives (**`1.39–1.47×`**), and co-allocated inline object properties on Linux `x86-64` & `ARM64` (**`+2.38%`** V8-v7 / **`+8.79%`** Splay / **`-4.09%`** peak RSS on Linux `x86-64`).
 - **Hybrid RC + Generational Partial Cycle GC**: Preserves deterministic immediate reference counting while cutting full-heap trial-deletion scans by ~86% (**`1.50×` faster cyclic garbage churn** / `-33.6%` time), accelerating string slices by **`~10–11%`** and deep-tree reclamation by **`7.4%`** with zero RSS bloat.
 - **True Drop-In Compatibility**: Unmodified `quickjs.h` C API/ABI. Validated on every commit against **`81,152` Test262 cases** (`0` regressions, **`31` upstream bugs fixed**).
-- **Cross-Platform Native Speed**: Dedicated assembly VMs for **Linux `x86-64`** (`2.08×` V8-v7), **Windows `x86-64`** (`MSVC` & `MinGW`, `1.94×` V8-v7), and **Linux `ARM64`** (`1.50×` over Bellard QuickJS `2026` on Graviton2, 64-byte aligned VM entry), plus an automatic `PORTABLE` C fallback for macOS and other targets.
+- **Cross-Platform Native Speed**: Dedicated assembly VMs for **Linux `x86-64`** (`2.08×` V8-v7), **macOS `x86-64`** (`MACOS_X86_64`, Mach-O / Apple Clang, `1.45×` V8-v7 & `1.34×` JetStream 3.0 over Bellard QuickJS `2026`), **Windows `x86-64`** (`MSVC` & `MinGW`, `1.94×` V8-v7), and **Linux `ARM64`** (`1.50×` over Bellard QuickJS `2026` on Graviton2, 64-byte aligned VM entry), plus an automatic `PORTABLE` C fallback for macOS `ARM64` and other targets.
 
 ---
 
@@ -71,7 +71,10 @@ bash vm/tools/x86/linux/build/product-linux.sh build/linux out/sdk
 # Linux ARM64
 bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk
 
-# macOS / Portable C
+# macOS x86-64 (native Mach-O assembly VM)
+bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk
+
+# macOS ARM64 / Portable C
 cmake -S vm -B build/portable -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --build build/portable
 ```
 

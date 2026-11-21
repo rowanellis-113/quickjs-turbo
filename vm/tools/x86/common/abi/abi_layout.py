@@ -12,7 +12,9 @@ from common.paths import source_file
 def validate_measured_override(source, layout):
     """An explicit Linux measurement is separate from the Win64 catalogue."""
     source = Path(source).resolve()
-    if layout.get("platform") != "linux-x86_64-sysv" or layout.get("target") != "x86_64-linux-gnu":
+    target = layout.get("target", "")
+    valid_target = target == "x86_64-linux-gnu" or target.startswith("x86_64-apple-darwin")
+    if layout.get("platform") != "linux-x86_64-sysv" or not valid_target:
         raise ValueError("Unsupported measured native platform override")
     if (
         hashlib.sha256(source_file(source, "quickjs.c").read_text().encode()).hexdigest()
@@ -33,7 +35,8 @@ def validate_measured_override(source, layout):
 def write_if_changed(path, text):
     path = Path(path)
     if not path.is_file() or path.read_text(encoding="utf-8") != text:
-        path.write_text(text, encoding="utf-8", newline="\n")
+        with path.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(text)
 
 
 def load(source):

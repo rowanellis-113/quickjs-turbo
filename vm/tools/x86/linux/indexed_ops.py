@@ -216,7 +216,7 @@ def generate(
     *,
     route_core=True,
     platform_binding="src/x86/linux/interpreter-indexed.inc",
-    leaf_condition="#if defined(__linux__) && defined(__x86_64__)",
+    leaf_condition="#if (defined(__linux__) || defined(__APPLE__)) && defined(__x86_64__)",
 ):
     data = contract(source)
     owner = module(source, "slow-direct")

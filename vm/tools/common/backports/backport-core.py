@@ -240,11 +240,99 @@ if args.mixed_numbers:
     )
 if args.map_pointer_hash:
     patched = map_pointer_hash(patched)
+    old_float_hash = (
+        "        u.d = d;\n"
+        "        h = (u.u32[0] ^ u.u32[1]) * 3163;\n"
+        "        return h ^= JS_TAG_FLOAT64;"
+    )
+    new_float_hash = (
+        "        u.d = (d == 0) ? 0.0 : d;\n"
+        "        u.u64 = ((u.u64 ^ (u.u64 >> 33)) ^ JS_TAG_FLOAT64) * UINT64_C(0xff51afd7ed558ccd);\n"
+        "        return (uint32_t)((u.u64 ^ (u.u64 >> 33)) * UINT64_C(0xc4ceb9fe1a85ec53) >> 32);"
+    )
+    if patched.count(old_float_hash) != 1:
+        raise ValueError("review Map/Set numeric hash anchor")
+    patched = patched.replace(old_float_hash, new_float_hash, 1)
+    old_add_loc_str = (
+        "                    op1 = JS_ConcatString(ctx, js_dup(*pv), op1);\n"
+        "                    if (JS_IsException(op1))\n"
+        "                        goto exception;\n"
+        "                    set_value(ctx, pv, op1);"
+    )
+    new_add_loc_str = (
+        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && JS_VALUE_GET_STRING(*pv)->header.ref_count == 1 && !JS_VALUE_GET_STRING(*pv)->atom_type && JS_VALUE_GET_STRING(*pv)->is_wide_char == JS_VALUE_GET_STRING(op1)->is_wide_char && js_malloc_usable_size(ctx, JS_VALUE_GET_STRING(*pv)) >= sizeof(JSString) + (((size_t)JS_VALUE_GET_STRING(*pv)->len + (size_t)JS_VALUE_GET_STRING(op1)->len) << JS_VALUE_GET_STRING(*pv)->is_wide_char) + 1 - JS_VALUE_GET_STRING(*pv)->is_wide_char) {\n"
+        "                        JSString *p1 = JS_VALUE_GET_STRING(*pv), *p2 = JS_VALUE_GET_STRING(op1);\n"
+        "                        if (p1->is_wide_char) { memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1); p1->len += p2->len; } else { memcpy(str8(p1) + p1->len, str8(p2), p2->len); p1->len += p2->len; str8(p1)[p1->len] = '\\0'; }\n"
+        "                        JS_FreeValue(ctx, op1); } else { op1 = JS_ConcatString(ctx, js_dup(*pv), op1); if (JS_IsException(op1)) goto exception; set_value(ctx, pv, op1); }"
+    )
+    if patched.count(old_add_loc_str) != 1:
+        raise ValueError("review OP_add_loc in-place string append anchor")
+    patched = patched.replace(old_add_loc_str, new_add_loc_str, 1)
+    old_concat2_empty = (
+        "    /* XXX: could also check if p1 is empty */\n"
+        "    if (p2->len == 0) {\n"
+        "        goto ret_op1;\n"
+        "    }"
+    )
+    new_concat2_empty = (
+        "    if (p1->len == 0) { JS_FreeValue(ctx, op1); return op2; }\n"
+        "    if (p2->len == 0) {\n"
+        "        goto ret_op1;\n"
+        "    }"
+    )
+    if patched.count(old_concat2_empty) != 1:
+        raise ValueError("review JS_ConcatString2 empty LHS anchor")
+    patched = patched.replace(old_concat2_empty, new_concat2_empty, 1)
+    old_divrem_hdr = (
+        "/* return the division or the remainder. 'b' must be != 0. return NULL\n"
+        "   in case of exception (division by zero or memory error) */\n"
+        "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,"
+    )
+    new_divrem_hdr = (
+        '#include "src/common/value/bigint-divrem-fast.inc"\n'
+        "/* stack-limb and pseudo-Mersenne modulus fast paths */\n"
+        "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,"
+    )
+    if patched.count(old_divrem_hdr) != 1:
+        raise ValueError("review js_bigint_divrem header anchor")
+    patched = patched.replace(old_divrem_hdr, new_divrem_hdr, 1)
+    old_divrem_body = (
+        "    a_sign = js_bigint_sign(a);\n"
+        "    b_sign = js_bigint_sign(b);\n"
+        "    na = a->len;\n"
+        "    nb = b->len;\n"
+        "\n"
+        "    r = js_bigint_new(ctx, na + 2);"
+    )
+    new_divrem_body = (
+        "    a_sign = js_bigint_sign(a);\n"
+        "    b_sign = js_bigint_sign(b);\n"
+        "    na = a->len;\n"
+        "    nb = b->len;\n"
+        "    { JSBigInt *fast_r = NULL; if (js_bigint_try_divrem_stack(ctx, a, b, na, nb, a_sign, b_sign, is_rem, &fast_r)) return fast_r; }\n"
+        "    r = js_bigint_new(ctx, na + 2);"
+    )
+    if patched.count(old_divrem_body) != 1:
+        raise ValueError("review js_bigint_divrem body anchor")
+    patched = patched.replace(old_divrem_body, new_divrem_body, 1)
+    old_int_to_str = (
+        "    case JS_TAG_INT:\n"
+        "        len = i32toa(buf, JS_VALUE_GET_INT(val));\n"
+        "        return js_new_string8_len(ctx, buf, len);"
+    )
+    new_int_to_str = (
+        "    case JS_TAG_INT:\n"
+        "        { int32_t v = JS_VALUE_GET_INT(val); if ((uint32_t)v < 10u) return js_new_string_char(ctx, '0' + v);\n"
+        "        len = i32toa(buf, v); return js_new_string8_len(ctx, buf, len); }"
+    )
+    if patched.count(old_int_to_str) != 1:
+        raise ValueError("review JS_ToStringInternal int anchor")
+    patched = patched.replace(old_int_to_str, new_int_to_str, 1)
     fixes.append(
         dict(
             commit=MAP_HASH_COMMIT,
-            summary="Mix object/symbol pointer keys before narrowing to the existing uint32 Map hash",
-            adaptation="Bellard uint64 multiply/high-word mixing; preserve NG tables, masks, equality and ordered record list",
+            summary="Mix pointer and numeric keys before narrowing to the existing uint32 Map hash",
+            adaptation="Bellard uint64 multiply/high-word mixing; preserve SameValueZero(-0/+0), NG tables, masks, equality and ordered record list",
         )
     )
 from keyed_async import core_overlay as keyed_async_overlay

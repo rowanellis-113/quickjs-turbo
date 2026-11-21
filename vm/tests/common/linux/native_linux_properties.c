@@ -6,6 +6,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#include <limits.h>
+#endif
 #ifdef NDEBUG
 #error Property fixture needs active assertions.
 #endif
@@ -162,10 +166,18 @@ int main(int argc, char **argv)
                     char phase_text[16], fault_text[32];
                     snprintf(phase_text, sizeof(phase_text), "%u", reader);
                     snprintf(fault_text, sizeof(fault_text), "%zu", fault);
-                    /* A fresh process also resets the monotonic hint policy.
+                /* A fresh process also resets the monotonic hint policy.
                  * Retained pre-exec fork failures reproduce on stock/prior. */
+#ifdef __APPLE__
+                    char self_path[PATH_MAX];
+                    uint32_t self_size = sizeof(self_path);
+                    const char *exe_path =
+                        _NSGetExecutablePath(self_path, &self_size) == 0 ? self_path : argv[0];
+                    execl(exe_path, argv[0], "single", phase_text, fault_text, (char *)NULL);
+#else
                     execl("/proc/self/exe", argv[0], "single", phase_text, fault_text,
                           (char *)NULL);
+#endif
                     perror("property-fault-exec");
                     _Exit(127);
                 }

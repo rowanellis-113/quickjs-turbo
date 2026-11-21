@@ -16,17 +16,16 @@ def main():
     with tempfile.TemporaryDirectory(prefix="interpreter-options-") as directory:
         cwd = Path(directory)
         script = cwd / "options.cmake"
-        script.write_text(
-            "cmake_minimum_required(VERSION 3.20)\n"
-            'set(QJS_FRAME_BACKEND PORTABLE CACHE STRING "")\n'
-            'include("' + (root / "cmake/common/InterpreterOptions.cmake").as_posix() + '")\n'
-            "get_property(preference CACHE QJS_INTERP_FRAME_DIAGNOSTICS PROPERTY VALUE)\n"
-            "if(NOT preference)\n"
-            '  message(FATAL_ERROR "Diagnostic option was not propagated")\n'
-            "endif()\n",
-            encoding="utf-8",
-            newline="\n",
-        )
+        with script.open("w", encoding="utf-8", newline="\n") as handle:
+            handle.write(
+                "cmake_minimum_required(VERSION 3.20)\n"
+                'set(QJS_FRAME_BACKEND PORTABLE CACHE STRING "")\n'
+                'include("' + (root / "cmake/common/InterpreterOptions.cmake").as_posix() + '")\n'
+                "get_property(preference CACHE QJS_INTERP_FRAME_DIAGNOSTICS PROPERTY VALUE)\n"
+                "if(NOT preference)\n"
+                '  message(FATAL_ERROR "Diagnostic option was not propagated")\n'
+                "endif()\n"
+            )
         cases = [
             ([f"-D{previous}:BOOL=ON"], True),
             ([f"-D{current}:BOOL=ON"], True),

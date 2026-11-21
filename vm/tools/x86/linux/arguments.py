@@ -381,7 +381,7 @@ __attribute__((visibility("hidden"))) JSValue JS_FrameArgumentsRootBridge(JSCont
         core = replace_one(
             core,
             marker,
-            "    if (FRAME_INTERNAL_STATE(ctx->rt)==1 && JS_LinuxArgumentsCandidate(ctx,func_obj))\n"
+            "    if (FRAME_INTERNAL_STATE(ctx->rt)==1 && !FRAME_SUPPORTED(JS_VALUE_GET_OBJ(func_obj)->u.func.function_bytecode) && JS_LinuxArgumentsCandidate(ctx,func_obj))\n"
             "        return JS_FrameArgumentsRootBridge(ctx,func_obj,this_obj,new_target,argc,argv,flags);\n"
             + marker,
             "internal original entry decline to argument root",

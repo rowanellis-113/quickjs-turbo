@@ -66,6 +66,7 @@ jobs:
           python -B vm/tests/arm64/test_publication_directive.py
           python -B vm/tests/x86/linux/test_elf_machine_x86.py
           python -B vm/tests/arm64/test_elf_machine_arm64.py
+          python -B vm/tests/x86/macos/test_macho_x86.py
           python -B vm/ci/release_version.py
           python -B vm/ci/test_ci_helpers.py
 
@@ -421,3 +422,25 @@ jobs:
             -DCMAKE_PREFIX_PATH="$PWD/out/sdk-macos"
           cmake --build build/consumer-macos --parallel 4
           ctest --test-dir build/consumer-macos --output-on-failure
+
+  macos-x86_64:
+    name: macOS x86-64 (MACOS_X86_64 + SDK)
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build, CTest & install macOS x86-64 native SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null 2>&1 || brew install ninja
+          QJS_BUILD_JOBS=4 \
+            bash vm/tools/x86/macos/build/product-macos.sh \
+              build/macos-x86_64-native \
+              out/sdk-macos-x86_64
+          python3 -c 'import json; d = json.load(open("build/macos-x86_64-native/BUILD.json", encoding="utf-8")); assert d["backend"] == "MACOS_X86_64" and d["wx_clean"] and d["PIE"] and d["nonexec_stack"], d; print("Verified MACOS_X86_64 BUILD.json")'
+          cmake -S vm/tests/common/consumer -B build/consumer-macos-x86_64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/out/sdk-macos-x86_64"
+          cmake --build build/consumer-macos-x86_64 --parallel 4
+          ctest --test-dir build/consumer-macos-x86_64 --output-on-failure

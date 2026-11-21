@@ -52,17 +52,33 @@ if(NOT DEFINED QJS_FRAME_BACKEND)
             CACHE STRING "Frame backend: PORTABLE, AUTO, WIN64 or LINUX_X86_64")
     endif()
 endif()
-set_property(CACHE QJS_FRAME_BACKEND PROPERTY STRINGS PORTABLE AUTO WIN64 LINUX_X86_64
-                                              LINUX_AARCH64)
+set_property(
+    CACHE QJS_FRAME_BACKEND
+    PROPERTY STRINGS
+             PORTABLE
+             AUTO
+             WIN64
+             LINUX_X86_64
+             LINUX_AARCH64
+             MACOS_X86_64)
 string(TOUPPER "${QJS_FRAME_BACKEND}" frame_requested)
-if(NOT frame_requested MATCHES "^(PORTABLE|AUTO|WIN64|LINUX_X86_64|LINUX_AARCH64)$")
+if(NOT frame_requested MATCHES "^(PORTABLE|AUTO|WIN64|LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64)$")
     message(
-        FATAL_ERROR "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN64, LINUX_X86_64 or LINUX_AARCH64"
+        FATAL_ERROR
+            "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
     )
 endif()
 
 if(frame_requested STREQUAL "LINUX_AARCH64")
     include("${CMAKE_CURRENT_LIST_DIR}/../arm64/InterpreterOptions.cmake")
+    return()
+endif()
+
+if(frame_requested STREQUAL "MACOS_X86_64"
+   OR (frame_requested STREQUAL "AUTO"
+       AND CMAKE_SYSTEM_NAME STREQUAL "Darwin"
+       AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64)$"))
+    include("${CMAKE_CURRENT_LIST_DIR}/../x86/macos/InterpreterOptions.cmake")
     return()
 endif()
 

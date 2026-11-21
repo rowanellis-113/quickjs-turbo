@@ -157,7 +157,8 @@ static JSValue JS_CallInternal(JSContext *ctx, JSValueConst func_obj,
      * flag/class/control boundaries checked by the Win64 leaf selectors. */
     if ((flags & ~JS_CALL_FLAG_COPY_ARGV) || FRAME_STATE(ctx->rt) == 2 ||
         JS_VALUE_GET_TAG(func_obj) != JS_TAG_OBJECT ||
-        JS_VALUE_GET_OBJ(func_obj)->class_id != JS_CLASS_BYTECODE_FUNCTION)
+        JS_VALUE_GET_OBJ(func_obj)->class_id != JS_CLASS_BYTECODE_FUNCTION ||
+        JS_VALUE_GET_OBJ(func_obj)->u.func.function_bytecode->func_kind != JS_FUNC_NORMAL)
         return JS_LegacyCallInternal(ctx, func_obj, this_obj, new_target, argc, argv, flags);
     if (unlikely(!FRAME_INTERNAL_STATE(ctx->rt)))
         FRAME_INTERNAL_STATE(ctx->rt) = qjs_internal_interp_internal_disabled() ? 2 : 1;

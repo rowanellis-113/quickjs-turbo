@@ -147,6 +147,351 @@ def apply_hybrid_gc_native(stream, handlers, layout):
     ]
 
 
+def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
+    """Add shared cold-section fast paths for dup2, put_var, and float-tagged int inc/dec."""
+    offs = layout["offsets"]
+    consts = layout["constants"]
+    if (
+        consts.get("JS_TAG_INT") != 0
+        or consts.get("JS_TAG_FLOAT64") != 8
+        or consts.get("JS_PROP_WRITABLE") != 2
+        or consts.get("JS_PROP_LENGTH") != 8
+        or consts.get("JS_PROP_TMASK") != 48
+        or offs.get("JSGCObjectHeader.ref_count") != 0
+        or offs.get("JSShapeProperty.atom") != 4
+    ):
+        raise ValueError("Unexpected layout constants for native regression fast paths")
+
+    extra_blocks = []
+
+    # 1. OP_dup2: duplicates top two stack slots (used heavily by compound array/indexed updates).
+    if handlers.get("dup2", "interp_slow") == "interp_slow":
+        dup2_rows = [
+            "mov rax, QWORD PTR [r13-32]",
+            "mov rdx, QWORD PTR [r13-24]",
+            "test edx, edx",
+            "jns linux_dup2_first_ready",
+            "inc DWORD PTR [rax+0]",
+            "linux_dup2_first_ready:",
+            "mov QWORD PTR [r13], rax",
+            "mov QWORD PTR [r13+8], rdx",
+            "mov rax, QWORD PTR [r13-16]",
+            "mov rdx, QWORD PTR [r13-8]",
+            "test edx, edx",
+            "jns linux_dup2_second_ready",
+            "inc DWORD PTR [rax+0]",
+            "linux_dup2_second_ready:",
+            "mov QWORD PTR [r13+16], rax",
+            "mov QWORD PTR [r13+24], rdx",
+            "add r13, 32",
+            "inc r12",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+        extra_blocks.append(("JS_LinuxDup2", dup2_rows))
+        handlers["dup2"] = "JS_LinuxDup2"
+
+    # 2. OP_put_var: direct own-property write on global_var_obj / global_obj when slot is writable
+    # normal data and previous value is non-refcounted (refcounted/exotic/readonly/TDZ fall back).
+    if handlers.get("put_var", "interp_slow") == "interp_slow":
+        gvar_off = offs["JSContext.global_var_obj"]
+        gobj_off = offs["JSContext.global_obj"]
+        shape_off = offs["JSObject.shape"]
+        prop_off = offs["JSObject.prop"]
+        mask_off = offs["JSShape.prop_hash_mask"]
+        sprop_off = offs["JSShape.prop"]
+        flags_mask = consts["JS_PROP_TMASK"] | consts["JS_PROP_LENGTH"] | consts["JS_PROP_WRITABLE"]
+        flags_writable = consts["JS_PROP_WRITABLE"]
+        put_var_rows = [
+            "mov r9d, DWORD PTR [r12+1]",
+            f"mov r8, QWORD PTR [rsi+{gvar_off}]",
+            f"mov r10, QWORD PTR [r8+{shape_off}]",
+            f"mov ecx, DWORD PTR [r10+{mask_off}]",
+            "mov edx, r9d",
+            "and edx, ecx",
+            "neg rdx",
+            "mov ecx, DWORD PTR [r10+rdx*4-4]",
+            f"lea r11, [r10+{sprop_off}]",
+            "linux_put_var_lex_probe:",
+            "test ecx, ecx",
+            "jz linux_put_var_global",
+            "lea rax, [r11+rcx*8-8]",
+            "cmp DWORD PTR [rax+4], r9d",
+            "je linux_put_var_lex_found",
+            "mov ecx, DWORD PTR [rax]",
+            "and ecx, 67108863",
+            "jmp linux_put_var_lex_probe",
+            "linux_put_var_lex_found:",
+            "mov edx, DWORD PTR [rax]",
+            "shr edx, 26",
+            f"and edx, {flags_mask}",
+            f"cmp edx, {flags_writable}",
+            "jne linux_put_var_slow",
+            "dec ecx",
+            "shl rcx, 4",
+            f"mov r10, QWORD PTR [r8+{prop_off}]",
+            "add r10, rcx",
+            "mov edx, DWORD PTR [r10+8]",
+            "cmp edx, 4",
+            "je linux_put_var_slow",
+            "test edx, edx",
+            "js linux_put_var_slow",
+            "jmp linux_put_var_store",
+            "linux_put_var_global:",
+            f"mov r8, QWORD PTR [rsi+{gobj_off}]",
+            f"mov r10, QWORD PTR [r8+{shape_off}]",
+            f"mov ecx, DWORD PTR [r10+{mask_off}]",
+            "mov edx, r9d",
+            "and edx, ecx",
+            "neg rdx",
+            "mov ecx, DWORD PTR [r10+rdx*4-4]",
+            f"lea r11, [r10+{sprop_off}]",
+            "linux_put_var_obj_probe:",
+            "test ecx, ecx",
+            "jz linux_put_var_slow",
+            "lea rax, [r11+rcx*8-8]",
+            "cmp DWORD PTR [rax+4], r9d",
+            "je linux_put_var_obj_found",
+            "mov ecx, DWORD PTR [rax]",
+            "and ecx, 67108863",
+            "jmp linux_put_var_obj_probe",
+            "linux_put_var_obj_found:",
+            "mov edx, DWORD PTR [rax]",
+            "shr edx, 26",
+            f"and edx, {flags_mask}",
+            f"cmp edx, {flags_writable}",
+            "jne linux_put_var_slow",
+            "dec ecx",
+            "shl rcx, 4",
+            f"mov r10, QWORD PTR [r8+{prop_off}]",
+            "add r10, rcx",
+            "cmp DWORD PTR [r10+8], 0",
+            "jl linux_put_var_slow",
+            "linux_put_var_store:",
+            "mov rax, QWORD PTR [r13-16]",
+            "mov rdx, QWORD PTR [r13-8]",
+            "mov QWORD PTR [r10], rax",
+            "mov QWORD PTR [r10+8], rdx",
+            "sub r13, 16",
+            "add r12, 5",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+            "linux_put_var_slow:",
+            "lea rax, [rip+JS_FramePublishDirtyTable]",
+            "cmp rdi, rax",
+            "je dirty_interp_slow",
+            "jmp interp_slow",
+        ]
+        extra_blocks.append(("JS_LinuxPutVar", put_var_rows))
+        handlers["put_var"] = "JS_LinuxPutVar"
+
+    # 3. Normalize exact int32 FLOAT64 operands to JS_TAG_INT on cold inc/dec branches
+    # (zero hot-path overhead; prevents downward loops initialized from float64 ints from trapping in slow path).
+    code = stream["code"]
+
+    def patch_cold_jne(label, expected_cmp, target):
+        idx = code.index(label)
+        if (
+            code[idx + expected_cmp[0]] != expected_cmp[1]
+            or code[idx + expected_cmp[0] + 1] != "jne interp_slow"
+        ):
+            raise ValueError("Review inc/dec handler shape for " + label)
+        code[idx + expected_cmp[0] + 1] = "jne " + target
+
+    patch_cold_jne("interp_inc_loc:", (4, "cmp DWORD PTR [r8+8], 0"), "JS_LinuxFloatIncLoc")
+    patch_cold_jne("interp_dec_loc:", (4, "cmp DWORD PTR [r8+8], 0"), "JS_LinuxFloatDecLoc")
+    patch_cold_jne("interp_inc:", (1, "cmp DWORD PTR [r13-8], 0"), "JS_LinuxFloatInc")
+    patch_cold_jne("interp_dec:", (1, "cmp DWORD PTR [r13-8], 0"), "JS_LinuxFloatDec")
+    patch_cold_jne("interp_post_inc:", (1, "cmp DWORD PTR [r13-8], 0"), "JS_LinuxFloatPostInc")
+    patch_cold_jne("interp_post_dec:", (1, "cmp DWORD PTR [r13-8], 0"), "JS_LinuxFloatPostDec")
+
+    def float_loc_stub(op_instr):
+        return [
+            "cmp DWORD PTR [r8+8], 8",
+            "jne linux_float_incdec_slow",
+            "movsd xmm0, QWORD PTR [r8]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne linux_float_incdec_slow",
+            "jp linux_float_incdec_slow",
+            op_instr,
+            "jo linux_float_incdec_slow",
+            "mov QWORD PTR [r8], rax",
+            "mov QWORD PTR [r8+8], 0",
+            "add r12, 2",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
+    def float_tos_stub(op_instr):
+        return [
+            "cmp DWORD PTR [r13-8], 8",
+            "jne linux_float_incdec_slow",
+            "movsd xmm0, QWORD PTR [r13-16]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne linux_float_incdec_slow",
+            "jp linux_float_incdec_slow",
+            op_instr,
+            "jo linux_float_incdec_slow",
+            "mov QWORD PTR [r13-16], rax",
+            "mov QWORD PTR [r13-8], 0",
+            "add r12, 1",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
+    def float_post_stub(op_instr, include_slow=False):
+        rows = [
+            "cmp DWORD PTR [r13-8], 8",
+            "jne linux_float_incdec_slow",
+            "movsd xmm0, QWORD PTR [r13-16]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne linux_float_incdec_slow",
+            "jp linux_float_incdec_slow",
+            op_instr,
+            "jo linux_float_incdec_slow",
+            "xor edx, edx",
+            "inc r12",
+            "mov QWORD PTR [r13], rax",
+            "mov QWORD PTR [r13+8], rdx",
+            "add r13, 16",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+        if include_slow:
+            rows += [
+                "linux_float_incdec_slow:",
+                "lea rax, [rip+JS_FramePublishDirtyTable]",
+                "cmp rdi, rax",
+                "je dirty_interp_slow",
+                "jmp interp_slow",
+            ]
+        return rows
+
+    extra_blocks += [
+        ("JS_LinuxFloatIncLoc", float_loc_stub("add eax, 1")),
+        ("JS_LinuxFloatDecLoc", float_loc_stub("sub eax, 1")),
+        ("JS_LinuxFloatInc", float_tos_stub("add eax, 1")),
+        ("JS_LinuxFloatDec", float_tos_stub("sub eax, 1")),
+        ("JS_LinuxFloatPostInc", float_post_stub("add eax, 1")),
+        ("JS_LinuxFloatPostDec", float_post_stub("sub eax, 1", include_slow=True)),
+    ]
+
+    # 4. OP_push_bigint_i32: push 32-bit immediate as JS_TAG_SHORT_BIG_INT (tag 7).
+    if handlers.get("push_bigint_i32", "interp_slow") == "interp_slow":
+        push_bigint_rows = [
+            "mov eax, DWORD PTR [r12+1]",
+            "mov QWORD PTR [r13], rax",
+            "mov QWORD PTR [r13+8], 7",
+            "add r13, 16",
+            "add r12, 5",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+        extra_blocks.append(("JS_LinuxPushBigIntI32", push_bigint_rows))
+        handlers["push_bigint_i32"] = "JS_LinuxPushBigIntI32"
+
+    # 5. Route already-rejected bytecode functions (FRAME_KIND == 2, declined by arguments guard)
+    # directly to the fast host call bridge instead of exiting through the 7-layer interp_slow chain.
+    call_code = stream["call_code"]
+    unready_idx = call_code.index("interp_meta_unready:")
+    if call_code[unready_idx + 1 : unready_idx + 3] != ["test eax, 1", "jz interp_slow"]:
+        raise ValueError("Review interp_meta_unready shape")
+    kind_off = offs["JSFunctionBytecode.byte_code_buf"] - 1
+    call_code[unready_idx + 1 : unready_idx + 3] = [
+        "test eax, 1",
+        "jnz interp_meta_supported_unready",
+        f"cmp BYTE PTR [r9+{kind_off}], 2",
+        "je linux_forward_original_host",
+        "jmp interp_slow",
+        "interp_meta_supported_unready:",
+    ]
+
+    # 6. OP_set_loc_uninitialized: handle refcounted locals (rc > 1 inline dec, rc == 1 string/rope
+    # leaf drop) in cold block instead of falling through the 7-layer interp_slow chain.
+    if "JSRuntime.drc_ok" in offs:
+        drc_off = offs["JSRuntime.drc_ok"]
+        uninit_idx = code.index("interp_set_loc_uninitialized:")
+        if code[uninit_idx + 4 : uninit_idx + 6] != ["cmp DWORD PTR [r8+8], 0", "jl interp_slow"]:
+            raise ValueError("Review interp_set_loc_uninitialized shape")
+        code[uninit_idx + 5] = "jl JS_LinuxSetLocUninitRef"
+        extra_blocks.append(
+            (
+                "JS_LinuxSetLocUninitRef",
+                [
+                    "mov rax, QWORD PTR [r8]",
+                    "mov r10, QWORD PTR [rbx+56]",
+                    f"cmp BYTE PTR [r10+{drc_off}], 1",
+                    "jne linux_set_loc_uninit_slow",
+                    "cmp DWORD PTR [rax+0], 1",
+                    "je linux_set_loc_uninit_rc1",
+                    "jl linux_set_loc_uninit_slow",
+                    "dec DWORD PTR [rax+0]",
+                    "mov QWORD PTR [r8], 0",
+                    "mov QWORD PTR [r8+8], 4",
+                    "add r12, 3",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    "linux_set_loc_uninit_rc1:",
+                    "mov edx, DWORD PTR [r8+8]",
+                    "sub edx, -7",
+                    "cmp edx, 1",
+                    "ja linux_set_loc_uninit_slow",
+                    "mov QWORD PTR [r8], 0",
+                    "mov QWORD PTR [r8+8], 4",
+                    "call JS_LinuxHybridDropString1",
+                    "add r12, 3",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    "linux_set_loc_uninit_slow:",
+                    "lea rax, [rip+JS_FramePublishDirtyTable]",
+                    "cmp rdi, rax",
+                    "je dirty_interp_slow",
+                    "jmp interp_slow",
+                ],
+            )
+        )
+
+        # 7. slot_store_last: bypass JS_FrameInterpFree bridge for rc == 1 string/rope overwrites.
+        for sname, srows in slot_blocks:
+            if sname == "JS_LinuxSlotCold":
+                idx = srows.index("slot_store_last_ready:")
+                if srows[idx + 1 : idx + 6] != [
+                    "and r9d, 127",
+                    "add r12, r9",
+                    "movdqu xmm0, XMMWORD PTR [r8]",
+                    "mov QWORD PTR [r8], rax",
+                    "mov QWORD PTR [r8+8], rdx",
+                ]:
+                    raise ValueError("Review slot_store_last_ready shape")
+                srows[idx + 3 : idx + 6] = [
+                    "movdqu xmm0, XMMWORD PTR [r8]",
+                    "mov rcx, QWORD PTR [r8]",
+                    "mov r11d, DWORD PTR [r8+8]",
+                    "mov QWORD PTR [r8], rax",
+                    "mov QWORD PTR [r8+8], rdx",
+                    f"cmp BYTE PTR [r10+{drc_off}], 1",
+                    "jne slot_store_last_bridge",
+                    "cmp DWORD PTR [rcx+0], 1",
+                    "jne slot_store_last_bridge",
+                    "sub r11d, -7",
+                    "cmp r11d, 1",
+                    "ja slot_store_last_bridge",
+                    "mov edx, r11d",
+                    "mov rax, rcx",
+                    "call JS_LinuxHybridDropString1",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    "slot_store_last_bridge:",
+                ]
+    return extra_blocks
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--source", type=Path, required=True)
@@ -414,10 +759,12 @@ def main():
             slot_blocks, slot_contract = append_slots(source, stream, layout)
             blocks += slot_blocks
         hybrid_blocks, hybrid_leaves = [], []
+        extra_fast_blocks = []
         if native_c_invoke:
             hybrid_blocks, hybrid_leaves = apply_hybrid_gc_native(stream, handlers, layout)
             blocks += hybrid_blocks
             forward_leaves += hybrid_leaves
+            extra_fast_blocks = apply_regression_fast_paths(stream, handlers, layout, slot_blocks)
         publication = None
         publish_blocks, publish_proxies = [], []
         if native_c_invoke:
@@ -434,10 +781,10 @@ def main():
                 dirty_stats_banks=comparison_contract["dirty_stats_banks"]
                 if comparison_contract
                 else None,
-                shared_blocks=global_blocks + stack_insert_blocks,
+                shared_blocks=global_blocks + stack_insert_blocks + extra_fast_blocks,
             )
             blocks += publish_blocks
-        blocks += global_blocks + stack_insert_blocks
+        blocks += global_blocks + stack_insert_blocks + extra_fast_blocks
         returning = forward_leaves + publish_proxies
         defined = {
             "JS_FrameInterp",
@@ -872,6 +1219,7 @@ def main():
                 + publish_blocks
                 + global_blocks
                 + stack_insert_blocks
+                + extra_fast_blocks
                 + slot_blocks
                 + hybrid_blocks
             ],
@@ -891,6 +1239,7 @@ def main():
                 + publish_blocks
                 + global_blocks
                 + stack_insert_blocks
+                + extra_fast_blocks
                 + slot_blocks
                 + hybrid_blocks
                 if name not in destinations

@@ -2284,13 +2284,15 @@ set_property(
     APPEND
     PROPERTY ENVIRONMENT "QJS_DISABLE_VIRTUAL_ARGUMENTS=0")
 
-add_test(
-    NAME linux-x86-elf-tools
-    COMMAND
-        "${Python3_EXECUTABLE}" -B
-        "${CMAKE_CURRENT_SOURCE_DIR}/tests/x86/linux/test_linux_elf_tools.py" --object
-        "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/qjs.dir/src/x86/linux/integer-expression.c.o"
-        --output "${CMAKE_CURRENT_BINARY_DIR}/generated/linux-abi/elf-tools-test.json")
-add_test(NAME linux-x86-elf-policy
-         COMMAND "${Python3_EXECUTABLE}" -B
-                 "${CMAKE_CURRENT_SOURCE_DIR}/tests/x86/linux/test_elf_machine_x86.py")
+if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
+    add_test(
+        NAME linux-x86-elf-tools
+        COMMAND
+            "${Python3_EXECUTABLE}" -B
+            "${CMAKE_CURRENT_SOURCE_DIR}/tests/x86/linux/test_linux_elf_tools.py" --object
+            "${CMAKE_CURRENT_BINARY_DIR}/CMakeFiles/qjs.dir/src/x86/linux/integer-expression.c.o"
+            --output "${CMAKE_CURRENT_BINARY_DIR}/generated/linux-abi/elf-tools-test.json")
+    add_test(NAME linux-x86-elf-policy
+             COMMAND "${Python3_EXECUTABLE}" -B
+                     "${CMAKE_CURRENT_SOURCE_DIR}/tests/x86/linux/test_elf_machine_x86.py")
+endif()

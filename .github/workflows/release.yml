@@ -298,6 +298,40 @@ jobs:
           name: sdk-macos-arm64
           path: quickjs-turbo-*-macos-arm64-portable-sdk.tar.gz
 
+  macos-x86_64:
+    name: SDK macOS x86-64 (MACOS_X86_64)
+    needs: meta
+    runs-on: macos-15-intel
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Build, CTest & package SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ninja >/dev/null 2>&1 || brew install ninja
+          TAG="${{ needs.meta.outputs.tag }}"
+          SDK_NAME="quickjs-turbo-${TAG}-macos-x86_64-sdk"
+          QJS_BUILD_JOBS=4 \
+            bash vm/tools/x86/macos/build/product-macos.sh \
+              build/macos-x86_64 \
+              "dist/${SDK_NAME}"
+          cmake -S vm/tests/common/consumer -B build/consumer-macos-x86_64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
+          cmake --build build/consumer-macos-x86_64 --parallel 4
+          ctest --test-dir build/consumer-macos-x86_64 --output-on-failure
+          python3 -B vm/ci/release_version.py \
+            --write-sdk-metadata "dist/${SDK_NAME}" \
+            --platform macos-x86_64 \
+            --git-sha "${{ github.sha }}"
+          tar -C dist -czf "${SDK_NAME}.tar.gz" "${SDK_NAME}"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: sdk-macos-x86_64
+          path: quickjs-turbo-*-macos-x86_64-sdk.tar.gz
+
   publish:
     name: Generate SHA256SUMS & Publish Release
     needs:
@@ -306,6 +340,7 @@ jobs:
       - linux-aarch64
       - windows-x86_64
       - macos-arm64
+      - macos-x86_64
     runs-on: ubuntu-24.04
     permissions:
       contents: write

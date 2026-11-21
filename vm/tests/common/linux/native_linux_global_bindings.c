@@ -8,6 +8,56 @@
 #include "quickjs.h"
 #include <assert.h>
 #include <pthread.h>
+#ifdef __APPLE__
+#ifndef PTHREAD_BARRIER_SERIAL_THREAD
+#define PTHREAD_BARRIER_SERIAL_THREAD (-1)
+typedef struct {
+    pthread_mutex_t mutex;
+    pthread_cond_t cond;
+    unsigned count;
+    unsigned waiting;
+    unsigned generation;
+} pthread_barrier_t;
+static int pthread_barrier_init(pthread_barrier_t *b, const void *attr, unsigned count)
+{
+    (void)attr;
+    if (count == 0)
+        return -1;
+    if (pthread_mutex_init(&b->mutex, NULL) != 0)
+        return -1;
+    if (pthread_cond_init(&b->cond, NULL) != 0) {
+        pthread_mutex_destroy(&b->mutex);
+        return -1;
+    }
+    b->count = count;
+    b->waiting = 0;
+    b->generation = 0;
+    return 0;
+}
+static int pthread_barrier_destroy(pthread_barrier_t *b)
+{
+    pthread_cond_destroy(&b->cond);
+    pthread_mutex_destroy(&b->mutex);
+    return 0;
+}
+static int pthread_barrier_wait(pthread_barrier_t *b)
+{
+    pthread_mutex_lock(&b->mutex);
+    unsigned gen = b->generation;
+    if (++b->waiting == b->count) {
+        b->waiting = 0;
+        b->generation++;
+        pthread_cond_broadcast(&b->cond);
+        pthread_mutex_unlock(&b->mutex);
+        return PTHREAD_BARRIER_SERIAL_THREAD;
+    }
+    while (gen == b->generation)
+        pthread_cond_wait(&b->cond, &b->mutex);
+    pthread_mutex_unlock(&b->mutex);
+    return 0;
+}
+#endif
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>

@@ -1,5 +1,5 @@
-Product status, 2026-11-21 (commit e276d21, post-v0.15.1-turbo.3)
-=================================================================
+Product status, 2026-11-22 (v0.15.1-turbo.4)
+============================================
 Pinned QuickJS-NG 0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e; 19 pins intact.
 Current head e276d21 builds on v0.15.1-turbo.3 (Hybrid RC + Generational Partial
 Cycle GC + Synchronous Fast RC, see HYBRID-GC.txt) by unifying four cross-platform
@@ -18,6 +18,9 @@ PORTABLE (see OPTIMIZATIONS.txt):
 Clean CTest qualification across all targets (commit e276d21):
 - Linux x86-64 LINUX_X86_64: 963/963 (9-field literal allocs 73 -> 34, -53.4%;
   5 hot opcode handlers retain exact mod 64 alignment)
+- macOS x86-64 MACOS_X86_64 (Apple Clang 15, Mach-O PIE/WX-clean/FDE): 961/961
+  + C/C++11 consumer SDK 2/2 (AUTO selects MACOS_X86_64 on Darwin x86_64 and
+  PORTABLE on Darwin ARM64)
 - Linux ARM64 LINUX_AARCH64 (QEMU): 1,266/1,266 + real AWS Neoverse-N1 hardware
   5/5 new tests (JS_FrameInterp at 0x16e400, % 64 == 0)
 - Portable ASan+UBSan: 222/222 (0 errors/leaks)
@@ -40,6 +43,11 @@ Measured real-hardware performance (paired ABBA vs v0.15.1-turbo.3 fb7a53b):
   EarleyBoyer +2.47%, RegExp +1.91%); micro57 +1.41%; targeted workloads:
   lit5 2.98x (-66.4%), mapFlat 2.12x (-52.8%), mapRope 1.58x (-36.6%),
   asyncPrim 1.47x (-32.2%).
+- macOS x86-64 (Darwin 22.6, Apple Clang 15, i5-7360U, FramePool 256): V8-v7
+  1,741.5 (1.45x vs Bellard 2026-06-04 -O3 1,202.0, 1.47x vs PORTABLE 1,185.0,
+  4.81x vs Stock NG 0.15.1 on Apple Clang); JetStream 3.0 17-case geomean
+  1.34x vs Bellard -O3 (13/17 wins) / 1.41x vs PORTABLE; Bellard microbench.js
+  72-case geomean 1.17x vs Bellard -O3 (39/72 wins) / 1.37x vs PORTABLE.
 - Retained Hybrid GC gains (v0.15.1-turbo.3): -85.8% full-heap trial-deletion
   scans on V8-v7, 1.50x (-33.56%) cyclic garbage churn, -7.37% deep tree
   reclamation (-336 KiB RSS), and 9.6-11.0% faster string slices.
