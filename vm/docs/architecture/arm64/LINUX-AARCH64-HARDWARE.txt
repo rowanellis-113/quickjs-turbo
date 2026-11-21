@@ -1,3 +1,34 @@
+Linux AArch64 hardware follow-up, 2026-11-21 (commit e276d21)
+=============================================================
+AWS Graviton2 Neoverse-N1 (Ubuntu 26.04.1, kernel 7.0.0-1016-aws, GCC 13.4,
+CPU1 serial, normal ASLR, FramePool 256) verification of the unified
+cross-platform runtime optimizations (shared ordinary literal capacity reserve,
+Map/Set unified string-key hashing + short-rope flattening, capability-free
+ordinary async output Promise / Promise.resolve primitive fast path, and
+64-byte JS_FrameInterp entry alignment enforced by check_vm.py).
+
+- Qualification: 1,266/1,266 QEMU CTests pass; all 5 new tests pass on real
+  Neoverse-N1 hardware (`interpreter-keyed-async-fastpaths` and 4
+  `interpreter-aarch64-literal-reserve-*` modes, 9-field literal allocations
+  66 -> 34 [-48.5%]); `JS_FrameInterp` is strictly 64-byte aligned (`0x16e400`).
+- Paired ABBA targeted workloads (4 runs on CPU1 vs `fb7a53b + .p2align 6`,
+  ms, lower is better):
+    lit5:      524.5 -> 176.0 ms (-66.4%, 2.98x)
+    mapFlat:   567.0 -> 267.5 ms (-52.8%, 2.12x)
+    mapRope:   344.0 -> 218.0 ms (-36.6%, 1.58x)
+    asyncPrim: 382.0 -> 259.0 ms (-32.2%, 1.47x)
+- Paired ABBA official V8-v7 (2 blocks on CPU1, score, higher is better):
+    Overall: 1,236.79 -> 1,232.42 (-0.35%, statistically flat; same-binary ON vs
+    SPARE_OFF control 1,236 vs 1,233); Richards 724.01 -> 723.69 (-0.04%),
+    DeltaBlue 790.65 -> 780.76 (-1.25%), Crypto 795.37 -> 793.70 (-0.21%),
+    RayTrace 1,954.02 -> 1,948.78 (-0.27%), EarleyBoyer 1,539.14 -> 1,577.16
+    (+2.47%), RegExp 1,017.73 -> 1,037.20 (+1.91%), Splay 2,754.35 -> 2,621.37
+    (-4.83%), NavierStokes 1,426.44 -> 1,420.27 (-0.43%).
+- Paired ABBA micro57 (57 cases geomean): +1.41% (1.0141x; top gains:
+  array_push 51.75 -> 32.12 [+37.93%], float_arith 26.80 -> 17.49 [+34.74%],
+  prop_write 7.21 -> 4.80 [+33.43%], string_concat0 116.22 -> 84.03 [+27.70%],
+  prop_delete 176.10 -> 130.00 [+26.18%], prop_read 12.95 -> 10.44 [+19.38%]).
+
 Retained migration baseline at 10ea7a1. For the later fast-dispatch increment,
 see LINUX-AARCH64-DISPATCH.txt and LINUX-AARCH64-DISPATCH.json.
 

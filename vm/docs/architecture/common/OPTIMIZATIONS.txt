@@ -13,7 +13,9 @@ Strings and concatenation          src/common/string
 JSON parse/stringify               src/common/json
 RegExp and Unicode                 src/common/regexp, src/common/wire; REGEXP.txt
 Arrays and sort                    src/common/array; ARRAY-SORT.txt
-Async generator capabilities       src/common/promise; ASYNC-GENERATORS.txt
+Async generator & async output     src/common/promise; ASYNC-GENERATORS.txt
+Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c; LINUX-AARCH64-LITERALS.txt
+Map/Set string-key fast paths      src/common/value/map-string-keys.inc, tools/common/backports/keyed_async.py
 Coroutine native segments          COROUTINES.txt (MSVC; GNU keeps its C path)
 Compiler lexical planning          src/common/bytecode; COMPILER-PLAN.txt
 Resolved Symbol conditions         SYMBOL-CONDITIONS.txt (GNU and MSVC)
@@ -30,7 +32,10 @@ inc_loc/dec_loc for-loop backedge  vm/branch_fusion retired after x86 ablation
 Epoch IC instanceof leaf           src/common/value/instanceof-fast.inc (shared)
 Native C for_of_next + if_false8   src/common/call/fast-for-of-next.inc (shared)
 OP_array_from dense leaf           src/common/kernel/fast-array-from.inc (shared)
-Inline property storage            src/common/property/inline-*.{h,inc} (ARM64)
+Inline property storage            src/common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
+Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW mirror)
+Map/Set string-key hash & flatten  src/common/value/map-string-keys.inc (shared across all 5 targets)
+Capability-free async & Promise    src/common/promise/async-output.inc (shared across all 5 targets)
 BigInt stack/PM mod & construct    src/common/{value/bigint-divrem,kernel/fast-construct}.inc (ARM64)
 
 Remaining x86 -> ARM64 VM shell, entry, and cache micro-candidates were evaluated via

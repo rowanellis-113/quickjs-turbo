@@ -1,3 +1,58 @@
+Current Linux x86-64 & Win64 MinGW suite review, 2026-11-21 (commit e276d21)
+============================================================================
+Linux x86-64 GCC 13.3 native ELF image integrating the cross-platform 10-way
+runtime optimizations: shared ordinary literal capacity reserve (4/8/16 slots),
+unified Map/Set string-key hashing + short-rope flattening, capability-free
+ordinary async output Promise / intrinsic Promise.resolve primitive fast path,
+and ordinary object inline-property co-allocation (matching ARM64). Paired ABBA
+blocks run on CPU2 serial, normal ASLR, FramePool allocator (`512` on Linux
+native, `256` on Win64 MinGW), comparing commit `e276d21` directly against
+`v0.15.1-turbo.3` (`fb7a53b`).
+
+1. Linux x86-64 official V8-v7 paired scores (2 ABBA blocks, CPU2, higher is better):
+   Case           v0.15.1-turbo.3 (fb7a53b)  Current (e276d21)  Delta vs fb7a53b
+   Overall Score  2,023.39                   2,071.65           +2.38% (2.08x vs Stock NG 993.7; 87.2% of V8 --jitless 2,374.9)
+   Richards       1,416.67                   1,436.08           +1.37%
+   DeltaBlue      1,337.55                   1,334.22           -0.25%
+   Crypto         1,554.93                   1,559.75           +0.31%
+   RayTrace       2,034.85                   2,069.69           +1.71%
+   EarleyBoyer    2,781.99                   2,852.03           +2.52%
+   RegExp         1,772.86                   1,835.52           +3.53%
+   Splay          3,475.59                   3,781.18           +8.79%
+   NavierStokes   2,734.16                   2,771.12           +1.35%
+   Peak RSS KiB   183,246 [183344, 183148]   175,756 [175788, 175724]  -4.09% (-7,490 KiB)
+
+2. Linux x86-64 targeted runtime workloads (4 paired ABBA runs, CPU2, ms, lower is better):
+   Workload    fb7a53b    e276d21    Delta     Speedup
+   lit5        631.0 ms   181.0 ms   -71.3%    3.49x
+   mapFlat     573.0 ms   176.0 ms   -69.3%    3.26x
+   mapRope     289.5 ms   119.0 ms   -58.9%    2.43x
+   asyncPrim   404.5 ms   285.5 ms   -29.4%    1.42x
+   obj6        470.5 ms   449.0 ms    -4.6%    1.05x
+
+3. Linux x86-64 micro57 paired screen (CPU2, geomean +0.92% / 1.0092x vs fb7a53b):
+   Top gains (ns/op): typed_array_read 5.37 -> 3.56 (+33.74%), string_concat1
+   84.57 -> 76.53 (+9.51%), array_hole_length_decr 44.01 -> 39.90 (+9.33%),
+   string_concat0 53.41 -> 49.12 (+8.03%), local_destruct 48.25 -> 45.71
+   (+5.26%), prop_create 46.03 -> 44.54 (+3.23%), object_null 60.58 -> 59.10
+   (+2.43%), string_concat2 293.45 -> 287.00 (+2.20%).
+   Bottom 5 cases (ns/op): empty_loop 4.64 -> 5.19 (-11.85%), regexp_utf16
+   257.15 -> 282.45 (-9.84%), weak_map_set 79.23 -> 86.19 (-8.78%),
+   regexp_ascii 257.75 -> 267.85 (-3.92%), sort_bench 0.46 -> 0.48 (-3.23%).
+
+4. Windows x86-64 MinGW paired ABBA screen (CPU2, FramePool 256, fb7a53b vs e276d21):
+   Targeted workloads (4 paired ABBA runs, ms, lower is better):
+   mapFlat: 560.0 -> 159.0 ms (-71.6%, 3.52x); lit5: 582.0 -> 169.0 ms (-71.0%, 3.44x);
+   mapRope: 289.5 -> 115.0 ms (-60.3%, 2.52x); asyncPrim: 446.0 -> 320.0 ms (-28.3%, 1.39x).
+   Official V8-v7 (2 paired ABBA blocks): Overall 1,921.39 -> 1,923.77 (+0.12%,
+   1.94x vs Stock NG 993.7); Richards 1,381.38 -> 1,396.57 (+1.10%), DeltaBlue
+   1,305.83 -> 1,308.48 (+0.20%), Crypto 1,500.57 -> 1,507.63 (+0.47%), RayTrace
+   1,797.41 -> 1,806.24 (+0.49%), EarleyBoyer 2,750.37 -> 2,731.38 (-0.69%),
+   RegExp 1,509.43 -> 1,507.23 (-0.15%), Splay 3,520.31 -> 3,492.48 (-0.79%),
+   NavierStokes 2,612.46 -> 2,622.04 (+0.37%).
+   micro57 geomean: -0.98% (0.9902x; top gains: string_to_int +9.60%,
+   string_slice3 +4.27%, math_min +2.81%, string_concat3 +2.34%).
+
 Current Linux x86-64 suite review, 2026-11-20 (v0.15.1-turbo.3)
 ==================================================================
 Linux x86-64 GCC 13.3 native ELF image integrating Hybrid Reference Counting +

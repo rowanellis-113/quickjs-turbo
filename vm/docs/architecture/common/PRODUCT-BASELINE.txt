@@ -1,3 +1,49 @@
+Current cross-platform runtime baseline, 2026-11-21 (commit e276d21)
+====================================================================
+Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
+all 19 upstream source pins are unchanged. Commit e276d21 extends the
+v0.15.1-turbo.3 Hybrid GC baseline with four unified cross-platform runtime
+optimizations:
+1. Shared ordinary literal capacity reserve (4/8/16 slots, hash-isolated
+   reserved empty shapes, rt->shape_hash reuse via js_dup_shape) in
+   vm/src/common/kernel/ordinary-literal.c (and Win64 MinGW mirror) covering
+   Linux x86-64, Win64 MinGW, and Linux ARM64.
+2. Unified Map/Set string-key hashing + short-rope flattening (<=4096 CU, with
+   leaf->hash invalidation on in-place rope append) via backport-core.py across
+   all 5 targets (Linux x86-64, Linux ARM64, Win64 MinGW, Win64 MSVC, PORTABLE).
+3. Capability-free ordinary async output Promise + intrinsic Promise.resolve
+   primitive fast path across all 5 targets.
+4. Ordinary object inline-property co-allocation on Linux x86-64 (sharing
+   inline-properties.h and Hybrid GC guards with ARM64) plus 64-byte alignment
+   for ARM64 JS_FrameInterp with elf64 verifier enforcement.
+
+Current cross-platform CTest qualification (commit e276d21):
+- Linux x86-64 LINUX_X86_64: 963/963 (9-field literal allocs 73 -> 34, -53.4%)
+- Linux ARM64 LINUX_AARCH64 (QEMU): 1,266/1,266; real AWS Neoverse-N1 5/5 new tests
+- Portable ASan+UBSan: 222/222 (0 errors/leaks)
+- Windows x86-64: MinGW WIN64 315/315, MSVC WIN64 296/296, plus
+  test_vm_core_routes 21/21 and test_vm_build 22/22
+
+Updated All-Linux V8-v7 scores (CPU2 / serial / normal ASLR, Ubuntu 24.04 / WSL2):
+  NG 0.15.1 993.7; Bellard 2026-06-04 default O2 1465.7;
+  JSCOnly 2b27eb4 LLInt/JIT OFF 1596.1; Node 24.13.0 jitless 2374.9;
+  Turbo e276d21 native (FramePool 512) 2071.65 (2.08x vs QuickJS-NG, 1.41x vs
+  Bellard 2026, 87.2% of V8 --jitless; peak RSS 175,756 KiB, -4.09% vs fb7a53b).
+
+Cross-platform paired ABBA summary (e276d21 vs fb7a53b, lower ms / higher V8):
+  Metric / Workload   Linux x86-64 (CPU2/512)      Win64 MinGW (CPU2/256)       AWS ARM64 N1 (CPU1/256)
+  lit5 (5-field obj)  631.0 -> 181.0 ms (3.49x)    582.0 -> 169.0 ms (3.44x)    524.5 -> 176.0 ms (2.98x)
+  mapFlat (flat key)  573.0 -> 176.0 ms (3.26x)    560.0 -> 159.0 ms (3.52x)    567.0 -> 267.5 ms (2.12x)
+  mapRope (rope key)  289.5 -> 119.0 ms (2.43x)    289.5 -> 115.0 ms (2.52x)    344.0 -> 218.0 ms (1.58x)
+  asyncPrim (async)   404.5 -> 285.5 ms (1.42x)    446.0 -> 320.0 ms (1.39x)    382.0 -> 259.0 ms (1.47x)
+  obj6 (6-prop obj)   470.5 -> 449.0 ms (1.05x)    n/a (Win64 COFF layout)      already inline on ARM64
+  V8-v7 Overall       2023.39 -> 2071.65 (+2.38%)  1921.39 -> 1923.77 (+0.12%)  1236.79 -> 1232.42 (-0.35%)
+  V8-v7 Peak RSS      183,246 -> 175,756 (-4.09%)  n/a                          n/a
+  micro57 geomean     +0.92% (1.0092x)             -0.98% (0.9902x)             +1.41% (1.0141x)
+Note: ARM64 baseline uses fb7a53b with the same 64-byte JS_FrameInterp alignment
+to isolate runtime gains from entry-alignment noise. Per-case breakdowns:
+LINUX-FINAL-REVIEW.txt and LINUX-AARCH64-HARDWARE.txt.
+
 Current product baseline, 2026-11-20 (v0.15.1-turbo.3)
 ======================================================
 Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);

@@ -1,3 +1,33 @@
+Current cross-platform qualification update, 2026-11-21 (commit e276d21)
+========================================================================
+Follow-up runtime increment on top of v0.15.1-turbo.3 (fb7a53b) on pinned
+QuickJS-NG 0.15.1 bf8988fc401e737f9946cd10a3463b48aab0fd7e (all 19 upstream
+pins exact). Unifies shared ordinary literal capacity reserve, Map/Set
+string-key hashing + short-rope flattening, capability-free ordinary async
+output Promise / Promise.resolve primitive fast path, Linux x86-64 ordinary
+object inline properties, and ARM64 64-byte JS_FrameInterp entry alignment.
+
+Verification matrix completed cleanly on Linux x86-64 / ARM64 / Windows:
+- Linux x86-64 LINUX_X86_64: 963/963 CTests (including shared
+  interpreter-linux-literal-reserve-* across on / spare-off / transition-off /
+  ordinary-off with 9-field literal allocs 73 -> 34 [-53.4%],
+  interpreter-keyed-async-fastpaths, and 5 hot opcode handlers retaining exact
+  mod 64 alignment).
+- Linux ARM64: LINUX_AARCH64 1,266/1,266 CTests (QEMU) + real AWS Neoverse-N1
+  hardware verification (5/5 new tests passing; JS_FrameInterp at 0x16e400,
+  % 64 == 0).
+- Portable ASan+UBSan: 222/222 CTests (including interpreter-keyed-async-fastpaths),
+  0 errors/leaks.
+- Windows x86-64: MinGW GCC 13.1 WIN64 315/315 (including 4 literal-reserve
+  modes + keyed/async fastpaths), MSVC 19.50 WIN64 296/296, test_vm_core_routes
+  21/21, test_vm_build 22/22.
+- Formatting & Contracts: format:check (clang-format 22.1.8, ruff 0.14.14,
+  cmakelang 0.6.13, Prettier 3.9.10), contracts.py (573/573 receipts, 0 stale),
+  test_arch_boundaries.py, validate_layout.py --require-native pass.
+
+Suite scores & cross-platform ABBA records: LINUX-FINAL-REVIEW.txt,
+PRODUCT-BASELINE.txt, and LINUX-AARCH64-HARDWARE.txt.
+
 Current v0.15.1-turbo.3 release qualification, 2026-11-20
 =============================================================
 Tracks vm/VERSION 0.15.1-turbo.3 (following Hybrid RC + Generational Partial
