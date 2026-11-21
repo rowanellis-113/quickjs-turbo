@@ -260,9 +260,9 @@ if args.map_pointer_hash:
         "                    set_value(ctx, pv, op1);"
     )
     new_add_loc_str = (
-        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && JS_VALUE_GET_STRING(*pv)->header.ref_count == 1 && !JS_VALUE_GET_STRING(*pv)->atom_type && JS_VALUE_GET_STRING(*pv)->is_wide_char == JS_VALUE_GET_STRING(op1)->is_wide_char && js_malloc_usable_size(ctx, JS_VALUE_GET_STRING(*pv)) >= sizeof(JSString) + (((size_t)JS_VALUE_GET_STRING(*pv)->len + (size_t)JS_VALUE_GET_STRING(op1)->len) << JS_VALUE_GET_STRING(*pv)->is_wide_char) + 1 - JS_VALUE_GET_STRING(*pv)->is_wide_char) {\n"
+        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && JS_VALUE_GET_STRING(*pv)->header.ref_count == 1 && !JS_VALUE_GET_STRING(*pv)->atom_type && JS_VALUE_GET_STRING(*pv)->kind == JS_STRING_KIND_NORMAL && JS_VALUE_GET_STRING(*pv)->is_wide_char == JS_VALUE_GET_STRING(op1)->is_wide_char && js_malloc_usable_size(ctx, JS_VALUE_GET_STRING(*pv)) >= sizeof(JSString) + (((size_t)JS_VALUE_GET_STRING(*pv)->len + (size_t)JS_VALUE_GET_STRING(op1)->len) << JS_VALUE_GET_STRING(*pv)->is_wide_char) + 1 - JS_VALUE_GET_STRING(*pv)->is_wide_char) {\n"
         "                        JSString *p1 = JS_VALUE_GET_STRING(*pv), *p2 = JS_VALUE_GET_STRING(op1);\n"
-        "                        if (p1->is_wide_char) { memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1); p1->len += p2->len; } else { memcpy(str8(p1) + p1->len, str8(p2), p2->len); p1->len += p2->len; str8(p1)[p1->len] = '\\0'; }\n"
+        "                        if (unlikely(p1->hash)) p1->hash = 0; if (p1->is_wide_char) { memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1); p1->len += p2->len; } else { memcpy(str8(p1) + p1->len, str8(p2), p2->len); p1->len += p2->len; str8(p1)[p1->len] = '\\0'; }\n"
         "                        JS_FreeValue(ctx, op1); } else { op1 = JS_ConcatString(ctx, js_dup(*pv), op1); if (JS_IsException(op1)) goto exception; set_value(ctx, pv, op1); }"
     )
     if patched.count(old_add_loc_str) != 1:

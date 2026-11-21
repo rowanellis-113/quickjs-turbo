@@ -471,38 +471,42 @@ def _specialize_c_owners(source, output):
         1,
         "core memory usage accounting",
     )
-    core = _replace_exact(
-        core,
-        "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,\n",
-        "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
-        '#include "src/common/value/bigint-divrem-fast.inc"\n'
-        "#endif\n\n"
-        "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,\n",
-        1,
-        "core bigint helpers for divrem",
-    )
-    core = _replace_exact(
-        core,
-        "    a_sign = js_bigint_sign(a);\n"
-        "    b_sign = js_bigint_sign(b);\n"
-        "    na = a->len;\n"
-        "    nb = b->len;\n\n"
-        "    r = js_bigint_new(ctx, na + 2);\n",
-        "    a_sign = js_bigint_sign(a);\n"
-        "    b_sign = js_bigint_sign(b);\n"
-        "    na = a->len;\n"
-        "    nb = b->len;\n\n"
-        "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
-        "    {\n"
-        "        JSBigInt *fast_r = NULL;\n"
-        "        if (js_bigint_try_divrem_stack(ctx, a, b, na, nb, a_sign, b_sign, is_rem, &fast_r))\n"
-        "            return fast_r;\n"
-        "    }\n"
-        "#endif\n\n"
-        "    r = js_bigint_new(ctx, na + 2);\n",
-        1,
-        "core bigint divrem stack + pseudo-Mersenne fast path",
-    )
+    if '#include "src/common/value/bigint-divrem-fast.inc"' in core:
+        if "js_bigint_try_divrem_stack(" not in core:
+            raise ValueError("fast_vm core bigint-divrem-fast.inc included without call site")
+    else:
+        core = _replace_exact(
+            core,
+            "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,\n",
+            "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
+            '#include "src/common/value/bigint-divrem-fast.inc"\n'
+            "#endif\n\n"
+            "static JSBigInt *js_bigint_divrem(JSContext *ctx, const JSBigInt *a,\n",
+            1,
+            "core bigint helpers for divrem",
+        )
+        core = _replace_exact(
+            core,
+            "    a_sign = js_bigint_sign(a);\n"
+            "    b_sign = js_bigint_sign(b);\n"
+            "    na = a->len;\n"
+            "    nb = b->len;\n\n"
+            "    r = js_bigint_new(ctx, na + 2);\n",
+            "    a_sign = js_bigint_sign(a);\n"
+            "    b_sign = js_bigint_sign(b);\n"
+            "    na = a->len;\n"
+            "    nb = b->len;\n\n"
+            "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
+            "    {\n"
+            "        JSBigInt *fast_r = NULL;\n"
+            "        if (js_bigint_try_divrem_stack(ctx, a, b, na, nb, a_sign, b_sign, is_rem, &fast_r))\n"
+            "            return fast_r;\n"
+            "    }\n"
+            "#endif\n\n"
+            "    r = js_bigint_new(ctx, na + 2);\n",
+            1,
+            "core bigint divrem stack + pseudo-Mersenne fast path",
+        )
     core += (
         "\n#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
         "#define QJS_EMIT_FAST_FOR_OF_NEXT_SYMBOL\n"

@@ -345,16 +345,57 @@ def adapt_asm_files(output):
     }
     prefixed -= registers
 
-    sym_pattern = re.compile(
-        r"\b(?:" + "|".join(map(re.escape, sorted(prefixed, key=len, reverse=True))) + r")\b"
-    )
+    def collect_cfi_locals(text, defined):
+        """Collect TU-local labels inside .cfi_startproc..endproc blocks.
 
-    def rewrite_syms(line):
-        return sym_pattern.sub(lambda m: "_" + m.group(0), line)
+        Mach-O splits linker atoms at every non-'L' label, which breaks
+        DW_CFA_advance_loc expressions across internal labels inside a CFI
+        procedure. Renaming those TU-local labels to 'L_<name>' keeps each
+        procedure a single Mach-O atom with valid DWARF EH frame FDEs.
+        """
+        locals_in_cfi = set()
+        in_cfi = False
+        for raw in text.splitlines():
+            line = raw.strip()
+            if line.startswith(".cfi_startproc"):
+                in_cfi = True
+            elif line == ".cfi_endproc":
+                in_cfi = False
+            elif in_cfi:
+                m = re.fullmatch(r"([A-Za-z_]\w*):", line)
+                if m:
+                    sym = m.group(1)
+                    if sym not in prefixed and not sym.startswith("L"):
+                        locals_in_cfi.add(sym)
+        locals_in_cfi -= registers
+        for sym in locals_in_cfi:
+            renamed = "L_" + sym
+            if renamed in defined or renamed in prefixed:
+                raise ValueError(f"Mach-O local label rename collision: {sym} -> {renamed}")
+        return locals_in_cfi
 
     result_hashes = {}
     for n, text in texts.items():
         defined = defined_per_file[n]
+        cfi_locals = collect_cfi_locals(text, defined)
+        rename_map = {s: "_" + s for s in prefixed}
+        for s in cfi_locals:
+            rename_map[s] = "L_" + s
+        sym_pattern = (
+            re.compile(
+                r"\b(?:"
+                + "|".join(map(re.escape, sorted(rename_map, key=len, reverse=True)))
+                + r")\b"
+            )
+            if rename_map
+            else None
+        )
+
+        def rewrite_syms(line, _pat=sym_pattern, _map=rename_map):
+            if _pat is None:
+                return line
+            return _pat.sub(lambda m: _map[m.group(0)], line)
+
         out_lines = []
         skip_note = False
         for raw in text.splitlines():
@@ -406,6 +447,17 @@ def adapt_asm_files(output):
             line = rewrite_syms(line)
             out_lines.append(line)
         rendered = "\n".join(out_lines) + "\n"
+        # Sanity check: ensure no non-L label remains inside any CFI procedure
+        in_cfi = False
+        for check_line in out_lines:
+            if check_line.startswith(".cfi_startproc"):
+                in_cfi = True
+            elif check_line == ".cfi_endproc":
+                in_cfi = False
+            elif in_cfi:
+                m = re.fullmatch(r"([A-Za-z_]\w*):", check_line)
+                if m and not m.group(1).startswith("L"):
+                    raise ValueError(f"Non-local Mach-O label {m.group(1)!r} inside CFI in {n}")
         # Sanity check: ensure no ELF-only directives leaked into Mach-O output
         for forbidden in (
             "@progbits",
