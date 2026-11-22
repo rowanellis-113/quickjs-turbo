@@ -10,7 +10,6 @@
   "heroComparison": {
     "suite": "V8-v7 Whole Score",
     "cohort": "Linux x86-64 · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT",
-    "cohortZh": "Linux x86-64 · GCC 13.3 · CPU2 单核串行 · 正常 ASLR · 无 JIT",
     "sourceDoc": "vm/docs/architecture/common/PRODUCT-BASELINE.txt",
     "engines": [
       { "id": "v8-jitless", "label": "V8 --jitless (Node 24)", "score": 2374.9, "role": "reference" },
@@ -31,15 +30,10 @@
       "pool": "system malloc",
       "ratioVsNg": 1.0,
       "ratioVsV8": 41.8,
-      "summaryEn": "Pinned upstream QuickJS-NG 0.15.1 C interpreter baseline on the same Linux x86-64 host.",
-      "summaryZh": "同机同环境下的上游 QuickJS-NG 0.15.1 原版 C 解释器基线。",
-      "highlightsEn": [
+      "summary": "Pinned upstream QuickJS-NG 0.15.1 C interpreter baseline on the same Linux x86-64 host.",
+      "highlights": [
         "Standard stack-based C interpreter loop",
         "Reference baseline for all Linux x86-64 comparisons"
-      ],
-      "highlightsZh": [
-        "标准栈式 C 解释器主循环",
-        "所有 Linux x86-64 加速比数据的统一基线"
       ],
       "subtests": {
         "Richards": 763.15,
@@ -61,17 +55,11 @@
       "pool": "FramePool 256",
       "ratioVsNg": 1.96,
       "ratioVsV8": 81.8,
-      "summaryEn": "Initial QuickJS-Turbo release with native Linux SysV x86-64 register VM, adaptive Property ICs, specialized RegExp/JSON/array builtins, and TLS-isolated IC epochs.",
-      "summaryZh": "首个 QuickJS-Turbo 发布版本：引入 Linux x86-64 原生寄存器汇编 VM、自适应 Property IC、RegExp/JSON/数组特化内建与 TLS 隔离。",
-      "highlightsEn": [
+      "summary": "Initial QuickJS-Turbo release with native Linux SysV x86-64 register VM, adaptive Property ICs, specialized RegExp/JSON/array builtins, and TLS-isolated IC epochs.",
+      "highlights": [
         "Native Linux x86-64 ELF assembly VM (W^X clean, PIE, DWARF CFI)",
         "JetStream 17 relative elapsed index cut from 100.0 → 59.9 (1.67× faster)",
         "Validated on 81,152 Test262 cases (0 regressions, 31 upstream bugs fixed)"
-      ],
-      "highlightsZh": [
-        "Linux x86-64 原生 ELF 汇编 VM（无 RWX、PIE、完整 DWARF CFI）",
-        "JetStream 17 相对耗时指数由 100.0 降至 59.9（提速 1.67×）",
-        "通过 81,152 条 Test262 全量校验（0 回归，修复 31 个上游缺陷）"
       ],
       "subtests": {
         "Richards": 1428.3,
@@ -93,17 +81,11 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.03,
       "ratioVsV8": 85.1,
-      "summaryEn": "Expanded Linux x86-64 native fast-path coverage, FramePool 512 default tuning, and pre-Hybrid-GC stabilization breaking the 2,000 V8-v7 milestone.",
-      "summaryZh": "完善 Linux x86-64 原生热点路径与 FramePool 512 默认调优，V8-v7 总分首次突破 2,000 分大关。",
-      "highlightsEn": [
+      "summary": "Expanded Linux x86-64 native fast-path coverage, FramePool 512 default tuning, and pre-Hybrid-GC stabilization breaking the 2,000 V8-v7 milestone.",
+      "highlights": [
         "Crossed 2,000+ V8-v7 score (2.03× vs QuickJS-NG)",
         "RayTrace jumped to 1,987.8 and EarleyBoyer to 2,810.2",
         "Retained zero-regression Test262 & strict W^X contracts"
-      ],
-      "highlightsZh": [
-        "V8-v7 总分突破 2,020（对比 QuickJS-NG 达 2.03×）",
-        "RayTrace 提升至 1,987.8，EarleyBoyer 达 2,810.2",
-        "保持 Test262 零回归与严格 W^X 契约"
       ],
       "subtests": {
         "Richards": 1454.76,
@@ -125,17 +107,11 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.04,
       "ratioVsV8": 85.5,
-      "summaryEn": "Introduced Hybrid Reference Counting + Generational Partial Cycle GC + Iterative O(1)-C-stack Fast RC across Linux x86-64, ARM64, and PORTABLE.",
-      "summaryZh": "引入混合引用计数 + 分代局部循环 GC + O(1) C 栈迭代快速 RC 回收，覆盖 Linux x86-64 / ARM64 / PORTABLE。",
-      "highlightsEn": [
+      "summary": "Introduced Hybrid Reference Counting + Generational Partial Cycle GC + Iterative O(1)-C-stack Fast RC across Linux x86-64, ARM64, and PORTABLE.",
+      "highlights": [
         "Full-heap trial-deletion scans on V8-v7 dropped 85.8% (600 → 85)",
         "Cyclic garbage churn 1.50× faster (-33.56%), deep tree free -7.37%",
         "Splay +4.61% (3,373.7 → 3,529.1), RayTrace +3.56% (1,987.8 → 2,058.5)"
-      ],
-      "highlightsZh": [
-        "V8-v7 全堆试探删除扫描次数锐减 85.8%（600 → 85）",
-        "循环引用垃圾吞吐提速 1.50×（-33.56%），深树释放提速 7.37%",
-        "Splay 提升 +4.61%（3,529.1），RayTrace 提升 +3.56%（2,058.5）"
       ],
       "subtests": {
         "Richards": 1460.77,
@@ -157,17 +133,11 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.08,
       "ratioVsV8": 87.2,
-      "summaryEn": "Unified cross-platform runtime fast paths (literal reserve, Map/Set hashing + rope flattening, capability-free async/Promise.resolve, x86 inline object props) plus native macOS x86-64 Mach-O VM backend.",
-      "summaryZh": "统一跨平台热点优化（字面量容量预留、Map/Set 哈希与短绳扁平化、无 Capability 异步快速路径、x86 内联对象属性），并新增 macOS x86-64 原生 Mach-O 汇编后端。",
-      "highlightsEn": [
+      "summary": "Unified cross-platform runtime fast paths (literal reserve, Map/Set hashing + rope flattening, capability-free async/Promise.resolve, x86 inline object props) plus native macOS x86-64 Mach-O VM backend.",
+      "highlights": [
         "V8-v7 reached 2,071.65 (+2.38% paired vs turbo.3, 2.08× vs QuickJS-NG)",
         "Splay jumped +8.79% (3,781.2) while cutting V8-v7 Peak RSS -4.09% (-7.5 MiB)",
         "Added MACOS_X86_64 Mach-O PIE/CFI backend (1.45× V8-v7 vs Bellard 2026)"
-      ],
-      "highlightsZh": [
-        "V8-v7 达到 2,071.65（较 turbo.3 配对提升 +2.38%，达 QuickJS-NG 的 2.08×）",
-        "Splay 暴涨 +8.79%（3,781.2），同时 V8-v7 峰值内存下降 -4.09%（-7.5 MiB）",
-        "新增 MACOS_X86_64 原生 Mach-O 后端（较 Bellard 2026 提速 1.45×）"
       ],
       "subtests": {
         "Richards": 1436.08,
@@ -189,17 +159,11 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.08,
       "ratioVsV8": 87.2,
-      "summaryEn": "High-density PIC-only mode & lazy IC warmup (quickjs-turbo.h), first-class CMake embedding (quickjs-turbo::qjs), source-level MSVC/clang-cl WIN_X86_64 VM, Python-free pregen bundles, and Apple Clang 15 atomic fix.",
-      "summaryZh": "新增高密度 PIC-only 模式与懒加载 IC 预热（quickjs-turbo.h）、一等公民 CMake 嵌入目标、零 GNU 依赖的 MSVC/clang-cl WIN_X86_64 后端、无 Python 预生成汇编包及 Apple Clang 15 修复。",
-      "highlightsEn": [
+      "summary": "High-density PIC-only mode & lazy IC warmup (quickjs-turbo.h), first-class CMake embedding (quickjs-turbo::qjs), source-level MSVC/clang-cl WIN_X86_64 VM, Python-free pregen bundles, and Apple Clang 15 atomic fix.",
+      "highlights": [
         "Decoupled own_bytecode_tail + tagged property_ic_warmup (+0 B struct growth) + JS_PurgePropertyIC",
         "Source-level WIN_X86_64 ASM VM for MSVC / clang-cl with zero GNU binutils",
         "Retains full 2,071.65 Linux V8-v7 & 1,688–1,717 macOS x86-64 throughput with Apple Clang 15 fix"
-      ],
-      "highlightsZh": [
-        "解耦 own_bytecode_tail + 低位标签 property_ic_warmup（结构体 +0 字节）+ JS_PurgePropertyIC 内存回收",
-        "源码级 WIN_X86_64 汇编 VM，支持 MSVC / clang-cl 零 GNU 工具链原生构建",
-        "完整保持 Linux 2,071.65 与 macOS x86-64 1,688–1,717 吞吐，并修复 Apple Clang 15 原子指针初始化"
       ],
       "subtests": {
         "Richards": 1436.08,
@@ -219,20 +183,19 @@
       "backend": "LINUX_X86_64",
       "toolchain": "GCC 13.3 · Ubuntu 24.04 · CPU2 serial · FramePool 512",
       "baselineLabel": "vs QuickJS-NG 0.15.1",
-      "baselineLabelZh": "基准口径：对比 QuickJS-NG 0.15.1",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
-        { "labelEn": "V8-v7 Score", "labelZh": "V8-v7 总分", "value": "2,071.65", "sub": "2.08× vs QuickJS-NG (993.7)" },
-        { "labelEn": "vs V8 --jitless", "labelZh": "对比 V8 --jitless", "value": "87.2%", "sub": "Node 24.13.0 = 2,374.9" },
-        { "labelEn": "JetStream 17 Index", "labelZh": "JetStream 17 耗时指数", "value": "59.9", "sub": "QuickJS-NG = 100 (lower is better)" },
-        { "labelEn": "Hybrid GC Scans", "labelZh": "全堆循环扫描", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cycle churn" }
+        { "label": "V8-v7 Score", "value": "2,071.65", "sub": "2.08× vs QuickJS-NG (993.7)" },
+        { "label": "vs V8 --jitless", "value": "87.2%", "sub": "Node 24.13.0 = 2,374.9" },
+        { "label": "JetStream 17 Index", "value": "59.9", "sub": "QuickJS-NG = 100 (lower is better)" },
+        { "label": "Hybrid GC Scans", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cycle churn" }
       ],
       "targetedSpeedups": [
-        { "name": "lit5 (5-field object literals)", "before": "631.0 ms", "after": "181.0 ms", "speedup": 3.49, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "mapFlat (Map/Set flat string lookup)", "before": "573.0 ms", "after": "176.0 ms", "speedup": 3.26, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "119.0 ms", "speedup": 2.43, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "resident_cycle_churn (Hybrid GC)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50, "basis": "vs pre-Hybrid-GC" },
-        { "name": "asyncPrim (async / Promise.resolve)", "before": "404.5 ms", "after": "285.5 ms", "speedup": 1.42, "basis": "vs v0.15.1-turbo.3" }
+        { "name": "lit5 (5-field object literals)", "before": "631.0 ms", "after": "181.0 ms", "speedup": 3.49 },
+        { "name": "mapFlat (Map/Set flat string lookup)", "before": "573.0 ms", "after": "176.0 ms", "speedup": 3.26 },
+        { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "119.0 ms", "speedup": 2.43 },
+        { "name": "resident_cycle_churn (Hybrid GC)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50 },
+        { "name": "asyncPrim (async / Promise.resolve)", "before": "404.5 ms", "after": "285.5 ms", "speedup": 1.42 }
       ],
       "microHotspots": [
         { "name": "RegExp (V8-v7)", "stock": "256.5", "turbo": "1,835.5", "unit": "score", "speedup": 7.16 },
@@ -250,20 +213,19 @@
       "backend": "MACOS_X86_64",
       "toolchain": "Apple Clang 15.0 · Darwin 22.6 · i5-7360U · FramePool 256",
       "baselineLabel": "vs Bellard QuickJS 2026-06-04 (-O3) & PORTABLE",
-      "baselineLabelZh": "基准口径：对比 Bellard QuickJS 2026-06-04 (-O3) 与 PORTABLE",
       "sourceDoc": "vm/docs/architecture/common/STATUS.txt",
       "headlineStats": [
-        { "labelEn": "V8-v7 Score", "labelZh": "V8-v7 总分", "value": "1,741.5", "sub": "1.45× vs Bellard -O3 (1,202.0) · 1.47× vs PORTABLE" },
-        { "labelEn": "JetStream 3.0 (17 cases)", "labelZh": "JetStream 3.0 (17 项)", "value": "1.34×", "sub": "Geomean vs Bellard -O3 (13/17 wins) · 1.41× vs PORTABLE" },
-        { "labelEn": "microbench.js (72 cases)", "labelZh": "microbench.js (72 项)", "value": "1.17×", "sub": "Geomean vs Bellard -O3 (39/72 wins) · 1.37× vs PORTABLE" },
-        { "labelEn": "Mach-O Verification", "labelZh": "Mach-O 安全校验", "value": "961 / 961", "sub": "PIE · WX-clean · 298 DWARF FDEs · 262 symbols" }
+        { "label": "V8-v7 Score", "value": "1,741.5", "sub": "1.45× vs Bellard -O3 (1,202.0) · 1.47× vs PORTABLE" },
+        { "label": "JetStream 3.0 (17 cases)", "value": "1.34×", "sub": "Geomean vs Bellard -O3 (13/17 wins) · 1.41× vs PORTABLE" },
+        { "label": "microbench.js (72 cases)", "value": "1.17×", "sub": "Geomean vs Bellard -O3 (39/72 wins) · 1.37× vs PORTABLE" },
+        { "label": "Mach-O Verification", "value": "961 / 961", "sub": "PIE · WX-clean · 298 DWARF FDEs · 262 symbols" }
       ],
       "targetedSpeedups": [
-        { "name": "V8-v7 vs Bellard 2026-06-04 (-O3)", "before": "1,202.0", "after": "1,741.5", "speedup": 1.45, "basis": "same-host paired" },
-        { "name": "V8-v7 vs Turbo PORTABLE", "before": "1,185.0", "after": "1,741.5", "speedup": 1.47, "basis": "same-host paired" },
-        { "name": "JetStream 3.0 (17-case geomean vs PORTABLE)", "before": "1.00×", "after": "1.41×", "speedup": 1.41, "basis": "same-host paired" },
-        { "name": "microbench.js (72-case geomean vs PORTABLE)", "before": "1.00×", "after": "1.37×", "speedup": 1.37, "basis": "52/72 wins" },
-        { "name": "JetStream 3.0 (17-case geomean vs Bellard -O3)", "before": "1.00×", "after": "1.34×", "speedup": 1.34, "basis": "13/17 wins" }
+        { "name": "V8-v7 vs Bellard 2026-06-04 (-O3)", "before": "1,202.0", "after": "1,741.5", "speedup": 1.45 },
+        { "name": "V8-v7 vs Turbo PORTABLE", "before": "1,185.0", "after": "1,741.5", "speedup": 1.47 },
+        { "name": "JetStream 3.0 (17-case geomean vs PORTABLE)", "before": "1.00×", "after": "1.41×", "speedup": 1.41 },
+        { "name": "microbench.js (72-case geomean vs PORTABLE)", "before": "1.00×", "after": "1.37×", "speedup": 1.37 },
+        { "name": "JetStream 3.0 (17-case geomean vs Bellard -O3)", "before": "1.00×", "after": "1.34×", "speedup": 1.34 }
       ],
       "microHotspots": [
         { "name": "Richards (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,166", "unit": "score", "speedup": null },
@@ -275,27 +237,25 @@
         { "name": "Splay (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "3,472", "unit": "score", "speedup": null },
         { "name": "NavierStokes (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "2,311", "unit": "score", "speedup": null }
       ],
-      "noteEn": "Note: Stock QuickJS-NG 0.15.1 scores 362.0 on Apple Clang 15 (4.81× slower than Turbo) due to Apple Clang's computed-goto codegen on quickjs.c. We therefore anchor macOS x86-64 ratios against Bellard 2026-06-04 (-O3) and Turbo PORTABLE for a fair comparison.",
-      "noteZh": "说明：原版 QuickJS-NG 0.15.1 在 Apple Clang 15 下因 computed-goto 代码生成退化仅得 362 分（Turbo 达 4.81×），为保证对比公允，macOS x86-64 主对比口径统一锚定 Bellard 2026-06-04 (-O3) 与 Turbo PORTABLE。"
+      "note": "Note: Stock QuickJS-NG 0.15.1 scores 362.0 on Apple Clang 15 (4.81× slower than Turbo) due to Apple Clang's computed-goto codegen on quickjs.c. We therefore anchor macOS x86-64 ratios against Bellard 2026-06-04 (-O3) and Turbo PORTABLE for a fair comparison."
     },
     "windows-x86_64": {
       "title": "Windows x86-64",
       "backend": "WIN_X86_64 / WIN64",
       "toolchain": "MSVC 19.50 (cl + ml64) & MinGW GCC 13.1 · CPU2 · FramePool 256",
       "baselineLabel": "vs QuickJS-NG 0.15.1 & v0.15.1-turbo.3",
-      "baselineLabelZh": "基准口径：对比 QuickJS-NG 0.15.1 与 v0.15.1-turbo.3",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
-        { "labelEn": "V8-v7 Score (MinGW)", "labelZh": "V8-v7 总分 (MinGW)", "value": "1,923.77", "sub": "1.94× vs QuickJS-NG (993.7)" },
-        { "labelEn": "MSVC Native VM", "labelZh": "MSVC 原生汇编 VM", "value": "WIN_X86_64", "sub": "cl + ml64 · zero GNU binutils · SEH unwind" },
-        { "labelEn": "Map/Set Lookup", "labelZh": "Map/Set 字符串查找", "value": "3.52×", "sub": "560.0 → 159.0 ms (-71.6%)" },
-        { "labelEn": "CTest Qualification", "labelZh": "CTest 验证", "value": "315 / 315", "sub": "MinGW WIN64 315 · MSVC WIN64 296" }
+        { "label": "V8-v7 Score (MinGW)", "value": "1,923.77", "sub": "1.94× vs QuickJS-NG (993.7)" },
+        { "label": "MSVC Native VM", "value": "WIN_X86_64", "sub": "cl + ml64 · zero GNU binutils · SEH unwind" },
+        { "label": "Map/Set Lookup", "value": "3.52×", "sub": "560.0 → 159.0 ms (-71.6%)" },
+        { "label": "CTest Qualification", "value": "315 / 315", "sub": "MinGW WIN64 315 · MSVC WIN64 296" }
       ],
       "targetedSpeedups": [
-        { "name": "mapFlat (Map/Set flat string lookup)", "before": "560.0 ms", "after": "159.0 ms", "speedup": 3.52, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "lit5 (5-field object literals)", "before": "582.0 ms", "after": "169.0 ms", "speedup": 3.44, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "115.0 ms", "speedup": 2.52, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "asyncPrim (async / Promise.resolve)", "before": "446.0 ms", "after": "320.0 ms", "speedup": 1.39, "basis": "vs v0.15.1-turbo.3" }
+        { "name": "mapFlat (Map/Set flat string lookup)", "before": "560.0 ms", "after": "159.0 ms", "speedup": 3.52 },
+        { "name": "lit5 (5-field object literals)", "before": "582.0 ms", "after": "169.0 ms", "speedup": 3.44 },
+        { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "115.0 ms", "speedup": 2.52 },
+        { "name": "asyncPrim (async / Promise.resolve)", "before": "446.0 ms", "after": "320.0 ms", "speedup": 1.39 }
       ],
       "microHotspots": [
         { "name": "Richards", "stock": "1,381.4", "turbo": "1,396.6", "unit": "score", "speedup": 1.01 },
@@ -307,27 +267,25 @@
         { "name": "Splay", "stock": "3,520.3", "turbo": "3,492.5", "unit": "score", "speedup": 0.99 },
         { "name": "NavierStokes", "stock": "2,612.5", "turbo": "2,622.0", "unit": "score", "speedup": 1.00 }
       ],
-      "noteEn": "Bottom table compares v0.15.1-turbo.3 (left) vs v0.15.1-turbo.4+ (right) on Windows MinGW. Starting with v0.15.1-turbo.5, WIN_X86_64 also builds directly with MSVC / clang-cl + ml64 without GNU binutils.",
-      "noteZh": "下表为 Windows MinGW 下 v0.15.1-turbo.3（左）与 v0.15.1-turbo.4+（右）的配对明细；自 v0.15.1-turbo.5 起，MSVC / clang-cl + ml64 已支持零 GNU 工具链的源码级 WIN_X86_64 原生后端。"
+      "note": "Right table compares v0.15.1-turbo.3 (Ref) vs v0.15.1-turbo.4+ (Turbo) on Windows MinGW. Starting with v0.15.1-turbo.5, WIN_X86_64 also builds directly with MSVC / clang-cl + ml64 without GNU binutils."
     },
     "linux-arm64": {
       "title": "Linux ARM64",
       "backend": "LINUX_AARCH64",
       "toolchain": "GCC 13.4 · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
       "baselineLabel": "Graviton2 Evolution (v0.15.1-turbo.3 → v0.15.1-turbo.4+)",
-      "baselineLabelZh": "基准口径：AWS Graviton2 实机演进（turbo.3 → turbo.4+）",
       "sourceDoc": "vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
       "headlineStats": [
-        { "labelEn": "V8-v7 (Graviton2)", "labelZh": "V8-v7 (Graviton2)", "value": "1,232.42", "sub": "Up from 688 migration → 750 threaded → 1,232 fast VM" },
-        { "labelEn": "vs Bellard 2026", "labelZh": "对比 Bellard 2026", "value": "1.50×", "sub": "Same Neoverse-N1 host · 64B-aligned VM entry" },
-        { "labelEn": "5-Field Object Literals", "labelZh": "5 字段对象字面量", "value": "2.98×", "sub": "524.5 → 176.0 ms (-66.4%)" },
-        { "labelEn": "CTest Qualification", "labelZh": "CTest 验证", "value": "1,266 / 1,266", "sub": "glibc & musl · QEMU + real Neoverse-N1" }
+        { "label": "V8-v7 (Graviton2)", "value": "1,232.42", "sub": "Up from 688 migration → 750 threaded → 1,232 fast VM" },
+        { "label": "vs Bellard 2026", "value": "1.50×", "sub": "Same Neoverse-N1 host · 64B-aligned VM entry" },
+        { "label": "5-Field Object Literals", "value": "2.98×", "sub": "524.5 → 176.0 ms (-66.4%)" },
+        { "label": "CTest Qualification", "value": "1,266 / 1,266", "sub": "glibc & musl · QEMU + real Neoverse-N1" }
       ],
       "targetedSpeedups": [
-        { "name": "lit5 (5-field object literals)", "before": "524.5 ms", "after": "176.0 ms", "speedup": 2.98, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "mapFlat (Map/Set flat string lookup)", "before": "567.0 ms", "after": "267.5 ms", "speedup": 2.12, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "mapRope (Map/Set short-rope lookup)", "before": "344.0 ms", "after": "218.0 ms", "speedup": 1.58, "basis": "vs v0.15.1-turbo.3" },
-        { "name": "asyncPrim (async / Promise.resolve)", "before": "382.0 ms", "after": "259.0 ms", "speedup": 1.47, "basis": "vs v0.15.1-turbo.3" }
+        { "name": "lit5 (5-field object literals)", "before": "524.5 ms", "after": "176.0 ms", "speedup": 2.98 },
+        { "name": "mapFlat (Map/Set flat string lookup)", "before": "567.0 ms", "after": "267.5 ms", "speedup": 2.12 },
+        { "name": "mapRope (Map/Set short-rope lookup)", "before": "344.0 ms", "after": "218.0 ms", "speedup": 1.58 },
+        { "name": "asyncPrim (async / Promise.resolve)", "before": "382.0 ms", "after": "259.0 ms", "speedup": 1.47 }
       ],
       "microHotspots": [
         { "name": "Richards", "stock": "724.0", "turbo": "723.7", "unit": "score", "speedup": 1.00 },
@@ -339,8 +297,7 @@
         { "name": "Splay", "stock": "2,754.4", "turbo": "2,621.4", "unit": "score", "speedup": 0.95 },
         { "name": "NavierStokes", "stock": "1,426.4", "turbo": "1,420.3", "unit": "score", "speedup": 1.00 }
       ],
-      "noteEn": "Bottom table compares v0.15.1-turbo.3 + 64B alignment (left) vs v0.15.1-turbo.4+ (right) on AWS Graviton2. micro57 geomean improved +1.41% (array_push +37.9%, prop_write +33.4%).",
-      "noteZh": "下表为 AWS Graviton2 下 v0.15.1-turbo.3（64B 对齐基线，左）与 v0.15.1-turbo.4+（右）的配对明细；同期 micro57 几何均值再提升 +1.41%（array_push +37.9%，prop_write +33.4%）。"
+      "note": "Right table compares v0.15.1-turbo.3 + 64B alignment (Ref) vs v0.15.1-turbo.4+ (Turbo) on AWS Graviton2. micro57 geomean improved +1.41% (array_push +37.9%, prop_write +33.4%)."
     }
   }
 }

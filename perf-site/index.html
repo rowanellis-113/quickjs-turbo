@@ -8,6 +8,18 @@
       name="description"
       content="QuickJS-Turbo supercharges QuickJS-NG with native register-frame assembly VMs, adaptive inline caches, and Hybrid RC + Partial Cycle GC. Zero JIT, W^X safe, 100% quickjs.h ABI compatible."
     />
+    <script>
+      (function () {
+        var saved = localStorage.getItem("qjs-turbo-theme");
+        var theme =
+          saved === "light" || saved === "dark"
+            ? saved
+            : window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
+              ? "light"
+              : "dark";
+        document.documentElement.setAttribute("data-theme", theme);
+      })();
+    </script>
     <link rel="stylesheet" href="./styles.css" />
   </head>
   <body>
@@ -19,14 +31,19 @@
           <span class="brand-ver" id="header-version">v0.15.1-turbo.6</span>
         </a>
         <nav class="nav-links" aria-label="Primary">
-          <a href="#why" data-i18n="nav.why">Why Turbo</a>
-          <a href="#history" data-i18n="nav.history">Version History</a>
-          <a href="#platforms" data-i18n="nav.platforms">Platform Benchmarks</a>
-          <a href="#quickstart" data-i18n="nav.quickstart">Quick Start</a>
+          <a href="#why">Why Turbo</a>
+          <a href="#history">Version History</a>
+          <a href="#platforms">Platform Benchmarks</a>
+          <a href="#quickstart">Quick Start</a>
         </nav>
         <div class="header-actions">
-          <button type="button" class="lang-toggle" id="lang-toggle" aria-label="Toggle language">
-            中文 / EN
+          <button
+            type="button"
+            class="theme-toggle"
+            id="theme-toggle"
+            aria-label="Toggle color theme"
+          >
+            ☀ Light
           </button>
           <a
             class="btn btn-secondary btn-sm"
@@ -46,31 +63,24 @@
         <div class="container">
           <div class="hero-grid">
             <div>
-              <div class="eyebrow" data-i18n="hero.eyebrow">
-                Zero JIT · W^X Clean · 100% quickjs.h Drop-In
-              </div>
-              <h1 data-i18n-html="hero.title">
+              <div class="eyebrow">Zero JIT · W^X Clean · 100% quickjs.h Drop-In</div>
+              <h1>
                 Near-V8 <span class="mono">--jitless</span> speed in a
                 <span class="accent">QuickJS-sized</span> binary.
               </h1>
-              <p class="hero-lead" data-i18n="hero.lead">
+              <p class="hero-lead">
                 QuickJS-Turbo supercharges QuickJS-NG with native register-frame assembly VMs,
                 adaptive inline caches, and Hybrid RC + Partial Cycle GC — delivering ~2×
                 throughput without runtime codegen or RWX memory.
               </p>
               <div class="hero-cta">
-                <a class="btn btn-primary" href="#quickstart" data-i18n="hero.ctaStart">
-                  Quick Start &amp; Embed
-                </a>
-                <a class="btn btn-secondary" href="#history" data-i18n="hero.ctaBench">
-                  Explore Benchmarks
-                </a>
+                <a class="btn btn-primary" href="#quickstart">Quick Start &amp; Embed</a>
+                <a class="btn btn-secondary" href="#history">Explore Benchmarks</a>
                 <a
                   class="btn btn-secondary"
                   href="https://github.com/rowanellis-113/quickjs-turbo/releases"
                   target="_blank"
                   rel="noopener"
-                  data-i18n="hero.ctaReleases"
                 >
                   Prebuilt SDKs
                 </a>
@@ -80,20 +90,16 @@
             <div class="panel-card">
               <div class="panel-header">
                 <div>
-                  <h2 class="panel-title" data-i18n="hero.chartTitle">
-                    V8-v7 Throughput (Single-Core, Zero JIT)
-                  </h2>
+                  <h2 class="panel-title">V8-v7 Throughput (Single-Core, Zero JIT)</h2>
                   <p class="panel-subtitle" id="hero-cohort">
                     Linux x86-64 · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT
                   </p>
                 </div>
-                <span class="badge" data-i18n="hero.higherBetter">Higher is better</span>
+                <span class="badge">Higher is better</span>
               </div>
               <div class="bar-list" id="hero-bars"></div>
               <div class="bar-footnote">
-                <span data-i18n="hero.chartNote">
-                  Same-host Linux x86-64 cohort · QuickJS-NG 0.15.1 pinned upstream
-                </span>
+                <span>Same-host Linux x86-64 cohort · QuickJS-NG 0.15.1 pinned upstream</span>
                 <a
                   href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/vm/docs/architecture/common/PRODUCT-BASELINE.txt"
                   target="_blank"
@@ -108,21 +114,19 @@
           <div class="kpi-strip">
             <div class="kpi-card">
               <div class="kpi-value accent">2.08×</div>
-              <div class="kpi-label" data-i18n="kpi.v8">V8-v7 vs QuickJS-NG 0.15.1</div>
+              <div class="kpi-label">V8-v7 vs QuickJS-NG 0.15.1</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">87.2%</div>
-              <div class="kpi-label" data-i18n="kpi.jitless">of V8 --jitless (Node 24)</div>
+              <div class="kpi-label">of V8 --jitless (Node 24)</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">0 RWX</div>
-              <div class="kpi-label" data-i18n="kpi.wx">Strict W^X · DWARF CFI &amp; Win64 SEH</div>
+              <div class="kpi-label">Strict W^X · DWARF CFI &amp; Win64 SEH</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">81,152</div>
-              <div class="kpi-label" data-i18n="kpi.test262">
-                Test262 cases · 0 regressions · 31 fixes
-              </div>
+              <div class="kpi-label">Test262 cases · 0 regressions · 31 fixes</div>
             </div>
           </div>
         </div>
@@ -132,9 +136,9 @@
       <section class="section" id="why">
         <div class="container">
           <div class="section-head">
-            <div class="section-kicker" data-i18n="why.kicker">Architecture &amp; Advantages</div>
-            <h2 data-i18n="why.title">Why QuickJS-Turbo?</h2>
-            <p data-i18n="why.subtitle">
+            <div class="section-kicker">Architecture &amp; Advantages</div>
+            <h2>Why QuickJS-Turbo?</h2>
+            <p>
               Built for production hosts that want QuickJS's tiny footprint, instant cold start, and
               strict security invariants — without leaving 2×–6× execution speed on the table.
             </p>
@@ -143,76 +147,74 @@
           <div class="feature-grid">
             <article class="feature-card">
               <span class="feature-tag">01 · ZERO JIT / W^X</span>
-              <h3 data-i18n="why.f1Title">Fast Where JITs Are Banned</h3>
-              <p data-i18n="why.f1Body">
+              <h3>Fast Where JITs Are Banned</h3>
+              <p>
                 Ahead-of-time assembly VMs require zero executable heap pages. Ships with complete
                 DWARF CFI / Win64 SEH unwind tables for iOS, consoles, locked-down containers, and
                 edge workers.
               </p>
-              <div class="feature-metric" data-i18n="why.f1Metric">
-                PIE · NX stack · 0 RWX pages · native stack traces
-              </div>
+              <div class="feature-metric">PIE · NX stack · 0 RWX pages · native stack traces</div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">02 · REGISTER-FRAME VM</span>
-              <h3 data-i18n="why.f2Title">Native Dispatch &amp; Adaptive ICs</h3>
-              <p data-i18n="why.f2Body">
+              <h3>Native Dispatch &amp; Adaptive ICs</h3>
+              <p>
                 Replaces the indirect C switch loop with register-pinned assembly dispatch,
                 monomorphic/polymorphic Property ICs, and co-allocated inline object properties.
               </p>
-              <div class="feature-metric" data-i18n="why.f2Metric">
+              <div class="feature-metric">
                 RegExp 7.16× · JSON.stringify 6.02× · array_write 5.74×
               </div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">03 · RUNTIME FAST PATHS</span>
-              <h3 data-i18n="why.f3Title">Objects, Collections &amp; Async</h3>
-              <p data-i18n="why.f3Body">
+              <h3>Objects, Collections &amp; Async</h3>
+              <p>
                 Shared literal capacity reservation, unified Map/Set string hashing with short-rope
                 flattening, and capability-free async / Promise.resolve fast paths across all
                 targets.
               </p>
-              <div class="feature-metric" data-i18n="why.f3Metric">
+              <div class="feature-metric">
                 lit5 3.49× · mapFlat 3.52× · mapRope 2.52× · async 1.47×
               </div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">04 · HYBRID RC + GC</span>
-              <h3 data-i18n="why.f4Title">Deterministic RC, 86% Fewer Scans</h3>
-              <p data-i18n="why.f4Body">
+              <h3>Deterministic RC, 86% Fewer Scans</h3>
+              <p>
                 Keeps QuickJS's immediate reference counting while adding generational boundary-node
                 partial cycle collection and iterative O(1)-C-stack object reclamation.
               </p>
-              <div class="feature-metric" data-i18n="why.f4Metric">
+              <div class="feature-metric">
                 Cycle scans -85.8% · cyclic churn 1.50× · RSS -4.09%
               </div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">05 · HIGH-DENSITY CONTROL</span>
-              <h3 data-i18n="why.f5Title">Fine-Grained Memory Control</h3>
-              <p data-i18n="why.f5Body">
+              <h3>Fine-Grained Memory Control</h3>
+              <p>
                 Via quickjs-turbo.h: turn off own_bytecode tails while keeping native Property ICs,
                 defer IC allocation with tagged warmup (+0 B struct growth), and purge idle worker
                 slabs on demand.
               </p>
-              <div class="feature-metric" data-i18n="why.f5Metric">
+              <div class="feature-metric">
                 QJS_SetTurboDefaults · property_ic_warmup · JS_PurgePropertyIC
               </div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">06 · DROP-IN EMBEDDING</span>
-              <h3 data-i18n="why.f6Title">100% quickjs.h &amp; CMake Ready</h3>
-              <p data-i18n="why.f6Body">
+              <h3>100% quickjs.h &amp; CMake Ready</h3>
+              <p>
                 Upstream QuickJS-NG 0.15.1 remains byte-for-byte pristine at repo root.
                 quickjs-turbo::qjs isolates host LTO, auto-falls back under Sanitizers, and supports
                 Python-free pregen builds.
               </p>
-              <div class="feature-metric" data-i18n="why.f6Metric">
+              <div class="feature-metric">
                 Unmodified quickjs.h · add_subdirectory() · QJS_USE_PREGEN_ASM
               </div>
             </article>
@@ -222,10 +224,10 @@
             <table>
               <thead>
                 <tr>
-                  <th data-i18n="mat.platform">Platform</th>
-                  <th data-i18n="mat.backend">Backend</th>
-                  <th data-i18n="mat.toolchains">Toolchains</th>
-                  <th data-i18n="mat.notes">Capabilities &amp; Notes</th>
+                  <th>Platform</th>
+                  <th>Backend</th>
+                  <th>Toolchains</th>
+                  <th>Capabilities &amp; Notes</th>
                 </tr>
               </thead>
               <tbody>
@@ -233,39 +235,31 @@
                   <td><strong>Linux x86-64</strong></td>
                   <td class="mono">LINUX_X86_64</td>
                   <td>GCC 13+</td>
-                  <td data-i18n="mat.linuxX86">
-                    Native ELF ASM VM, inline object properties, PIE + DWARF CFI
-                  </td>
+                  <td>Native ELF ASM VM, inline object properties, PIE + DWARF CFI</td>
                 </tr>
                 <tr>
                   <td><strong>macOS x86-64</strong></td>
                   <td class="mono">MACOS_X86_64</td>
                   <td>Apple Clang</td>
-                  <td data-i18n="mat.macosX86">
-                    Native Mach-O ASM VM, PIE + DWARF CFI, AUTO-selected on Darwin x86_64
-                  </td>
+                  <td>Native Mach-O ASM VM, PIE + DWARF CFI, AUTO-selected on Darwin x86_64</td>
                 </tr>
                 <tr>
                   <td><strong>Windows x86-64</strong></td>
                   <td class="mono">WIN_X86_64 / WIN64</td>
                   <td>MSVC / clang-cl / MinGW</td>
-                  <td data-i18n="mat.winX86">
-                    Source-level WIN_X86_64 (zero GNU binutils) + full Win64 SEH unwind
-                  </td>
+                  <td>Source-level WIN_X86_64 (zero GNU binutils) + full Win64 SEH unwind</td>
                 </tr>
                 <tr>
                   <td><strong>Linux ARM64</strong></td>
                   <td class="mono">LINUX_AARCH64</td>
                   <td>GCC 13+ (glibc &amp; musl)</td>
-                  <td data-i18n="mat.linuxArm">
-                    Native ELF ASM VM, 64B-aligned VM entry, AUTO-selected on Linux AArch64
-                  </td>
+                  <td>Native ELF ASM VM, 64B-aligned VM entry, AUTO-selected on Linux AArch64</td>
                 </tr>
                 <tr>
                   <td><strong>macOS ARM64 &amp; Sanitizers</strong></td>
                   <td class="mono">PORTABLE</td>
                   <td>Clang / GCC / MSVC</td>
-                  <td data-i18n="mat.portable">
+                  <td>
                     Automatic AUTO fallback · shared runtime fast paths · ASan/UBSan/TSan/MSan/Fuzz
                   </td>
                 </tr>
@@ -279,9 +273,9 @@
       <section class="section" id="history">
         <div class="container">
           <div class="section-head">
-            <div class="section-kicker" data-i18n="hist.kicker">Historical Benchmark Archive</div>
-            <h2 data-i18n="hist.title">Performance Evolution Across Releases</h2>
-            <p data-i18n="hist.subtitle">
+            <div class="section-kicker">Historical Benchmark Archive</div>
+            <h2>Performance Evolution Across Releases</h2>
+            <p>
               Every release snapshot is retained on the same Linux x86-64 reference cohort (CPU2
               serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Select any release to inspect
               its architectural milestones and all 8 V8-v7 subtests.
@@ -292,10 +286,8 @@
             <div class="panel-card">
               <div class="panel-header">
                 <div>
-                  <h3 class="panel-title" data-i18n="hist.chartTitle">
-                    V8-v7 Whole Score Trajectory (Linux x86-64)
-                  </h3>
-                  <p class="panel-subtitle" data-i18n="hist.chartSub">
+                  <h3 class="panel-title">V8-v7 Whole Score Trajectory (Linux x86-64)</h3>
+                  <p class="panel-subtitle">
                     Click any point or version pill below to inspect per-subtest breakdown
                   </p>
                 </div>
@@ -312,7 +304,7 @@
             <div class="panel-header">
               <div>
                 <h3 class="panel-title" id="subtest-title">V8-v7 Subtest Breakdown</h3>
-                <p class="panel-subtitle" data-i18n="hist.subtestSub">
+                <p class="panel-subtitle">
                   Each subtest ratio is computed against Stock QuickJS-NG 0.15.1 on the same Linux
                   x86-64 host
                 </p>
@@ -328,9 +320,9 @@
       <section class="section" id="platforms">
         <div class="container">
           <div class="section-head">
-            <div class="section-kicker" data-i18n="plat.kicker">Verified Real-Hardware Cohorts</div>
-            <h2 data-i18n="plat.title">Cross-Platform Benchmarks</h2>
-            <p data-i18n="plat.subtitle">
+            <div class="section-kicker">Verified Real-Hardware Cohorts</div>
+            <h2>Cross-Platform Benchmarks</h2>
+            <p>
               Each platform tab keeps its own strict hardware cohort and comparison baseline — never
               mixing baselines across operating systems or compilers.
             </p>
@@ -345,9 +337,9 @@
       <section class="section" id="quickstart">
         <div class="container">
           <div class="section-head">
-            <div class="section-kicker" data-i18n="qs.kicker">Get Started in 30 Seconds</div>
-            <h2 data-i18n="qs.title">Quick Start &amp; Embedding</h2>
-            <p data-i18n="qs.subtitle">
+            <div class="section-kicker">Get Started in 30 Seconds</div>
+            <h2>Quick Start &amp; Embedding</h2>
+            <p>
               Drop QuickJS-Turbo into an existing CMake project with zero quickjs.h changes, or
               configure high-density runtime controls via quickjs-turbo.h.
             </p>
@@ -358,7 +350,7 @@
           <div class="code-card">
             <div class="code-toolbar">
               <span id="qs-filename">CMakeLists.txt</span>
-              <button type="button" class="copy-btn" id="qs-copy" data-i18n="qs.copy">Copy</button>
+              <button type="button" class="copy-btn" id="qs-copy">Copy</button>
             </div>
             <pre><code id="qs-code"></code></pre>
           </div>
@@ -370,10 +362,8 @@
         <div class="container">
           <div class="capsid-strip">
             <div>
-              <h3 data-i18n="capsid.title">
-                Need a full JS sandbox for untrusted or AI-generated code?
-              </h3>
-              <p data-i18n="capsid.body">
+              <h3>Need a full JS sandbox for untrusted or AI-generated code?</h3>
+              <p>
                 QuickJS-Turbo is a raw C engine (quickjs.h). If you want OS process isolation,
                 per-request CPU/memory quotas, egress policies, and Web-standard ESM / fetch() out
                 of the box, check out Capsid — built on QuickJS-Turbo.
@@ -385,7 +375,6 @@
                 href="https://github.com/rowanellis-113/capsid"
                 target="_blank"
                 rel="noopener"
-                data-i18n="capsid.repo"
                 >Capsid on GitHub ↗</a
               >
               <a
@@ -393,7 +382,6 @@
                 href="https://rowanellis-113.github.io/capsid/"
                 target="_blank"
                 rel="noopener"
-                data-i18n="capsid.docs"
                 >Docs ↗</a
               >
             </div>
@@ -405,11 +393,8 @@
     <footer class="site-footer">
       <div class="container footer-inner">
         <div>
-          <strong>QuickJS-Turbo</strong> · MIT License ·
-          <span data-i18n="footer.credit">
-            Built on QuickJS-NG 0.15.1 by Fabrice Bellard, Charlie Gordon &amp; QuickJS-NG
-            maintainers.
-          </span>
+          <strong>QuickJS-Turbo</strong> · MIT License · Built on QuickJS-NG 0.15.1 by Fabrice
+          Bellard, Charlie Gordon &amp; QuickJS-NG maintainers.
         </div>
         <div class="footer-links">
           <a

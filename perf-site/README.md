@@ -14,7 +14,7 @@ python3 -m http.server 8080 --directory perf-site
 All historical release snapshots and cross-platform benchmark cohorts live in [`data/benchmarks.json`](data/benchmarks.json):
 
 1. Update `"updatedAt"` and `"latestVersion"`.
-2. Append a new object to `"versionHistory"` with the measured Linux x86-64 V8-v7 score, Peak RSS, 8 subtests, and English/Chinese release highlights — keep prior entries intact so the historical trajectory stays complete.
+2. Append a new object to `"versionHistory"` with the measured Linux x86-64 V8-v7 score, Peak RSS, 8 subtests, and release highlights — keep prior entries intact so the historical trajectory stays complete.
 3. Update any refreshed platform cohort under `"platforms"` while keeping each platform's hardware, toolchain, and comparison baseline explicitly labeled.
 
 ## Deployment
