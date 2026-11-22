@@ -188,13 +188,14 @@ def main() -> int:
                     ":!vm",
                     ":!README.md",
                     ":!.github",
+                    ":!perf-site",
                 ],
                 text=True,
             ).strip()
             if diff_pin:
                 changed = diff_pin.splitlines()
                 errors.append(
-                    f"Upstream files outside vm/ (except README.md and .github/): {changed}"
+                    f"Upstream files outside vm/ (except README.md, .github/, perf-site/): {changed}"
                 )
         untracked = subprocess.check_output(
             [
@@ -208,6 +209,7 @@ def main() -> int:
                 ".",
                 ":!vm",
                 ":!.github",
+                ":!perf-site",
             ],
             text=True,
         ).strip()
