@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "updatedAt": "2026-11-22",
-  "latestVersion": "v0.15.1-turbo.6",
+  "latestVersion": "v0.15.1-turbo.8",
   "upstream": {
     "name": "QuickJS-NG",
     "version": "0.15.1",
@@ -125,45 +125,19 @@
       }
     },
     {
-      "version": "v0.15.1-turbo.4",
-      "shortLabel": "turbo.4",
-      "date": "2026-11-22",
+      "version": "v0.15.1-turbo.4 → .8",
+      "shortLabel": "turbo.4–8",
+      "date": "2026-11-22 (Current: .8)",
       "v8Score": 2071.65,
       "peakRssKiB": 175756,
       "pool": "FramePool 512",
       "ratioVsNg": 2.08,
       "ratioVsV8": 87.2,
-      "summary": "Unified cross-platform runtime fast paths (literal reserve, Map/Set hashing + rope flattening, capability-free async/Promise.resolve, x86 inline object props) plus native macOS x86-64 Mach-O VM backend.",
+      "summary": "Unified cross-platform runtime fast paths (literal reserve, Map/Set hashing + rope flattening, capability-free async, x86 inline props), followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, MACOS_X86_64 Apple Clang 15 fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support.",
       "highlights": [
-        "V8-v7 reached 2,071.65 (+2.38% paired vs turbo.3, 2.08× vs QuickJS-NG)",
-        "Splay jumped +8.79% (3,781.2) while cutting V8-v7 Peak RSS -4.09% (-7.5 MiB)",
-        "Added MACOS_X86_64 Mach-O PIE/CFI backend (1.45× V8-v7 vs Bellard 2026)"
-      ],
-      "subtests": {
-        "Richards": 1436.08,
-        "DeltaBlue": 1334.22,
-        "Crypto": 1559.75,
-        "RayTrace": 2069.69,
-        "EarleyBoyer": 2852.03,
-        "RegExp": 1835.52,
-        "Splay": 3781.18,
-        "NavierStokes": 2771.12
-      }
-    },
-    {
-      "version": "v0.15.1-turbo.6",
-      "shortLabel": "turbo.5–6",
-      "date": "2026-11-22",
-      "v8Score": 2071.65,
-      "peakRssKiB": 175756,
-      "pool": "FramePool 512",
-      "ratioVsNg": 2.08,
-      "ratioVsV8": 87.2,
-      "summary": "High-density PIC-only mode & lazy IC warmup (quickjs-turbo.h), first-class CMake embedding (quickjs-turbo::qjs), source-level MSVC/clang-cl WIN_X86_64 VM, Python-free pregen bundles, and Apple Clang 15 atomic fix.",
-      "highlights": [
-        "Decoupled own_bytecode_tail + tagged property_ic_warmup (+0 B struct growth) + JS_PurgePropertyIC",
-        "Source-level WIN_X86_64 ASM VM for MSVC / clang-cl with zero GNU binutils",
-        "Retains full 2,071.65 Linux V8-v7 & 1,688–1,717 macOS x86-64 throughput with Apple Clang 15 fix"
+        "V8-v7 reached 2,071.65 (2.08× vs QuickJS-NG · 87.2% of V8 --jitless) while cutting Peak RSS -4.09% (-7.5 MiB)",
+        "v0.15.1-turbo.8 verified on i5-12400F: 2.02× V8-v7 vs NG (2,852 / 2,866 Density vs 1,415), 100.5% Density vs Default & -49.3% cold-worker heap (779 → 395 KiB)",
+        "All 4 native ASM backends online: LINUX_X86_64, LINUX_AARCH64 (glibc & musl / GCC 14+), MACOS_X86_64, and WIN_X86_64 (MSVC / clang-cl)"
       ],
       "subtests": {
         "Richards": 1436.08,
@@ -187,13 +161,14 @@
       "headlineStats": [
         { "label": "V8-v7 Score", "value": "2,071.65", "sub": "2.08× vs QuickJS-NG (993.7)" },
         { "label": "vs V8 --jitless", "value": "87.2%", "sub": "Node 24.13.0 = 2,374.9" },
-        { "label": "JetStream 17 Index", "value": "59.9", "sub": "QuickJS-NG = 100 (lower is better)" },
+        { "label": "High-Density Heap", "value": "-49.3%", "sub": "779.3 → 394.9 KiB · 100.5% V8-v7 (turbo.8)" },
         { "label": "Hybrid GC Scans", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cycle churn" }
       ],
       "targetedSpeedups": [
         { "name": "lit5 (5-field object literals)", "before": "631.0 ms", "after": "181.0 ms", "speedup": 3.49 },
         { "name": "mapFlat (Map/Set flat string lookup)", "before": "573.0 ms", "after": "176.0 ms", "speedup": 3.26 },
         { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "119.0 ms", "speedup": 2.43 },
+        { "name": "High-density hot2M vs No-PIC (turbo.8)", "before": "152.9 ms", "after": "82.7 ms", "speedup": 1.85 },
         { "name": "resident_cycle_churn (Hybrid GC)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50 },
         { "name": "asyncPrim (async / Promise.resolve)", "before": "404.5 ms", "after": "285.5 ms", "speedup": 1.42 }
       ],
@@ -206,7 +181,8 @@
         { "name": "array_read", "stock": "17.18", "turbo": "5.44", "unit": "ns/op", "speedup": 3.16 },
         { "name": "prop_read", "stock": "15.89", "turbo": "5.60", "unit": "ns/op", "speedup": 2.84 },
         { "name": "empty_loop", "stock": "11.83", "turbo": "5.18", "unit": "ns/op", "speedup": 2.28 }
-      ]
+      ],
+      "note": "v0.15.1-turbo.8 (8fcb475) independent verification on Intel Core i5-12400F (Ubuntu 24.04 / GCC 13.3, CPU2 serial, 3-block median): V8-v7 2,852.0 Default / 2,866.0 Density (100.5%) vs Stock NG 1,415.0 (2.02×), Bellard 2026 1,807.0 (1.58×), Node v24.14.0 --jitless 3,637.0 (78.4% at 2.71× lower RSS: 171.8 vs 465.8 MiB); micro57 geomean 1.526× vs NG (PIC-only 100.15%, Density w=16 99.45%); 500-cold-fn worker heap 779.3 → 394.9 KiB (-49.3%, 0 cold IC slabs) with JS_PurgePropertyIC reclaiming 100% of IC slabs."
     },
     "macos-x86_64": {
       "title": "macOS x86-64",
@@ -228,14 +204,14 @@
         { "name": "JetStream 3.0 (17-case geomean vs Bellard -O3)", "before": "1.00×", "after": "1.34×", "speedup": 1.34 }
       ],
       "microHotspots": [
-        { "name": "Richards (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,166", "unit": "score", "speedup": null },
-        { "name": "DeltaBlue (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,048", "unit": "score", "speedup": null },
-        { "name": "Crypto (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,554", "unit": "score", "speedup": null },
-        { "name": "RayTrace (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,732", "unit": "score", "speedup": null },
-        { "name": "EarleyBoyer (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "2,209", "unit": "score", "speedup": null },
-        { "name": "RegExp (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "1,167", "unit": "score", "speedup": null },
-        { "name": "Splay (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "3,472", "unit": "score", "speedup": null },
-        { "name": "NavierStokes (v0.15.1-turbo.6 live)", "stock": "n/a", "turbo": "2,311", "unit": "score", "speedup": null }
+        { "name": "Richards (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "1,166", "unit": "score", "speedup": null },
+        { "name": "DeltaBlue (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "1,048", "unit": "score", "speedup": null },
+        { "name": "Crypto (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "1,554", "unit": "score", "speedup": null },
+        { "name": "RayTrace (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "1,732", "unit": "score", "speedup": null },
+        { "name": "EarleyBoyer (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "2,209", "unit": "score", "speedup": null },
+        { "name": "RegExp (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "1,167", "unit": "score", "speedup": null },
+        { "name": "Splay (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "3,472", "unit": "score", "speedup": null },
+        { "name": "NavierStokes (v0.15.1-turbo.6+ live)", "stock": "n/a", "turbo": "2,311", "unit": "score", "speedup": null }
       ],
       "note": "Note: Stock QuickJS-NG 0.15.1 scores 362.0 on Apple Clang 15 (4.81× slower than Turbo) due to Apple Clang's computed-goto codegen on quickjs.c. We therefore anchor macOS x86-64 ratios against Bellard 2026-06-04 (-O3) and Turbo PORTABLE for a fair comparison."
     },
@@ -267,19 +243,19 @@
         { "name": "Splay", "stock": "3,520.3", "turbo": "3,492.5", "unit": "score", "speedup": 0.99 },
         { "name": "NavierStokes", "stock": "2,612.5", "turbo": "2,622.0", "unit": "score", "speedup": 1.00 }
       ],
-      "note": "Right table compares v0.15.1-turbo.3 (Ref) vs v0.15.1-turbo.4+ (Turbo) on Windows MinGW. Starting with v0.15.1-turbo.5, WIN_X86_64 also builds directly with MSVC / clang-cl + ml64 without GNU binutils."
+      "note": "Right table compares v0.15.1-turbo.3 (Ref) vs v0.15.1-turbo.4+ (Turbo) on Windows MinGW. Starting with v0.15.1-turbo.5–.8, WIN_X86_64 also builds directly with MSVC / clang-cl + ml64 without GNU binutils and enforces UTF-8 Python/hash mode across non-UTF-8 Windows locales."
     },
     "linux-arm64": {
       "title": "Linux ARM64",
       "backend": "LINUX_AARCH64",
-      "toolchain": "GCC 13.4 · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
+      "toolchain": "GCC 13/14+ (glibc & musl) · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
       "baselineLabel": "Graviton2 Evolution (v0.15.1-turbo.3 → v0.15.1-turbo.4+)",
       "sourceDoc": "vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
       "headlineStats": [
         { "label": "V8-v7 (Graviton2)", "value": "1,232.42", "sub": "Up from 688 migration → 750 threaded → 1,232 fast VM" },
         { "label": "vs Bellard 2026", "value": "1.50×", "sub": "Same Neoverse-N1 host · 64B-aligned VM entry" },
         { "label": "5-Field Object Literals", "value": "2.98×", "sub": "524.5 → 176.0 ms (-66.4%)" },
-        { "label": "CTest Qualification", "value": "1,266 / 1,266", "sub": "glibc & musl · QEMU + real Neoverse-N1" }
+        { "label": "CTest Qualification", "value": "1,266 / 1,266", "sub": "glibc & musl · GCC 13/14+ · QEMU + Neoverse-N1" }
       ],
       "targetedSpeedups": [
         { "name": "lit5 (5-field object literals)", "before": "524.5 ms", "after": "176.0 ms", "speedup": 2.98 },
@@ -297,7 +273,7 @@
         { "name": "Splay", "stock": "2,754.4", "turbo": "2,621.4", "unit": "score", "speedup": 0.95 },
         { "name": "NavierStokes", "stock": "1,426.4", "turbo": "1,420.3", "unit": "score", "speedup": 1.00 }
       ],
-      "note": "Right table compares v0.15.1-turbo.3 + 64B alignment (Ref) vs v0.15.1-turbo.4+ (Turbo) on AWS Graviton2. micro57 geomean improved +1.41% (array_push +37.9%, prop_write +33.4%)."
+      "note": "Right table compares v0.15.1-turbo.3 + 64B alignment (Ref) vs v0.15.1-turbo.4+ (Turbo) on AWS Graviton2 (micro57 geomean +1.41%, array_push +37.9%, prop_write +33.4%). v0.15.1-turbo.8 adds full musl target triple detection, GCC 14+ ARM64 probe declarations, and native objdump support."
     }
   }
 }

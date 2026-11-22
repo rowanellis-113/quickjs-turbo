@@ -11,10 +11,12 @@ python3 -m http.server 8080 --directory perf-site
 
 ## Updating Benchmark History for a New Release
 
-All historical release snapshots and cross-platform benchmark cohorts live in [`data/benchmarks.json`](data/benchmarks.json):
+All architectural milestone snapshots and cross-platform benchmark cohorts live in [`data/benchmarks.json`](data/benchmarks.json):
 
 1. Update `"updatedAt"` and `"latestVersion"`.
-2. Append a new object to `"versionHistory"` with the measured Linux x86-64 V8-v7 score, Peak RSS, 8 subtests, and release highlights — keep prior entries intact so the historical trajectory stays complete.
+2. Keep `"versionHistory"` concise and milestone-driven:
+   - Append a new entry **only** when a release introduces a measurable V8-v7 architectural milestone on the Linux x86-64 reference cohort.
+   - For embedding, density, portability, or maintenance releases that preserve the existing throughput plateau (such as `v0.15.1-turbo.5` through `v0.15.1-turbo.8`), update the latest milestone range (e.g. `v0.15.1-turbo.4 → .8`) and its highlights rather than appending flat duplicate dots.
 3. Update any refreshed platform cohort under `"platforms"` while keeping each platform's hardware, toolchain, and comparison baseline explicitly labeled.
 
 ## Deployment

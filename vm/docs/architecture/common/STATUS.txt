@@ -1,5 +1,32 @@
-Product status, 2026-11-22 (v0.15.1-turbo.4)
+Product status, 2026-11-22 (v0.15.1-turbo.8)
 ============================================
+Pinned QuickJS-NG 0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e; 19 pins intact.
+Current release v0.15.1-turbo.8 (commit 8fcb475) extends the v0.15.1-turbo.4
+runtime fast-path milestone with:
+- High-density PIC-only mode (mode == 4), low-bit tagged property_ic_warmup
+  (+0 bytes struct growth), JS_PurgePropertyIC(rt), and explicit C configuration
+  & telemetry API (vm/quickjs-turbo.h)
+- First-class CMake target quickjs-turbo::qjs with local LTO isolation, automatic
+  Sanitizer/Fuzz AUTO fallback to PORTABLE, and Python-free QJS_USE_PREGEN_ASM
+- Source-level Windows x86-64 native ASM VM (WIN_X86_64) for MSVC / clang-cl +
+  ml64 (zero GNU binutils) with UTF-8 locale hardening (v0.15.1-turbo.7)
+- Apple Clang 15 macOS x86-64 atomic initialization fix (v0.15.1-turbo.6) and
+  Linux musl target triple, GCC 14+ ARM64 probe, and native objdump support
+  (v0.15.1-turbo.8)
+
+Fresh v0.15.1-turbo.8 verification (Intel Core i5-12400F, Linux x86-64, GCC 13.3,
+CPU2 serial, 3-block median):
+- V8-v7: 2,852.0 Default / 2,866.0 Density (100.49% vs Default; 2.02x-2.03x vs
+  Stock NG 1,415.0; 1.58x-1.59x vs Bellard 2026 1,807.0; 78.4%-78.8% of Node
+  v24.14.0 --jitless 3,637.0 at 2.71x lower Peak RSS: 175.9 vs 477.0 MiB)
+- micro57 (2 ABBA blocks): 1.526x geomean vs Stock NG (PIC-only 100.15%,
+  Density tail=OFF/warmup=16 99.45% of Default)
+- High-density 500-cold-fn worker: cold heap 779.3 -> 394.9 KiB (-49.3%, 0 cold
+  IC slabs), hot 2M loop 82.67 ms (1.85x vs No-PIC 152.89 ms, 2.82x vs C
+  Fallback 232.92 ms), JS_PurgePropertyIC reclaims 100% of IC slabs
+
+Historical v0.15.1-turbo.4 (commit e276d21) cross-platform baseline retained below:
+------------------------------------------------------------------------------------
 Pinned QuickJS-NG 0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e; 19 pins intact.
 Current head e276d21 builds on v0.15.1-turbo.3 (Hybrid RC + Generational Partial
 Cycle GC + Synchronous Fast RC, see HYBRID-GC.txt) by unifying four cross-platform

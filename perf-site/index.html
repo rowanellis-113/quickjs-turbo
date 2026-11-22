@@ -4,6 +4,9 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>QuickJS-Turbo — Near-V8 --jitless Speed, Zero JIT, 100% quickjs.h Drop-In</title>
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="shortcut icon" href="./favicon.svg" />
+    <meta name="theme-color" content="#080a0f" />
     <meta
       name="description"
       content="QuickJS-Turbo supercharges QuickJS-NG with native register-frame assembly VMs, adaptive inline caches, and Hybrid RC + Partial Cycle GC. Zero JIT, W^X safe, 100% quickjs.h ABI compatible."
@@ -23,7 +26,7 @@
         <a href="#top" class="brand">
           <span class="brand-mark">⚡</span>
           <span>QuickJS-Turbo</span>
-          <span class="brand-ver" id="header-version">v0.15.1-turbo.6</span>
+          <span class="brand-ver" id="header-version">v0.15.1-turbo.8</span>
         </a>
         <nav class="nav-links" aria-label="Primary">
           <a href="#why">Why Turbo</a>
@@ -268,12 +271,13 @@
       <section class="section" id="history">
         <div class="container">
           <div class="section-head">
-            <div class="section-kicker">Historical Benchmark Archive</div>
-            <h2>Performance Evolution Across Releases</h2>
+            <div class="section-kicker">Architecture Milestones</div>
+            <h2>Performance Milestones Across Releases</h2>
             <p>
-              Every release snapshot is retained on the same Linux x86-64 reference cohort (CPU2
-              serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Select any release to inspect
-              its architectural milestones and all 8 V8-v7 subtests.
+              Each point marks an architectural throughput milestone on the same Linux x86-64
+              reference cohort (CPU2 serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Patch
+              and portability releases holding the same plateau are grouped into the active
+              milestone range.
             </p>
           </div>
 
@@ -304,7 +308,7 @@
                   x86-64 host
                 </p>
               </div>
-              <span class="badge" id="subtest-version-badge">v0.15.1-turbo.6</span>
+              <span class="badge" id="subtest-version-badge">v0.15.1-turbo.4 → .8</span>
             </div>
             <div class="subtest-grid" id="subtest-grid"></div>
           </div>

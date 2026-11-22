@@ -1,3 +1,40 @@
+Current Linux x86-64 verification & high-density review, 2026-11-22 (v0.15.1-turbo.8 / 8fcb475)
+===============================================================================================
+Independent verification on Intel Core i5-12400F (Ubuntu 24.04 / WSL2, GCC 13.3,
+CPU2 serial, normal ASLR, FramePool 512) confirming v0.15.1-turbo.8 retains full
+v0.15.1-turbo.4 throughput while unlocking high-density PIC-only + lazy warmup.
+(Strict hardware-cohort rule: absolute scores on i5-12400F are kept separate from
+the original reference-host cohort where Stock NG 0.15.1 = 993.7 and Turbo = 2,071.65.)
+
+1. Official V8-v7 (3 interleaved blocks, median, higher is better):
+   Case          Node24 --jitless  Turbo.8 Def  Turbo.8 Density  Turbo.4 Def  Bellard 2026  Stock NG 0.15.1
+   Overall       3,637.00          2,852.00     2,866.00         2,900.00     1,807.00      1,415.00
+   Richards      2,097.00          1,860.00     1,892.00         1,873.00     1,250.00      1,034.00
+   DeltaBlue     2,395.00          1,849.00     1,856.00         1,849.00     1,139.00      1,070.00
+   Crypto        1,958.00          2,143.00     2,150.00         2,257.00     1,639.00      1,309.00
+   RayTrace      5,359.00          2,995.00     3,016.00         3,068.00     2,392.00      1,804.00
+   EarleyBoyer   8,886.00          3,932.00     4,074.00         3,964.00     3,086.00      2,387.00
+   RegExp        4,941.00          2,472.00     2,532.00         2,632.00       611.00        375.00
+   Splay         5,957.00          5,794.00     5,786.00         5,981.00     4,433.00      3,387.00
+   NavierStokes  2,814.00          3,570.00     3,611.00         3,679.00     3,322.00      1,968.00
+   Peak RSS KiB  476,980           175,900      176,104          175,984      150,292       163,044
+   Ratios: Turbo.8 Default 2.02x vs NG, 1.58x vs Bellard, 78.4% of Node --jitless
+   (at 2.71x lower Peak RSS); Density (tail=OFF, w=16) 100.49% of Default;
+   PORTABLE (separate 2-block ABBA) 2,005.50 (1.40x vs NG, RSS 182,796 KiB).
+
+2. Official tests/microbench.js (micro57, 2 ABBA paired blocks, CPU2):
+   - Turbo Default  (tail=ON,  w=0):  1.526x geomean vs Stock NG 0.15.1
+   - Turbo PIC-only (tail=OFF, w=0):  1.529x vs NG (100.15% of Default)
+   - Turbo Density  (tail=OFF, w=16): 1.518x vs NG (99.45% of Default)
+
+3. High-Density Worker Benchmark (500 cold fns + 2M hot loop + JS_PurgePropertyIC):
+   Mode                           Cold Heap   Cold IC Slabs      Hot 2M Loop   Purged
+   Turbo Default  (tail=ON, w=0)  779.3 KiB   500 (261.7 KiB)    76.42 ms      262.8 KiB -> 513.7 KiB
+   Turbo PIC-only (tail=OFF,w=0)  660.5 KiB   500 (261.7 KiB)    76.24 ms      262.8 KiB -> 394.9 KiB
+   Turbo Density  (tail=OFF,w=16) 394.9 KiB     0 (  0.0 KiB)    82.67 ms        1.1 KiB -> 394.9 KiB
+   Turbo No-PIC   (tail=OFF,noIC) 394.9 KiB     0 (  0.0 KiB)   152.89 ms        0.0 KiB
+   C Fallback     (frame=OFF,w=16)394.9 KiB     0 (  0.0 KiB)   232.92 ms        1.1 KiB
+
 Current Linux x86-64 & Win64 MinGW suite review, 2026-11-21 (commit e276d21)
 ============================================================================
 Linux x86-64 GCC 13.3 native ELF image integrating the cross-platform 10-way

@@ -47,16 +47,16 @@ export default {
 ## Why QuickJS-Turbo?
 
 - **Zero-JIT, `W^X` Safe**: No runtime codegen or `RWX` pages; full DWARF CFI and Win64 SEH unwind for iOS, consoles, locked-down containers, and edge workers.
-- **~2× Throughput vs QuickJS-NG**: Up to **`6.73×`** RegExp, **`6.40×`** `JSON.stringify`, **`5.74×`** array writes, **`3.49×`** object literals, **`3.52×`** `Map`/`Set` lookups, and **`1.47×`** `async`/`Promise.resolve`.
-- **Hybrid RC + Partial Cycle GC**: Keeps deterministic reference counting while cutting full-heap cycle scans by **~86%** (**`1.50×`** faster cyclic churn, **`~10–11%`** faster string slices, zero RSS bloat).
-- **Drop-In & Embedding Ready**: Unmodified `quickjs.h` ABI (**`81,152`** Test262 cases, `0` regressions, `31` upstream fixes) plus `quickjs-turbo.h` & `quickjs-turbo::qjs` for lazy IC warmup, `JS_PurgePropertyIC`, host-safe LTO, and Python-free `QJS_USE_PREGEN_ASM` builds.
+- **~2× Throughput vs QuickJS-NG**: Up to **`7.16×`** RegExp, **`6.02×`** `JSON.stringify`, **`5.78×`** typed-array writes, **`5.74×`** array writes, **`3.49×`** object literals, **`3.52×`** `Map`/`Set` lookups, and **`1.47×`** `async`/`Promise.resolve`.
+- **Hybrid RC + Partial Cycle GC**: Keeps deterministic reference counting while cutting full-heap cycle scans by **~86%** (**`1.50×`** faster cyclic churn, **`~10–11%`** faster string slices, **`-4.09%`** V8-v7 Peak RSS).
+- **High-Density & Drop-In Embedding**: Unmodified `quickjs.h` ABI (**`81,152`** Test262 cases, `0` regressions, `31` upstream fixes) plus `quickjs-turbo.h` & `quickjs-turbo::qjs` for PIC-only mode + lazy IC warmup (**`-49.3%`** cold-worker heap at **`100.5%`** V8-v7 / **`99.5%`** `micro57` parity), `JS_PurgePropertyIC`, host-safe LTO, and Python-free `QJS_USE_PREGEN_ASM` builds.
 
 | Platform | Backend | Toolchains | Notes |
 | :--- | :--- | :--- | :--- |
-| **Linux `x86-64`** | `LINUX_X86_64` | GCC 13+ | Native ELF ASM VM, inline object props, PIE + DWARF CFI |
-| **macOS `x86-64`** | `MACOS_X86_64` | Apple Clang | Native Mach-O ASM VM, PIE + DWARF CFI, `AUTO`-selected |
+| **Linux `x86-64`** | `LINUX_X86_64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, inline object props, PIE + DWARF CFI |
+| **macOS `x86-64`** | `MACOS_X86_64` | Apple Clang 15+ | Native Mach-O ASM VM, PIE + DWARF CFI, `AUTO`-selected |
 | **Windows `x86-64`** | `WIN_X86_64` / `WIN64` | MSVC / `clang-cl` / MinGW | Source-level `WIN_X86_64` (zero GNU binutils) + SEH unwind |
-| **Linux `ARM64`** | `LINUX_AARCH64` | GCC 13+ (`glibc` & `musl`) | Native ELF ASM VM, 64B-aligned entry, `AUTO`-selected |
+| **Linux `ARM64`** | `LINUX_AARCH64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, 64B-aligned entry, `AUTO`-selected |
 | **macOS `ARM64` & Sanitizers** | `PORTABLE` | Clang / GCC / MSVC | Automatic `AUTO` fallback + ASan / UBSan / TSan / MSan / Fuzz |
 
 ---
