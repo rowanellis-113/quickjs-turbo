@@ -15,6 +15,8 @@ else()
     find_package(Python3 3.10 REQUIRED COMPONENTS Interpreter)
     set(qjs_win64_backport_args
         "${Python3_EXECUTABLE}"
+        -X
+        utf8
         -B
         "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/backport-core.py"
         --source-root
@@ -113,7 +115,7 @@ else()
         BYPRODUCTS "${qjs_win64_native_dir}/PREPARE.json"
                    "${qjs_win64_abi_dir}/interpreter-private-abi-values.h"
         COMMAND
-            "${Python3_EXECUTABLE}" -B
+            "${Python3_EXECUTABLE}" -X utf8 -B
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/x86/win64/prepare_win64_native.py"
             ${qjs_win64_prepare_args}
         DEPENDS ${qjs_win64_generator_inputs}

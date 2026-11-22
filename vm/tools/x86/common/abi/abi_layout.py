@@ -21,7 +21,9 @@ def validate_measured_override(source, layout):
     if not valid_target:
         raise ValueError("Unsupported measured native platform override")
     if (
-        hashlib.sha256(source_file(source, "quickjs.c").read_text().encode()).hexdigest()
+        hashlib.sha256(
+            source_file(source, "quickjs.c").read_text(encoding="utf-8").encode("utf-8")
+        ).hexdigest()
         != layout["source_sha256"]
     ):
         raise ValueError("Measured Linux ABI source changed")
