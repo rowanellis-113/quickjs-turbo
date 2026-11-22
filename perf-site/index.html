@@ -11,12 +11,7 @@
     <script>
       (function () {
         var saved = localStorage.getItem("qjs-turbo-theme");
-        var theme =
-          saved === "light" || saved === "dark"
-            ? saved
-            : window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches
-              ? "light"
-              : "dark";
+        var theme = saved === "light" ? "light" : "dark";
         document.documentElement.setAttribute("data-theme", theme);
       })();
     </script>
