@@ -37,8 +37,8 @@ static QJS_TURBO_ATOMIC_I32 g_frame_backend = QJS_TURBO_DEFAULT;
 static QJS_TURBO_ATOMIC_I32 g_hybrid_gc = QJS_TURBO_DEFAULT;
 static QJS_TURBO_ATOMIC_I32 g_binding_cell = QJS_TURBO_DEFAULT;
 
-static QJS_TURBO_ATOMIC_PTR(qjs_turbo_tail_apply_fn) g_tail_apply_hook = NULL;
-static QJS_TURBO_ATOMIC_PTR(qjs_turbo_tail_query_fn) g_tail_query_hook = NULL;
+static QJS_TURBO_ATOMIC_PTR(qjs_turbo_tail_apply_fn) g_tail_apply_hook;
+static QJS_TURBO_ATOMIC_PTR(qjs_turbo_tail_query_fn) g_tail_query_hook;
 
 void qjs_turbo_register_own_bytecode_hooks(qjs_turbo_tail_apply_fn apply_fn,
                                            qjs_turbo_tail_query_fn query_fn)
