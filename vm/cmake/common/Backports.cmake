@@ -66,6 +66,13 @@ function(qjs_apply_declared_backports target)
     if(NOT QJS_BACKPORT_CONTEXT_OOM)
         return()
     endif()
+    if(QJS_USE_PREGEN_ASM AND QJS_PREGEN_BACKPORTS_READY)
+        if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/quickjs-libc.c")
+            target_include_directories(${target} BEFORE
+                                       PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports")
+        endif()
+        return()
+    endif()
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(backport_launcher
         "${Python3_EXECUTABLE}"
@@ -168,7 +175,10 @@ function(qjs_apply_declared_backports target)
                  "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/keyed_async.py"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/bigint-divrem-fast.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/map-string-keys.inc"
-                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/promise/async-output.inc")
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/promise/async-output.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/quickjs-turbo.h"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/internal/turbo-config.h"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/internal/turbo-runtime.inc")
     set_property(
         SOURCE "${QJS_UPSTREAM_DIR}/quickjs-libc.c"
         APPEND

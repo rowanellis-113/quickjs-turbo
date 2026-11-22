@@ -110,9 +110,8 @@ def _specialize_property_ic(text):
     b.ne .L{p}property_method_legacy
     mov x2, x26
     ldr x3, [x2, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cmp x3, #1
-    b.eq .L{p}property_method_legacy
-    cbz x3, .L{p}property_no_cache
+    cmp x3, #4095
+    b.ls .L{p}property_ic_cold
     ldr x4, [x2, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
     sub x4, x20, x4
     lsr x4, x4, #2
@@ -244,9 +243,10 @@ def _specialize_property_ic(text):
         islands.append(f""".L{p}property_ic_unready:
     b.eq .L{p}property_method_legacy
     ldr x3, [x26, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cbz x3, .L{p}property_no_cache
+    cmp x3, #4095
+    b.hi .L{p}property_ic_set_bias
     cmp x3, #1
-    b.ne .L{p}property_ic_set_bias
+    b.ne .L{p}property_no_cache
     mov x27, #1
     b .L{p}property_method_legacy
 .L{p}property_ic_set_bias:

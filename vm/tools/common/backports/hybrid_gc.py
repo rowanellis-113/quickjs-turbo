@@ -47,7 +47,7 @@ def core_overlay(text):
     rt_part = rt_final_re.sub(r"\1" + rt_fields + r"\n\2", rt_part, count=1)
 
     gc_bit_old = "    JSGCObjectTypeEnum gc_obj_type : 4;"
-    gc_bit_new = "    JSGCObjectTypeEnum gc_obj_type : 3; uint8_t hybrid_young : 1;"
+    gc_bit_new = "    uint8_t gc_obj_type : 3; uint8_t hybrid_young : 1;"
     if gc_part.count(gc_bit_old) != 1:
         raise ValueError("JSGCObjectHeader bitfield anchor missing")
     gc_part = gc_part.replace(gc_bit_old, gc_bit_new, 1)

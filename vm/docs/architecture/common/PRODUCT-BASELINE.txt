@@ -1,3 +1,49 @@
+Current embedder, density & cross-platform baseline, 2026-11-22 (v0.15.1-turbo.5)
+=================================================================================
+Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
+all 19 upstream source pins are unchanged. Release v0.15.1-turbo.5 resolves the
+high-density memory vs native performance trade-off and promotes QuickJS-Turbo
+to a first-class embeddable C/CMake library across Linux, macOS, and Windows:
+1. Decoupled PIC-only (no-tail) mode (mode == 4): own_bytecode tail copies can
+   be disabled via QJS_DISABLE_OWN_BYTECODE_TAIL=1 or explicit C API
+   (own_bytecode_tail = QJS_TURBO_OFF) while keeping native assembly Property
+   ICs (JS_FrameOwnBytecodeM1/M2/M3) fully active via reserved[3] (+5).
+2. Low-bit tagged property_ic warmup + JS_PurgePropertyIC(rt): reuses odd low
+   bits (3..4095, max warmup 2047) on JSFunctionBytecode.property_ic (+0 bytes
+   struct growth, -1 hot branch on x86-64, +0 instructions on ARM64; default
+   warmup=0 preserves upstream CLI behavior) plus runtime slab reclamation via
+   rt->property_ic_list.
+3. Explicit C configuration & diagnostic API (vm/quickjs-turbo.h):
+   QJS_SetTurboDefaults, QJS_GetTurboDefaults, JS_SetRuntimeTurboOptions,
+   JS_PurgePropertyIC, and structured read-only QJS_GetTurboInfo(rt, &info)
+   replacing getenv() + constructor-priority workarounds.
+4. First-class CMake embedding (quickjs-turbo::qjs): local LTO isolation
+   (-fno-lto / /GL- on qjs/qjs-core only), automatic AUTO fallback to PORTABLE
+   under ASan/UBSan/TSan/MSan/Fuzz, add_subdirectory() support with automatic
+   top-level compile_commands.json/CMakeCache.txt resolution, and Linux ARM64
+   AUTO selection with both glibc and musl support.
+5. Source-level Windows x86-64 native ASM VM (WIN_X86_64): MSVC (cl + ml64) and
+   clang-cl support without GNU binutils, full Win64 ABI (32-byte shadow space,
+   callee-saved GPR/XMM invariants, SEH .pdata/.xdata unwind), native Property
+   IC, and MSVC unsigned 3-bit JSGCObjectHeader.gc_obj_type bitfield fix in
+   hybrid_gc.py.
+6. Optional pre-generated assembly bundles: deterministic export via
+   vm/tools/common/export-pregen.py and pure-CMake SHA256-verified offline
+   builds via -DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<dir>.
+
+Verification summary (v0.15.1-turbo.5):
+- Contracts & receipts: test_arch_boundaries.py PASS, validate_layout.py PASS,
+  contracts.py 573/573 receipts clean, test_vm_build.py 22/22 PASS, all ABI &
+  ELF/Mach-O policy tests PASS.
+- Linux x86-64 (GCC 13.3): LINUX_X86_64 native build + test_turbo_api +
+  property-ic (including pic-only) + SDK consumer (quickjs-turbo::qjs C &
+  C++11) + host -flto=auto add_subdirectory() isolation + Clang ASan+UBSan
+  AUTO fallback + QJS_USE_PREGEN_ASM=ON offline build all PASS.
+- Windows x86-64 (MSVC 19.50 cl + ml64, zero GNU binutils): WIN_X86_64 AUTO
+  and explicit builds + api-test + test_turbo_api + property-ic +
+  add_subdirectory() quickjs-turbo::qjs consumer + QJS_USE_PREGEN_ASM=ON
+  offline build all PASS.
+
 Current cross-platform runtime baseline, 2026-11-21 (commit e276d21)
 ====================================================================
 Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);

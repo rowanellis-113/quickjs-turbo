@@ -451,6 +451,21 @@ fixes.append(
     )
 )
 
+turbo_anchor = "\n\n#undef malloc\n#undef free\n#undef realloc\n"
+if patched.count(turbo_anchor) != 1:
+    raise ValueError("turbo runtime API anchor changed")
+patched = patched.replace(
+    turbo_anchor,
+    '\n#include "src/common/internal/turbo-runtime.inc"\n#undef malloc\n#undef free\n#undef realloc\n',
+    1,
+)
+fixes.append(
+    dict(
+        mechanism="Explicit QuickJS-Turbo runtime configuration, IC purge and diagnostic API",
+        source="src/common/internal/turbo-runtime.inc",
+    )
+)
+
 if text.count("\n") != patched.count("\n"):
     raise ValueError("logical line numbers changed")
 output = args.build_root.resolve() / "generated/backports"

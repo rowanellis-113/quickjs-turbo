@@ -8,7 +8,10 @@ benchmark name.
 
 Component                         Main owner / further documentation
 Call frames and dispatch           src/common/call, src/x86/win64, asm/x86/win64, asm/arm64
-Property get/set and method caches src/common/property
+Property get/set and method caches src/common/property (decoupled PIC-only mode, tagged warmup, JS_PurgePropertyIC)
+Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
+Win64 source-level native ASM VM   tools/x86/win64/{measure_layout_win64,prepare_win64_native}.py, cmake/x86/win64/NativeWin64.cmake
+Pre-generated assembly bundles     tools/common/export-pregen.py, cmake/common/Pregen.cmake
 Strings and concatenation          src/common/string
 JSON parse/stringify               src/common/json
 RegExp and Unicode                 src/common/regexp, src/common/wire; REGEXP.txt

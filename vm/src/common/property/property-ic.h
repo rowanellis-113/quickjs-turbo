@@ -2,6 +2,7 @@
 #ifndef QJS_PROPERTY_IC_H
 #define QJS_PROPERTY_IC_H
 #ifdef QJS_PROPERTY_IC
+#include "src/common/internal/turbo-config.h"
 
 enum {
     JS_IC_EMPTY,
@@ -18,8 +19,30 @@ enum {
     JS_IC_RETAIN_ORPHANS = 4u,
     JS_IC_PROTO_WEAK = 0x40u,
     JS_IC_MAX_SHAPE_REFS = 0xffffffu,
-    JS_IC_SHAPE_REFS_VALID = 0x80u
+    JS_IC_SHAPE_REFS_VALID = 0x80u,
+    JS_IC_WARMUP_MAX = 2047u
 };
+
+#define JS_IC_DISABLED ((struct JSPropertyIC *)(uintptr_t)1)
+#define JS_IC_TAG_MAX ((uintptr_t)4095)
+
+static inline bool js_property_ic_is_ptr(const struct JSPropertyIC *ic)
+{
+    return (uintptr_t)ic > JS_IC_TAG_MAX;
+}
+
+static inline uint32_t js_property_ic_warmup_count(const struct JSPropertyIC *ic)
+{
+    uintptr_t v = (uintptr_t)ic;
+    return (v > 1u && (v & 1u)) ? (uint32_t)(v >> 1) : 0u;
+}
+
+static inline struct JSPropertyIC *js_property_ic_encode_warmup(uint32_t count)
+{
+    if (count > JS_IC_WARMUP_MAX)
+        count = JS_IC_WARMUP_MAX;
+    return (struct JSPropertyIC *)(((uintptr_t)count << 1) | 1u);
+}
 
 /* The high bit preserves is_hashed's boolean meaning and indicates that the
  * padding count is initialized. Independent shape producers set is_hashed to
@@ -116,6 +139,8 @@ bool js_property_ic_gc_propagate(JSRuntime *, JS_MarkFunc *);
 void js_property_ic_gc_restore(JSRuntime *);
 void js_property_ic_gc_prune(JSRuntime *);
 size_t js_property_ic_memory_size(JSFunctionBytecode *, int *);
+size_t js_property_ic_purge(JSRuntime *);
+void js_property_ic_stats(JSRuntime *, uint32_t *, size_t *);
 
 #if UINTPTR_MAX == UINT64_MAX
 _Static_assert(sizeof(JSPropertyICWay) == 40 && sizeof(JSPropertyICSite) == 64 &&

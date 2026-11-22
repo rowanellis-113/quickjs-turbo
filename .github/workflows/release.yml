@@ -76,6 +76,10 @@ jobs:
             -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-linux-x86_64 --parallel 4
           ctest --test-dir build/consumer-linux-x86_64 --output-on-failure
+          python3 -B vm/tools/common/export-pregen.py \
+            --source vm \
+            --build build/linux-x86_64 \
+            --output "dist/${SDK_NAME}/share/quickjs-turbo/pregen"
           python3 -B vm/ci/release_version.py \
             --write-sdk-metadata "dist/${SDK_NAME}" \
             --platform linux-x86_64 \
@@ -117,6 +121,10 @@ jobs:
             -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-linux-aarch64 --parallel 4
           ctest --test-dir build/consumer-linux-aarch64 --output-on-failure
+          python3 -B vm/tools/common/export-pregen.py \
+            --source vm \
+            --build build/linux-aarch64 \
+            --output "dist/${SDK_NAME}/share/quickjs-turbo/pregen"
           python3 -B vm/ci/release_version.py \
             --write-sdk-metadata "dist/${SDK_NAME}" \
             --platform linux-aarch64 \
@@ -321,6 +329,10 @@ jobs:
             -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-macos-x86_64 --parallel 4
           ctest --test-dir build/consumer-macos-x86_64 --output-on-failure
+          python3 -B vm/tools/common/export-pregen.py \
+            --source vm \
+            --build build/macos-x86_64 \
+            --output "dist/${SDK_NAME}/share/quickjs-turbo/pregen"
           python3 -B vm/ci/release_version.py \
             --write-sdk-metadata "dist/${SDK_NAME}" \
             --platform macos-x86_64 \

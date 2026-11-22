@@ -27,8 +27,9 @@
     ldr x0, [x11, #ARM_OFF_JSFunctionBytecode_realm]
 #if ARM_HAS_PROPERTY_IC
     ldr x2, [x11, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cmp x2, #1
+    cmp x2, #4095
     b.hi .Lglobal_cell_metadata
+    cmp x2, #1
     b.eq .Lglobal_after_cell
     ldr x9, [x19, #ARM_OFF_JSFrameRegisterState_rt]
     ldr w9, [x9, #ARM_OFF_JSRuntime_property_ic_mode]

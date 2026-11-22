@@ -911,6 +911,18 @@ if(QJS_BACKPORT_CONTEXT_OOM)
                    "KEYED_ASYNC_FASTPATHS_FAIL|Error:|Assertion failed")
 endif()
 
+add_executable(interpreter-test-turbo_api tests/common/test_turbo_api.c)
+target_compile_features(interpreter-test-turbo_api PRIVATE c_std_11)
+target_link_libraries(interpreter-test-turbo_api PRIVATE quickjs-turbo::qjs)
+add_test(NAME interpreter-turbo-api COMMAND interpreter-test-turbo_api)
+set_tests_properties(interpreter-turbo-api PROPERTIES PASS_REGULAR_EXPRESSION "TURBO_API_PASS")
+if(QJS_PROPERTY_IC)
+    add_test(NAME interpreter-property-ic-pic-only
+             COMMAND qjs_exe -m "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_property_ic.js")
+    set_tests_properties(interpreter-property-ic-pic-only
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_OWN_BYTECODE_TAIL=1")
+endif()
+
 add_test(NAME interpreter-arch-boundaries
          COMMAND "${Python3_EXECUTABLE}" -B
                  "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_arch_boundaries.py")

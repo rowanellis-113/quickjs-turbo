@@ -108,12 +108,15 @@ def source_rows(source, layout):
     namespace.update(current_abi=lambda: layout, module=requested_module)
     exec(compile(model, str(path), "exec"), namespace)
     build = Path(layout["compiler_input"]).parents[2]
-    cache = build / "CMakeCache.txt"
+    cache_dir = next(
+        (d for d in (build, *build.parents) if (d / "CMakeCache.txt").is_file()), build
+    )
+    cache = cache_dir / "CMakeCache.txt"
     if not cache.is_file() or ("QJS_PROPERTY_IC:BOOL=ON" in cache.read_text()) != bool(
         layout["property_ic"]
     ):
         raise ValueError("Global source factory needs the actual measured property configuration")
-    rows, invariants, slots, atom = namespace[selected.name](source, build, False, False)
+    rows, invariants, slots, atom = namespace[selected.name](source, cache_dir, False, False)
     return rows, dict(
         complete_source_factory_sha256=sha(path),
         selected_source_spans=[

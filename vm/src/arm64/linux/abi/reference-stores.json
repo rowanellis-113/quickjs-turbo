@@ -9,7 +9,7 @@
     "asm/arm64/common/register-reference-stores.inc": "30db27b7371ceec79b04505a50f5b9b63a1e7c790226ca6baa9d14fdee285a10",
     "asm/arm64/common/register-slots.inc": "5c6d212d80010a5898eaf99695530b8802d202bd287556a799a8d7a90f661271",
     "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7",
-    "asm/arm64/common/register-property-ic.inc": "135d5fb9fe0df8a2e1cb128c9139cc8caf27bae60692cf3a258f670d2268c3a5"
+    "asm/arm64/common/register-property-ic.inc": "f7de1ecdf1d14fa072adf7d2123553416c8c22375eddab71f2d0d458fd86a2c4"
   },
   "semantics": "Original GNU incoming-value ownership and finalizer protocol;actual compiler JSValue Free witness reused;generic writable own hash retains original GNU referenced-old fallback",
   "frame_growth": 0,

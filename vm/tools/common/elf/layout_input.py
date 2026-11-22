@@ -15,6 +15,17 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def find_compile_commands(build):
+    build = Path(build).resolve()
+    for directory in (build, *build.parents):
+        candidate = directory / "compile_commands.json"
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(
+        f"compile_commands.json not found in {build} or parent build directories"
+    )
+
+
 def load_input(source, build, command_source=None):
     source, build = Path(source).resolve(), Path(build).resolve()
     catalogue_path = source / "src/common/internal/abi/core-fields.json"
@@ -27,16 +38,30 @@ def load_input(source, build, command_source=None):
     selected = Path(command_source).resolve() if command_source else core_src.resolve()
     command = next(
         c
-        for c in json.loads((build / "compile_commands.json").read_text())
+        for c in json.loads(find_compile_commands(build).read_text())
         if Path(c["file"]).resolve() == selected
     )
     argv, flags, index = shlex.split(command["command"]), [], 1
     while index < len(argv):
-        if argv[index] in ("-o", "-c"):
+        arg = argv[index]
+        if arg in ("-o", "-c"):
             index += 2
-        else:
-            flags.append(argv[index])
+        elif (
+            arg == "-flto"
+            or arg.startswith("-flto=")
+            or arg
+            in (
+                "-ffat-lto-objects",
+                "-fno-fat-lto-objects",
+                "-fwhole-program",
+            )
+        ):
             index += 1
+        else:
+            flags.append(arg)
+            index += 1
+    if "-fno-lto" not in flags:
+        flags.append("-fno-lto")
     text, anchor = core.read_text(), "static inline bool double_is_int32"
     if text.count(anchor) != 1:
         raise ValueError("Core prelude anchor changed")

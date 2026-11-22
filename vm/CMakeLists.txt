@@ -40,12 +40,15 @@ endmacro()
 # QJS_ENABLE_MSAN only works with clang at the time of writing; also not checked
 # for the same reason
 xoption(BUILD_SHARED_LIBS "Build a shared library" OFF)
-# if we ever require CMake 3.21, we can automatically detect this setting by looking at PROJECT_IS_TOP_LEVEL
-# similar to how glslang does
-xoption(QJS_ENABLE_INSTALL "Enable quickjs installation" ON)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+    set(qjs_default_top_level ON)
+else()
+    set(qjs_default_top_level OFF)
+endif()
+xoption(QJS_ENABLE_INSTALL "Enable quickjs installation" ${qjs_default_top_level})
 xoption(QJS_BUILD_WERROR "Build with -Werror" OFF)
 xoption(QJS_BUILD_EXAMPLES "Build examples" OFF)
-xoption(QJS_BUILD_CLI "Build CLI and standalone tool executables" ON)
+xoption(QJS_BUILD_CLI "Build CLI and standalone tool executables" ${qjs_default_top_level})
 xoption(QJS_BUILD_CLI_STATIC "Build a static qjs executable" OFF)
 xoption(QJS_BUILD_CLI_WITH_MIMALLOC "Build the qjs executable with mimalloc" OFF)
 xoption(QJS_BUILD_CLI_WITH_STATIC_MIMALLOC
@@ -289,7 +292,9 @@ endif()
 
 if((QJS_BACKPORT_PORTABLE_REGEXP
     OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64"
-    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64"
+    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64"
+   )
    AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
     # Linux native workers require this shared engine and its wire translation;
     # the portable backend selects the same ordinary C through its option.
@@ -332,9 +337,41 @@ if(NOT MSVC)
     endif()
 endif()
 
+# Always compile the runtime configuration API and environment helpers into qjs.
+list(APPEND qjs_sources src/common/internal/turbo-config.c src/common/internal/interpreter-env.c)
+
+set(qjs_turbo_backend_id 0)
+set(qjs_turbo_backend_name "C_FALLBACK")
+if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
+    set(qjs_turbo_backend_id 1)
+    set(qjs_turbo_backend_name "LINUX_X86_64")
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
+    set(qjs_turbo_backend_id 2)
+    set(qjs_turbo_backend_name "LINUX_AARCH64")
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
+    set(qjs_turbo_backend_id 3)
+    set(qjs_turbo_backend_name "MACOS_X86_64")
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64" OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL
+                                                       "WIN_X86_64")
+    set(qjs_turbo_backend_id 4)
+    set(qjs_turbo_backend_name "WIN_X86_64")
+endif()
+if(QJS_USE_PREGEN_ASM AND QJS_ENABLE_INTERP_FRAME)
+    set(qjs_turbo_pregen_asm 1)
+else()
+    set(qjs_turbo_pregen_asm 0)
+endif()
+list(APPEND qjs_defines QJS_TURBO_BACKEND_ID=${qjs_turbo_backend_id}
+     "QJS_TURBO_BACKEND_NAME=\"${qjs_turbo_backend_name}\""
+     QJS_TURBO_PREGEN_ASM=${qjs_turbo_pregen_asm})
+if(NOT QJS_BACKPORT_CONTEXT_OOM)
+    list(APPEND qjs_defines QJS_TURBO_NO_CORE_OVERLAY=1)
+endif()
+
 if(QJS_ENABLE_INTERP_FRAME)
-    # Win64 derives its private header from the core object; Linux measures and
-    # generates source inputs first. Both keep the core in its own object target.
+    # Win64 derives its private header from the core object; Linux, macOS, ARM64
+    # and WIN_X86_64 measure and generate source inputs first. All keep the core
+    # in its own object target.
     list(REMOVE_ITEM qjs_sources "${QJS_UPSTREAM_DIR}/quickjs.c")
     if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
         include(cmake/x86/win64/InterpreterEpoch.cmake)
@@ -342,6 +379,19 @@ if(QJS_ENABLE_INTERP_FRAME)
                        COPYONLY)
         add_library(qjs-core OBJECT "${CMAKE_CURRENT_BINARY_DIR}/quickjs.c")
         qjs_apply_declared_backports(qjs-core)
+    elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64")
+        include(cmake/x86/win64/NativeWin64.cmake)
+        add_library(qjs-core OBJECT "${qjs_win64_core}")
+        target_compile_definitions(
+            qjs-core PRIVATE QJS_ENABLE_INTERP_FRAME QJS_INTERP_FRAME_INTERNAL_ENTRY
+                             QJS_INTERP_FRAME_REGISTER_ABI QJS_WIN64_NATIVE_VM)
+        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+            target_compile_definitions(qjs-core PRIVATE QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+        endif()
+        target_include_directories(
+            qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
+                                    "${qjs_win64_native_dir}" "${qjs_win64_abi_dir}")
+        list(APPEND qjs_sources "${qjs_win64_vm_object}")
     elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
         include(cmake/arm64/Interpreter.cmake)
         add_library(qjs-core OBJECT "${qjs_arm_vm_core}")
@@ -360,7 +410,6 @@ if(QJS_ENABLE_INTERP_FRAME)
             asm/arm64/linux/forwarding-probe.S
             asm/arm64/linux/forwarding-owned.S
             asm/arm64/linux/forwarding-prepared.S
-            src/common/internal/interpreter-env.c
             src/arm64/linux/interpreter-policy.c)
     elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
         include(cmake/x86/macos/Interpreter.cmake)
@@ -377,8 +426,7 @@ if(QJS_ENABLE_INTERP_FRAME)
         target_include_directories(
             qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
                                     "${qjs_macos_native_dir}" "${qjs_macos_abi_dir}")
-        list(APPEND qjs_sources "${qjs_macos_vm}" "${qjs_macos_bridges}" "${qjs_macos_entry}"
-             src/common/internal/interpreter-env.c)
+        list(APPEND qjs_sources "${qjs_macos_vm}" "${qjs_macos_bridges}" "${qjs_macos_entry}")
     else()
         include(cmake/x86/linux/Interpreter.cmake)
         add_library(qjs-core OBJECT "${qjs_linux_core}" "${qjs_linux_numeric}"
@@ -394,8 +442,7 @@ if(QJS_ENABLE_INTERP_FRAME)
         target_include_directories(
             qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
                                     "${qjs_linux_native_dir}" "${qjs_linux_abi_dir}")
-        list(APPEND qjs_sources "${qjs_linux_vm}" "${qjs_linux_bridges}" "${qjs_linux_entry}"
-             src/common/internal/interpreter-env.c)
+        list(APPEND qjs_sources "${qjs_linux_vm}" "${qjs_linux_bridges}" "${qjs_linux_entry}")
     endif()
     target_compile_definitions(qjs-core PRIVATE ${qjs_defines})
     target_include_directories(qjs-core PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${QJS_UPSTREAM_DIR}"
@@ -407,6 +454,29 @@ if(QJS_BACKPORT_CONTEXT_OOM AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64"
 endif()
 add_library(qjs ${qjs_sources})
 add_library(qjs::qjs ALIAS qjs)
+add_library(quickjs-turbo::qjs ALIAS qjs)
+
+# Isolate native ASM/bridge compilation units from host LTO/IPO so downstream
+# projects can keep full LTO enabled on their own code.
+if(QJS_ENABLE_INTERP_FRAME AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
+    foreach(_qjs_lto_target IN ITEMS qjs-core qjs)
+        if(TARGET ${_qjs_lto_target})
+            set_target_properties(
+                ${_qjs_lto_target}
+                PROPERTIES INTERPROCEDURAL_OPTIMIZATION OFF
+                           INTERPROCEDURAL_OPTIMIZATION_RELEASE OFF
+                           INTERPROCEDURAL_OPTIMIZATION_RELWITHDEBINFO OFF
+                           INTERPROCEDURAL_OPTIMIZATION_MINSIZEREL OFF
+                           INTERPROCEDURAL_OPTIMIZATION_DEBUG OFF)
+            if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+                target_compile_options(${_qjs_lto_target} PRIVATE "$<$<COMPILE_LANGUAGE:C>:/GL->")
+            elseif(CMAKE_C_COMPILER_ID MATCHES "GNU|Clang")
+                target_compile_options(${_qjs_lto_target}
+                                       PRIVATE "$<$<COMPILE_LANGUAGE:C>:-fno-lto>")
+            endif()
+        endif()
+    endforeach()
+endif()
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
     add_dependencies(qjs qjs-aarch64-vm-inputs)
     if(QJS_INTERP_FRAME_SCALAR_OPS)
@@ -692,7 +762,8 @@ if(QJS_ENABLE_INSTALL)
     set_target_properties(
         qjs PROPERTIES VERSION ${QJS_VERSION_MAJOR}.${QJS_VERSION_MINOR}.${QJS_VERSION_PATCH}
                        SOVERSION ${QJS_VERSION_MAJOR})
-    install(FILES "${QJS_UPSTREAM_DIR}/quickjs.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(FILES "${QJS_UPSTREAM_DIR}/quickjs.h" "${CMAKE_CURRENT_SOURCE_DIR}/quickjs-turbo.h"
+            DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     if(QJS_BUILD_LIBC)
         install(FILES "${QJS_UPSTREAM_DIR}/quickjs-libc.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
     endif()
@@ -710,6 +781,16 @@ if(QJS_ENABLE_INSTALL)
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
     install(EXPORT qjsConfig DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/qjs)
+    install(
+        TARGETS qjs
+        EXPORT quickjs-turboConfig
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
+    install(
+        EXPORT quickjs-turboConfig
+        NAMESPACE quickjs-turbo::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/quickjs-turbo)
     install(FILES "${QJS_UPSTREAM_DIR}/LICENSE" DESTINATION ${CMAKE_INSTALL_DOCDIR})
     install(DIRECTORY "${QJS_UPSTREAM_DIR}/examples" DESTINATION ${CMAKE_INSTALL_DOCDIR})
 endif()

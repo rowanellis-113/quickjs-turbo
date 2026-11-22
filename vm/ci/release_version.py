@@ -137,11 +137,12 @@ def write_release_notes(md_path: Path, info: ReleaseInfo, *, git_sha: str) -> Pa
         "",
         "### Included SDK Archives",
         "",
-        f"- `quickjs-turbo-{info.tag}-linux-x86_64-sdk.tar.gz` (`LINUX_X86_64` native register VM)",
+        f"- `quickjs-turbo-{info.tag}-linux-x86_64-sdk.tar.gz` (`LINUX_X86_64` native register VM + pre-generated ASM bundle)",
         (
             f"- `quickjs-turbo-{info.tag}-linux-aarch64-sdk.tar.gz` "
-            "(`LINUX_AARCH64` native register VM)"
+            "(`LINUX_AARCH64` native register VM + pre-generated ASM bundle)"
         ),
+        f"- `quickjs-turbo-{info.tag}-macos-x86_64-sdk.tar.gz` (`MACOS_X86_64` native Mach-O register VM + pre-generated ASM bundle)",
         f"- `quickjs-turbo-{info.tag}-windows-x86_64-msvc-md-sdk.zip` (`WIN64` MSVC `/MD`)",
         (
             f"- `quickjs-turbo-{info.tag}-windows-x86_64-msvc-mt-sdk.zip` "

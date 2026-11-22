@@ -53,11 +53,12 @@ BINDING_CELL_INLINE JSValue js_global_binding_cell_get(JSContext *ctx, JSFunctio
     /* Native own-method lookup can bypass by-id IC creation entirely. Admit
      * the same bounded slab once,at an already published global slow read.
      * No-by-id/oversized functions and optional OOM retain the old lookup. */
-    if (!ic && ctx->rt->property_ic_mode == 1 && ctx == b->realm) {
+    if (!js_property_ic_is_ptr(ic) && ic != JS_IC_DISABLED && ctx->rt->property_ic_mode == 1 &&
+        ctx == b->realm) {
         (void)js_ic_site(ctx, b, pc);
         ic = b->property_ic;
     }
-    if ((uintptr_t)ic <= 1 || ctx->rt->property_ic_mode != 1 || ctx != b->realm)
+    if (!js_property_ic_is_ptr(ic) || ctx->rt->property_ic_mode != 1 || ctx != b->realm)
         return JS_GetGlobalVar(ctx, atom, throw_ref_error);
     pos = (uint32_t)(pc - b->byte_code_buf) / 4;
     if (pos >= ic->map_count)
@@ -70,9 +71,9 @@ BINDING_CELL_INLINE JSValue js_global_binding_cell_get(JSContext *ctx, JSFunctio
         if (JS_IsException(value))
             return value;
         ic = b->property_ic;
-        if ((uintptr_t)ic > 1 && ctx->rt->property_ic_mode == 1 && pos < ic->map_count &&
+        if (js_property_ic_is_ptr(ic) && ctx->rt->property_ic_mode == 1 && pos < ic->map_count &&
             !ic->map[pos]) {
-            entry = getenv("QJS_DISABLE_FRAME_BINDING_CELL")
+            entry = qjs_turbo_default_binding_cell_disabled()
                         ? 2
                         : js_global_binding_cell_resolve(ctx, ic, atom);
             ic->map[pos] = (JSPropertyICSite *)entry;

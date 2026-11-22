@@ -129,7 +129,7 @@ def append(source, output, stream, blocks, handlers, leaves, layout, *, shared_g
         name = "JS_FrameOwnBytecodeM" + str(kind)
         for n, rows in own_blocks:
             if n == name:
-                rows[:0] = ["cmp BYTE PTR [rip+JS_FrameOwnBytecodeData], 1", "jne interp_" + op]
+                rows[:0] = ["cmp BYTE PTR [rip+JS_FrameOwnBytecodeData+5], 1", "jne interp_" + op]
         handlers[op] = name
     old_names = {"JS_FrameOwnBytecodeM" + str(k) for k in (1, 2, 3)}
     blocks[:] = [(n, r) for n, r in blocks if n not in old_names]
@@ -245,9 +245,28 @@ FRAME_CODE void JS_FrameOwnBytecodeDisable(void) {
  if(atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_relaxed)!=2) {
   atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,3,memory_order_release);
   _mm_mfence();
+  JS_FrameOwnBytecodeData.reserved[3]=2;
   atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,2,memory_order_release);
  }
  own_bytecode_unlock();
+}
+FRAME_CODE void JS_FrameOwnBytecodeSetTailMode(int tail_enabled) {
+ own_bytecode_lock();
+ unsigned char cur=atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_relaxed);
+ if(!tail_enabled && cur==1) {
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,3,memory_order_release);
+  _mm_mfence();
+#ifdef QJS_PROPERTY_IC
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,4,memory_order_release);
+#else
+  JS_FrameOwnBytecodeData.reserved[3]=2;
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,2,memory_order_release);
+#endif
+ }
+ own_bytecode_unlock();
+}
+FRAME_CODE int JS_FrameOwnBytecodeTailActive(void) {
+ return atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_acquire)==1?1:0;
 }
 """
     configure = function(text, "FRAME_CODE void JS_FrameOwnBytecodeConfigure(void)")
@@ -268,10 +287,12 @@ FRAME_CODE void JS_FrameOwnBytecodeDisable(void) {
     configure += """ own_bytecode_lock();
  if(atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_relaxed)==0) {
   JS_FrameOwnBytecodeData.reserved[1]=local_field;
+  JS_FrameOwnBytecodeData.reserved[3]=pic_active;
   JS_FrameOwnBytecodeData.reserved[4]=symbol_case;
   atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,desired,memory_order_release);
  }
  own_bytecode_unlock();
+ qjs_turbo_register_own_bytecode_hooks(JS_FrameOwnBytecodeSetTailMode,JS_FrameOwnBytecodeTailActive);
 }
 """
     extra = function(text, "static FRAME_INLINE size_t own_bytecode_extra(size_t n)")

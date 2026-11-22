@@ -161,9 +161,47 @@ Install and embed
 -----------------
   cmake --install build/msvc-product --prefix out/sdk-msvc
 
-Applications use the installed headers and exported target:
-  find_package(qjs CONFIG REQUIRED)
-  target_link_libraries(your_application PRIVATE qjs)
+Applications can link either the legacy target or the namespaced CMake target:
+  find_package(quickjs-turbo CONFIG REQUIRED)
+  target_link_libraries(your_application PRIVATE quickjs-turbo::qjs)
+
+Embedding directly via add_subdirectory(path/to/quickjs-turbo/vm) is also a
+first-class flow across Linux x86-64, Linux ARM64, macOS x86-64, and Windows
+x86-64 (WIN_X86_64):
+- When embedded via add_subdirectory(), QJS_BUILD_CLI and QJS_ENABLE_INSTALL
+  default to OFF automatically.
+- Host LTO/IPO is supported: native ASM/bridge compilation units are isolated
+  locally on qjs/qjs-core (-fno-lto on GCC/Clang, /GL- on MSVC) without
+  disabling LTO for the host application.
+- In QJS_FRAME_BACKEND=AUTO mode, ASan/UBSan/TSan/MSan/Fuzz flags or
+  unsupported toolchains automatically fall back to PORTABLE (C_FALLBACK).
+- Include "quickjs-turbo.h" (installed alongside quickjs.h) for explicit
+  programmatic configuration without getenv() or constructor-priority races:
+    QJS_TurboOptionsInit / QJS_SetTurboDefaults / QJS_GetTurboDefaults
+    JS_SetRuntimeTurboOptions / JS_PurgePropertyIC / QJS_GetTurboInfo
+
+Source-level Windows x86-64 native ASM VM (WIN_X86_64)
+------------------------------------------------------
+In addition to the legacy COFF-adapted WIN64 backend, QJS_FRAME_BACKEND=WIN_X86_64
+(and AUTO on MSVC or clang-cl when GNU binutils are absent or when embedded via
+add_subdirectory()) builds the source-level Windows x64 native register VM +
+native Property IC directly using MSVC (cl.exe + ml64.exe) or clang-cl with
+zero GNU binutils dependency, complete Win64 ABI compliance (32-byte shadow
+space, callee-saved GPR/XMM discipline, SEH .pdata/.xdata unwind):
+  cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=WIN_X86_64 -DQJS_PROPERTY_IC=ON
+  cmake --build build/win-x86_64 --parallel
+
+Pre-generated assembly offline builds (QJS_USE_PREGEN_ASM)
+----------------------------------------------------------
+To build a native backend without running Python generators at configure/build
+time, export a SHA256-verified pre-generated bundle from a completed build:
+  python3 -B vm/tools/common/export-pregen.py --source vm --build <build-dir> --output <pregen-dir>
+Then configure the offline or cross build with:
+  cmake -S vm -B build/offline -G Ninja -DCMAKE_BUILD_TYPE=Release \
+    -DQJS_FRAME_BACKEND=<LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64|WIN_X86_64> \
+    -DQJS_PROPERTY_IC=ON -DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<pregen-dir>
+CMake verifies the upstream revision pin and every file SHA256 from
+PREGEN-MANIFEST.json directly in pure CMake with zero Python invocation.
 
 An existing consumer verifies JS-to-C-to-JS calls using only the installed SDK:
   cmake -S vm/tests/common/consumer -B build/consumer -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$PWD/out/sdk-msvc"
@@ -207,13 +245,14 @@ checkouts and Linux archives select the same reviewed upstream source. The
 function-body,compiler-call-site and private ABI fingerprints remain exact; a
 source edit beyond checkout line endings still requires explicit pin review.
 
-Linux AArch64 native backend (QEMU functional qualification)
-----------------------------------------------------------
-The explicit LINUX_AARCH64 backend uses Linux/glibc,LP64,little endian,GCC13+
-and Ninja. Static library/Release builds are supported;LTO,sanitizers,shared
-libraries and BTI/PAC-default compiler profiles retain PORTABLE or fail a
-strict native request. AUTO remains the conservative portable selection on ARM;
-select the explicit backend or use the dedicated product wrapper.
+Linux AArch64 native backend (glibc & musl)
+-------------------------------------------
+The LINUX_AARCH64 backend (also selected automatically by QJS_FRAME_BACKEND=AUTO
+on Linux AArch64 hosts) supports Linux LP64 little-endian with both glibc and
+musl, GCC 13+, CMake 3.20+, and Ninja. Static library/Release builds are
+supported with local LTO isolation; sanitizers, fuzzers, shared libraries, and
+BTI/PAC-default compiler profiles automatically fall back to PORTABLE in AUTO
+mode or fail fast when LINUX_AARCH64 is requested explicitly.
 
 On a native ordinary Linux/glibc ARM64 host:
   bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk-arm64

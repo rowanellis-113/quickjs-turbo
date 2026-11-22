@@ -24,7 +24,7 @@
     "tools/arm64/verify/measure_abi.py": "62d84c97766fc48ab44287e2070efe4f9be80d55ab2564cbfb6e2f1e127d63d4",
     "tools/arm64/verify/check_abi.py": "a6199883c5dd03d302d8d54192a984f7becd923029dfbfdef45a119493a02d1d",
     "tools/common/elf/elf64.py": "6fea2e00d4ac3820f33405dab68fdfe7fb0986de95a62e4e8e703706fdeffef1",
-    "tools/common/elf/layout_input.py": "d72b1e9333410d2e51aba76b299fc7c55518f7667a7c8ceb398f4eb5eb7bfa5a",
+    "tools/common/elf/layout_input.py": "2c50d3ebbe6a0c4b2e9bffb50f9d4b4b4552d530c50310693e3f133b1a40aea5",
     "cmake/arm64/ABI.cmake": "c28d2dd1ebd24f6e3f7bba07f274f6587f415204bda70643c3d02a0f27db5ba5",
     "tests/arm64/call-abi.c": "051471b008ecc76562f2b538123031650587154649be387ddc52e18e101046fd",
     "tests/arm64/call-reference.c": "fbd1d647f5ab0f352edcdc2b7173caa38ceab69af32423f80b70685a28a6d5f1",

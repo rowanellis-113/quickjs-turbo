@@ -237,7 +237,9 @@ JSValue JS_LinuxCallPublicFallback(JSContext *ctx, JSValueConst func_obj, JSValu
         text = core_storage(text, property_ic=layout["property_ic"])
     generated = output / "quickjs-linux-foundation.c"
     generated.write_text(text)
-    commands = json.loads((build / "compile_commands.json").read_text())
+    from layout_input import find_compile_commands
+
+    commands = json.loads(find_compile_commands(build).read_text())
     command_source = (
         a.command_source.resolve() if a.command_source else source_file(source, "quickjs.c")
     )

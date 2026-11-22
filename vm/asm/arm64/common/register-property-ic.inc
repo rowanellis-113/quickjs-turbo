@@ -33,9 +33,8 @@
     b.ne .Lproperty_method_legacy
     ldr x2, [x22, #ARM_OFF_JSFrame_bytecode]
     ldr x3, [x2, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cmp x3, #1
-    b.eq .Lproperty_method_legacy
-    cbz x3, .Lproperty_no_cache
+    cmp x3, #4095
+    b.ls .Lproperty_ic_cold
     ldr x4, [x2, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
     sub x4, x20, x4
     lsr x4, x4, #2
@@ -291,6 +290,9 @@
 .Lproperty_put_primary:
     add x20, x20, #5
     ARM_DISPATCH_NEXT 1
+.Lproperty_ic_cold:
+    cmp x3, #1
+    b.eq .Lproperty_method_legacy
 .Lproperty_no_cache:
 // An active cache must learn its first hashed shape through original C.
 // Core-IC OFF retains the original live method path,independent of PICs.

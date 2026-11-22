@@ -108,6 +108,12 @@ if(QJS_AARCH64_NUMBER_DATAFLOW)
     set(qjs_arm_vm_assembly "${qjs_arm_vm_dir}/interpreter-aarch64-number-dataflow.S")
     set_source_files_properties("${qjs_arm_vm_assembly}" PROPERTIES GENERATED TRUE)
 endif()
+if(QJS_USE_PREGEN_ASM)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/Pregen.cmake")
+    qjs_load_pregen_bundle("linux_aarch64")
+    add_custom_target(qjs-aarch64-vm-inputs)
+    return()
+endif()
 file(
     GLOB_RECURSE
     qjs_arm_vm_inputs
@@ -442,7 +448,7 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/hybrid_gc.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/keyed_async.py"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
-            "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
     VERBATIM)
 add_custom_target(qjs-aarch64-vm-inputs DEPENDS "${qjs_arm_vm_dir}/VM.json")
 set_source_files_properties("${qjs_arm_vm_core}" PROPERTIES GENERATED TRUE)

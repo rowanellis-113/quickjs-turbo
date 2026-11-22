@@ -6,7 +6,6 @@
  * prototype-free hook invalidates that pointer before reuse.
  */
 #define JS_IC_MAX_SITES 1024
-#define JS_IC_DISABLED ((JSPropertyIC *)(uintptr_t)1)
 #define JS_IC_GC_SHAPE 0x100u
 #define JS_IC_GC_TARGET 0x200u
 #define JS_IC_KIND_MASK 0xffu
@@ -26,7 +25,15 @@ static JSPropertyICSite *js_ic_site(JSContext *ctx, JSFunctionBytecode *b, const
     size_t map_bytes, bytes;
     if (ctx->rt->property_ic_mode != 1 || ic == JS_IC_DISABLED)
         return NULL;
-    if (!ic) {
+    if (!js_property_ic_is_ptr(ic)) {
+        uint32_t warmup = ctx->rt->property_ic_warmup;
+        if (warmup) {
+            uint32_t hits = js_property_ic_warmup_count(ic) + 1u;
+            if (hits < warmup) {
+                b->property_ic = js_property_ic_encode_warmup(hits);
+                return NULL;
+            }
+        }
         /* A function is scanned once. No instruction or serialized atom is
          * modified, and an optional allocation failure never creates an OOM. */
         count = 0;
@@ -67,7 +74,7 @@ static JSPropertyICSite *js_ic_site(JSContext *ctx, JSFunctionBytecode *b, const
         assert(!((uintptr_t)b->byte_code_buf & 3));
         /* The former unused native bias word is now a borrowed realm pointer.
          * Native code already uses relative PC indexing;no layout grows. */
-        bool bind_globals = b->realm == ctx && !getenv("QJS_DISABLE_FRAME_BINDING_CELL");
+        bool bind_globals = b->realm == ctx && !qjs_turbo_default_binding_cell_disabled();
         index = 0;
         for (pos = 0; pos < (uint32_t)b->byte_code_len;
              pos += js_ic_opcode_sizes[b->byte_code_buf[pos]]) {
@@ -399,7 +406,7 @@ void js_property_ic_mark(JSRuntime *rt, JSFunctionBytecode *b, JS_MarkFunc *mark
 {
     JSPropertyIC *ic = b->property_ic;
     uint32_t i, j;
-    if (!ic || ic == JS_IC_DISABLED)
+    if (!js_property_ic_is_ptr(ic))
         return;
     /* Trial deletion subtracts every owned reference. The live-root scan then
      * omits cache edges; transition propagation below conditionally keeps the
@@ -423,7 +430,7 @@ void js_property_ic_free(JSRuntime *rt, JSFunctionBytecode *b)
     JSPropertyIC *ic = b->property_ic;
     uint32_t i, j;
     b->property_ic = NULL;
-    if (!ic || ic == JS_IC_DISABLED)
+    if (!js_property_ic_is_ptr(ic))
         return;
     if (ic->prev)
         ic->prev->next = ic->next;
@@ -452,7 +459,7 @@ int js_property_ic_inspect(JSValueConst func, uint32_t counts[7])
     if (!js_class_has_bytecode(p->class_id))
         return -1;
     ic = p->u.func.function_bytecode->property_ic;
-    if (!ic || ic == JS_IC_DISABLED)
+    if (!js_property_ic_is_ptr(ic))
         return 0;
     for (i = 0; i < ic->site_count; i++) {
         JSPropertyICSite *site = &ic->sites[i];
@@ -565,7 +572,7 @@ size_t js_property_ic_memory_size(JSFunctionBytecode *b, int *allocations)
     JSPropertyIC *ic = b->property_ic;
     size_t bytes;
     uint32_t i;
-    if (!ic || ic == JS_IC_DISABLED)
+    if (!js_property_ic_is_ptr(ic))
         return 0;
     bytes = ic->bytes;
     (*allocations)++;
@@ -577,4 +584,70 @@ size_t js_property_ic_memory_size(JSFunctionBytecode *b, int *allocations)
         }
     }
     return bytes;
+}
+
+static bool js_property_ic_owner_active(JSRuntime *rt, const JSFunctionBytecode *owner)
+{
+    JSStackFrame *sf;
+    for (sf = rt->current_stack_frame; sf; sf = sf->prev_frame) {
+        if (JS_VALUE_GET_TAG(sf->cur_func) == JS_TAG_OBJECT) {
+            JSObject *fn = JS_VALUE_GET_OBJ(sf->cur_func);
+            if (js_class_has_bytecode(fn->class_id) && fn->u.func.function_bytecode == owner)
+                return true;
+        }
+    }
+    return false;
+}
+
+size_t js_property_ic_purge(JSRuntime *rt)
+{
+    size_t freed_bytes = 0;
+    if (!rt || !rt->property_ic_list)
+        return 0;
+    if (!rt->current_stack_frame) {
+        while (rt->property_ic_list) {
+            JSFunctionBytecode *owner = rt->property_ic_list->owner;
+            int allocs = 0;
+            freed_bytes += js_property_ic_memory_size(owner, &allocs);
+            owner->header.ref_count++;
+            js_property_ic_free(rt, owner);
+            JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, owner));
+        }
+        return freed_bytes;
+    }
+    /* Reentrant call while JS frames are live: skip bytecodes on the active stack. */
+    for (;;) {
+        JSPropertyIC *ic = rt->property_ic_list;
+        while (ic && js_property_ic_owner_active(rt, ic->owner))
+            ic = ic->next;
+        if (!ic)
+            break;
+        {
+            JSFunctionBytecode *owner = ic->owner;
+            int allocs = 0;
+            freed_bytes += js_property_ic_memory_size(owner, &allocs);
+            owner->header.ref_count++;
+            js_property_ic_free(rt, owner);
+            JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, owner));
+        }
+    }
+    return freed_bytes;
+}
+
+void js_property_ic_stats(JSRuntime *rt, uint32_t *slab_count, size_t *total_bytes)
+{
+    JSPropertyIC *ic;
+    uint32_t count = 0;
+    size_t bytes = 0;
+    if (rt) {
+        for (ic = rt->property_ic_list; ic; ic = ic->next) {
+            int allocs = 0;
+            count++;
+            bytes += js_property_ic_memory_size(ic->owner, &allocs);
+        }
+    }
+    if (slab_count)
+        *slab_count = count;
+    if (total_bytes)
+        *total_bytes = bytes;
 }

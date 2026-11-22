@@ -19,7 +19,7 @@ def private_types(text, conditional=False):
         ("    uint8_t is_hashed;", "uint8_t property_ic_refs[3];"),
         (
             "    JSRuntimeFinalizerState *finalizers;",
-            "uint64_t property_ic_epoch; uint32_t property_ic_mode, property_ic_gc_mode; struct JSPropertyIC *property_ic_list;",
+            "uint64_t property_ic_epoch; uint32_t property_ic_mode, property_ic_gc_mode; struct JSPropertyIC *property_ic_list; uint32_t property_ic_warmup;",
         ),
         ("    char *source;\n} JSFunctionBytecode;", "struct JSPropertyIC *property_ic;"),
     ]
@@ -120,7 +120,7 @@ def core_overlay(text):
     text = replace_once(
         text,
         "    rt->js_class_id_alloc = JS_CLASS_INIT_COUNT;",
-        '    rt->js_class_id_alloc = JS_CLASS_INIT_COUNT; rt->property_ic_epoch = 1; rt->property_ic_mode = getenv("QJS_DISABLE_PROPERTY_IC") ? 2 : 1; rt->property_ic_gc_mode = getenv("QJS_DISABLE_PROPERTY_IC_WEAK_PROTO") ? JS_IC_RETAIN_ORPHANS : 0;',
+        '    rt->js_class_id_alloc = JS_CLASS_INIT_COUNT; rt->property_ic_epoch = 1; rt->property_ic_mode = qjs_turbo_default_property_ic_mode(); rt->property_ic_gc_mode = getenv("QJS_DISABLE_PROPERTY_IC_WEAK_PROTO") ? JS_IC_RETAIN_ORPHANS : 0; rt->property_ic_warmup = qjs_turbo_default_property_ic_warmup();',
     )
     text = replace_once(
         text,

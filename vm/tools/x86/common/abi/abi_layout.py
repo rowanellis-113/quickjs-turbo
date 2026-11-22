@@ -13,8 +13,12 @@ def validate_measured_override(source, layout):
     """An explicit Linux measurement is separate from the Win64 catalogue."""
     source = Path(source).resolve()
     target = layout.get("target", "")
-    valid_target = target == "x86_64-linux-gnu" or target.startswith("x86_64-apple-darwin")
-    if layout.get("platform") != "linux-x86_64-sysv" or not valid_target:
+    platform = layout.get("platform", "")
+    valid_target = (
+        platform == "linux-x86_64-sysv"
+        and (target == "x86_64-linux-gnu" or target.startswith("x86_64-apple-darwin"))
+    ) or (platform == "win64-x86_64" and target == "x86_64-pc-windows-msvc")
+    if not valid_target:
         raise ValueError("Unsupported measured native platform override")
     if (
         hashlib.sha256(source_file(source, "quickjs.c").read_text().encode()).hexdigest()
@@ -92,7 +96,7 @@ def c_contract(layout):
             "QJS_ABI_SIZE_JSFunctionBytecode",
             "QJS_ABI_SIZE_JSContext",
         ):
-            extra = 24 if name.endswith("JSRuntime") else 56 if name.endswith("JSContext") else 8
+            extra = 32 if name.endswith("JSRuntime") else 56 if name.endswith("JSContext") else 8
             lines.extend(
                 [
                     "#ifdef QJS_PROPERTY_IC",

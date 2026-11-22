@@ -38,18 +38,30 @@ foreach(
     endif()
 endforeach()
 
+option(QJS_USE_PREGEN_ASM
+       "Use pre-generated native assembly/C inputs instead of running Python codegen" OFF)
+set(QJS_PREGEN_DIR
+    "${CMAKE_CURRENT_SOURCE_DIR}/pregen"
+    CACHE PATH "Directory containing pre-generated native assembly bundles")
+
 # Frame support is optional. A normal upstream build requires no Python, MASM
 # or binutils. AUTO falls back before adding objects, flags or custom commands;
-# WIN64 is strict, so an explicitly requested backend cannot silently disappear.
+# explicit native backends are strict so a requested backend cannot silently disappear.
 if(NOT DEFINED QJS_FRAME_BACKEND)
     if(QJS_ENABLE_INTERP_FRAME)
         set(QJS_FRAME_BACKEND
             WIN64
-            CACHE STRING "Frame backend: PORTABLE, AUTO, WIN64 or LINUX_X86_64")
+            CACHE
+                STRING
+                "Frame backend: PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+        )
     else()
         set(QJS_FRAME_BACKEND
             PORTABLE
-            CACHE STRING "Frame backend: PORTABLE, AUTO, WIN64 or LINUX_X86_64")
+            CACHE
+                STRING
+                "Frame backend: PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+        )
     endif()
 endif()
 set_property(
@@ -58,18 +70,23 @@ set_property(
              PORTABLE
              AUTO
              WIN64
+             WIN_X86_64
              LINUX_X86_64
              LINUX_AARCH64
              MACOS_X86_64)
 string(TOUPPER "${QJS_FRAME_BACKEND}" frame_requested)
-if(NOT frame_requested MATCHES "^(PORTABLE|AUTO|WIN64|LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64)$")
+if(NOT frame_requested MATCHES
+   "^(PORTABLE|AUTO|WIN64|WIN_X86_64|LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64)$")
     message(
         FATAL_ERROR
-            "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+            "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
     )
 endif()
 
-if(frame_requested STREQUAL "LINUX_AARCH64")
+if(frame_requested STREQUAL "LINUX_AARCH64"
+   OR (frame_requested STREQUAL "AUTO"
+       AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+       AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(aarch64|arm64|ARM64)$"))
     include("${CMAKE_CURRENT_LIST_DIR}/../arm64/InterpreterOptions.cmake")
     return()
 endif()

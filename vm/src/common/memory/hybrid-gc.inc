@@ -1,4 +1,6 @@
 /* Hybrid Reference Counting + Generational Partial Mark-Sweep + Fast Synchronous RC. */
+#define QJS_HYBRID_GC_OVERLAY 1
+#include "src/common/internal/turbo-config.h"
 
 _Static_assert(offsetof(JSObject, header) == 0 && offsetof(JSFunctionBytecode, header) == 0 &&
                    offsetof(JSShape, header) == 0 &&
@@ -8,7 +10,7 @@ _Static_assert(offsetof(JSObject, header) == 0 && offsetof(JSFunctionBytecode, h
 static void js_hybrid_gc_init(JSRuntime *rt, const JSMallocFunctions *mf)
 {
     uint32_t mode = JS_HYBRID_MODE_PARTIAL | JS_HYBRID_MODE_FAST_RC;
-    if (getenv("QJS_DISABLE_HYBRID_GC"))
+    if (qjs_turbo_default_hybrid_gc_disabled())
         mode = 0;
     if (getenv("QJS_DISABLE_PARTIAL_CYCLE"))
         mode &= ~JS_HYBRID_MODE_PARTIAL;

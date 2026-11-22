@@ -10,6 +10,11 @@ set(qjs_macos_int_expr "${qjs_macos_native_dir}/quickjs-macos-integer-expression
 set(qjs_macos_vm "${qjs_macos_native_dir}/quickjs-linux-vm.S")
 set(qjs_macos_bridges "${qjs_macos_native_dir}/quickjs-linux-bridges.S")
 set(qjs_macos_entry "${qjs_macos_native_dir}/quickjs-linux-entry.S")
+if(QJS_USE_PREGEN_ASM)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/Pregen.cmake")
+    qjs_load_pregen_bundle("macos_x86_64")
+    return()
+endif()
 set(qjs_macos_global_outputs)
 set(qjs_macos_generation_options)
 if(QJS_INTERP_FRAME_GLOBAL_BINDING)
@@ -141,7 +146,7 @@ add_custom_command(
             "${QJS_UPSTREAM_DIR}/quickjs-opcode.h"
             "${QJS_UPSTREAM_DIR}/quickjs-atom.h"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
-            "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Measure macOS private ABI and generate native C/Mach-O sources"
     VERBATIM)

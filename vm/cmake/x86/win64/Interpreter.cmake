@@ -316,7 +316,6 @@ if(QJS_ENABLE_INTERP_FRAME)
                    "${QJS_FRAME_GENERATED_DIR}/quickjs-json-split.json"
         VERBATIM)
     target_sources(qjs PRIVATE src/x86/win64/common/quickjs-interpreter.c "${frame_private_header}")
-    target_sources(qjs PRIVATE src/common/internal/interpreter-env.c)
     if(MINGW AND CMAKE_C_COMPILER_ID STREQUAL "GNU")
         target_sources(qjs PRIVATE src/common/value/instanceof.c)
         set_source_files_properties(src/common/value/instanceof.c

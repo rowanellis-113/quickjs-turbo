@@ -2,10 +2,10 @@
   "schema": 1,
   "owners": {
     "tools/x86/common/codegen/global-binding.py": "f5f18cbf5c5b5bdb50dbff10b81662ff1e07e17f730a438efaa8b808c9411c33",
-    "tools/x86/common/codegen/property_ic_native.py": "b4eddd4b9d7c0f72e62bbdf0d1be8dcb275ad25524f7fdc4785de434fc366d57",
+    "tools/x86/common/codegen/property_ic_native.py": "4560f23df102beeef19aeecf58211c70956e03fa5cecc3dcb0a942c1fafdd2a1",
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
-    "tools/x86/common/codegen/own-bytecode.py": "7d6ca9cf3debb4f53ee6df8aa4988bfbc47f6e1802ab70a90cc188f7dcb207be"
+    "tools/x86/common/codegen/own-bytecode.py": "4c22899766529799ab01fcd1dc4ca6b9bb7f67752cc1093ae25c8ffb2002a22a"
   },
   "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
   "profile": "Compiler-measured Linux LP64 inline-header/JSValue16;existing frame128/state168 and sites16x32",

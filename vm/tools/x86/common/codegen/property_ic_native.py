@@ -7,6 +7,17 @@ retained for unsupported shapes and same-image policy OFF.
 
 
 def enabled(build):
+    if hasattr(build, "resolve"):
+        build = build.resolve()
+        cache = next(
+            (
+                d / "CMakeCache.txt"
+                for d in (build, *build.parents)
+                if (d / "CMakeCache.txt").is_file()
+            ),
+            build / "CMakeCache.txt",
+        )
+        return "QJS_PROPERTY_IC:BOOL=ON" in cache.read_text(encoding="utf-8")
     return "QJS_PROPERTY_IC:BOOL=ON" in (build / "CMakeCache.txt").read_text(encoding="utf-8")
 
 
@@ -47,10 +58,8 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 "jnz " + legacy,
                 "mov r11, QWORD PTR [rbp+80]",
                 f"mov r10, QWORD PTR [r11+{bc_extra}]",
-                "cmp r10, 1",
-                "je " + legacy,
-                "test r10, r10",
-                "jz " + miss,
+                "cmp r10, 4095",
+                "jbe " + p + "_ic_unready",
                 # Code buffers are4-aligned. Compute the relative index
                 # independently of the IC slab load,then address its map
                 # directly; no extra storage or change to cache ownership.
@@ -232,7 +241,14 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 ]
             else:
                 g += ["jmp " + original]
-            g += [p + "_primitive:", "jmp " + original]
+            g += [
+                p + "_primitive:",
+                "jmp " + original,
+                p + "_ic_unready:",
+                "cmp r10, 1",
+                "je " + legacy,
+                "jmp " + miss,
+            ]
             local = {line[:-1] for line in g if line.endswith(":")}
             for line in g:
                 assert not line.startswith(("call ", "ret", "push ", "pop ")) and "rsp" not in line
@@ -323,6 +339,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
     replacements = {
         "property_ic_M1_miss": fallback,
         "property_ic_M1_legacy": fallback,
+        "property_ic_M1_ic_unready": fallback,
         "interp_property_slow_get_field": fallback,
     }
     import re
@@ -391,8 +408,9 @@ def global_cell_probe(abi, prefix, ready, relink, *, measured_tail=False):
     return [
         "mov r11, QWORD PTR [rbp+80]",
         f"mov r10, QWORD PTR [r11+{bc_ic}]",
-        "cmp r10, 1",
+        "cmp r10, 4095",
         "ja " + prefix + "_binding_cell_metadata",
+        "cmp r10, 1",
         "je " + miss,
         "mov rcx, QWORD PTR [rbx+56]",
         f"cmp DWORD PTR [rcx+{rt_mode}], 1",

@@ -1,4 +1,5 @@
 #include "src/common/internal/interpreter-env.h"
+#include "src/common/internal/turbo-config.h"
 
 /* Interpreter controls are inspected at mode setup or diagnostic boundaries. */
 #if defined(_MSC_VER) && defined(_M_X64)
@@ -9,6 +10,9 @@
 
 QJS_INTERP_ENV_COLD int qjs_internal_interp_frame_disabled(void)
 {
+    int pref = qjs_turbo_default_frame_backend_disabled();
+    if (pref >= 0)
+        return pref;
     return js_interp_env_is_set("QJS_DISABLE_INTERP_FRAME",
                                 "QJS_DISABLE_" QJS_INTERP_PREVIOUS_MARKER "_FRAME");
 }

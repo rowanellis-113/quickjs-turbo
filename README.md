@@ -49,8 +49,10 @@ export default {
 - **Up to 6.7× Faster on Hot Workloads**: Native register dispatch + inline caches deliver **`6.73×` RegExp**, **`6.40×` `JSON.stringify`**, **`5.74×` array writes**, and **`2.84×` property reads** over stock QuickJS-NG `0.15.1`.
 - **Cross-Platform Object, Collection & Async Fast Paths**: Shared literal capacity reservation (**`2.98–3.49×`** on 5-field object literals), unified `Map`/`Set` string-key hashing + short-rope flattening (**`2.12–3.52×`** flat / **`1.58–2.52×`** rope lookups), capability-free ordinary `async` / `Promise.resolve` primitives (**`1.39–1.47×`**), and co-allocated inline object properties on Linux `x86-64` & `ARM64` (**`+2.38%`** V8-v7 / **`+8.79%`** Splay / **`-4.09%`** peak RSS on Linux `x86-64`).
 - **Hybrid RC + Generational Partial Cycle GC**: Preserves deterministic immediate reference counting while cutting full-heap trial-deletion scans by ~86% (**`1.50×` faster cyclic garbage churn** / `-33.6%` time), accelerating string slices by **`~10–11%`** and deep-tree reclamation by **`7.4%`** with zero RSS bloat.
+- **High-Density Memory Control (`quickjs-turbo.h`)**: Decouple `own_bytecode` tail copies (`own_bytecode_tail = QJS_TURBO_OFF`) while keeping native assembly Property ICs active, lazily allocate IC slabs via low-bit tagged warmup (`property_ic_warmup`, default `0`, `+0` bytes on `JSFunctionBytecode`, `-1` branch on x86-64 hot path), and reclaim idle worker IC slabs on demand with `JS_PurgePropertyIC(rt)`.
+- **First-Class C API & CMake Embedding (`quickjs-turbo::qjs`)**: Configure per-process and per-runtime options programmatically (`QJS_SetTurboDefaults`, `JS_SetRuntimeTurboOptions`, `QJS_GetTurboInfo`) without `getenv()`/`constructor` races. `quickjs-turbo::qjs` isolates native ASM/bridge units locally (`-fno-lto` / `/GL-`) so host LTO stays enabled, automatically falls back to `PORTABLE` under ASan/UBSan/TSan/MSan/Fuzz in `AUTO` mode, supports `QJS_USE_PREGEN_ASM=ON` offline builds without Python, and works directly via `add_subdirectory()`.
 - **True Drop-In Compatibility**: Unmodified `quickjs.h` C API/ABI. Validated on every commit against **`81,152` Test262 cases** (`0` regressions, **`31` upstream bugs fixed**).
-- **Cross-Platform Native Speed**: Dedicated assembly VMs for **Linux `x86-64`** (`2.08×` V8-v7), **macOS `x86-64`** (`MACOS_X86_64`, Mach-O / Apple Clang, `1.45×` V8-v7 & `1.34×` JetStream 3.0 over Bellard QuickJS `2026`), **Windows `x86-64`** (`MSVC` & `MinGW`, `1.94×` V8-v7), and **Linux `ARM64`** (`1.50×` over Bellard QuickJS `2026` on Graviton2, 64-byte aligned VM entry), plus an automatic `PORTABLE` C fallback for macOS `ARM64` and other targets.
+- **Cross-Platform Native Speed**: Dedicated assembly VMs for **Linux `x86-64`** (`2.08×` V8-v7), **macOS `x86-64`** (`MACOS_X86_64`, Mach-O / Apple Clang, `1.45×` V8-v7 & `1.34×` JetStream 3.0 over Bellard QuickJS `2026`), **Windows `x86-64`** (both source-level `WIN_X86_64` for MSVC / `clang-cl` with zero GNU binutils and `WIN64` MSVC/MinGW, `1.94×` V8-v7), and **Linux `ARM64`** (`glibc` & `musl`, `1.50×` over Bellard QuickJS `2026` on Graviton2, 64-byte aligned VM entry), plus an automatic `PORTABLE` C fallback for macOS `ARM64` and instrumented builds.
 
 ---
 
@@ -79,11 +81,39 @@ cmake -S vm -B build/portable -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --bui
 ```
 
 ```powershell
-# Windows x86-64 (MSVC or MinGW)
+# Windows x86-64 (MSVC / clang-cl native ASM VM, zero GNU binutils required)
+cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=AUTO -DQJS_PROPERTY_IC=ON
+cmake --build build/win-x86_64 --parallel
+
+# Or legacy COFF-adapted Win64 product wrapper (MSVC or MinGW)
 ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain msvc -Backend WIN64 -Test
 ```
 
-Link into any C/C++ CMake project with `find_package(qjs CONFIG REQUIRED)` and `target_link_libraries(app PRIVATE qjs::qjs)`.
+### 3. Embed via CMake & Configure via `quickjs-turbo.h`
+
+```cmake
+# Either via add_subdirectory(vendor/quickjs-turbo/vm) or find_package(quickjs-turbo CONFIG REQUIRED)
+target_link_libraries(my_app PRIVATE quickjs-turbo::qjs)
+```
+
+```c
+#include "quickjs.h"
+#include "quickjs-turbo.h"
+
+QJSTurboOptions opts;
+QJS_TurboOptionsInit(&opts);
+opts.own_bytecode_tail = QJS_TURBO_OFF; /* PIC-only: zero tail copy overhead */
+opts.property_ic_warmup = 16;           /* Lazy IC allocation after 16 accesses */
+QJS_SetTurboDefaults(&opts);
+
+JSRuntime *rt = JS_NewRuntime();
+QJSTurboInfo info;
+QJS_GetTurboInfo(rt, &info);            /* Structured backend & IC telemetry */
+/* ... when worker becomes idle: */
+JS_PurgePropertyIC(rt);                 /* Reclaim all Property IC slabs */
+```
+
+For offline or cross-compilation builds without Python at build time, export a SHA256-verified assembly bundle with `python3 vm/tools/common/export-pregen.py --source vm --build <build-dir> --output <pregen-dir>` and configure downstream with `-DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<pregen-dir>`.
 
 ---
 

@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <stdio.h>
 #include <string.h>
+#include "quickjs-turbo.h"
 #include "quickjs.h"
 
 static JSValue callback(JSContext *ctx, JSValueConst this_value, int argc, JSValueConst *argv)
@@ -15,8 +16,17 @@ static JSValue callback(JSContext *ctx, JSValueConst this_value, int argc, JSVal
 
 int main(void)
 {
+    QJSTurboOptions turbo_opts;
+    QJS_TurboOptionsInit(&turbo_opts);
+    turbo_opts.own_bytecode_tail = QJS_TURBO_OFF;
+    turbo_opts.property_ic_warmup = 4;
+    assert(QJS_SetTurboDefaults(&turbo_opts) == 0);
+
     JSRuntime *runtime = JS_NewRuntime();
     assert(runtime);
+    QJSTurboInfo turbo_info;
+    assert(QJS_GetTurboInfo(runtime, &turbo_info) == 0);
+    assert(turbo_info.backend_name != NULL && turbo_info.backend_name[0] != '\0');
     JSContext *context = JS_NewContext(runtime);
     assert(context);
     JSValue global = JS_GetGlobalObject(context);
@@ -36,6 +46,7 @@ int main(void)
     }
     JS_FreeValue(context, function);
     JS_FreeValue(context, global);
+    (void)JS_PurgePropertyIC(runtime);
     JS_FreeContext(context);
     JS_FreeRuntime(runtime);
     puts("INSTALLED_CONSUMER_PASS: JS -> C -> JS, closure and exception returns");

@@ -46,6 +46,7 @@ BODY = r"""
 #include <stdatomic.h>
 #include <immintrin.h>
 #include "src/common/internal/interpreter-env.h"
+#include "src/common/internal/turbo-config.h"
 typedef struct JSFrameOwnBytecodeControl {
  _Atomic(unsigned char) mode;
  unsigned char diagnostic,reserved[6]; /* reserved[2]: MSVC method IC learning policy */
@@ -205,9 +206,28 @@ FRAME_CODE void JS_FrameOwnBytecodeDisable(void) {
   atomic_store_explicit(&((_Atomic(uintptr_t)*)OWN_PRIVATE_ADDRESS(JS_FrameGlobalBindingDiagnosticTable))[OWN_BYTECODE_FIELD1],OWN_PRIVATE_ADDRESS(interp_get_field),memory_order_release);
   atomic_store_explicit(&((_Atomic(uintptr_t)*)OWN_PRIVATE_ADDRESS(JS_FrameGlobalBindingDiagnosticTable))[OWN_BYTECODE_FIELD2],OWN_PRIVATE_ADDRESS(interp_get_field2),memory_order_release);
 #endif
+  JS_FrameOwnBytecodeData.reserved[3]=2;
   atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,2,memory_order_release);
  }
  own_bytecode_unlock();
+}
+FRAME_CODE void JS_FrameOwnBytecodeSetTailMode(int tail_enabled) {
+ own_bytecode_lock();
+ unsigned char cur=atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_relaxed);
+ if(!tail_enabled && cur==1) {
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,3,memory_order_release);
+  _mm_mfence();
+#ifdef QJS_PROPERTY_IC
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,4,memory_order_release);
+#else
+  JS_FrameOwnBytecodeData.reserved[3]=2;
+  atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,2,memory_order_release);
+#endif
+ }
+ own_bytecode_unlock();
+}
+FRAME_CODE int JS_FrameOwnBytecodeTailActive(void) {
+ return atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_acquire)==1?1:0;
 }
 
 static FRAME_INLINE size_t own_bytecode_extra(size_t n) {
@@ -227,14 +247,21 @@ FRAME_CODE void JS_FrameOwnBytecodeConfigure(void) {
   atomic_is_lock_free(&JS_FrameOwnBytecodeDispatch.dirty[0]) &&
   atomic_is_lock_free(&JS_FrameOwnBytecodeDispatch.base[0]);
  /* Keep all environment/parent calls outside the new cold-only lock. */
- unsigned char desired=valid && !getenv("QJS_DISABLE_NATIVE_OWN_BYTECODE") &&
-  !qjs_internal_interp_frame_disabled() && !qjs_internal_interp_register_disabled()?1:2;
-#ifndef _MSC_VER
- unsigned char local_field=desired==1 && !getenv("QJS_DISABLE_FRAME_LOCAL_FIELD")?1:2;
+ unsigned char base_ok=valid && !getenv("QJS_DISABLE_NATIVE_OWN_BYTECODE") &&
+  !qjs_internal_interp_frame_disabled() && !qjs_internal_interp_register_disabled()?1:0;
+ unsigned char tail_off=qjs_turbo_own_bytecode_tail_disabled()?1:0;
+#ifdef QJS_PROPERTY_IC
+ unsigned char desired=base_ok ? (tail_off ? 4 : 1) : 2;
+#else
+ unsigned char desired=(base_ok && !tail_off) ? 1 : 2;
 #endif
- unsigned char symbol_case=desired==1 && !getenv("QJS_DISABLE_SYMBOL_CASE")?1:2;
+ unsigned char pic_active=(desired==1 || desired==4)?1:2;
+#ifndef _MSC_VER
+ unsigned char local_field=pic_active==1 && !getenv("QJS_DISABLE_FRAME_LOCAL_FIELD")?1:2;
+#endif
+ unsigned char symbol_case=pic_active==1 && !getenv("QJS_DISABLE_SYMBOL_CASE")?1:2;
 #if defined(_MSC_VER) && defined(QJS_PROPERTY_IC) && !defined(QJS_INTERP_FRAME_DIAGNOSTICS)
- unsigned char method_learning=desired==1 && !getenv("QJS_DISABLE_METHOD_IC_LEARNING")?1:2;
+ unsigned char method_learning=pic_active==1 && !getenv("QJS_DISABLE_METHOD_IC_LEARNING")?1:2;
 #endif
  atomic_store_explicit(&JS_FrameOwnBytecodeData.abi,valid,memory_order_relaxed);
  own_bytecode_lock();
@@ -242,6 +269,7 @@ FRAME_CODE void JS_FrameOwnBytecodeConfigure(void) {
 #ifndef _MSC_VER
   JS_FrameOwnBytecodeData.reserved[1]=local_field;
 #endif
+  JS_FrameOwnBytecodeData.reserved[3]=pic_active;
   JS_FrameOwnBytecodeData.reserved[4]=symbol_case;
 #if defined(_MSC_VER) && defined(QJS_PROPERTY_IC) && !defined(QJS_INTERP_FRAME_DIAGNOSTICS)
   JS_FrameOwnBytecodeData.reserved[2]=method_learning;
@@ -249,7 +277,7 @@ FRAME_CODE void JS_FrameOwnBytecodeConfigure(void) {
   atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.selected,OWN_PRIVATE_ADDRESS(interp_table),memory_order_relaxed);
   atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.dirty[0],OWN_PRIVATE_ADDRESS(OWN_ORIGINAL_P1),memory_order_relaxed);
   atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.dirty[1],OWN_PRIVATE_ADDRESS(OWN_ORIGINAL_P2),memory_order_relaxed);
-  if(desired==1) {
+  if(pic_active==1) {
    for(unsigned i=0;i<258;i++)
     atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.base[i],((const uintptr_t*)OWN_PRIVATE_ADDRESS(interp_table))[i],memory_order_relaxed);
    atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.base[OWN_BYTECODE_FIELD1],OWN_PRIVATE_ADDRESS(JS_FrameOwnBytecodeM1),memory_order_relaxed);
@@ -265,16 +293,17 @@ FRAME_CODE void JS_FrameOwnBytecodeConfigure(void) {
   }
 #if defined(QJS_PROPERTY_IC) && OWN_BYTECODE_DIRTY_P
   atomic_store_explicit(&JS_FrameOwnBytecodeDispatch.put_dirty,
-   desired==1 ? OWN_PRIVATE_ADDRESS(JS_FrameOwnBytecodeP3) : OWN_PRIVATE_ADDRESS(dirty_interp_put_field),memory_order_release);
+   pic_active==1 ? OWN_PRIVATE_ADDRESS(JS_FrameOwnBytecodeP3) : OWN_PRIVATE_ADDRESS(dirty_interp_put_field),memory_order_release);
 #endif
   atomic_store_explicit(&JS_FrameOwnBytecodeData.mode,desired,memory_order_release);
  }
  own_bytecode_unlock();
+ qjs_turbo_register_own_bytecode_hooks(JS_FrameOwnBytecodeSetTailMode,JS_FrameOwnBytecodeTailActive);
 }
 FRAME_CODE void *JS_FrameOwnBytecodeAllocateRT(JSRuntime *rt,size_t count,size_t size) {
  unsigned char mode=atomic_load_explicit(&JS_FrameOwnBytecodeData.mode,memory_order_acquire);
  if(mode!=1) {
-  if(mode!=2) JS_FrameOwnBytecodeDisable();
+  if(mode!=2 && mode!=4) JS_FrameOwnBytecodeDisable();
   return js_calloc_rt(rt,count,size);
  }
  if(size && count>SIZE_MAX/size) {

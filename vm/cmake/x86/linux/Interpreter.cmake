@@ -10,6 +10,11 @@ set(qjs_linux_projection "${qjs_linux_native_dir}/quickjs-linux-compiler-project
 set(qjs_linux_vm "${qjs_linux_native_dir}/quickjs-linux-vm.S")
 set(qjs_linux_bridges "${qjs_linux_native_dir}/quickjs-linux-bridges.S")
 set(qjs_linux_entry "${qjs_linux_native_dir}/quickjs-linux-entry.S")
+if(QJS_USE_PREGEN_ASM)
+    include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/Pregen.cmake")
+    qjs_load_pregen_bundle("linux_x86_64")
+    return()
+endif()
 set(qjs_linux_global_outputs)
 set(qjs_linux_generation_options)
 if(QJS_INTERP_FRAME_GLOBAL_BINDING)
@@ -139,7 +144,7 @@ add_custom_command(
             "${QJS_UPSTREAM_DIR}/quickjs-opcode.h"
             "${QJS_UPSTREAM_DIR}/quickjs-atom.h"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
-            "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
     WORKING_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}"
     COMMENT "Measure Linux private ABI and generate native C/ELF sources"
     VERBATIM)
