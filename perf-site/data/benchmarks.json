@@ -9,7 +9,7 @@
   },
   "heroComparison": {
     "suite": "V8-v7 Whole Score",
-    "cohort": "Linux x86-64 · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT",
+    "cohort": "Reference Linux x86-64 Host · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT",
     "sourceDoc": "vm/docs/architecture/common/PRODUCT-BASELINE.txt",
     "engines": [
       { "id": "v8-jitless", "label": "V8 --jitless (Node 24)", "score": 2374.9, "role": "reference" },
@@ -30,10 +30,10 @@
       "pool": "system malloc",
       "ratioVsNg": 1.0,
       "ratioVsV8": 41.8,
-      "summary": "Pinned upstream QuickJS-NG 0.15.1 C interpreter baseline on the same Linux x86-64 host.",
+      "summary": "Pinned upstream QuickJS-NG 0.15.1 C interpreter baseline on the original Reference Linux x86-64 host.",
       "highlights": [
         "Standard stack-based C interpreter loop",
-        "Reference baseline for all Linux x86-64 comparisons"
+        "Anchor baseline (993.7) for all 5 milestone points on this reference host"
       ],
       "subtests": {
         "Richards": 763.15,
@@ -133,10 +133,10 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.08,
       "ratioVsV8": 87.2,
-      "summary": "Unified cross-platform runtime fast paths (literal reserve, Map/Set hashing + rope flattening, capability-free async, x86 inline props), followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, MACOS_X86_64 Apple Clang 15 fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support.",
+      "summary": "Unified cross-platform runtime fast paths (measured at 2,071.65 on the Reference Host in .4), followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, Apple Clang 15 macOS fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support.",
       "highlights": [
-        "V8-v7 reached 2,071.65 (2.08× vs QuickJS-NG · 87.2% of V8 --jitless) while cutting Peak RSS -4.09% (-7.5 MiB)",
-        "v0.15.1-turbo.8 verified on i5-12400F: 2.02× V8-v7 vs NG (2,852 / 2,866 Density vs 1,415), 100.5% Density vs Default & -49.3% cold-worker heap (779 → 395 KiB)",
+        "Reference Host (.4 anchor): V8-v7 2,071.65 (2.08× vs NG 993.7 · 87.2% of V8 --jitless), Peak RSS -4.09% (-7.5 MiB)",
+        "Independent i5-12400F Host (.8 parity check): paired .8 vs .4 holds same-CPU throughput (2.02×–2.03× vs NG on that host) while Density mode cuts cold-worker heap -49.3% (see separate i5-12400F tab below)",
         "All 4 native ASM backends online: LINUX_X86_64, LINUX_AARCH64 (glibc & musl / GCC 14+), MACOS_X86_64, and WIN_X86_64 (MSVC / clang-cl)"
       ],
       "subtests": {
@@ -153,22 +153,21 @@
   ],
   "platforms": {
     "linux-x86_64": {
-      "title": "Linux x86-64",
+      "title": "Linux x86-64 (Ref Host)",
       "backend": "LINUX_X86_64",
-      "toolchain": "GCC 13.3 · Ubuntu 24.04 · CPU2 serial · FramePool 512",
-      "baselineLabel": "vs QuickJS-NG 0.15.1",
+      "toolchain": "Reference x86-64 Host · GCC 13.3 · Ubuntu 24.04 · CPU2 serial · FramePool 512",
+      "baselineLabel": "Historical Anchor Cohort (vs Stock NG 993.7)",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
         { "label": "V8-v7 Score", "value": "2,071.65", "sub": "2.08× vs QuickJS-NG (993.7)" },
         { "label": "vs V8 --jitless", "value": "87.2%", "sub": "Node 24.13.0 = 2,374.9" },
-        { "label": "High-Density Heap", "value": "-49.3%", "sub": "779.3 → 394.9 KiB · 100.5% V8-v7 (turbo.8)" },
+        { "label": "JetStream 17 Index", "value": "59.9", "sub": "QuickJS-NG = 100 (lower is better)" },
         { "label": "Hybrid GC Scans", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cycle churn" }
       ],
       "targetedSpeedups": [
         { "name": "lit5 (5-field object literals)", "before": "631.0 ms", "after": "181.0 ms", "speedup": 3.49 },
         { "name": "mapFlat (Map/Set flat string lookup)", "before": "573.0 ms", "after": "176.0 ms", "speedup": 3.26 },
         { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "119.0 ms", "speedup": 2.43 },
-        { "name": "High-density hot2M vs No-PIC (turbo.8)", "before": "152.9 ms", "after": "82.7 ms", "speedup": 1.85 },
         { "name": "resident_cycle_churn (Hybrid GC)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50 },
         { "name": "asyncPrim (async / Promise.resolve)", "before": "404.5 ms", "after": "285.5 ms", "speedup": 1.42 }
       ],
@@ -182,7 +181,39 @@
         { "name": "prop_read", "stock": "15.89", "turbo": "5.60", "unit": "ns/op", "speedup": 2.84 },
         { "name": "empty_loop", "stock": "11.83", "turbo": "5.18", "unit": "ns/op", "speedup": 2.28 }
       ],
-      "note": "v0.15.1-turbo.8 (8fcb475) independent verification on Intel Core i5-12400F (Ubuntu 24.04 / GCC 13.3, CPU2 serial, 3-block median): V8-v7 2,852.0 Default / 2,866.0 Density (100.5%) vs Stock NG 1,415.0 (2.02×), Bellard 2026 1,807.0 (1.58×), Node v24.14.0 --jitless 3,637.0 (78.4% at 2.71× lower RSS: 171.8 vs 465.8 MiB); micro57 geomean 1.526× vs NG (PIC-only 100.15%, Density w=16 99.45%); 500-cold-fn worker heap 779.3 → 394.9 KiB (-49.3%, 0 cold IC slabs) with JS_PurgePropertyIC reclaiming 100% of IC slabs."
+      "note": "This tab is 100% pure to the original Reference Linux x86-64 host that anchors the Hero chart and Milestone trajectory above (Stock NG 0.15.1 = 993.7). For independent v0.15.1-turbo.8 verification and high-density memory measurements on Intel Core i5-12400F, switch to the separate 'Linux x86-64 (i5-12400F · .8)' tab."
+    },
+    "linux-x86_64-i5": {
+      "title": "Linux x86-64 (i5-12400F · .8)",
+      "backend": "LINUX_X86_64",
+      "toolchain": "Intel Core i5-12400F · Ubuntu 24.04 (WSL2) · GCC 13.3 · CPU2 serial · FramePool 512",
+      "baselineLabel": "Independent Host Cohort · v0.15.1-turbo.8 (Stock NG 1,415)",
+      "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
+      "headlineStats": [
+        { "label": "V8-v7 (Default / Density)", "value": "2,852 / 2,866", "sub": "2.02×–2.03× vs Stock NG (1,415) on this host" },
+        { "label": "vs V8 --jitless (Same CPU)", "value": "78.4%", "sub": "Node 24.14 = 3,637 · 2.71× lower RSS (172 vs 466 MiB)" },
+        { "label": "High-Density Cold Heap", "value": "-49.3%", "sub": "779.3 → 394.9 KiB · 0 cold IC slabs · 100.5% V8-v7" },
+        { "label": "micro57 (57 cases)", "value": "1.53×", "sub": "PIC-only 100.2% · Density w=16 99.5% of Default" }
+      ],
+      "targetedSpeedups": [
+        { "name": "V8-v7 Default vs Stock NG 0.15.1", "before": "1,415.0", "after": "2,852.0", "speedup": 2.02 },
+        { "name": "V8-v7 Density (noTail, w=16) vs Stock NG", "before": "1,415.0", "after": "2,866.0", "speedup": 2.03 },
+        { "name": "V8-v7 Default vs Bellard 2026-06-04 (O2)", "before": "1,807.0", "after": "2,852.0", "speedup": 1.58 },
+        { "name": "V8-v7 Default vs Turbo PORTABLE", "before": "2,005.5", "after": "2,852.0", "speedup": 1.42 },
+        { "name": "500-Cold-Fn Worker Hot 2M vs C Fallback", "before": "232.9 ms", "after": "82.7 ms", "speedup": 2.82 },
+        { "name": "500-Cold-Fn Worker Hot 2M vs No-PIC", "before": "152.9 ms", "after": "82.7 ms", "speedup": 1.85 }
+      ],
+      "microHotspots": [
+        { "name": "Richards", "stock": "1,034", "turbo": "1,860", "unit": "score", "speedup": 1.80 },
+        { "name": "DeltaBlue", "stock": "1,070", "turbo": "1,849", "unit": "score", "speedup": 1.73 },
+        { "name": "Crypto", "stock": "1,309", "turbo": "2,143", "unit": "score", "speedup": 1.64 },
+        { "name": "RayTrace", "stock": "1,804", "turbo": "2,995", "unit": "score", "speedup": 1.66 },
+        { "name": "EarleyBoyer", "stock": "2,387", "turbo": "3,932", "unit": "score", "speedup": 1.65 },
+        { "name": "RegExp", "stock": "375", "turbo": "2,472", "unit": "score", "speedup": 6.59 },
+        { "name": "Splay", "stock": "3,387", "turbo": "5,794", "unit": "score", "speedup": 1.71 },
+        { "name": "NavierStokes", "stock": "1,968", "turbo": "3,570", "unit": "score", "speedup": 1.81 }
+      ],
+      "note": "Separate hardware cohort (Intel Core i5-12400F, 3-block interleaved median): raw scores are higher than the Reference Host tab because this is a faster CPU (Stock NG = 1,415 vs 993.7). Never compare raw scores across hosts — compare same-host ratios: on this exact CPU, v0.15.1-turbo.8 (2,852 Default / 2,866 Density) holds parity with v0.15.1-turbo.4 (2,900, within WSL2 run noise) while cutting 500-cold-fn worker heap from 779.3 → 394.9 KiB (-49.3%) and reclaiming 100% of IC slabs via JS_PurgePropertyIC."
     },
     "macos-x86_64": {
       "title": "macOS x86-64",

@@ -274,10 +274,11 @@
             <div class="section-kicker">Architecture Milestones</div>
             <h2>Performance Milestones Across Releases</h2>
             <p>
-              Each point marks an architectural throughput milestone on the same Linux x86-64
-              reference cohort (CPU2 serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Patch
-              and portability releases holding the same plateau are grouped into the active
-              milestone range.
+              All 5 milestone points are measured on the same original Reference Linux x86-64 host
+              (CPU2 serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Patch and portability
+              releases holding the same plateau are grouped into the active range, and verification
+              runs from different CPUs are shown in their own dedicated hardware tabs below — never
+              mixed into this chart.
             </p>
           </div>
 
@@ -322,8 +323,9 @@
             <div class="section-kicker">Verified Real-Hardware Cohorts</div>
             <h2>Cross-Platform Benchmarks</h2>
             <p>
-              Each platform tab keeps its own strict hardware cohort and comparison baseline — never
-              mixing baselines across operating systems or compilers.
+              Each tab represents a single hardware machine, OS, and compiler cohort with its own
+              same-host baseline — raw scores are never compared or mixed across different CPUs,
+              operating systems, or compilers.
             </p>
           </div>
 
