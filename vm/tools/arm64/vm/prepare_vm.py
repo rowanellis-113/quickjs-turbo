@@ -304,7 +304,12 @@ def main():
             (out / (name + ".stdout")).open("wb") as so,
             (out / (name + ".stderr")).open("wb") as se,
         ):
-            subprocess.run(argv, cwd=actual.command["directory"], stdout=so, stderr=se, check=True)
+            proc = subprocess.run(argv, cwd=actual.command["directory"], stdout=so, stderr=se)
+        if proc.returncode != 0:
+            err = (out / (name + ".stderr")).read_text(encoding="utf-8", errors="replace")
+            if err:
+                sys.stderr.write(err)
+            raise subprocess.CalledProcessError(proc.returncode, argv)
         elf = Elf64.read(obj, expected_machine=183)
         if elf.kind != 1:
             raise ValueError("Probe must be AArch64 ET_REL")
@@ -380,7 +385,11 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
             )
     put(out / "interpreter-private-abi.h", "\n".join(contract) + "\n")
     # The shared register header also asserts the measured original core types.
-    preamble = '\n#include "interpreter-private-abi.h"\n#include "src/arm64/linux/interpreter-compat.inc"\n'
+    preamble = (
+        "\nstatic void close_var_ref(JSRuntime *rt, JSVarRef *var_ref);\n"
+        '#include "interpreter-private-abi.h"\n'
+        '#include "src/arm64/linux/interpreter-compat.inc"\n'
+    )
     preamble += '#ifdef QJS_AARCH64_VM_INSTRUMENT\n#include "src/arm64/linux/interpreter-observe.h"\n#endif\n'
     from arm64.workers.property_primitives import (
         prepare as prepare_primitives,

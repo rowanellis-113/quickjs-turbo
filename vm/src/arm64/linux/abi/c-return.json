@@ -8,7 +8,7 @@
     "asm/arm64/common/register-call.inc": "c26cbd35bd93236f6b9b7bfe5f020cabc07b73da9fa46558c824be74cabf753a",
     "asm/arm64/common/register-host-return.inc": "b6a1a7a85064aef13734c74faad28ea855105e8cd8e06824e41150e063125439",
     "src/arm64/linux/interpreter-c-entry.inc": "8d7cadc4a77e4a970d469c389bdd03e3fb026c9047d7830ad13ea0f564b7a246",
-    "tools/arm64/vm/c_return.py": "79818ff0a4ed44bc6571c9b7c79200972af78d3b5fa438a3822cc7741b607310",
+    "tools/arm64/vm/c_return.py": "eed0d17046542f858f7307a119c83e826b5f38b7b4e01211b09506077f64ac34",
     "tools/arm64/vm/publication.py": "6ab668624903dcdaac8007208a6cc4eaae84fdf7f8c0205ac28e120aac163044"
   },
   "source_finish": "Original ascending finish_call interval and pending-tail behavior",

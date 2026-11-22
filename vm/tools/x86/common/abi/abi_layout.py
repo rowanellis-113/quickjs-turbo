@@ -14,9 +14,11 @@ def validate_measured_override(source, layout):
     source = Path(source).resolve()
     target = layout.get("target", "")
     platform = layout.get("platform", "")
+    linux_suffixes = ("-linux-gnu", "-linux-musl", "-linux")
+    linux_target = target.startswith("x86_64-") and target.endswith(linux_suffixes)
     valid_target = (
         platform == "linux-x86_64-sysv"
-        and (target == "x86_64-linux-gnu" or target.startswith("x86_64-apple-darwin"))
+        and (linux_target or target.startswith("x86_64-apple-darwin"))
     ) or (platform == "win64-x86_64" and target == "x86_64-pc-windows-msvc")
     if not valid_target:
         raise ValueError("Unsupported measured native platform override")

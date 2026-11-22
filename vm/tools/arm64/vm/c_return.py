@@ -1,6 +1,6 @@
 """Measure the actual compiler's JSValue return and typed final-release ABI."""
 
-import hashlib, json, re, struct, subprocess
+import hashlib, json, re, shutil, struct, subprocess
 
 
 def generate(source, output, actual, probe, preamble, checks):
@@ -53,7 +53,10 @@ const uint64_t qjs_aarch64_value_geometry[]={sizeof(JSValue),_Alignof(JSValue),
             )
         words[name] = data.hex()
     obj = output / "c-return-abi-probe.o"
-    dump = subprocess.check_output(["aarch64-linux-gnu-objdump", "-dr", obj], text=True)
+    objdump = shutil.which("aarch64-linux-gnu-objdump") or shutil.which("objdump")
+    if not objdump:
+        raise FileNotFoundError("aarch64-linux-gnu-objdump or objdump is required")
+    dump = subprocess.check_output([objdump, "-dr", obj], text=True)
     output.joinpath("c-return-abi-probe.disassembly.txt").write_text(dump)
     if not re.search(r"R_AARCH64_JUMP26\s+JS_FrameInterpFree(?:\s|$)", dump):
         raise ValueError("Free witness must tail-call the actual typed owner")
