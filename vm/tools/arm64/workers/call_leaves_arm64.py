@@ -2075,7 +2075,7 @@ def _specialize_call_leaves(text):
     mov x26, x7
     mov x27, #0
     ldr x3, [x7, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cmp x3, #1
+    cmp x3, #4095
     b.ls .Lrel_fcr_ic_done
     ldr x4, [x7, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
     add x3, x3, #ARM_OFF_JSPropertyIC_map

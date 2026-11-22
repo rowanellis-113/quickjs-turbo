@@ -478,7 +478,7 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     b.eq .Lfast_borrow_miss_w1
     cbnz x27, .Lfast_rpf_x27_ok
     ldr x5, [x26, #ARM_OFF_JSFunctionBytecode_property_ic]
-    cmp x5, #1
+    cmp x5, #4095
     b.ls .Lfast_borrow_miss_w1
     ldr x6, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
     add x5, x5, #ARM_OFF_JSPropertyIC_map
@@ -1250,12 +1250,14 @@ def _specialize_stack_and_globals(text, output, op_ids):
     text = _replace_exact(
         text,
         "    ldr x2, [x11, #ARM_OFF_JSFunctionBytecode_property_ic]\n"
-        "    cmp x2, #1\n"
+        "    cmp x2, #4095\n"
         "    b.hi .Lglobal_cell_metadata\n"
+        "    cmp x2, #1\n"
         "    b.eq .Lglobal_after_cell\n",
         "    ldr x2, [x11, #ARM_OFF_JSFunctionBytecode_property_ic]\n"
-        "    cmp x2, #1\n"
+        "    cmp x2, #4095\n"
         "    b.hi .Lglobal_cell_metadata\n"
+        "    cmp x2, #1\n"
         "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
         "    b.ne .Lfast_glob_ic_mode\n"
         "    mov x27, #1\n"
@@ -1404,7 +1406,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
             "    stp x0, x1, [x21], #16\n"
             "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
             "    ldr x3, [x26, #ARM_OFF_JSFunctionBytecode_property_ic]\n"
-            "    cmp x3, #1\n"
+            "    cmp x3, #4095\n"
             f"    b.ls .L{k}linear_ret_ic_done\n"
             "    ldr x4, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
             "    add x3, x3, #ARM_OFF_JSPropertyIC_map\n"
