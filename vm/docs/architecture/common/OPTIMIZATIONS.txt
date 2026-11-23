@@ -7,7 +7,7 @@ function/platform under common/ | arm64/ | x86/, not by historical experiment or
 benchmark name.
 
 Component                         Main owner / further documentation
-Call frames and dispatch           src/common/call, src/x86/win64, asm/x86/win64, asm/arm64
+Call frames and dispatch           src/common/call, src/x86/win64, tools/x86/{linux,macos}, asm/x86/win64, asm/arm64
 Property get/set and method caches src/common/property (decoupled PIC-only mode, tagged warmup, JS_PurgePropertyIC)
 Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
 Win64 source-level native ASM VM   tools/x86/win64/{measure_layout_win64,prepare_win64_native}.py, cmake/x86/win64/NativeWin64.cmake
@@ -37,9 +37,9 @@ Native C for_of_next + if_false8   src/common/call/fast-for-of-next.inc (shared)
 OP_array_from dense leaf           src/common/kernel/fast-array-from.inc (shared)
 Inline property storage            src/common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
 Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW mirror)
-Map/Set string-key hash & flatten  src/common/value/map-string-keys.inc (shared across all 5 targets)
-Capability-free async & Promise    src/common/promise/async-output.inc (shared across all 5 targets)
-BigInt stack/PM mod & construct    src/common/{value/bigint-divrem,kernel/fast-construct}.inc (ARM64)
+Map/Set string-key hash & flatten  src/common/value/map-string-keys.inc (shared across all native & PORTABLE targets)
+Capability-free async & Promise    src/common/promise/async-output.inc (shared across all native & PORTABLE targets)
+BigInt stack/PM mod & construct    src/common/value/bigint-divrem-fast.inc (all targets); kernel/fast-construct.inc (ARM64)
 
 Remaining x86 -> ARM64 VM shell, entry, and cache micro-candidates were evaluated via
 Graviton2 orthogonal ablation (A0-A3) and retired because ARM64 R89 already saturated

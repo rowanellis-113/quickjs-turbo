@@ -1,39 +1,65 @@
-Current Linux x86-64 verification & high-density review, 2026-11-22 (v0.15.1-turbo.8 / 8fcb475)
-===============================================================================================
-Independent verification on Intel Core i5-12400F (Ubuntu 24.04 / WSL2, GCC 13.3,
-CPU2 serial, normal ASLR, FramePool 512) confirming v0.15.1-turbo.8 retains full
-v0.15.1-turbo.4 throughput while unlocking high-density PIC-only + lazy warmup.
-(Strict hardware-cohort rule: absolute scores on i5-12400F are kept separate from
-the original reference-host cohort where Stock NG 0.15.1 = 993.7 and Turbo = 2,071.65.)
+Current Reference Host 4-engine cohort review, 2026-11-23 (v0.15.1-turbo.8 / 2b38b43)
+====================================================================================
+Simultaneous 4-engine comparison on the Reference Linux x86-64 Host (AMD Ryzen 3
+3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR, FramePool 512 on
+Turbo) comparing Stock QuickJS-NG 0.15.1, Bellard QuickJS 2026-06-04 (default -O2),
+QuickJS-Turbo v0.15.1-turbo.8 (Default & Density `tail=OFF, w=16`), and Node.js
+v24.13.0 `--jitless`. Clock units verified prior to timing via ~100 ms busy loop
+(99.553 / 99.776 / 98.671 / 99.101 ms).
 
-1. Official V8-v7 (3 interleaved blocks, median, higher is better):
-   Case          Node24 --jitless  Turbo.8 Def  Turbo.8 Density  Turbo.4 Def  Bellard 2026  Stock NG 0.15.1
-   Overall       3,637.00          2,852.00     2,866.00         2,900.00     1,807.00      1,415.00
-   Richards      2,097.00          1,860.00     1,892.00         1,873.00     1,250.00      1,034.00
-   DeltaBlue     2,395.00          1,849.00     1,856.00         1,849.00     1,139.00      1,070.00
-   Crypto        1,958.00          2,143.00     2,150.00         2,257.00     1,639.00      1,309.00
-   RayTrace      5,359.00          2,995.00     3,016.00         3,068.00     2,392.00      1,804.00
-   EarleyBoyer   8,886.00          3,932.00     4,074.00         3,964.00     3,086.00      2,387.00
-   RegExp        4,941.00          2,472.00     2,532.00         2,632.00       611.00        375.00
-   Splay         5,957.00          5,794.00     5,786.00         5,981.00     4,433.00      3,387.00
-   NavierStokes  2,814.00          3,570.00     3,611.00         3,679.00     3,322.00      1,968.00
-   Peak RSS KiB  476,980           175,900      176,104          175,984      150,292       163,044
-   Ratios: Turbo.8 Default 2.02x vs NG, 1.58x vs Bellard, 78.4% of Node --jitless
-   (at 2.71x lower Peak RSS); Density (tail=OFF, w=16) 100.49% of Default;
-   PORTABLE (separate 2-block ABBA) 2,005.50 (1.40x vs NG, RSS 182,796 KiB).
+1. Official V8-v7 (2 reversed interleaved ABBA blocks, higher is better):
+   Case          Stock NG  Bellard 26.06  Turbo.8 Def  Turbo.8 Dens  Node --jitless  T/NG   T/Bel  T/V8
+   Richards        785.28       1,067.89     1,483.99      1,460.02        1,324.94  1.89x  1.39x  112.0%
+   DeltaBlue       863.98       1,004.00     1,369.90      1,359.90        1,511.08  1.59x  1.36x   90.7%
+   Crypto          830.13       1,153.31     1,517.91      1,509.91        1,199.52  1.83x  1.32x  126.5%
+   RayTrace      1,359.44       1,828.51     2,088.88      2,093.84        3,490.42  1.54x  1.14x   59.8%
+   EarleyBoyer   1,833.20       2,496.60     2,985.38      2,988.24        5,811.66  1.63x  1.20x   51.4%
+   RegExp          254.33         412.42     1,763.48      1,774.95        3,451.42  6.93x  4.28x   51.1%
+   Splay         2,557.47       3,860.74     3,974.76      3,964.65        4,090.85  1.55x  1.03x   97.2%
+   NavierStokes  1,160.52       2,577.13     2,819.80      2,801.95        1,803.28  2.43x  1.09x  156.4%
+   Overall       1,007.04       1,480.70     2,101.40      2,094.06        2,436.03  2.09x  1.42x   86.3%
+   Peak RSS KiB   162,936        150,438      175,700       175,848         468,760  --     --     2.67x lower
+   Raw pairs:
+     stock_ng   =[1005.15, 1008.93] rss=[162944, 162928]
+     bellard    =[1502.96, 1458.45] rss=[150436, 150440]
+     turbo8_def =[2101.83, 2100.98] rss=[175604, 175796]
+     turbo8_dens=[2098.72, 2089.40] rss=[175912, 175784]
+     node24     =[2437.56, 2434.49] rss=[468760, 468760]
 
-2. Official tests/microbench.js (micro57, 2 ABBA paired blocks, CPU2):
-   - Turbo Default  (tail=ON,  w=0):  1.526x geomean vs Stock NG 0.15.1
-   - Turbo PIC-only (tail=OFF, w=0):  1.529x vs NG (100.15% of Default)
-   - Turbo Density  (tail=OFF, w=16): 1.518x vs NG (99.45% of Default)
+2. Unified wall-clock micro57 (57 cases, 2 reversed ABBA blocks, CPU2, monotonic us):
+   - Turbo.8 Default vs Stock NG 0.15.1:       1.5503x geomean (50/57 faster)
+   - Turbo.8 Default vs Bellard 2026-06-04:    1.2223x geomean (35/57 faster)
+   - Turbo.8 Default vs Node v24.13 --jitless: 0.8305x geomean (20/57 faster)
+   - Turbo.8 Density (tail=OFF, w=16) vs Default: 0.9823x geomean (98.23% parity; 99.65% on V8-v7)
+   Selected hotspots (ns/op, lower is better):
+   Case                Stock NG  Bellard  Turbo.8  Node--jit   T/NG   T/Bel   T/V8
+   empty_loop             12.53    12.83     5.17       7.93  2.42x   2.48x  1.53x
+   prop_read              17.99     9.64     5.54       8.49  3.25x   1.74x  1.53x
+   prop_write             13.96     8.98     5.66       6.41  2.47x   1.59x  1.13x
+   prop_create            86.70    62.39    44.52      12.41  1.95x   1.40x  0.28x
+   array_read             18.09     6.81     5.44      13.44  3.33x   1.25x  2.47x
+   array_write            26.52     8.08     4.56      10.79  5.81x   1.77x  2.36x
+   typed_array_read       18.95     9.19     5.29      13.72  3.58x   1.74x  2.59x
+   typed_array_write      35.05    10.28     4.79      11.63  7.32x   2.15x  2.43x
+   sort_bench              2.05     1.81     0.69       0.70  2.96x   2.60x  1.01x
+   regexp_ascii          395.05   247.62   265.95      77.49  1.49x   0.93x  0.29x
+   regexp_utf16          393.20   256.44   263.55      74.02  1.49x   0.97x  0.28x
+   map_set               267.75   236.91   251.45     127.40  1.06x   0.94x  0.51x
+   string_slice1          82.87    66.81    73.80      36.33  1.12x   0.91x  0.49x
+   bigint256_arith       153.43   106.70   135.05     103.70  1.14x   0.79x  0.77x
 
-3. High-Density Worker Benchmark (500 cold fns + 2M hot loop + JS_PurgePropertyIC):
-   Mode                           Cold Heap   Cold IC Slabs      Hot 2M Loop   Purged
-   Turbo Default  (tail=ON, w=0)  779.3 KiB   500 (261.7 KiB)    76.42 ms      262.8 KiB -> 513.7 KiB
-   Turbo PIC-only (tail=OFF,w=0)  660.5 KiB   500 (261.7 KiB)    76.24 ms      262.8 KiB -> 394.9 KiB
-   Turbo Density  (tail=OFF,w=16) 394.9 KiB     0 (  0.0 KiB)    82.67 ms        1.1 KiB -> 394.9 KiB
-   Turbo No-PIC   (tail=OFF,noIC) 394.9 KiB     0 (  0.0 KiB)   152.89 ms        0.0 KiB
-   C Fallback     (frame=OFF,w=16)394.9 KiB     0 (  0.0 KiB)   232.92 ms        1.1 KiB
+3. Targeted runtime workloads (4 interleaved blocks, median ms, lower is better):
+   Workload     Stock NG  Bellard  Turbo.8  Node--jit   T/NG   T/Bel   T/V8
+   lit5           285.62   199.15   211.24      57.31  1.35x   0.94x  0.27x
+   mapFlat        425.68   380.14   287.31     237.95  1.48x   1.32x  0.83x
+   mapRope        220.87   191.23   214.36     297.91  1.03x   0.89x  1.39x
+   asyncPrim      243.26   202.72   102.45      51.30  2.37x   1.98x  0.50x
+   strAppend       58.16    46.81    57.45      23.71  1.01x   0.81x  0.41x
+   bigintMod       49.12    30.87    23.61      41.44  2.08x   1.31x  1.76x
+   intToStr       181.18   139.53   132.33      88.43  1.37x   1.05x  0.67x
+
+4. High-Density Worker Heap Footprint (500 cold startup fns + JS_PurgePropertyIC, 64-bit Linux):
+   Default (tail=ON, w=0) 779.3 KiB (500 IC slabs / 261.7 KiB, purge frees 262.8 KiB -> 513.7 KiB) | PIC-only (tail=OFF, w=0) 660.5 KiB (purge -> 394.9 KiB) | Density (tail=OFF, w=16) 394.9 KiB (-49.3%, 0 cold IC slabs).
 
 Current Linux x86-64 & Win64 MinGW suite review, 2026-11-21 (commit e276d21)
 ============================================================================
@@ -82,7 +108,7 @@ native, `256` on Win64 MinGW), comparing commit `e276d21` directly against
    mapFlat: 560.0 -> 159.0 ms (-71.6%, 3.52x); lit5: 582.0 -> 169.0 ms (-71.0%, 3.44x);
    mapRope: 289.5 -> 115.0 ms (-60.3%, 2.52x); asyncPrim: 446.0 -> 320.0 ms (-28.3%, 1.39x).
    Official V8-v7 (2 paired ABBA blocks): Overall 1,921.39 -> 1,923.77 (+0.12%,
-   1.94x vs Stock NG 993.7); Richards 1,381.38 -> 1,396.57 (+1.10%), DeltaBlue
+   1.94x vs paired Stock NG 991.5 / historical Ref 993.7); Richards 1,381.38 -> 1,396.57 (+1.10%), DeltaBlue
    1,305.83 -> 1,308.48 (+0.20%), Crypto 1,500.57 -> 1,507.63 (+0.47%), RayTrace
    1,797.41 -> 1,806.24 (+0.49%), EarleyBoyer 2,750.37 -> 2,731.38 (-0.69%),
    RegExp 1,509.43 -> 1,507.23 (-0.15%), Splay 3,520.31 -> 3,492.48 (-0.79%),

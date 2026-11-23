@@ -13,10 +13,10 @@ QuickJS-Turbo supercharges [QuickJS-NG](https://github.com/quickjs-ng/quickjs) w
 ```text
 V8-v7 Throughput (Reference Linux x86-64 host, single-core, no JIT)
 
-V8 --jitless (Node 24)   ████████████████████████  2,375
-QuickJS-Turbo            █████████████████████     2,072  (2.08x vs QuickJS-NG · 87% of V8 --jitless)
-Bellard QuickJS 2026     ███████████████           1,466
-QuickJS-NG 0.15.1        ██████████                  994
+V8 --jitless (Node 24)   ████████████████████████  2,436  (458 MiB Peak RSS)
+QuickJS-Turbo            █████████████████████     2,101  (2.09x vs QuickJS-NG · 1.42x vs Bellard · 86% of V8 --jitless · 172 MiB RSS)
+Bellard QuickJS 2026     ███████████████           1,481  (147 MiB Peak RSS)
+QuickJS-NG 0.15.1        ██████████                1,007  (159 MiB Peak RSS)
 ```
 
 ---
@@ -47,9 +47,9 @@ export default {
 ## Why QuickJS-Turbo?
 
 - **Zero-JIT, `W^X` Safe**: No runtime codegen or `RWX` pages; full DWARF CFI and Win64 SEH unwind for iOS, consoles, locked-down containers, and edge workers.
-- **~2× Throughput vs QuickJS-NG**: Up to **`7.16×`** RegExp, **`6.02×`** `JSON.stringify`, **`5.78×`** typed-array writes, **`5.74×`** array writes, **`3.49×`** object literals, **`3.52×`** `Map`/`Set` lookups, and **`1.47×`** `async`/`Promise.resolve`.
+- **~2× Throughput vs QuickJS-NG (1.42× vs Bellard 2026)**: Delivers **`1.55×`** `micro57` geomean (`50/57` wins vs NG; **`1.22×`** vs Bellard `2026-06-04`) and up to **`7.32×`** typed-array writes, **`6.93×`** RegExp, **`6.02×`** `JSON.stringify`, **`5.81×`** array writes, **`3.25×`** property reads, **`2.37×`** ordinary `async`/`Promise.resolve`, and **`2.08×`** `BigInt` modular reduction over stock QuickJS-NG `0.15.1` — beating `V8 --jitless` on typed/dense array ops (**`2.36–2.59×`**), property reads (**`1.53×`**), and `NavierStokes` (**`1.56×`**) at **`2.67×` lower Peak RSS**.
 - **Hybrid RC + Partial Cycle GC**: Keeps deterministic reference counting while cutting full-heap cycle scans by **~86%** (**`1.50×`** faster cyclic churn, **`~10–11%`** faster string slices, **`-4.09%`** V8-v7 Peak RSS).
-- **High-Density & Drop-In Embedding**: Unmodified `quickjs.h` ABI (**`81,152`** Test262 cases, `0` regressions, `31` upstream fixes) plus `quickjs-turbo.h` & `quickjs-turbo::qjs` for PIC-only mode + lazy IC warmup (**`-49.3%`** cold-worker heap at **`100.5%`** V8-v7 / **`99.5%`** `micro57` parity on an independent `i5-12400F` `v0.15.1-turbo.8` cohort where Turbo reaches **`2.02×`** vs Stock NG), `JS_PurgePropertyIC`, host-safe LTO, and Python-free `QJS_USE_PREGEN_ASM` builds.
+- **High-Density & Drop-In Embedding**: Unmodified `quickjs.h` ABI (**`81,152`** Test262 cases, `0` regressions, `31` upstream fixes) plus `quickjs-turbo.h` & `quickjs-turbo::qjs` for PIC-only mode + lazy IC warmup (**`-49.3%`** cold-worker heap [`779.3 → 394.9 KiB`, `0` cold IC slabs] at **`99.7%`** V8-v7 / **`98.2%`** `micro57` parity), `JS_PurgePropertyIC`, host-safe LTO, and Python-free `QJS_USE_PREGEN_ASM` builds.
 
 | Platform | Backend | Toolchains | Notes |
 | :--- | :--- | :--- | :--- |

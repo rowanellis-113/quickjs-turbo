@@ -1,4 +1,4 @@
-Current release & high-density verification, 2026-11-22 (v0.15.1-turbo.8)
+Current release & high-density verification, 2026-11-23 (v0.15.1-turbo.8)
 =========================================================================
 Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
 all 19 upstream source pins are unchanged. Releases v0.15.1-turbo.6 through
@@ -9,32 +9,35 @@ high-density/embedding milestone without altering the runtime fast-path budget:
 - v0.15.1-turbo.7 (014b93c / 2c1c49b): Forced Python UTF-8 mode (-X utf8) in
   NativeWin64.cmake and explicit UTF-8 encoding in abi_layout.py for non-UTF-8
   Windows locales (e.g. cp1252).
-- v0.15.1-turbo.8 (8fcb475): Linux musl target triple detection, GCC 14+ ARM64
-  probe declaration fix (c_return.py), and native objdump support across both
+- v0.15.1-turbo.8 (8fcb475 / 2b38b43): Linux musl target triple detection, GCC 14+
+  ARM64 probe declaration fix (c_return.py), and native objdump support across both
   x86-64 and ARM64 toolchains.
 
-Independent Linux x86-64 benchmark verification (v0.15.1-turbo.8, commit 8fcb475,
-Intel Core i5-12400F, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR):
-1. Official V8-v7 (3 interleaved blocks, median, higher is better):
-   - Node v24.14.0 --jitless:                  3,637.0 (RSS 476,980 KiB)
-   - Turbo v0.15.1-turbo.8 Density (noTail/w16): 2,866.0 (2.03x vs NG, 1.59x vs Bellard, 78.8% of Node; 100.49% vs Default; RSS 176,104 KiB)
-   - Turbo v0.15.1-turbo.8 Default (pool512):  2,852.0 (2.02x vs NG, 1.58x vs Bellard, 78.4% of Node; 98.34% vs turbo.4 2,900.0; RSS 175,900 KiB)
-   - Turbo v0.15.1-turbo.8 PORTABLE (2-block): 2,005.5 (1.40x vs NG; RSS 182,796 KiB)
-   - Bellard QuickJS 2026-06-04 (default O2):  1,807.0 (RSS 150,292 KiB)
-   - QuickJS-NG 0.15.1 (Stock):                1,415.0 (RSS 163,044 KiB)
+Reference Host 4-engine Linux x86-64 verification (v0.15.1-turbo.8, commit 2b38b43,
+AMD Ryzen 3 3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR, 2026-11-23):
+1. Official V8-v7 (2 reversed interleaved blocks, FramePool 512 on Turbo):
+   - Node v24.13.0 --jitless:                  2,436.03 (RSS 468,760 KiB / 457.8 MiB)
+   - Turbo v0.15.1-turbo.8 Default (pool512):  2,101.40 (2.09x vs NG, 1.42x vs Bellard, 86.3% of Node; RSS 175,700 KiB / 171.6 MiB)
+   - Turbo v0.15.1-turbo.8 Density (noTail/w16): 2,094.06 (99.65% vs Default, 2.08x vs NG, 1.41x vs Bellard; RSS 175,848 KiB / 171.7 MiB)
+   - Bellard QuickJS 2026-06-04 (default -O2): 1,480.70 (RSS 150,438 KiB / 146.9 MiB)
+   - QuickJS-NG 0.15.1 (Stock):                1,007.04 (RSS 162,936 KiB / 159.1 MiB)
+2. Unified wall-clock micro57 (57 cases, 2 reversed ABBA blocks, CPU2, monotonic us):
+   - Turbo.8 Default vs Stock NG 0.15.1:       1.5503x geomean (50/57 wins)
+   - Turbo.8 Default vs Bellard 2026-06-04:    1.2223x geomean (35/57 wins)
+   - Turbo.8 Default vs Node v24.13 --jitless: 0.8305x geomean (20/57 wins)
+   - Turbo.8 Density (tail=OFF, w=16):         0.9823x vs Default (98.23% micro57 parity; 99.65% V8-v7 parity)
+3. Targeted workloads (4 interleaved blocks, median ms):
+   asyncPrim 2.37x vs NG (1.98x vs Bellard); bigintMod 2.08x vs NG (1.31x vs Bellard, 1.76x vs Node);
+   mapFlat 1.48x vs NG (1.32x vs Bellard); intToStr 1.37x vs NG (1.05x vs Bellard);
+   lit5 1.35x vs NG (0.94x vs Bellard); mapRope 1.03x vs NG (0.89x vs Bellard, 1.39x vs Node);
+   strAppend 1.01x vs NG (0.81x vs Bellard).
    Note: Hardware-cohort separation is strictly preserved; the historical Linux
-   x86-64 trajectory (Stock NG = 993.7, Turbo = 2,071.65, 2.08x vs NG, 87.2% of
-   V8 --jitless) stays anchored to its original reference host.
-2. Official tests/microbench.js (micro57, 2 ABBA blocks, CPU2, geomean vs NG):
-   - Turbo Default (tail=ON, w=0):   1.526x vs Stock NG 0.15.1
-   - Turbo PIC-only (tail=OFF, w=0): 1.529x vs Stock NG (100.15% of Default)
-   - Turbo Density (tail=OFF, w=16): 1.518x vs Stock NG (99.45% of Default)
-3. High-Density Worker Benchmark (500 cold startup fns + 2M hot loop + purge):
-   - Turbo Default  (tail=ON,  w=0):  cold 779.3 KiB (500 IC slabs / 261.7 KiB) | hot2M  76.42 ms | purge frees 262.8 KiB
-   - Turbo PIC-only (tail=OFF, w=0):  cold 660.5 KiB (500 IC slabs / 261.7 KiB) | hot2M  76.24 ms | purge frees 262.8 KiB
-   - Turbo Density  (tail=OFF, w=16): cold 394.9 KiB (-49.3%, 0 cold IC slabs)  | hot2M  82.67 ms (1.85x vs No-PIC, 2.82x vs C Fallback) | purge frees 1.1 KiB -> 394.9 KiB
-   - Turbo No-PIC   (tail=OFF, noIC): cold 394.9 KiB (0 IC slabs)               | hot2M 152.89 ms
-   - C Fallback     (frame=OFF,w=16): cold 394.9 KiB (0 IC slabs)               | hot2M 232.92 ms
+   x86-64 anchor (Stock NG = 993.7, Turbo.4 = 2,071.65, Bellard = 1,465.7, Node =
+   2,374.9) and the fresh 2026-11-23 4-engine rerun on the same Ryzen 3 3300X host
+   (Stock NG = 1,007.04, Turbo.8 = 2,101.40, Bellard = 1,480.70, Node = 2,436.03)
+   both confirm ~2.08x-2.09x vs NG, ~1.41x-1.42x vs Bellard, and ~86%-87% of Node --jitless.
+4. High-Density Worker Heap Footprint (500 cold startup fns, deterministic 64-bit allocation):
+   Default (tail=ON, w=0) 779.3 KiB (500 IC slabs / 261.7 KiB) | PIC-only (tail=OFF, w=0) 660.5 KiB | Density (tail=OFF, w=16) 394.9 KiB (-49.3%, 0 cold IC slabs); JS_PurgePropertyIC reclaims 262.8 KiB (100% of IC slabs).
 
 Current embedder, density & cross-platform baseline, 2026-11-22 (v0.15.1-turbo.5)
 =================================================================================

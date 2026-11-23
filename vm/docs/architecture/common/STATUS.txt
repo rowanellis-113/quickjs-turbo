@@ -1,8 +1,8 @@
-Product status, 2026-11-22 (v0.15.1-turbo.8)
+Product status, 2026-11-23 (v0.15.1-turbo.8)
 ============================================
 Pinned QuickJS-NG 0.15.1, bf8988fc401e737f9946cd10a3463b48aab0fd7e; 19 pins intact.
-Current release v0.15.1-turbo.8 (commit 8fcb475) extends the v0.15.1-turbo.4
-runtime fast-path milestone with:
+Current head (2b38b43, extending release tag v0.15.1-turbo.8 at 8fcb475) builds on
+the v0.15.1-turbo.4 runtime fast-path milestone with:
 - High-density PIC-only mode (mode == 4), low-bit tagged property_ic_warmup
   (+0 bytes struct growth), JS_PurgePropertyIC(rt), and explicit C configuration
   & telemetry API (vm/quickjs-turbo.h)
@@ -14,16 +14,27 @@ runtime fast-path milestone with:
   Linux musl target triple, GCC 14+ ARM64 probe, and native objdump support
   (v0.15.1-turbo.8)
 
-Fresh v0.15.1-turbo.8 verification (Intel Core i5-12400F, Linux x86-64, GCC 13.3,
-CPU2 serial, 3-block median):
-- V8-v7: 2,852.0 Default / 2,866.0 Density (100.49% vs Default; 2.02x-2.03x vs
-  Stock NG 1,415.0; 1.58x-1.59x vs Bellard 2026 1,807.0; 78.4%-78.8% of Node
-  v24.14.0 --jitless 3,637.0 at 2.71x lower Peak RSS: 175.9 vs 477.0 MiB)
-- micro57 (2 ABBA blocks): 1.526x geomean vs Stock NG (PIC-only 100.15%,
-  Density tail=OFF/warmup=16 99.45% of Default)
-- High-density 500-cold-fn worker: cold heap 779.3 -> 394.9 KiB (-49.3%, 0 cold
-  IC slabs), hot 2M loop 82.67 ms (1.85x vs No-PIC 152.89 ms, 2.82x vs C
-  Fallback 232.92 ms), JS_PurgePropertyIC reclaims 100% of IC slabs
+Fresh Reference Host 4-engine verification (v0.15.1-turbo.8 / 2b38b43, AMD
+Ryzen 3 3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, 2026-11-23):
+- V8-v7 (2 reversed ABBA blocks, FramePool 512 on Turbo):
+  - Node v24.13.0 --jitless: 2,436.03 (RSS 468,760 KiB / 457.8 MiB)
+  - Turbo.8 Default: 2,101.40 (2.09x vs NG, 1.42x vs Bellard, 86.3% of V8 --jitless;
+    RSS 175,700 KiB / 171.6 MiB, 2.67x lower than Node --jitless)
+  - Turbo.8 Density (tail=OFF, w=16): 2,094.06 (99.65% of Default, 2.08x vs NG;
+    RSS 175,848 KiB / 171.7 MiB)
+  - Bellard QuickJS 2026-06-04 (-O2): 1,480.70 (RSS 150,438 KiB / 146.9 MiB)
+  - Stock QuickJS-NG 0.15.1: 1,007.04 (RSS 162,936 KiB / 159.1 MiB)
+- Unified wall-clock micro57 (57 cases, 2 reversed ABBA blocks):
+  Turbo.8 Default achieves 1.5503x geomean vs Stock NG (50/57 wins), 1.2223x vs
+  Bellard 2026-06-04 (35/57 wins), and 0.8305x vs Node v24.13.0 --jitless (20/57 wins).
+  Density (tail=OFF, w=16) holds 98.23% of Default.
+- Targeted workloads (4 interleaved blocks, median ms vs NG / Bellard / Node):
+  asyncPrim 2.37x vs NG / 1.98x vs Bellard; bigintMod 2.08x / 1.31x / 1.76x vs Node;
+  mapFlat 1.48x / 1.32x; intToStr 1.37x / 1.05x; lit5 1.35x / 0.94x; mapRope
+  1.03x / 0.89x / 1.39x vs Node; strAppend 1.01x / 0.81x (see LINUX-FINAL-REVIEW.txt).
+- High-density 500-cold-fn worker heap (deterministic 64-bit layout):
+  779.3 KiB Default -> 660.5 KiB PIC-only -> 394.9 KiB Density (-49.3%, 0 cold
+  IC slabs); JS_PurgePropertyIC reclaims 262.8 KiB (100% of IC slabs).
 
 Historical v0.15.1-turbo.4 (commit e276d21) cross-platform baseline retained below:
 ------------------------------------------------------------------------------------

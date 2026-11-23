@@ -14,9 +14,10 @@ Dependencies
 Windows product builds need PowerShell 5.1+, Python 3.10+, CMake 3.20+, Ninja
 and a 64-bit C compiler. Put Python, CMake and Ninja on PATH.
 
-MSVC needs Visual Studio C++ tools, the Windows SDK and ml64. The wrapper uses
-vswhere or -VisualStudioPath; an x64 developer shell also works. The native
-backend additionally needs GNU x86-64 Windows COFF as and objdump, even for MSVC.
+MSVC needs Visual Studio C++ tools, the Windows SDK and ml64. The default
+source-level WIN_X86_64 backend (selected by AUTO on MSVC or clang-cl when GNU
+binutils are absent) requires zero GNU tools. Only the legacy COFF-adapted
+WIN64 backend additionally needs GNU x86-64 Windows COFF as and objdump on MSVC.
 MinGW needs x86_64-w64-mingw32 GCC and its matching binutils. Keep its bin
 directory on PATH so compiler and program runtime DLLs can be found.
 
@@ -95,9 +96,10 @@ Fallbacks
 ---------
 WIN64 and LINUX_X86_64 are strict. AUTO selects a supported native backend when
 prerequisites are satisfied and reports fallbacks. PORTABLE selects the C
-interpreter. The Win64 backend requires a standalone,
-static, Windows x86-64 Release/RelWithDebInfo Ninja build. Shared, debug,
-instrumented and clang-cl Win64 configurations use the portable path.
+interpreter. The legacy WIN64 backend requires a standalone, static, Windows
+x86-64 Release/RelWithDebInfo Ninja build with GNU binutils; shared, debug,
+instrumented, and clang-cl WIN64 requests use the portable path (use
+-DQJS_FRAME_BACKEND=WIN_X86_64 or AUTO for native MSVC / clang-cl + ml64).
 
   ./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain mingw -Backend PORTABLE -Test
   ./vm/tools/x86/win64/build/run-baseline.ps1 -Toolchain mingw -BuildPath build/mingw-product-portable -Arguments @('-e', 'print(42)')
@@ -127,7 +129,7 @@ substitute for a measured Linux SysV contract.
 
 Build, test and install the current Linux native/common-C configuration:
   bash vm/tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
-  QJS_EXPERIMENT_ALLOCATOR=256 ./out/sdk-linux-native/bin/qjs -e 'print(42)'
+  QJS_EXPERIMENT_ALLOCATOR=512 ./out/sdk-linux-native/bin/qjs -e 'print(42)'
 The wrapper uses one build job by default. QJS_BUILD_JOBS may override that.
 It uses normal CMake generated C/ELF assembly sources, with the actual compiler
 private ABI measured before compilation. No old archive, executable, research
@@ -155,7 +157,18 @@ when prerequisites are unavailable; LINUX_X86_64 rejects them at configure time.
 Win64-specific entry implementation switches are not Linux options: the Linux
 product profile integrates its own native entries and component controls.
 Default-OFF weak VM call links and MSVC-only coroutine/method-learning machinery
-are outside the GNU coverage claim; ordinary async output elision is not enabled.
+are outside the GNU coverage claim; capability-free ordinary async output Promise
+is enabled across all native and PORTABLE targets while async generator capability
+frames retain their documented contract.
+
+macOS x86-64 native backend (MACOS_X86_64)
+------------------------------------------
+On Intel macOS (Darwin x86-64 LP64) with Apple Clang 15+, Xcode Command Line Tools
+(`otool`, `dwarfdump`), Python 3.10+, CMake 3.20+, and Ninja:
+  bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk-macos-x86_64
+AUTO automatically selects MACOS_X86_64 on Darwin x86-64 (verifying Mach-O PIE,
+non-executable stack, W^X cleanliness, and DWARF EH frame FDEs) and falls back
+to PORTABLE on Darwin ARM64 or under sanitizers/LTO.
 
 Install and embed
 -----------------

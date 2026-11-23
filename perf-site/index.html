@@ -111,12 +111,12 @@
 
           <div class="kpi-strip">
             <div class="kpi-card">
-              <div class="kpi-value accent">2.08×</div>
-              <div class="kpi-label">V8-v7 vs QuickJS-NG 0.15.1</div>
+              <div class="kpi-value accent">2.09×</div>
+              <div class="kpi-label">V8-v7 vs QuickJS-NG · 1.42× vs Bellard 2026</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-value">87.2%</div>
-              <div class="kpi-label">of V8 --jitless (Node 24)</div>
+              <div class="kpi-value">86.3%</div>
+              <div class="kpi-label">of V8 --jitless · 2.67× lower Peak RSS</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">0 RWX</div>
@@ -162,7 +162,8 @@
                 monomorphic/polymorphic Property ICs, and co-allocated inline object properties.
               </p>
               <div class="feature-metric">
-                RegExp 7.16× · JSON.stringify 6.02× · array_write 5.74×
+                typed_array_write 7.32× · RegExp 6.93× · JSON.stringify 6.02× · array_write 5.81×
+                (vs NG)
               </div>
             </article>
 
@@ -175,7 +176,8 @@
                 targets.
               </p>
               <div class="feature-metric">
-                lit5 3.49× · mapFlat 3.52× · mapRope 2.52× · async 1.47×
+                async 2.37× &amp; BigInt mod 2.08× vs NG · up to 3.49× lit5 &amp; 3.52× mapFlat vs
+                turbo.3
               </div>
             </article>
 
@@ -232,13 +234,13 @@
                 <tr>
                   <td><strong>Linux x86-64</strong></td>
                   <td class="mono">LINUX_X86_64</td>
-                  <td>GCC 13+</td>
+                  <td>GCC 13/14+ (glibc &amp; musl)</td>
                   <td>Native ELF ASM VM, inline object properties, PIE + DWARF CFI</td>
                 </tr>
                 <tr>
                   <td><strong>macOS x86-64</strong></td>
                   <td class="mono">MACOS_X86_64</td>
-                  <td>Apple Clang</td>
+                  <td>Apple Clang 15+</td>
                   <td>Native Mach-O ASM VM, PIE + DWARF CFI, AUTO-selected on Darwin x86_64</td>
                 </tr>
                 <tr>
@@ -250,7 +252,7 @@
                 <tr>
                   <td><strong>Linux ARM64</strong></td>
                   <td class="mono">LINUX_AARCH64</td>
-                  <td>GCC 13+ (glibc &amp; musl)</td>
+                  <td>GCC 13/14+ (glibc &amp; musl)</td>
                   <td>Native ELF ASM VM, 64B-aligned VM entry, AUTO-selected on Linux AArch64</td>
                 </tr>
                 <tr>
@@ -274,11 +276,11 @@
             <div class="section-kicker">Architecture Milestones</div>
             <h2>Performance Milestones Across Releases</h2>
             <p>
-              All 5 milestone points are measured on the same original Reference Linux x86-64 host
-              (CPU2 serial, normal ASLR, stock QuickJS-NG 0.15.1 = 993.7). Patch and portability
-              releases holding the same plateau are grouped into the active range, and verification
-              runs from different CPUs are shown in their own dedicated hardware tabs below — never
-              mixed into this chart.
+              All 5 milestone points are measured on the same Reference Linux x86-64 host (AMD Ryzen
+              3 3300X, CPU2 serial, normal ASLR; historical Stock NG = 993.7, simultaneous v0.15.1-turbo.8
+              4-engine rerun Stock NG = 1,007.0). Patch and portability releases holding the same
+              plateau are grouped into the active range, while macOS, Windows, and ARM64 cohorts are
+              shown in their dedicated platform tabs below.
             </p>
           </div>
 
@@ -291,7 +293,7 @@
                     Click any point or version pill below to inspect per-subtest breakdown
                   </p>
                 </div>
-                <span class="badge badge-green" id="history-gain-badge">+108.5% vs Stock NG</span>
+                <span class="badge badge-green" id="history-gain-badge">+108.7% vs Stock NG</span>
               </div>
               <div id="history-chart"></div>
               <div class="version-pills" id="version-pills" role="tablist"></div>
@@ -305,8 +307,8 @@
               <div>
                 <h3 class="panel-title" id="subtest-title">V8-v7 Subtest Breakdown</h3>
                 <p class="panel-subtitle">
-                  Each subtest ratio is computed against Stock QuickJS-NG 0.15.1 on the same Linux
-                  x86-64 host
+                  Each subtest ratio is computed against same-session Stock QuickJS-NG 0.15.1 on the
+                  Reference Linux x86-64 host
                 </p>
               </div>
               <span class="badge" id="subtest-version-badge">v0.15.1-turbo.4 → .8</span>

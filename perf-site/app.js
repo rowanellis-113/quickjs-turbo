@@ -100,14 +100,20 @@ function renderHero() {
   document.getElementById("header-version").textContent = DATA.latestVersion;
   document.getElementById("hero-cohort").textContent = hero.cohort;
   const maxScore = Math.max(...hero.engines.map((e) => e.score));
+  const baseEngine = hero.engines.find((x) => x.role === "baseline");
+  const baseScore = baseEngine ? baseEngine.score : 993.7;
   const container = document.getElementById("hero-bars");
   container.innerHTML = hero.engines
     .map((e) => {
       const pct = ((e.score / maxScore) * 100).toFixed(1);
       const cls = e.role === "turbo" ? "is-turbo" : e.role === "reference" ? "is-ref" : "";
-      const ratio = (e.score / 993.7).toFixed(2);
+      const ratio = (e.score / baseScore).toFixed(2);
       const suffix =
-        e.role === "turbo" ? ` (${ratio}×)` : e.role === "baseline" ? " (1.00×)" : "";
+        e.role === "turbo" || e.role === "peer"
+          ? ` (${ratio}×)`
+          : e.role === "baseline"
+            ? " (1.00×)"
+            : "";
       return `
         <div class="bar-row ${cls}">
           <div class="bar-meta">
@@ -137,16 +143,18 @@ function renderHistory() {
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
   const yMin = 800;
-  const yMax = 2500;
+  const yMax = 2600;
 
   const xAt = (i) => padL + (i / (items.length - 1)) * innerW;
   const yAt = (v) => padT + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
 
-  const gridVals = [1000, 1500, 2000, 2375];
+  const refEngine = DATA.heroComparison.engines.find((e) => e.role === "reference");
+  const refScore = Math.round(refEngine ? refEngine.score : 2436);
+  const gridVals = [1000, 1500, 2000, refScore];
   const gridSvg = gridVals
     .map((v) => {
       const y = yAt(v).toFixed(1);
-      const isV8 = v === 2375;
+      const isV8 = v === refScore;
       return `
         <line x1="${padL}" y1="${y}" x2="${W - padR}" y2="${y}"
           stroke="${isV8 ? "var(--chart-ref)" : "var(--chart-grid)"}"
@@ -157,7 +165,7 @@ function renderHistory() {
         </text>
         ${
           isV8
-            ? `<text x="${W - padR}" y="${Number(y) - 6}" text-anchor="end" fill="var(--cyan)" font-size="10.5" font-family="JetBrains Mono, monospace">V8 --jitless (2,375)</text>`
+            ? `<text x="${W - padR}" y="${Number(y) - 6}" text-anchor="end" fill="var(--cyan)" font-size="10.5" font-family="JetBrains Mono, monospace">V8 --jitless (${refScore.toLocaleString("en-US")})</text>`
             : ""
         }
       `;
@@ -241,7 +249,8 @@ function renderHistory() {
     });
   });
 
-  const pctGain = (((current.v8Score - baseline.v8Score) / baseline.v8Score) * 100).toFixed(1);
+  const baseV8Score = current.baselineV8Score || baseline.v8Score;
+  const pctGain = (((current.v8Score - baseV8Score) / baseV8Score) * 100).toFixed(1);
   document.getElementById("history-gain-badge").textContent = current.isBaseline
     ? "Baseline (1.00×)"
     : `+${pctGain}% vs Stock NG`;
@@ -280,10 +289,11 @@ function renderHistory() {
     `V8-v7 Subtest Breakdown — ${current.version}`;
   document.getElementById("subtest-version-badge").textContent = current.version;
 
+  const baseSubtests = current.baselineSubtests || baseline.subtests;
   const subGrid = document.getElementById("subtest-grid");
   subGrid.innerHTML = Object.entries(current.subtests)
     .map(([name, val]) => {
-      const baseVal = baseline.subtests[name];
+      const baseVal = baseSubtests[name];
       const ratio = (val / baseVal).toFixed(2);
       return `
         <div class="subtest-tile">
@@ -363,10 +373,12 @@ function renderPlatformPanel() {
     )
     .join("");
 
+  const leftTitle = p.leftTitle || "Targeted &amp; Paired Speedups";
   const rightTitle =
-    selectedPlatform === "linux-x86_64"
-      ? "Hotspot Micro & JetStream Wins (vs Stock NG)"
-      : "V8-v7 Per-Subtest Breakdown";
+    p.rightTitle ||
+    (selectedPlatform === "linux-x86_64"
+      ? "Hotspot Wins (vs Same-Host Stock NG)"
+      : "V8-v7 Per-Subtest Breakdown");
 
   document.getElementById("platform-panel").innerHTML = `
     <div class="cohort-bar">
@@ -389,7 +401,7 @@ function renderPlatformPanel() {
         <table>
           <thead>
             <tr>
-              <th>Targeted &amp; Paired Speedups</th>
+              <th>${leftTitle}</th>
               <th class="num">Baseline</th>
               <th class="num">Turbo</th>
               <th class="num">Speedup</th>

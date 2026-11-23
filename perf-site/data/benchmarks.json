@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "updatedAt": "2026-11-22",
+  "updatedAt": "2026-11-23",
   "latestVersion": "v0.15.1-turbo.8",
   "upstream": {
     "name": "QuickJS-NG",
@@ -9,14 +9,13 @@
   },
   "heroComparison": {
     "suite": "V8-v7 Whole Score",
-    "cohort": "Reference Linux x86-64 Host · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT",
+    "cohort": "Reference Linux x86-64 Host (Ryzen 3 3300X) · GCC 13.3 · CPU2 serial · normal ASLR · zero JIT",
     "sourceDoc": "vm/docs/architecture/common/PRODUCT-BASELINE.txt",
     "engines": [
-      { "id": "v8-jitless", "label": "V8 --jitless (Node 24)", "score": 2374.9, "role": "reference" },
-      { "id": "turbo", "label": "QuickJS-Turbo", "score": 2071.65, "role": "turbo", "note": "2.08× vs QuickJS-NG · 87.2% of V8 --jitless" },
-      { "id": "jsc-llint", "label": "JSCOnly LLInt (JIT OFF)", "score": 1596.1, "role": "peer" },
-      { "id": "bellard", "label": "Bellard QuickJS 2026-06-04", "score": 1465.7, "role": "peer" },
-      { "id": "quickjs-ng", "label": "QuickJS-NG 0.15.1 (Stock)", "score": 993.7, "role": "baseline" }
+      { "id": "v8-jitless", "label": "V8 --jitless (Node 24.13)", "score": 2436.03, "role": "reference" },
+      { "id": "turbo", "label": "QuickJS-Turbo (v0.15.1-turbo.8)", "score": 2101.4, "role": "turbo", "note": "2.09× vs QuickJS-NG · 1.42× vs Bellard · 86.3% of V8 --jitless" },
+      { "id": "bellard", "label": "Bellard QuickJS 2026-06-04", "score": 1480.7, "role": "peer" },
+      { "id": "quickjs-ng", "label": "QuickJS-NG 0.15.1 (Stock)", "score": 1007.04, "role": "baseline" }
     ]
   },
   "versionHistory": [
@@ -127,99 +126,86 @@
     {
       "version": "v0.15.1-turbo.4 → .8",
       "shortLabel": "turbo.4–8",
-      "date": "2026-11-22 (Current: .8)",
-      "v8Score": 2071.65,
-      "peakRssKiB": 175756,
+      "date": "2026-11-23 (Current: .8)",
+      "v8Score": 2101.4,
+      "baselineV8Score": 1007.04,
+      "peakRssKiB": 175700,
       "pool": "FramePool 512",
-      "ratioVsNg": 2.08,
-      "ratioVsV8": 87.2,
-      "summary": "Unified cross-platform runtime fast paths (measured at 2,071.65 on the Reference Host in .4), followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, Apple Clang 15 macOS fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support.",
+      "ratioVsNg": 2.09,
+      "ratioVsV8": 86.3,
+      "summary": "Unified cross-platform runtime fast paths (.4, Reference Host 2,071.65) followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, Apple Clang 15 macOS fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support — verified at 2,101.40 V8-v7 on the 2026-11-23 4-engine Reference Host cohort.",
       "highlights": [
-        "Reference Host (.4 anchor): V8-v7 2,071.65 (2.08× vs NG 993.7 · 87.2% of V8 --jitless), Peak RSS -4.09% (-7.5 MiB)",
-        "Independent i5-12400F Host (.8 parity check): paired .8 vs .4 holds same-CPU throughput (2.02×–2.03× vs NG on that host) while Density mode cuts cold-worker heap -49.3% (see separate i5-12400F tab below)",
-        "All 4 native ASM backends online: LINUX_X86_64, LINUX_AARCH64 (glibc & musl / GCC 14+), MACOS_X86_64, and WIN_X86_64 (MSVC / clang-cl)"
+        "Reference Host (.8 4-engine rerun): V8-v7 2,101.40 Default / 2,094.06 Density (2.09× vs NG 1,007.04 · 1.42× vs Bellard 1,480.70 · 86.3% of V8 --jitless 2,436.03 at 2.67× lower RSS)",
+        "Unified micro57 (57 cases): 1.55× vs Stock NG (50/57 wins) · 1.22× vs Bellard 2026-06-04 (35/57 wins)",
+        "High-density worker mode (tail=OFF, w=16): cuts 500-cold-fn worker heap -49.3% (779.3 → 394.9 KiB, 0 cold IC slabs) while holding 99.7% V8-v7 (2,094.1) & 98.2% micro57 parity"
       ],
+      "baselineSubtests": {
+        "Richards": 785.28,
+        "DeltaBlue": 863.98,
+        "Crypto": 830.13,
+        "RayTrace": 1359.44,
+        "EarleyBoyer": 1833.2,
+        "RegExp": 254.33,
+        "Splay": 2557.47,
+        "NavierStokes": 1160.52
+      },
       "subtests": {
-        "Richards": 1436.08,
-        "DeltaBlue": 1334.22,
-        "Crypto": 1559.75,
-        "RayTrace": 2069.69,
-        "EarleyBoyer": 2852.03,
-        "RegExp": 1835.52,
-        "Splay": 3781.18,
-        "NavierStokes": 2771.12
+        "Richards": 1483.99,
+        "DeltaBlue": 1369.9,
+        "Crypto": 1517.91,
+        "RayTrace": 2088.88,
+        "EarleyBoyer": 2985.38,
+        "RegExp": 1763.48,
+        "Splay": 3974.76,
+        "NavierStokes": 2819.8
       }
     }
   ],
   "platforms": {
     "linux-x86_64": {
-      "title": "Linux x86-64 (Ref Host)",
+      "title": "Linux x86-64",
       "backend": "LINUX_X86_64",
-      "toolchain": "Reference x86-64 Host · GCC 13.3 · Ubuntu 24.04 · CPU2 serial · FramePool 512",
-      "baselineLabel": "Historical Anchor Cohort (vs Stock NG 993.7)",
+      "toolchain": "AMD Ryzen 3 3300X · Ubuntu 24.04 (WSL2) · GCC 13.3 · CPU2 serial · FramePool 512",
+      "baselineLabel": "4-Engine Same-Host Cohort · v0.15.1-turbo.8 (Stock NG 1,007.0)",
+      "leftTitle": "4-Engine Cohort & Mechanism Speedups",
+      "rightTitle": "Hotspot Wins (vs Same-Host Stock NG)",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
-        { "label": "V8-v7 Score", "value": "2,071.65", "sub": "2.08× vs QuickJS-NG (993.7)" },
-        { "label": "vs V8 --jitless", "value": "87.2%", "sub": "Node 24.13.0 = 2,374.9" },
-        { "label": "JetStream 17 Index", "value": "59.9", "sub": "QuickJS-NG = 100 (lower is better)" },
-        { "label": "Hybrid GC Scans", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cycle churn" }
+        { "label": "V8-v7 (Default / Density)", "value": "2,101 / 2,094", "sub": "2.09× vs NG (1,007) · 1.42× vs Bellard (1,481)" },
+        { "label": "vs V8 --jitless (Node 24)", "value": "86.3%", "sub": "2,101 vs 2,436 · 2.67× lower RSS (172 vs 458 MiB)" },
+        { "label": "micro57 (57 cases)", "value": "1.55×", "sub": "50/57 vs NG · 1.22× vs Bellard (35/57)" },
+        { "label": "Hybrid GC Scans", "value": "-85.8%", "sub": "600 → 85 scans · 1.50× cyclic churn" }
       ],
       "targetedSpeedups": [
-        { "name": "lit5 (5-field object literals)", "before": "631.0 ms", "after": "181.0 ms", "speedup": 3.49 },
-        { "name": "mapFlat (Map/Set flat string lookup)", "before": "573.0 ms", "after": "176.0 ms", "speedup": 3.26 },
-        { "name": "mapRope (Map/Set short-rope lookup)", "before": "289.5 ms", "after": "119.0 ms", "speedup": 2.43 },
-        { "name": "resident_cycle_churn (Hybrid GC)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50 },
-        { "name": "asyncPrim (async / Promise.resolve)", "before": "404.5 ms", "after": "285.5 ms", "speedup": 1.42 }
+        { "name": "V8-v7 Default vs Stock NG 0.15.1", "before": "1,007.0", "after": "2,101.4", "speedup": 2.09 },
+        { "name": "V8-v7 Default vs Bellard 2026-06-04 (O2)", "before": "1,480.7", "after": "2,101.4", "speedup": 1.42 },
+        { "name": "micro57 (57-case geomean vs Stock NG)", "before": "1.00×", "after": "1.55×", "speedup": 1.55 },
+        { "name": "micro57 (57-case geomean vs Bellard 26.06)", "before": "1.00×", "after": "1.22×", "speedup": 1.22 },
+        { "name": "asyncPrim (async / Promise.resolve vs NG)", "before": "243.3 ms", "after": "102.5 ms", "speedup": 2.37 },
+        { "name": "bigintMod (2^255-19 mod vs NG · 1.76× vs V8)", "before": "49.1 ms", "after": "23.6 ms", "speedup": 2.08 },
+        { "name": "mapFlat (Map flat-string lookup vs NG)", "before": "425.7 ms", "after": "287.3 ms", "speedup": 1.48 },
+        { "name": "resident_cycle_churn (Hybrid GC vs turbo.2)", "before": "314.5 ms", "after": "208.9 ms", "speedup": 1.50 }
       ],
       "microHotspots": [
-        { "name": "RegExp (V8-v7)", "stock": "256.5", "turbo": "1,835.5", "unit": "score", "speedup": 7.16 },
-        { "name": "json-stringify-inspector", "stock": "140.56", "turbo": "23.37", "unit": "ms", "speedup": 6.02 },
-        { "name": "typed_array_write", "stock": "31.70", "turbo": "5.48", "unit": "ns/op", "speedup": 5.78 },
-        { "name": "array_write", "stock": "26.35", "turbo": "4.59", "unit": "ns/op", "speedup": 5.74 },
-        { "name": "json-parse-inspector", "stock": "131.09", "turbo": "39.05", "unit": "ms", "speedup": 3.36 },
-        { "name": "array_read", "stock": "17.18", "turbo": "5.44", "unit": "ns/op", "speedup": 3.16 },
-        { "name": "prop_read", "stock": "15.89", "turbo": "5.60", "unit": "ns/op", "speedup": 2.84 },
-        { "name": "empty_loop", "stock": "11.83", "turbo": "5.18", "unit": "ns/op", "speedup": 2.28 }
+        { "name": "typed_array_write", "stock": "35.05", "turbo": "4.79", "unit": "ns/op", "speedup": 7.32 },
+        { "name": "RegExp (V8-v7)", "stock": "254.3", "turbo": "1,763.5", "unit": "score", "speedup": 6.93 },
+        { "name": "json-stringify-inspector (Jet17)", "stock": "140.56", "turbo": "23.37", "unit": "ms", "speedup": 6.02 },
+        { "name": "array_write", "stock": "26.52", "turbo": "4.56", "unit": "ns/op", "speedup": 5.81 },
+        { "name": "typed_array_read", "stock": "18.95", "turbo": "5.29", "unit": "ns/op", "speedup": 3.58 },
+        { "name": "json-parse-inspector (Jet17)", "stock": "131.09", "turbo": "39.05", "unit": "ms", "speedup": 3.36 },
+        { "name": "array_read", "stock": "18.09", "turbo": "5.44", "unit": "ns/op", "speedup": 3.33 },
+        { "name": "prop_read", "stock": "17.99", "turbo": "5.54", "unit": "ns/op", "speedup": 3.25 },
+        { "name": "sort_bench", "stock": "2.05", "turbo": "0.69", "unit": "ns/op", "speedup": 2.96 },
+        { "name": "empty_loop", "stock": "12.53", "turbo": "5.17", "unit": "ns/op", "speedup": 2.42 }
       ],
-      "note": "This tab is 100% pure to the original Reference Linux x86-64 host that anchors the Hero chart and Milestone trajectory above (Stock NG 0.15.1 = 993.7). For independent v0.15.1-turbo.8 verification and high-density memory measurements on Intel Core i5-12400F, switch to the separate 'Linux x86-64 (i5-12400F · .8)' tab."
-    },
-    "linux-x86_64-i5": {
-      "title": "Linux x86-64 (i5-12400F · .8)",
-      "backend": "LINUX_X86_64",
-      "toolchain": "Intel Core i5-12400F · Ubuntu 24.04 (WSL2) · GCC 13.3 · CPU2 serial · FramePool 512",
-      "baselineLabel": "Independent Host Cohort · v0.15.1-turbo.8 (Stock NG 1,415)",
-      "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
-      "headlineStats": [
-        { "label": "V8-v7 (Default / Density)", "value": "2,852 / 2,866", "sub": "2.02×–2.03× vs Stock NG (1,415) on this host" },
-        { "label": "vs V8 --jitless (Same CPU)", "value": "78.4%", "sub": "Node 24.14 = 3,637 · 2.71× lower RSS (172 vs 466 MiB)" },
-        { "label": "High-Density Cold Heap", "value": "-49.3%", "sub": "779.3 → 394.9 KiB · 0 cold IC slabs · 100.5% V8-v7" },
-        { "label": "micro57 (57 cases)", "value": "1.53×", "sub": "PIC-only 100.2% · Density w=16 99.5% of Default" }
-      ],
-      "targetedSpeedups": [
-        { "name": "V8-v7 Default vs Stock NG 0.15.1", "before": "1,415.0", "after": "2,852.0", "speedup": 2.02 },
-        { "name": "V8-v7 Density (noTail, w=16) vs Stock NG", "before": "1,415.0", "after": "2,866.0", "speedup": 2.03 },
-        { "name": "V8-v7 Default vs Bellard 2026-06-04 (O2)", "before": "1,807.0", "after": "2,852.0", "speedup": 1.58 },
-        { "name": "V8-v7 Default vs Turbo PORTABLE", "before": "2,005.5", "after": "2,852.0", "speedup": 1.42 },
-        { "name": "500-Cold-Fn Worker Hot 2M vs C Fallback", "before": "232.9 ms", "after": "82.7 ms", "speedup": 2.82 },
-        { "name": "500-Cold-Fn Worker Hot 2M vs No-PIC", "before": "152.9 ms", "after": "82.7 ms", "speedup": 1.85 }
-      ],
-      "microHotspots": [
-        { "name": "Richards", "stock": "1,034", "turbo": "1,860", "unit": "score", "speedup": 1.80 },
-        { "name": "DeltaBlue", "stock": "1,070", "turbo": "1,849", "unit": "score", "speedup": 1.73 },
-        { "name": "Crypto", "stock": "1,309", "turbo": "2,143", "unit": "score", "speedup": 1.64 },
-        { "name": "RayTrace", "stock": "1,804", "turbo": "2,995", "unit": "score", "speedup": 1.66 },
-        { "name": "EarleyBoyer", "stock": "2,387", "turbo": "3,932", "unit": "score", "speedup": 1.65 },
-        { "name": "RegExp", "stock": "375", "turbo": "2,472", "unit": "score", "speedup": 6.59 },
-        { "name": "Splay", "stock": "3,387", "turbo": "5,794", "unit": "score", "speedup": 1.71 },
-        { "name": "NavierStokes", "stock": "1,968", "turbo": "3,570", "unit": "score", "speedup": 1.81 }
-      ],
-      "note": "Separate hardware cohort (Intel Core i5-12400F, 3-block interleaved median): raw scores are higher than the Reference Host tab because this is a faster CPU (Stock NG = 1,415 vs 993.7). Never compare raw scores across hosts — compare same-host ratios: on this exact CPU, v0.15.1-turbo.8 (2,852 Default / 2,866 Density) holds parity with v0.15.1-turbo.4 (2,900, within WSL2 run noise) while cutting 500-cold-fn worker heap from 779.3 → 394.9 KiB (-49.3%) and reclaiming 100% of IC slabs via JS_PurgePropertyIC."
+      "note": "All 4 engines (Stock NG 0.15.1, Bellard 2026-06-04 O2, Turbo v0.15.1-turbo.8, Node v24.13.0 --jitless) were re-measured side-by-side on 2026-11-23 on CPU2 with verified clocks. Turbo beats V8 --jitless on NavierStokes (1.56×), Crypto (1.27×), Richards (1.12×), typed_array_read (2.59×), array_read (2.47×), typed_array_write (2.43×), array_write (2.36×), bigintMod (1.76×), prop_read (1.53×), empty_loop (1.53×), and mapRope (1.39×). Compared with Bellard 26.06, Turbo wins V8-v7 (1.42×) and micro57 (1.22×, 35/57), while Bellard remains 6%–21% faster on short string appends (strAppend 0.81×), small object-literal allocs (lit5 0.94×), and 256-bit BigInt alloc loops (bigint256_arith 0.79×). In high-density mode (tail=OFF, w=16), Turbo retains 99.65% V8-v7 (2,094.1) and 98.23% micro57 parity while cutting 500-cold-fn worker heap from 779.3 → 394.9 KiB (-49.3%, 0 cold IC slabs)."
     },
     "macos-x86_64": {
       "title": "macOS x86-64",
       "backend": "MACOS_X86_64",
       "toolchain": "Apple Clang 15.0 · Darwin 22.6 · i5-7360U · FramePool 256",
       "baselineLabel": "vs Bellard QuickJS 2026-06-04 (-O3) & PORTABLE",
+      "rightTitle": "V8-v7 Subtest Scores (Turbo)",
       "sourceDoc": "vm/docs/architecture/common/STATUS.txt",
       "headlineStats": [
         { "label": "V8-v7 Score", "value": "1,741.5", "sub": "1.45× vs Bellard -O3 (1,202.0) · 1.47× vs PORTABLE" },
@@ -251,9 +237,10 @@
       "backend": "WIN_X86_64 / WIN64",
       "toolchain": "MSVC 19.50 (cl + ml64) & MinGW GCC 13.1 · CPU2 · FramePool 256",
       "baselineLabel": "vs QuickJS-NG 0.15.1 & v0.15.1-turbo.3",
+      "rightTitle": "V8-v7 Subtests (turbo.4+ vs turbo.3)",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
-        { "label": "V8-v7 Score (MinGW)", "value": "1,923.77", "sub": "1.94× vs QuickJS-NG (993.7)" },
+        { "label": "V8-v7 Score (MinGW)", "value": "1,923.77", "sub": "1.94× vs paired Stock NG (991.5)" },
         { "label": "MSVC Native VM", "value": "WIN_X86_64", "sub": "cl + ml64 · zero GNU binutils · SEH unwind" },
         { "label": "Map/Set Lookup", "value": "3.52×", "sub": "560.0 → 159.0 ms (-71.6%)" },
         { "label": "CTest Qualification", "value": "315 / 315", "sub": "MinGW WIN64 315 · MSVC WIN64 296" }
@@ -281,6 +268,7 @@
       "backend": "LINUX_AARCH64",
       "toolchain": "GCC 13/14+ (glibc & musl) · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
       "baselineLabel": "Graviton2 Evolution (v0.15.1-turbo.3 → v0.15.1-turbo.4+)",
+      "rightTitle": "V8-v7 Subtests (turbo.4+ vs turbo.3 + 64B)",
       "sourceDoc": "vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
       "headlineStats": [
         { "label": "V8-v7 (Graviton2)", "value": "1,232.42", "sub": "Up from 688 migration → 750 threaded → 1,232 fast VM" },
