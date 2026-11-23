@@ -65,7 +65,7 @@ static bool js_core_spread_dense(JSContext *ctx, JSValueConst value, JSObject **
     array = JS_VALUE_GET_OBJ(value);
     if (array->class_id != JS_CLASS_ARRAY || !array->fast_array || array->shape->prop_count < 1)
         return false;
-    first = array->shape->prop;
+    first = get_shape_prop(array->shape);
     if (first->atom != JS_ATOM_length || (first->flags & JS_PROP_TMASK) ||
         !(first->flags & JS_PROP_LENGTH))
         return false;

@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-SOURCE_SHA256 = "827118a0ad4272559e03cd2d6b84fe810bf8c522dd55ceef8120add6f5abaa70"
+SOURCE_SHA256 = "60b8af33a1404a842f00de2ccf70d97ebc9a789bdcbe075a6c01b4df47c081a6"
 
 
 def compiler_input(root, build):

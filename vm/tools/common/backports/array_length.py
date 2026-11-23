@@ -2,7 +2,7 @@
 
 import hashlib
 
-PINNED_FUNCTION_SHA256 = "abc7c79ef2cc727c1f5f4c54974fbe35eac78ddbb0a8485c565d96569f4e4b6c"
+PINNED_FUNCTION_SHA256 = "1b82925b2224e8248009eae5ed886334b37c97f182d07195a5fc6f0633c58a3d"
 
 
 def portable_core(text, source, build):

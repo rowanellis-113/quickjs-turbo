@@ -22,10 +22,10 @@ def map_keys(text):
     before_lines = text.count("\n")
     text = replace_exact_lines(
         text,
-        "    if (p1->header.ref_count == 1 && p1->is_wide_char == p2->is_wide_char\n"
+        "    if (JS_REF_COUNT(p1) == 1 && p1->is_wide_char == p2->is_wide_char\n"
         "    &&  js_malloc_usable_size(ctx, p1) >= sizeof(*p1) + ((p1->len + p2->len) << p2->is_wide_char) + 1 - p1->is_wide_char) {\n"
         "        /* Concatenate in place in available space at the end of p1 */",
-        "    if (p1->header.ref_count == 1 && !p1->atom_type && p1->kind == JS_STRING_KIND_NORMAL && p1->is_wide_char == p2->is_wide_char\n"
+        "    if (JS_REF_COUNT(p1) == 1 && !p1->atom_type && p1->kind == JS_STRING_KIND_NORMAL && p1->is_wide_char == p2->is_wide_char\n"
         "    &&  js_malloc_usable_size(ctx, p1) >= sizeof(*p1) + ((p1->len + p2->len) << p2->is_wide_char) + 1 - p1->is_wide_char) {\n"
         "        if (unlikely(p1->hash)) p1->hash = 0; /* Invalidate cached Map hash before in-place concat */",
     )
@@ -44,16 +44,16 @@ def map_keys(text):
         "        h = hash_string_rope(key, 0);\n"
         "        break;",
         "    case JS_TAG_STRING:\n"
-        "        return js_map_flat_string_hash(JS_VALUE_GET_STRING(key)) ^ (uint32_t)JS_TAG_STRING;\n"
+        "        return js_map_flat_string_hash(JS_VALUE_GET_STRING(key)) ^ ctx->hash_seed ^ hash32((uint32_t)JS_TAG_STRING);\n"
         "    case JS_TAG_STRING_ROPE:\n"
         "        h = hash_string_rope(key, JS_ATOM_TYPE_STRING) & JS_ATOM_HASH_MASK;\n"
-        "        return h ^ (uint32_t)JS_TAG_STRING;",
+        "        return h ^ ctx->hash_seed ^ hash32((uint32_t)JS_TAG_STRING);",
     )
     text = replace_exact_lines(
         text,
         "    h = map_hash_key(ctx, key) & (s->hash_size - 1);\n"
         "    list_for_each(el, &s->hash_table[h]) {",
-        "    if (JS_VALUE_GET_TAG(key) == JS_TAG_STRING) { h = js_map_flat_string_hash(JS_VALUE_GET_STRING(key)); return js_map_find_string_record(ctx, &s->hash_table[(h ^ (uint32_t)JS_TAG_STRING) & (s->hash_size - 1)], key, h); }\n"
+        "    if (JS_VALUE_GET_TAG(key) == JS_TAG_STRING) { h = js_map_flat_string_hash(JS_VALUE_GET_STRING(key)); return js_map_find_string_record(ctx, &s->hash_table[(h ^ ctx->hash_seed ^ hash32((uint32_t)JS_TAG_STRING)) & (s->hash_size - 1)], key, h); }\n"
         "    h = map_hash_key(ctx, key) & (s->hash_size - 1); list_for_each(el, &s->hash_table[h]) {",
     )
     text = replace_exact_lines(

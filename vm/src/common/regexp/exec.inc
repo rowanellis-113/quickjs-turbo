@@ -27,7 +27,7 @@
 /* Shared exec ownership and observable operations for native and C backends. */
 static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
-    int rc, capture_count, shift, index, i, re_flags, prop_flags;
+    int rc, capture_count, alloc_count, shift, index, i, re_flags, prop_flags;
     JSRegExp *re = js_get_regexp(ctx, this_val, true);
     JSString *str;
     JSValue t, ret, str_val, obj, val, groups;
@@ -37,6 +37,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     uint8_t *small_capture[32];
     int64_t last_index;
     const char *group_name_ptr;
+    JSAtom group_name;
     JSProperty props[4]; // length, index, input, groups, in that order
 
     if (!re)
@@ -51,6 +52,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     groups = JS_UNDEFINED;
     indices = JS_UNDEFINED;
     indices_groups = JS_UNDEFINED;
+    group_name = JS_ATOM_NULL;
     capture = NULL;
 
     val = JS_GetProperty(ctx, this_val, JS_ATOM_lastIndex);
@@ -64,11 +66,12 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     }
     str = JS_VALUE_GET_STRING(str_val);
     capture_count = lre_get_capture_count(re_bytecode);
-    if (capture_count > 0) {
-        if (capture_count <= (int)countof(small_capture) / 2) {
+    alloc_count = lre_get_alloc_count(re_bytecode);
+    if (alloc_count > 0) {
+        if (alloc_count <= (int)countof(small_capture)) {
             capture = small_capture;
         } else {
-            capture = js_malloc(ctx, sizeof(capture[0]) * capture_count * 2);
+            capture = js_malloc(ctx, sizeof(capture[0]) * alloc_count);
             if (!capture)
                 goto fail;
         }
@@ -92,7 +95,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
                 JS_ThrowInterrupted(ctx);
                 break;
             case LRE_RET_MEMORY_ERROR:
-                JS_ThrowInternalError(ctx, "out of memory in regexp execution");
+                JS_ThrowOutOfMemory(ctx);
                 break;
             case LRE_RET_BYTECODE_ERROR:
                 JS_ThrowInternalError(ctx, "corrupted bytecode in regexp execution");
@@ -142,15 +145,17 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
             goto fail;
         prop_flags = JS_PROP_C_W_E | JS_PROP_THROW;
         for (i = 0; i < capture_count; i++) {
-            const char *name = NULL;
             uint8_t **match = &capture[2 * i];
             int start = -1;
             int end = -1;
 
             if (group_name_ptr && i > 0) {
-                if (*group_name_ptr)
-                    name = group_name_ptr;
-                group_name_ptr += strlen(group_name_ptr) + 1;
+                if (*group_name_ptr) {
+                    group_name = JS_NewAtom(ctx, group_name_ptr);
+                    if (group_name == JS_ATOM_NULL)
+                        goto fail;
+                }
+                group_name_ptr += strlen(group_name_ptr) + LRE_GROUP_NAME_TRAILER_LEN;
             }
 
             if (match[0] && match[1]) {
@@ -174,11 +179,16 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
                         goto fail;
                     }
                 }
-                if (name && !JS_IsUndefined(indices_groups)) {
-                    val = js_dup(val);
-                    if (JS_DefinePropertyValueStr(ctx, indices_groups, name, val, prop_flags) < 0) {
-                        JS_FreeValue(ctx, val);
-                        goto fail;
+                if (group_name != JS_ATOM_NULL && !JS_IsUndefined(indices_groups)) {
+                    /* For duplicate named groups, only the alternative that
+                       actually matched (non-undefined) wins; a later
+                       undefined alternative must not clobber it. */
+                    if (!JS_IsUndefined(val) || !JS_HasProperty(ctx, indices_groups, group_name)) {
+                        if (JS_DefinePropertyValue(ctx, indices_groups, group_name, js_dup(val),
+                                                   prop_flags) < 0) {
+                            JS_FreeValue(ctx, val);
+                            goto fail;
+                        }
                     }
                 }
                 if (JS_DefinePropertyValueUint32(ctx, indices, i, val, prop_flags) < 0) {
@@ -193,11 +203,17 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
                     goto fail;
             }
 
-            if (name) {
-                if (JS_DefinePropertyValueStr(ctx, groups, name, js_dup(val), prop_flags) < 0) {
-                    JS_FreeValue(ctx, val);
-                    goto fail;
+            if (group_name != JS_ATOM_NULL) {
+                /* duplicate named groups: matched alternative wins (see above) */
+                if (!JS_IsUndefined(val) || !JS_HasProperty(ctx, groups, group_name)) {
+                    if (JS_DefinePropertyValue(ctx, groups, group_name, js_dup(val), prop_flags) <
+                        0) {
+                        JS_FreeValue(ctx, val);
+                        goto fail;
+                    }
                 }
+                JS_FreeAtom(ctx, group_name);
+                group_name = JS_ATOM_NULL;
             }
 
             JS_VALUE_GET_OBJ(obj)->u.array.u.values[i] = val;
@@ -218,6 +234,7 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     ret = obj;
     obj = JS_UNDEFINED;
 fail:
+    JS_FreeAtom(ctx, group_name);
     JS_FreeValue(ctx, indices_groups);
     JS_FreeValue(ctx, indices);
     JS_FreeValue(ctx, str_val);

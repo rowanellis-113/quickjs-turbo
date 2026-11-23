@@ -98,7 +98,7 @@ def portable_core(text, source, build):
     new_body = new_body.replace(allocation, "js_mallocz(ctx, function_size)")
     include(
         old_body,
-        "#define QJS_FRAME_REGEXP_LEGACY_WIRE 1\n" + new_body,
+        new_body,
         "quickjs-portable-regexp-wire.h",
     )
     for name in (
@@ -112,14 +112,9 @@ def portable_core(text, source, build):
         include(functions[name], wire_functions[name][0], "quickjs-portable-" + name + ".h")
     before = '#include "libregexp.h"'
     assert text.count(before) == 1
-    # The new RegExp header expects its own inline Unicode helpers. The pinned
-    # core instead calls the retained external bool wrapper. Preserve its exact
-    # prototype: an implicit int return reads undefined upper bits on some targets.
-    declaration = "bool lre_is_space(int c);"
-    assert source_file(source, "libregexp.h").read_text(encoding="utf-8").count(declaration) == 1
     include(
         before,
-        '#include "src/common/regexp/libregexp.h"\n' + declaration + "\n",
+        '#include "src/common/regexp/libregexp.h"\n',
         "quickjs-portable-regexp-api.h",
     )
     return text, dict(

@@ -29,13 +29,6 @@
 #include <assert.h>
 
 #include "cutils.h"
-#if defined(QJS_FRAME_REGEXP_PRIVATE_UNICODE) && !defined(_MSC_VER)
-#ifdef _WIN32
-#include <malloc.h>
-#else
-#include <alloca.h>
-#endif
-#endif
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
 #include "unicode/regexp-unicode.h"
 #endif
@@ -514,11 +507,7 @@ static __maybe_unused void lre_dump_bytecode(const uint8_t *buf, int buf_len)
             if (i != 1)
                 printf(",");
             printf("<%s>", p);
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-            p += strlen(p) + 1;
-#else
             p += strlen(p) + LRE_GROUP_NAME_TRAILER_LEN;
-#endif
         }
         printf("\n");
         assert(p == (char *)(buf + buf_len));
@@ -1261,20 +1250,6 @@ static int get_class_atom(REParseState *s, REStringList *cr, const uint8_t **pp,
         /* normal char */
         if (c >= 128) {
             c = utf8_decode_len(p, UTF8_CHAR_LEN_MAX, &p);
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-            /* The pinned caller requests UTF-8 for 'u', but still supplies
-               CESU-8 for 'v'. Join only adjacent raw surrogate code units in
-               Unicode-sets mode; escaped and non-Unicode atoms keep their
-               existing parsing rules. No input buffer allocation is needed. */
-            if (s->unicode_sets && is_hi_surrogate(c) && p < s->buf_end) {
-                const uint8_t *next;
-                uint32_t low = utf8_decode_len(p, s->buf_end - p, &next);
-                if (is_lo_surrogate(low)) {
-                    c = from_surrogate(c, low);
-                    p = next;
-                }
-            }
-#endif
             if ((unsigned)c > 0xffff && !s->is_unicode) {
                 /* XXX: should handle non BMP-1 code points */
                 return re_parse_error(s, "malformed unicode char");
@@ -1535,16 +1510,6 @@ static int re_parse_nested_class(REParseState *s, REStringList *cr, const uint8_
             c1 = get_class_atom(s, cr1, &p, true);
             if ((int)c1 < 0)
                 goto fail;
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-            /* Preserve the pinned 0.15.1 trailing-dash diagnostic. Both
-               parsers reject this v-mode range; the newer parser otherwise
-               reports its later generic forbidden-character error. */
-            if (*p == '-' && p[1] == ']' && s->unicode_sets) {
-                if (c1 >= CLASS_RANGE_BASE)
-                    re_string_list_free(cr1);
-                goto invalid_class_range;
-            }
-#endif
             if (*p == '-' && p[1] != ']') {
                 const uint8_t *p0 = p + 1;
                 if (p[1] == '-' && s->unicode_sets && is_first)
@@ -2930,24 +2895,10 @@ uint8_t *lre_compile(int *plen, char *error_msg, int error_msg_size, const char 
 
     /* add the named groups if needed */
     if (s->group_names.size > (s->capture_count - 1) * LRE_GROUP_NAME_TRAILER_LEN) {
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-        /* Scope bytes are compiler-private. The pinned 0.15.1 consumer walks
-           one NUL-terminated name per capture, with no scope trailer. */
-        const uint8_t *name = s->group_names.buf;
-        for (int i = 1; i < s->capture_count; i++) {
-            size_t size = strlen((const char *)name) + 1;
-            if (dbuf_put(&s->byte_code, name, size)) {
-                re_parse_out_of_memory(s);
-                goto error;
-            }
-            name += size + LRE_GROUP_NAME_TRAILER_LEN - 1;
-        }
-#else
         if (dbuf_put(&s->byte_code, s->group_names.buf, s->group_names.size)) {
             re_parse_out_of_memory(s);
             goto error;
         }
-#endif
         put_u16(s->byte_code.buf + RE_HEADER_FLAGS,
                 lre_get_flags(s->byte_code.buf) | LRE_FLAG_NAMED_GROUPS);
     }
@@ -3311,26 +3262,6 @@ int lre_get_alloc_count(const uint8_t *bc_buf)
     return bc_buf[RE_HEADER_CAPTURE_COUNT] * 2 + bc_buf[RE_HEADER_REGISTER_COUNT];
 }
 
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-/* 0.15.1 allocates exactly two pointers per capture. New bytecode can also
-   address scratch registers after those pointers. Keep that public boundary;
-   only the register-bearing case enters a separate checked native frame. */
-static no_inline int lre_exec_legacy_registers(uint8_t **capture, const uint8_t *bc_buf,
-                                               const uint8_t *cbuf, int cindex, int clen,
-                                               int cbuf_type, void *opaque, int slots)
-{
-    size_t bytes = (size_t)slots * sizeof(*capture);
-    uint8_t **registers;
-    int ret;
-    if (lre_check_stack_overflow(opaque, bytes + sizeof(REExecContext) + 256))
-        return LRE_RET_MEMORY_ERROR;
-    registers = alloca(bytes);
-    ret = lre_exec_registers(registers, bc_buf, cbuf, cindex, clen, cbuf_type, opaque);
-    memcpy(capture, registers, (size_t)lre_get_capture_count(bc_buf) * 2 * sizeof(*capture));
-    return ret;
-}
-#endif
-
 int lre_exec(uint8_t **capture, const uint8_t *bc_buf, const uint8_t *cbuf, int cindex, int clen,
              int cbuf_type, void *opaque)
 {
@@ -3340,14 +3271,7 @@ int lre_exec(uint8_t **capture, const uint8_t *bc_buf, const uint8_t *cbuf, int 
         (unsigned)cbuf_type <= 1 && re_literal_prefix_len(bc_buf + RE_HEADER_LEN, size) == 11)
         return re_exec_literal_hint(capture, bc_buf, cbuf, cindex, clen, cbuf_type, opaque);
 #endif
-#ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-    int slots = lre_get_alloc_count(bc_buf);
-    if (slots == lre_get_capture_count(bc_buf) * 2)
-        return lre_exec_registers(capture, bc_buf, cbuf, cindex, clen, cbuf_type, opaque);
-    return lre_exec_legacy_registers(capture, bc_buf, cbuf, cindex, clen, cbuf_type, opaque, slots);
-#else
     return lre_exec_registers(capture, bc_buf, cbuf, cindex, clen, cbuf_type, opaque);
-#endif
 }
 
 /* Structurally validate serialized regexp bytecode (e.g. from JS_ReadObject)
@@ -3396,6 +3320,11 @@ int lre_prepare_bytecode(uint8_t *bc_buf, int bc_buf_len, bool for_exec)
             len = re_search_lookahead_size(bc_buf + pos, body_len - pos, true);
             if (!len)
                 return -1;
+            if (!for_exec) {
+                opcode = REOP_goto;
+                put_u32(bc_buf + pos + 1, len - 5);
+                memset(bc_buf + pos + 5, REOP_any, len - 5);
+            }
             break;
         case REOP_range:
         case REOP_range_i:

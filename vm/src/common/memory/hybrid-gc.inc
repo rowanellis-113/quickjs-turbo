@@ -10,6 +10,7 @@ _Static_assert(offsetof(JSObject, header) == 0 && offsetof(JSFunctionBytecode, h
 static void js_hybrid_gc_init(JSRuntime *rt, const JSMallocFunctions *mf)
 {
     uint32_t mode = JS_HYBRID_MODE_PARTIAL | JS_HYBRID_MODE_FAST_RC;
+    (void)mf;
     if (qjs_turbo_default_hybrid_gc_disabled())
         mode = 0;
     if (getenv("QJS_DISABLE_PARTIAL_CYCLE"))
@@ -19,18 +20,12 @@ static void js_hybrid_gc_init(JSRuntime *rt, const JSMallocFunctions *mf)
     rt->hybrid_gc_mode = mode;
     rt->hybrid_gc_report = getenv("QJS_HYBRID_GC_REPORT") ? 1 : 0;
     rt->drc_ok = (mode & JS_HYBRID_MODE_FAST_RC) ? 1 : 0;
-#if defined(QJS_HYBRID_HAS_FRAME_POOL)
-    rt->is_frame_pool = ((mode & JS_HYBRID_MODE_FAST_RC) && mf == &FramePoolFunctions) ? 1 : 0;
-#else
-    (void)mf;
-    rt->is_frame_pool = 0;
-#endif
 }
 
 static void js_hybrid_unlink_boundary(JSRuntime *rt)
 {
     if (rt->hybrid_gc_boundary_linked) {
-        list_del(&rt->hybrid_gc_boundary_node.link);
+        list_del(&rt->hybrid_gc_boundary.node.link);
         rt->hybrid_gc_boundary_linked = 0;
     }
 }
@@ -40,12 +35,12 @@ static void js_hybrid_link_boundary_tail(JSRuntime *rt)
     if (!(rt->hybrid_gc_mode & JS_HYBRID_MODE_PARTIAL) || rt->in_free)
         return;
     js_hybrid_unlink_boundary(rt);
-    memset(&rt->hybrid_gc_boundary_node, 0, sizeof(rt->hybrid_gc_boundary_node));
-    rt->hybrid_gc_boundary_node.ref_count = 1;
-    rt->hybrid_gc_boundary_node.gc_obj_type = JS_GC_OBJ_TYPE_VAR_REF;
-    rt->hybrid_gc_boundary_node.hybrid_young = 0;
-    rt->hybrid_gc_boundary_node.mark = 0;
-    list_add_tail(&rt->hybrid_gc_boundary_node.link, &rt->gc_obj_list);
+    memset(&rt->hybrid_gc_boundary, 0, sizeof(rt->hybrid_gc_boundary));
+    JS_REF_COUNT(&rt->hybrid_gc_boundary.node) = 1;
+    JS_GC_TYPE(&rt->hybrid_gc_boundary.node) = JS_GC_OBJ_TYPE_VAR_REF;
+    JS_HYBRID_YOUNG(&rt->hybrid_gc_boundary.node) = 0;
+    JS_GC_MARK(&rt->hybrid_gc_boundary.node) = 0;
+    list_add_tail(&rt->hybrid_gc_boundary.node.link, &rt->gc_obj_list);
     rt->hybrid_gc_boundary_linked = 1;
 }
 
@@ -63,16 +58,7 @@ static void js_hybrid_on_free_runtime(JSRuntime *rt)
 
 static inline void js_hybrid_free_rt_fast(JSRuntime *rt, void *ptr)
 {
-    JSMallocState *s = &rt->malloc_state;
-    size_t free_size = js_hybrid_usable_size_nonnull(rt, ptr) + MALLOC_OVERHEAD;
-    if (unlikely(free_size > s->malloc_size)) {
-        printf("js_free_rt: malloc_size underflow: freeing %zu but only %zu tracked\n", free_size,
-               s->malloc_size);
-        abort();
-    }
-    s->malloc_count--;
-    s->malloc_size -= free_size;
-    rt->mf.js_free(s->opaque, ptr);
+    js_free_rt(rt, ptr);
 }
 
 static inline void js_hybrid_push_free(JSRuntime *rt, JSGCObjectHeader *ch)
@@ -85,8 +71,8 @@ static inline void js_hybrid_push_free(JSRuntime *rt, JSGCObjectHeader *ch)
 static inline void js_hybrid_drop_val(JSRuntime *rt, JSValue v)
 {
     if (JS_VALUE_HAS_REF_COUNT(v)) {
-        JSRefCountHeader *r = (JSRefCountHeader *)JS_VALUE_GET_PTR(v);
-        if (--r->ref_count <= 0) {
+        void *r = JS_VALUE_GET_PTR(v);
+        if (--JS_REF_COUNT(r) <= 0) {
             uint32_t tag = (uint32_t)JS_VALUE_GET_TAG(v);
             if (likely(tag == (uint32_t)JS_TAG_OBJECT)) {
                 js_hybrid_push_free(rt, (JSGCObjectHeader *)r);
@@ -102,9 +88,8 @@ static inline void js_hybrid_drop_val(JSRuntime *rt, JSValue v)
 /* Fast leaf release for ref_count == 1 string/rope values without VM exit or reload. */
 void js_hybrid_drop_string1(JSRuntime *rt, void *ptr, uint32_t is_rope)
 {
-    JSRefCountHeader *hdr = (JSRefCountHeader *)ptr;
-    assert(hdr->ref_count == 1);
-    hdr->ref_count = 0;
+    assert(JS_REF_COUNT(ptr) == 1);
+    JS_REF_COUNT(ptr) = 0;
 #ifdef ENABLE_DUMPS // JS_DUMP_FREE
     if (unlikely(check_dump_flag(rt, JS_DUMP_FREE))) {
         js_free_value_rt(rt, JS_MKPTR(is_rope ? JS_TAG_STRING_ROPE : JS_TAG_STRING, ptr));
@@ -150,7 +135,7 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
     cur = root;
 
     for (;;) {
-        if (likely(cur->gc_obj_type == JS_GC_OBJ_TYPE_JS_OBJECT)) {
+        if (likely(JS_GC_TYPE(cur) == JS_GC_OBJ_TYPE_JS_OBJECT)) {
             JSObject *obj = (JSObject *)cur;
             uint16_t cid = obj->class_id;
             if (likely((uint16_t)(cid - JS_CLASS_OBJECT) <= (JS_CLASS_ARRAY - JS_CLASS_OBJECT) &&
@@ -166,7 +151,7 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #endif
                 obj->free_mark = 1;
                 sh = obj->shape;
-                pr = sh->prop;
+                pr = get_shape_prop(sh);
                 prop = obj->prop;
                 prop_count = (uint32_t)sh->prop_count;
                 for (i = 0; i < prop_count; i++) {
@@ -222,9 +207,9 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #define JS_HYBRID_FULL_DECREF_HDR(rt_, hdr_)                                                       \
     do {                                                                                           \
         JSGCObjectHeader *_p = (hdr_);                                                             \
-        assert(_p->ref_count > 0);                                                                 \
-        _p->ref_count--;                                                                           \
-        if (_p->ref_count == 0 && _p->mark == 1) {                                                 \
+        assert(JS_REF_COUNT(_p) > 0);                                                              \
+        JS_REF_COUNT(_p)--;                                                                        \
+        if (JS_REF_COUNT(_p) == 0 && JS_GC_MARK(_p) == 1) {                                        \
             list_del(&_p->link);                                                                   \
             list_add_tail(&_p->link, &(rt_)->tmp_obj_list);                                        \
         }                                                                                          \
@@ -233,27 +218,27 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #define JS_HYBRID_FULL_SCAN1_HDR(rt_, hdr_)                                                        \
     do {                                                                                           \
         JSGCObjectHeader *_p = (hdr_);                                                             \
-        _p->ref_count++;                                                                           \
-        if (_p->ref_count == 1) {                                                                  \
+        JS_REF_COUNT(_p)++;                                                                        \
+        if (JS_REF_COUNT(_p) == 1) {                                                               \
             list_del(&_p->link);                                                                   \
             list_add_tail(&_p->link, &(rt_)->gc_obj_list);                                         \
-            _p->mark = 0;                                                                          \
+            JS_GC_MARK(_p) = 0;                                                                    \
         }                                                                                          \
     } while (0)
 
 #define JS_HYBRID_FULL_SCAN2_HDR(rt_, hdr_)                                                        \
     do {                                                                                           \
         (void)(rt_);                                                                               \
-        (hdr_)->ref_count++;                                                                       \
+        JS_REF_COUNT((hdr_))++;                                                                    \
     } while (0)
 
 #define JS_HYBRID_MINOR_DECREF_HDR(rt_, hdr_)                                                      \
     do {                                                                                           \
         JSGCObjectHeader *_p = (hdr_);                                                             \
-        if (_p->hybrid_young) {                                                                    \
-            assert(_p->ref_count > 0);                                                             \
-            _p->ref_count--;                                                                       \
-            if (_p->ref_count == 0 && _p->mark == 1) {                                             \
+        if (JS_HYBRID_YOUNG(_p)) {                                                                 \
+            assert(JS_REF_COUNT(_p) > 0);                                                          \
+            JS_REF_COUNT(_p)--;                                                                    \
+            if (JS_REF_COUNT(_p) == 0 && JS_GC_MARK(_p) == 1) {                                    \
                 list_del(&_p->link);                                                               \
                 list_add_tail(&_p->link, &(rt_)->tmp_obj_list);                                    \
             }                                                                                      \
@@ -263,12 +248,12 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #define JS_HYBRID_MINOR_SCAN1_HDR(rt_, hdr_)                                                       \
     do {                                                                                           \
         JSGCObjectHeader *_p = (hdr_);                                                             \
-        if (_p->hybrid_young) {                                                                    \
-            _p->ref_count++;                                                                       \
-            if (_p->ref_count == 1) {                                                              \
+        if (JS_HYBRID_YOUNG(_p)) {                                                                 \
+            JS_REF_COUNT(_p)++;                                                                    \
+            if (JS_REF_COUNT(_p) == 1) {                                                           \
                 list_del(&_p->link);                                                               \
                 list_add_tail(&_p->link, &(rt_)->gc_obj_list);                                     \
-                _p->mark = 0;                                                                      \
+                JS_GC_MARK(_p) = 0;                                                                \
             }                                                                                      \
         }                                                                                          \
     } while (0)
@@ -276,8 +261,8 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #define JS_HYBRID_MINOR_SCAN2_HDR(rt_, hdr_)                                                       \
     do {                                                                                           \
         JSGCObjectHeader *_p = (hdr_);                                                             \
-        if (_p->hybrid_young)                                                                      \
-            _p->ref_count++;                                                                       \
+        if (JS_HYBRID_YOUNG(_p))                                                                   \
+            JS_REF_COUNT(_p)++;                                                                    \
     } while (0)
 
 #ifdef QJS_PROPERTY_IC
@@ -290,13 +275,13 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #define JS_HYBRID_DEFINE_WALKER(name_, action_, fallback_fn_)                                      \
     static inline void name_(JSRuntime *rt, JSGCObjectHeader *gp)                                  \
     {                                                                                              \
-        if (likely(gp->gc_obj_type == JS_GC_OBJ_TYPE_JS_OBJECT)) {                                 \
+        if (likely(JS_GC_TYPE(gp) == JS_GC_OBJ_TYPE_JS_OBJECT)) {                                  \
             JSObject *p = (JSObject *)gp;                                                          \
             if (likely((uint16_t)(p->class_id - JS_CLASS_OBJECT) <=                                \
                            (JS_CLASS_ARRAY - JS_CLASS_OBJECT) &&                                   \
                        !p->first_weak_ref)) {                                                      \
                 JSShape *sh = p->shape;                                                            \
-                JSShapeProperty *prs = sh->prop;                                                   \
+                JSShapeProperty *prs = get_shape_prop(sh);                                         \
                 JSProperty *props = p->prop;                                                       \
                 int i, prop_count = sh->prop_count;                                                \
                 action_(rt, &sh->header);                                                          \
@@ -310,7 +295,8 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
                                 if (props[i].u.getset.setter)                                      \
                                     action_(rt, &props[i].u.getset.setter->header);                \
                             } else if ((flags & JS_PROP_TMASK) == JS_PROP_VARREF) {                \
-                                if (props[i].u.var_ref->is_detached)                               \
+                                if (props[i].u.var_ref->is_detached ||                             \
+                                    props[i].u.var_ref->is_coro)                                   \
                                     action_(rt, &props[i].u.var_ref->header);                      \
                             } else if ((flags & JS_PROP_TMASK) == JS_PROP_AUTOINIT) {              \
                                 js_autoinit_mark(rt, &props[i], (fallback_fn_));                   \
@@ -336,7 +322,7 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
                 }                                                                                  \
                 return;                                                                            \
             }                                                                                      \
-        } else if (gp->gc_obj_type == JS_GC_OBJ_TYPE_SHAPE) {                                      \
+        } else if (JS_GC_TYPE(gp) == JS_GC_OBJ_TYPE_SHAPE) {                                       \
             JSShape *sh = (JSShape *)gp;                                                           \
             if (JS_HYBRID_SHAPE_HAS_STRONG_PROTO(sh)) {                                            \
                 action_(rt, &sh->proto->header);                                                   \
@@ -380,10 +366,10 @@ static no_inline void js_hybrid_full_decref(JSRuntime *rt)
     list_for_each_safe(el, el1, &rt->gc_obj_list)
     {
         p = list_entry(el, JSGCObjectHeader, link);
-        assert(p->mark == 0);
+        assert(JS_GC_MARK(p) == 0);
         js_hybrid_walk_full_decref(rt, p);
-        p->mark = 1;
-        if (p->ref_count == 0) {
+        JS_GC_MARK(p) = 1;
+        if (JS_REF_COUNT(p) == 0) {
             list_del(&p->link);
             list_add_tail(&p->link, &rt->tmp_obj_list);
         }
@@ -404,8 +390,8 @@ static no_inline void js_hybrid_full_scan(JSRuntime *rt)
     list_for_each(el, &rt->gc_obj_list)
     {
         p = list_entry(el, JSGCObjectHeader, link);
-        assert(p->ref_count > 0);
-        p->mark = 0;
+        assert(JS_REF_COUNT(p) > 0);
+        JS_GC_MARK(p) = 0;
         js_hybrid_walk_full_scan1(rt, p);
     }
 #ifdef QJS_PROPERTY_IC
@@ -439,7 +425,7 @@ static bool js_hybrid_ic_minor_propagate(JSRuntime *rt, JS_MarkFunc *mark)
     bool changed = false;
     uint32_t i, j;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
-        if (!ic->owner->header.hybrid_young || ic->owner->header.mark)
+        if (!JS_HYBRID_YOUNG(ic->owner) || JS_GC_MARK(ic->owner))
             continue;
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];
@@ -448,11 +434,11 @@ static bool js_hybrid_ic_minor_propagate(JSRuntime *rt, JS_MarkFunc *mark)
                 if (!way->transition || !rt->property_ic_epoch ||
                     way->epoch != rt->property_ic_epoch)
                     continue;
-                if (!way->shape->header.mark && way->transition->header.mark) {
+                if (!JS_GC_MARK(way->shape) && JS_GC_MARK(way->transition)) {
                     mark(rt, &way->transition->header);
                     way->kind |= 0x200u;
                     changed = true;
-                } else if (way->shape->header.mark && !way->transition->header.mark) {
+                } else if (JS_GC_MARK(way->shape) && !JS_GC_MARK(way->transition)) {
                     mark(rt, &way->shape->header);
                     way->kind |= 0x100u;
                     changed = true;
@@ -468,17 +454,16 @@ static void js_hybrid_ic_minor_restore(JSRuntime *rt)
     JSPropertyIC *ic;
     uint32_t i, j;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
-        if (!ic->owner->header.hybrid_young || ic->owner->header.mark)
+        if (!JS_HYBRID_YOUNG(ic->owner) || JS_GC_MARK(ic->owner))
             continue;
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];
             for (j = 0; j < site->count; j++) {
                 JSPropertyICWay *way = j ? &site->secondary[j - 1] : &site->primary;
-                if (way->shape && way->shape->header.hybrid_young && !(way->kind & 0x100u))
-                    way->shape->header.ref_count++;
-                if (way->transition && way->transition->header.hybrid_young &&
-                    !(way->kind & 0x200u))
-                    way->transition->header.ref_count++;
+                if (way->shape && JS_HYBRID_YOUNG(way->shape) && !(way->kind & 0x100u))
+                    JS_REF_COUNT(way->shape)++;
+                if (way->transition && JS_HYBRID_YOUNG(way->transition) && !(way->kind & 0x200u))
+                    JS_REF_COUNT(way->transition)++;
                 way->kind &= 0xffu;
             }
         }
@@ -488,7 +473,7 @@ static void js_hybrid_ic_minor_restore(JSRuntime *rt)
 
 static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
 {
-    struct list_head *boundary = &rt->hybrid_gc_boundary_node.link;
+    struct list_head *boundary = &rt->hybrid_gc_boundary.node.link;
     struct list_head *el, *el1;
     JSGCObjectHeader *p;
     size_t young_count = 0;
@@ -498,8 +483,8 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
 
     for (el = boundary->next; el != &rt->gc_obj_list; el = el->next) {
         p = list_entry(el, JSGCObjectHeader, link);
-        assert(p->mark == 0);
-        p->hybrid_young = 1;
+        assert(JS_GC_MARK(p) == 0);
+        JS_HYBRID_YOUNG(p) = 1;
         young_count++;
     }
     if (!young_count) {
@@ -513,10 +498,10 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
     for (el = boundary->next; el != &rt->gc_obj_list; el = el1) {
         el1 = el->next;
         p = list_entry(el, JSGCObjectHeader, link);
-        assert(p->mark == 0);
+        assert(JS_GC_MARK(p) == 0);
         js_hybrid_walk_minor_decref(rt, p);
-        p->mark = 1;
-        if (p->ref_count == 0) {
+        JS_GC_MARK(p) = 1;
+        if (JS_REF_COUNT(p) == 0) {
             list_del(&p->link);
             list_add_tail(&p->link, &rt->tmp_obj_list);
         }
@@ -527,8 +512,8 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
 #endif
     for (el = boundary->next; el != &rt->gc_obj_list; el = el->next) {
         p = list_entry(el, JSGCObjectHeader, link);
-        assert(p->ref_count > 0);
-        p->mark = 0;
+        assert(JS_REF_COUNT(p) > 0);
+        JS_GC_MARK(p) = 0;
         js_hybrid_walk_minor_scan1(rt, p);
     }
 #ifdef QJS_PROPERTY_IC
@@ -537,7 +522,7 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
         while (ic_cursor->next != &rt->gc_obj_list) {
             ic_cursor = ic_cursor->next;
             p = list_entry(ic_cursor, JSGCObjectHeader, link);
-            p->mark = 0;
+            JS_GC_MARK(p) = 0;
             js_hybrid_walk_minor_scan1(rt, p);
         }
     }
@@ -553,12 +538,12 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
 
     for (el = boundary->next; el != &rt->gc_obj_list; el = el->next) {
         p = list_entry(el, JSGCObjectHeader, link);
-        p->hybrid_young = 0;
+        JS_HYBRID_YOUNG(p) = 0;
     }
     list_for_each(el, &rt->tmp_obj_list)
     {
         p = list_entry(el, JSGCObjectHeader, link);
-        p->hybrid_young = 0;
+        JS_HYBRID_YOUNG(p) = 0;
     }
 
 #ifdef QJS_PROPERTY_IC

@@ -6,7 +6,7 @@ consumed by the existing compiler launcher, not by the engine at runtime.
 
 import hashlib
 
-HEADER_SHA256 = "8011dd97fbeb1cc551020f90dde4b4f21f83a6145b6254b5e815f6d885ed3874"
+HEADER_SHA256 = "50689b8d0ef5eedcbb8513a45d1a5fd56c81c124148b79af991abf394df3024a"
 VALUE_COMMIT = "10c81b1989de2d2e8d482d252b160a34f215d3e2"
 MIXED_COMMIT = "8e97f24044102b5793524ab22b037ca75f536319"
 ARRAY_APPEND_RELEASE = "3d5e064e9dd67c70f7962836505a7fa067bf0a4e"
@@ -29,7 +29,7 @@ def writable_array_append(block):
     block = replace_once(
         block,
         "if (likely(new_len <= p->u.array.u1.size)) {",
-        "if (likely(new_len <= p->u.array.u1.size)) { if (unlikely(new_len > array_len && !(p->shape->prop[0].flags & JS_PROP_WRITABLE))) goto bellard_array_append_slow;",
+        "if (likely(new_len <= p->u.array.u1.size)) { if (unlikely(new_len > array_len && !(get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE))) goto bellard_array_append_slow;",
         "array append readonly length",
     )
     return replace_once(
@@ -50,7 +50,7 @@ def map_pointer_hash(text):
     return replace_once(
         text,
         "        h = (uintptr_t)JS_VALUE_GET_PTR(key) * 3163;",
-        "        return (uint32_t)(((uint64_t)((uintptr_t)JS_VALUE_GET_PTR(key) ^ tag) * UINT64_C(0x61C8864680B583EB)) >> 32);",
+        "        return ((uint32_t)(((uint64_t)((uintptr_t)JS_VALUE_GET_PTR(key) ^ (uint32_t)tag) * UINT64_C(0x61C8864680B583EB)) >> 32)) ^ ctx->hash_seed;",
         "Map/Set object and symbol pointer hash",
     )
 

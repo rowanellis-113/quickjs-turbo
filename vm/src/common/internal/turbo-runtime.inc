@@ -58,7 +58,6 @@ JS_EXTERN int JS_SetRuntimeTurboOptions(JSRuntime *rt, const QJSTurboOptions *op
         js_hybrid_unlink_boundary(rt);
         rt->hybrid_gc_mode = 0;
         rt->drc_ok = 0;
-        rt->is_frame_pool = 0;
     } else if (opts->hybrid_gc == QJS_TURBO_ON) {
         rt->hybrid_gc_mode = JS_HYBRID_MODE_PARTIAL | JS_HYBRID_MODE_FAST_RC;
         rt->drc_ok = 1;

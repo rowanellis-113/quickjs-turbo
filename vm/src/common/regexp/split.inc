@@ -39,14 +39,14 @@ static bool js_regexp_split_guard(JSContext *ctx, JSValueConst receiver, JSValue
         uint32_t hash;
     } flags[] = {
         /* hash_string8(name, length, JS_ATOM_TYPE_STRING), masked. */
-        {"hasIndices", 10, LRE_FLAG_INDICES, 0x004861b6u},
-        {"global", 6, LRE_FLAG_GLOBAL, 0x0e4f2c3cu},
-        {"ignoreCase", 10, LRE_FLAG_IGNORECASE, 0x00ed3b3bu},
-        {"multiline", 9, LRE_FLAG_MULTILINE, 0x0c389e2cu},
-        {"dotAll", 6, LRE_FLAG_DOTALL, 0x045b0519u},
-        {"unicode", 7, LRE_FLAG_UNICODE, 0x03d69fccu},
-        {"unicodeSets", 11, LRE_FLAG_UNICODE_SETS, 0x0f0c3175u},
-        {"sticky", 6, LRE_FLAG_STICKY, 0x0c27c592u},
+        {"hasIndices", 10, LRE_FLAG_INDICES, 0x019d5f70u},
+        {"global", 6, LRE_FLAG_GLOBAL, 0x04fc0996u},
+        {"ignoreCase", 10, LRE_FLAG_IGNORECASE, 0x013805fdu},
+        {"multiline", 9, LRE_FLAG_MULTILINE, 0x0c342653u},
+        {"dotAll", 6, LRE_FLAG_DOTALL, 0x0ee820b3u},
+        {"unicode", 7, LRE_FLAG_UNICODE, 0x0fad343du},
+        {"unicodeSets", 11, LRE_FLAG_UNICODE_SETS, 0x0c91f478u},
+        {"sticky", 6, LRE_FLAG_STICKY, 0x0694e038u},
     };
     JSObject *object, *prototype, *getter;
     JSProperty *property;
@@ -154,7 +154,7 @@ static JSValue js_regexp_split_search(JSContext *ctx, JSValueConst receiver, JSV
             else if (result == LRE_RET_BYTECODE_ERROR)
                 JS_ThrowInternalError(ctx, "corrupted bytecode in regexp execution");
             else
-                JS_ThrowInternalError(ctx, "out of memory in regexp execution");
+                JS_ThrowOutOfMemory(ctx);
             goto exception;
         }
         if (!size) {

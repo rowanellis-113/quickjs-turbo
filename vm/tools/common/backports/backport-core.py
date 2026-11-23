@@ -26,7 +26,7 @@ from bellard_backports import (
     MAP_HASH_COMMIT,
 )
 
-SOURCE_SHA256 = "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe"
+SOURCE_SHA256 = "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74"
 UPSTREAM_FIX = "8e14a39fc5a043f44cf86394ea2b07151aed3670"
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--source-root", type=Path, required=True)
@@ -38,6 +38,7 @@ parser.add_argument("--narrow-value-readers", action="store_true")
 parser.add_argument("--mixed-numbers", action="store_true")
 parser.add_argument("--map-pointer-hash", action="store_true")
 parser.add_argument("--property-ic", action="store_true")
+parser.add_argument("--coroutine-segments", action="store_true")
 parser.add_argument("--hybrid-gc", action="store_true")
 parser.add_argument("--native-string-module", action="store_true")
 parser.add_argument("--native-array-length-module", action="store_true")
@@ -86,41 +87,8 @@ data = raw_data.replace(b"\r\n", b"\n")
 if hashlib.sha256(data).hexdigest() != SOURCE_SHA256:
     raise ValueError("upstream changed: review or remove the context-OOM backport")
 text = data.decode("utf-8")
-before = "    if (!ctx->class_proto) {\n        js_free_rt(rt, ctx);\n        return NULL;\n    }"
-after = "    if (!ctx->class_proto) { remove_gc_object(&ctx->header);\n        js_free_rt(rt, ctx);\n        return NULL;\n    }"
-if text.count(before) != 1:
-    raise ValueError("context-OOM backport anchor changed")
-patched = text.replace(before, after, 1)
-fixes = [
-    dict(
-        commit=UPSTREAM_FIX,
-        summary="Unlink the context GC node before freeing a failed context construction",
-    )
-]
-# The failed second resolving-function allocation releases the first output.
-# Clear that released slot: async/module state still owns and cleans the array.
-# Keep this correction inside the original cold failure branch and preserve
-# logical source lines used by native creator-call proofs.
-promise_start = patched.index("static int js_create_resolving_functions(JSContext *ctx,\n")
-promise_end = patched.index("\n}\n", promise_start) + 3
-promise_body = patched[promise_start:promise_end]
-promise_before = "            if (i != 0)\n                JS_FreeValue(ctx, resolving_funcs[0]);"
-promise_after = "            if (i != 0) {\n                JS_FreeValue(ctx, resolving_funcs[0]); resolving_funcs[0] = JS_UNDEFINED; }"
-if promise_body.count(promise_before) != 1:
-    raise ValueError("Promise resolving-function OOM cleanup anchor changed")
-patched = (
-    patched[:promise_start]
-    + promise_body.replace(promise_before, promise_after, 1)
-    + patched[promise_end:]
-)
-fixes.append(
-    dict(
-        mechanism="Clear a released resolving-function output on partial capability OOM",
-        scope="Original second-function failure branch only; avoid repeated release by async/module state cleanup",
-        upstream_function="js_create_resolving_functions",
-        success_path_unchanged=True,
-    )
-)
+patched = text
+fixes = []
 if not args.native_regexp_test_module:
     from regexp_test import portable_core
 
@@ -163,73 +131,8 @@ fixes.append(
         summary="Respect readonly length before an in-capacity dense append; retain the original complete setter on failure",
     )
 )
-if args.computed_assign:
-    # Exact upstream #1780 compiler change. Blank lines retain the original
-    # line table used by the creator/call proofs; no opcode IDs are changed.
-    replacements = [
-        (
-            "        case OP_get_array_el:\n            emit_op(s, OP_to_propkey2);\n            break;\n"
-            "        case OP_get_super_value:\n            emit_op(s, OP_to_propkey);\n            break;",
-            "        default:\n            break;",
-        ),
-        (
-            """        // comply with rather obtuse evaluation order of computed properties:
-        // obj[key]=val evaluates val->obj->key when obj is null/undefined
-        // but key->obj->val when an object
-        // FIXME(bnoordhuis) less stack shuffling; don't to_propkey twice in
-        // happy path; replace `dup is_undefined_or_null if_true` with new
-        // opcode if_undefined_or_null? replace `swap dup` with over?
-        if (op == '=' && opcode == OP_get_array_el) {
-            int label_next = -1;
-            JSFunctionDef *fd = s->cur_func;
-            assert(OP_to_propkey2 == fd->byte_code.buf[fd->last_opcode_pos]);
-            fd->byte_code.size = fd->last_opcode_pos;
-            fd->last_opcode_pos = -1;
-            emit_op(s, OP_swap); // obj key -> key obj
-            emit_op(s, OP_dup);
-            emit_op(s, OP_is_undefined_or_null);
-            label_next = emit_goto(s, OP_if_true, -1);
-            emit_op(s, OP_swap);
-            emit_op(s, OP_to_propkey);
-            emit_op(s, OP_swap);
-            emit_label(s, label_next);
-            emit_op(s, OP_swap);
-        }
-""",
-            "",
-        ),
-        (
-            """        if (op == '=' && opcode == OP_get_array_el) {
-            emit_op(s, OP_swap); // obj key val -> obj val key
-            emit_op(s, OP_to_propkey);
-            emit_op(s, OP_swap);
-        }
-""",
-            "",
-        ),
-    ]
-    for old, new in replacements:
-        if patched.count(old) != 1:
-            raise ValueError("computed-assignment backport anchor changed")
-        new += "\n" * (old.count("\n") - new.count("\n"))
-        patched = patched.replace(old, new, 1)
-    fixes.append(
-        dict(
-            commit="0db3949a02a6a84339aa3b8df25dff074e69afa0",
-            summary="Match the upstream computed-property assignment evaluation order; remove obsolete stack shuffling",
-        )
-    )
-if args.allocator:
-    old_runtime = (
-        "JSRuntime *JS_NewRuntime(void)\n{\n    return JS_NewRuntime2(&def_malloc_funcs, NULL);\n}"
-    )
-    new_runtime = (
-        "extern JSRuntime *FramePool_NewRuntime(const JSMallocFunctions *, void *); JSRuntime *JS_NewRuntime(void)\n"
-        "{\n    return FramePool_NewRuntime(&def_malloc_funcs, NULL);\n}"
-    )
-    if patched.count(old_runtime) != 1:
-        raise ValueError("default runtime allocator anchor changed")
-    patched = patched.replace(old_runtime, new_runtime, 1)
+# Computed assignment evaluation order (#1780) and JSArenaState replaced legacy
+# --computed-assign and --allocator overlays in 0.17.0.
 if args.mixed_numbers:
     patched = mixed_numbers(patched)
     fixes.append(
@@ -243,12 +146,14 @@ if args.map_pointer_hash:
     old_float_hash = (
         "        u.d = d;\n"
         "        h = (u.u32[0] ^ u.u32[1]) * 3163;\n"
-        "        return h ^= JS_TAG_FLOAT64;"
+        "        tag = JS_TAG_FLOAT64;\n"
+        "        break;"
     )
     new_float_hash = (
         "        u.d = (d == 0) ? 0.0 : d;\n"
-        "        u.u64 = ((u.u64 ^ (u.u64 >> 33)) ^ JS_TAG_FLOAT64) * UINT64_C(0xff51afd7ed558ccd);\n"
-        "        return (uint32_t)((u.u64 ^ (u.u64 >> 33)) * UINT64_C(0xc4ceb9fe1a85ec53) >> 32);"
+        "        u.u64 = ((u.u64 ^ (u.u64 >> 33)) ^ (uint64_t)(uint32_t)JS_TAG_FLOAT64) * UINT64_C(0xff51afd7ed558ccd);\n"
+        "        return ((uint32_t)((u.u64 ^ (u.u64 >> 33)) * UINT64_C(0xc4ceb9fe1a85ec53) >> 32)) ^ ctx->hash_seed;\n"
+        "        /* float64 mixed */"
     )
     if patched.count(old_float_hash) != 1:
         raise ValueError("review Map/Set numeric hash anchor")
@@ -260,7 +165,7 @@ if args.map_pointer_hash:
         "                    set_value(ctx, pv, op1);"
     )
     new_add_loc_str = (
-        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && JS_VALUE_GET_STRING(*pv)->header.ref_count == 1 && !JS_VALUE_GET_STRING(*pv)->atom_type && JS_VALUE_GET_STRING(*pv)->kind == JS_STRING_KIND_NORMAL && JS_VALUE_GET_STRING(*pv)->is_wide_char == JS_VALUE_GET_STRING(op1)->is_wide_char && js_malloc_usable_size(ctx, JS_VALUE_GET_STRING(*pv)) >= sizeof(JSString) + (((size_t)JS_VALUE_GET_STRING(*pv)->len + (size_t)JS_VALUE_GET_STRING(op1)->len) << JS_VALUE_GET_STRING(*pv)->is_wide_char) + 1 - JS_VALUE_GET_STRING(*pv)->is_wide_char) {\n"
+        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && JS_REF_COUNT(JS_VALUE_GET_STRING(*pv)) == 1 && !JS_VALUE_GET_STRING(*pv)->atom_type && JS_VALUE_GET_STRING(*pv)->kind == JS_STRING_KIND_NORMAL && JS_VALUE_GET_STRING(*pv)->is_wide_char == JS_VALUE_GET_STRING(op1)->is_wide_char && js_malloc_usable_size(ctx, JS_VALUE_GET_STRING(*pv)) >= sizeof(JSString) + (((size_t)JS_VALUE_GET_STRING(*pv)->len + (size_t)JS_VALUE_GET_STRING(op1)->len) << JS_VALUE_GET_STRING(*pv)->is_wide_char) + 1 - JS_VALUE_GET_STRING(*pv)->is_wide_char) {\n"
         "                        JSString *p1 = JS_VALUE_GET_STRING(*pv), *p2 = JS_VALUE_GET_STRING(op1);\n"
         "                        if (unlikely(p1->hash)) p1->hash = 0; if (p1->is_wide_char) { memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1); p1->len += p2->len; } else { memcpy(str8(p1) + p1->len, str8(p2), p2->len); p1->len += p2->len; str8(p1)[p1->len] = '\\0'; }\n"
         "                        JS_FreeValue(ctx, op1); } else { op1 = JS_ConcatString(ctx, js_dup(*pv), op1); if (JS_IsException(op1)) goto exception; set_value(ctx, pv, op1); }"
@@ -441,15 +346,16 @@ fixes.append(
     )
 )
 
-from cvm_segments_c import core_overlay as coroutine_overlay
+if args.coroutine_segments:
+    from cvm_segments_c import core_overlay as coroutine_overlay
 
-patched = coroutine_overlay(patched, text, root, args.build_root)
-fixes.append(
-    dict(
-        mechanism="Derived persistent-frame interpreter input; original compiler TU unchanged",
-        source="src/common/call/cvm-native-segments.inc",
+    patched = coroutine_overlay(patched, text, root, args.build_root)
+    fixes.append(
+        dict(
+            mechanism="Derived persistent-frame interpreter input; original compiler TU unchanged",
+            source="src/common/call/cvm-native-segments.inc",
+        )
     )
-)
 
 turbo_anchor = "\n\n#undef malloc\n#undef free\n#undef realloc\n"
 if patched.count(turbo_anchor) != 1:

@@ -84,11 +84,3 @@ done:
     cr_free(&extra);
     return ret;
 }
-
-/* 0.15.1's public regexp header declares this bool(int) helper. The retained
- * engine uses its private inline helper; preserve the original external ABI. */
-#undef lre_is_space
-bool lre_is_space(int c)
-{
-    return c >= 0 && qjs_frame_regexp_lre_is_space((uint32_t)c) != 0;
-}

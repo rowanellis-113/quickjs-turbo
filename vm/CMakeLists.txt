@@ -184,6 +184,7 @@ if(MSVC)
     xcheck_add_c_compiler_flag(-Wno-reserved-macro-identifier)
     xcheck_add_c_compiler_flag(-Wno-reserved-identifier)
     xcheck_add_c_compiler_flag(-Wdeprecated-declarations)
+    xcheck_add_c_compiler_flag(/utf-8)
     xcheck_add_c_compiler_flag(/experimental:c11atomics)
     xcheck_add_c_compiler_flag(/wd4018) # -Wno-sign-conversion
     xcheck_add_c_compiler_flag(/wd4061) # -Wno-implicit-fallthrough
@@ -326,14 +327,15 @@ endif()
 if((QJS_BACKPORT_PORTABLE_REGEXP
     OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64"
     OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64"
+    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64"
     OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64"
    )
    AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
-    # Linux native workers require this shared engine and its wire translation;
+    # Native workers share this common engine and its wire translation;
     # the portable backend selects the same ordinary C through its option.
     list(REMOVE_ITEM qjs_sources "${QJS_UPSTREAM_DIR}/libregexp.c")
     list(APPEND qjs_sources src/common/regexp/libregexp.c
-         src/common/regexp/unicode/regexp-unicode.c src/common/regexp/legacy-0151.c)
+         src/common/regexp/unicode/regexp-unicode.c)
     set_property(
         SOURCE src/common/regexp/libregexp.c
         APPEND

@@ -1,11 +1,11 @@
 {
-  "upstream": "60984dc07cbb6b7885303b9542944b114203e918",
+  "upstream": "7b5f588e0f9b643e2996f291bfc861abeaceddc2",
   "license": "MIT, retained in each source file",
   "files": [
     {
       "file": "libunicode.c",
       "bytes": 61406,
-      "sha256": "d755606498ff707dc3a93826713c749f77b9222d8a6b066621d72a308460bf2d"
+      "sha256": "c4724e77ec5f122373d2635b6d481cfb5d96024a38453a54a0830007c4b5f3c9"
     },
     {
       "file": "libunicode.h",

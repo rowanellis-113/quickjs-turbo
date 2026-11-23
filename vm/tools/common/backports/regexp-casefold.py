@@ -45,6 +45,7 @@ int main(void) {
         command = [
             compiler,
             "-O2",
+            "-I" + str(root.parent),
             "-I" + str(root),
             str(source),
             str(root / "src/common/regexp/unicode/regexp-unicode.c"),

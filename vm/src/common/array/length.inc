@@ -9,7 +9,7 @@ int JS_FrameSetArrayLength(JSContext *ctx, JSObject *p, JSValue val, int flags)
     if (ret)
         return -1;
     /* JS_ToArrayLengthFree() must be done before the read-only test */
-    if (unlikely(!(p->shape->prop[0].flags & JS_PROP_WRITABLE)))
+    if (unlikely(!(get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE)))
         return JS_ThrowTypeErrorReadOnly(ctx, flags, JS_ATOM_length);
 
     if (likely(p->fast_array)) {
@@ -53,7 +53,7 @@ int JS_FrameSetArrayLength(JSContext *ctx, JSObject *p, JSValue val, int flags)
                    passes in case one of the property is not
                    configurable */
                 cur_len = len;
-                for (i = 0, pr = sh->prop; i < sh->prop_count; i++, pr++) {
+                for (i = 0, pr = get_shape_prop(sh); i < sh->prop_count; i++, pr++) {
                     if (pr->atom != JS_ATOM_NULL && JS_AtomIsArrayIndex(ctx, &idx, pr->atom)) {
                         if (idx >= cur_len && !(pr->flags & JS_PROP_CONFIGURABLE)) {
                             cur_len = idx + 1;
@@ -62,7 +62,7 @@ int JS_FrameSetArrayLength(JSContext *ctx, JSObject *p, JSValue val, int flags)
                 }
 
                 for (i = 0; i < sh->prop_count; i++) {
-                    pr = &sh->prop[i];
+                    pr = &get_shape_prop(sh)[i];
                     if (pr->atom != JS_ATOM_NULL && JS_AtomIsArrayIndex(ctx, &idx, pr->atom)) {
                         if (idx >= cur_len) {
                             int old_prop_count = sh->prop_count;

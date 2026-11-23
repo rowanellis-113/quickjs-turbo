@@ -104,7 +104,7 @@ static bool js_frame_regexp_flags_batch(JSContext *ctx, JSValueConst value, int 
     proto = receiver->shape->proto;
     if (!proto || proto->is_exotic || proto->shape->prop_count < 10)
         return false;
-    shape = proto->shape->prop + 2;
+    shape = get_shape_prop(proto->shape) + 2;
     property = proto->prop + 2;
     /* The generator pins the initializer order. Recheck every atom,
      * descriptor kind, function identity, ABI and magic on every call.

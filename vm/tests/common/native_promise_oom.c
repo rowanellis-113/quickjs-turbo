@@ -127,7 +127,8 @@ static const char *scripts[] = {
     "return g.next().then(v=>v.value);})",
     "(function(n){return new Promise(resolve=>resolve(n)).then(v=>v);})"};
 
-static size_t trial(unsigned which, size_t failure, unsigned hooks)
+static int trial(unsigned which, size_t fail_request, size_t limit_delta, unsigned hooks,
+                 size_t *out_requests)
 {
     Allocator a = {0};
     JSRuntime *rt;
@@ -137,10 +138,11 @@ static size_t trial(unsigned which, size_t failure, unsigned hooks)
     JSValue arg;
     size_t requests;
     unsigned jobs = 0;
-    int rc, answer;
+    int rc, answer = -1;
+    int had_oom = 0;
 
     current_case = which;
-    current_offset = failure;
+    current_offset = fail_request ? fail_request : limit_delta;
     current_hooks = hooks;
     rt = JS_NewRuntime2(&functions, &a);
     CHECK(rt);
@@ -154,13 +156,20 @@ static size_t trial(unsigned which, size_t failure, unsigned hooks)
     }
     if (hooks)
         JS_SetPromiseHook(rt, hook, &a);
+    if (limit_delta > 0) {
+        JSMemoryUsage usage;
+        JS_ComputeMemoryUsage(rt, &usage);
+        JS_SetMemoryLimit(rt, (size_t)usage.malloc_size + limit_delta);
+    }
     a.observing = 1;
-    a.fail_at = failure;
+    a.fail_at = fail_request;
     arg = JS_NewInt32(ctx, 4);
     promise = scripts[which] ? JS_Call(ctx, fn, JS_UNDEFINED, 1, &arg)
                              : JS_NewPromiseCapability(ctx, resolve);
     if (JS_IsException(promise)) {
-        CHECK(a.rejected == 1);
+        had_oom = 1;
+        if (fail_request)
+            CHECK(a.rejected == 1);
         clear_exception(ctx);
         if (!scripts[which]) {
             /* Released partial outputs must not retain a stale owner. */
@@ -171,7 +180,9 @@ static size_t trial(unsigned which, size_t failure, unsigned hooks)
         if (!scripts[which]) {
             value = JS_Call(ctx, resolve[0], JS_UNDEFINED, 1, &arg);
             if (JS_IsException(value)) {
-                CHECK(a.rejected == 1);
+                had_oom = 1;
+                if (fail_request)
+                    CHECK(a.rejected == 1);
                 clear_exception(ctx);
             }
             JS_FreeValue(ctx, value);
@@ -180,14 +191,24 @@ static size_t trial(unsigned which, size_t failure, unsigned hooks)
     while ((rc = JS_ExecutePendingJob(rt, &job_ctx)) != 0) {
         CHECK(++jobs < 4096);
         if (rc < 0) {
-            CHECK(a.rejected == 1);
+            had_oom = 1;
+            if (fail_request)
+                CHECK(a.rejected == 1);
             clear_exception(job_ctx);
         }
     }
+    if (!JS_IsException(promise) && JS_PromiseState(ctx, promise) != JS_PROMISE_FULFILLED)
+        had_oom = 1;
+    if (fail_request && a.rejected)
+        had_oom = 1;
+    JS_SetMemoryLimit(rt, 0);
     a.observing = 0;
     requests = a.requests;
-    CHECK(a.rejected == (failure != 0 && failure <= a.requests));
-    if (!a.rejected) {
+    if (out_requests)
+        *out_requests = requests;
+    if (fail_request)
+        CHECK(a.rejected == (fail_request <= a.requests));
+    if (!had_oom) {
         CHECK(!JS_IsException(promise));
         CHECK(JS_PromiseState(ctx, promise) == JS_PROMISE_FULFILLED);
         value = JS_PromiseResult(ctx, promise);
@@ -207,23 +228,37 @@ static size_t trial(unsigned which, size_t failure, unsigned hooks)
     JS_RunGC(rt);
     JS_FreeRuntime(rt);
     CHECK(a.live == 0 && a.bytes == 0);
-    return requests;
+    return (had_oom || (fail_request && a.rejected)) ? 0 : 1;
 }
 
 int main(void)
 {
     unsigned which, hooks, trials = 0;
-    size_t offset, requests;
+    size_t offset, requests = 0;
     setvbuf(stdout, NULL, _IONBF, 0);
     for (hooks = 0; hooks < 2; ++hooks) {
         for (which = 0; which < sizeof(scripts) / sizeof(scripts[0]); ++which) {
-            requests = trial(which, 0, hooks);
-            CHECK(requests > 0 && requests < 256);
+            CHECK(trial(which, 0, 0, hooks, &requests) == 1);
+            CHECK(requests < 256);
             ++trials;
-            for (offset = 1; offset <= requests + 1; ++offset) {
-                trial(which, offset, hooks);
+            for (offset = 1; offset <= requests; ++offset) {
+                CHECK(trial(which, offset, 0, hooks, NULL) == 0);
                 ++trials;
             }
+            CHECK(trial(which, 0, 1, hooks, NULL) == 0);
+            ++trials;
+            unsigned consecutive_ok = 0;
+            for (size_t delta = 16; delta <= 32768; delta += 16) {
+                int ok = trial(which, 0, delta, hooks, NULL);
+                ++trials;
+                if (ok) {
+                    if (++consecutive_ok >= 4)
+                        break;
+                } else {
+                    consecutive_ok = 0;
+                }
+            }
+            CHECK(consecutive_ok >= 4);
             printf("PROMISE_OOM_CASE case=%u hooks=%u requests=%zu\n", which, hooks, requests);
         }
     }

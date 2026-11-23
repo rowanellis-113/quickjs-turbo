@@ -1,7 +1,7 @@
 # Explicit source overlays for the pinned upstream. Never edit checked-in core
 # inputs or weaken their hash checks. Receipts accompany the compiler input.
 option(QJS_ENABLE_TURBO_CORE_OVERLAY
-       "Apply declared QuickJS-Turbo core source overlay" OFF)
+       "Apply declared QuickJS-Turbo core source overlay" ON)
 if(DEFINED QJS_BACKPORT_CONTEXT_OOM)
     set(QJS_ENABLE_TURBO_CORE_OVERLAY
         ${QJS_BACKPORT_CONTEXT_OOM}
@@ -26,7 +26,7 @@ option(QJS_BACKPORT_MIXED_NUMBERS "Backport Bellard's mixed int/double C interpr
 option(QJS_BACKPORT_MAP_POINTER_HASH
        "Mix Map/Set object and symbol pointer hashes before narrowing" OFF)
 option(QJS_BACKPORT_PORTABLE_REGEXP
-       "Use accepted common RegExp and wire semantics in the C backend" OFF)
+       "Use accepted common RegExp and wire semantics in the C backend" ON)
 option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" OFF)
 option(QJS_TURBO_COROUTINE_SEGMENTS
        "Enable QuickJS-Turbo coroutine segment fast paths in the core overlay" OFF)

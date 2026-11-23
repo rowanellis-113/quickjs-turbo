@@ -55,7 +55,7 @@ static void roundtrip(JSRuntime *rt, JSContext *ctx, const char *source, const c
         size_t size = 0;
         uint8_t *blob = JS_WriteObject(ctx, &size, original, flags);
         CHECK(blob && size > 5);
-        if (strcmp(JS_GetVersion(), "0.15.1") == 0)
+        if (strcmp(JS_GetVersion(), "0.17.0") == 0)
             CHECK(blob[0] == version);
         JS_RunGC(rt);
         /* The failed operations must leave no partial owner or pending error
@@ -97,20 +97,20 @@ int main(void)
     CHECK(rt);
     JSContext *ctx = JS_NewContext(rt);
     CHECK(ctx);
-    roundtrip(rt, ctx, "JSON.stringify(/ab+/g.exec('cabb'))", NULL, "[\"abb\"]", 26);
+    roundtrip(rt, ctx, "JSON.stringify(/ab+/g.exec('cabb'))", NULL, "[\"abb\"]", 29);
     roundtrip(
         rt, ctx,
         "(()=>{const m=/(?<x>a+)(b)\\k<x>/d.exec('zaabaa');return JSON.stringify([m[0],m.groups.x,m.indices[1]]);})()",
-        NULL, "[\"aabaa\",\"aa\",[1,3]]", 26);
+        NULL, "[\"aabaa\",\"aa\",[1,3]]", 29);
     roundtrip(rt, ctx, "JSON.stringify(/(?<=foo)(bar|baz){1,3}/i.exec('fooBARbaz'))", NULL,
-              "[\"BARbaz\",\"baz\"]", 26);
+              "[\"BARbaz\",\"baz\"]", 29);
     roundtrip(rt, ctx, "/a(b+)/g", "JSON.stringify(wire_input.exec('abbb'))", "[\"abbb\",\"bbb\"]",
-              26);
+              29);
     roundtrip(rt, ctx, "/\\p{Script=Unknown}/u.test(String.fromCharCode(0x378))", NULL, "true",
-              154);
+              29);
     roundtrip(rt, ctx, "new RegExp('(:?'.repeat(18)+'(?:a|)+'+'|)+'.repeat(18))",
               "String(wire_input.source === '(:?'.repeat(18)+'(?:a|)+'+'|)+'.repeat(18))", "true",
-              154);
+              29);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
     puts("WIRE_PASS regexp literals/objects, captures, GC, OOM, versioned features");

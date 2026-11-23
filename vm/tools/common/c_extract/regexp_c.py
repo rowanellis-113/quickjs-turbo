@@ -25,52 +25,22 @@ from c_source_match import replace_one
 PINNED_UNICODE_BUILTINS = {
     "js_regexp_Symbol_match": (
         "JS_RegExpOwnedMatch",
-        "e6c35b4c53de9aa37908832e8710a3cf470769c8c6f7f4c8c578f491d7ea91fd",
+        "d7dd65674cb64f6e3258bea214de510f31b12b5b15431c9a5ef44fd3138325db",
     ),
     "js_regexp_Symbol_matchAll": (
         "JS_RegExpOwnedMatchAll",
-        "0da1dd4b46588f5d96c94961bd04826924ab238f27cee4c2de09c25e4567ce3f",
+        "08682a7f974929e4dd361697b27beac9f93bde5d65e3014573c5d9c5164bc5ba",
     ),
     "js_regexp_Symbol_split": (
         "JS_RegExpOwnedSplit",
-        "7c9f4d591669e5af88935fca6eff06b398705cb8e10ef15ba5a965f2311d5702",
+        "2f484d458cedb3e48ac6b3ccde63895651293a6d840b114f9e6f215170885271",
     ),
 }
 
 
 def pinned_unicode_body(name, text):
-    """Keep pinned observable operations; advance v matches by code point."""
-    if name in ("js_regexp_Symbol_match", "js_regexp_Symbol_replace"):
-        before = """        fullUnicode = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_unicode));
-        if (fullUnicode < 0)
-            goto exception;
-"""
-        after = (
-            before
-            + """        if (!fullUnicode)
-            fullUnicode = string_indexof_char(p, 'v', 0) >= 0;
-"""
-        )
-    else:
-        field = "it->unicode" if name.endswith("matchAll") else "unicodeMatching"
-        before = f"    {field} = string_indexof_char(strp, 'u', 0) >= 0;"
-        after = (
-            f"    {field} = (string_indexof_char(strp, 'u', 0) >= 0 ||\n"
-            + "                   string_indexof_char(strp, 'v', 0) >= 0);"
-        )
-    assert text.count(before) == 1, "Pinned Unicode boundary changed: " + name
-    if name == "js_regexp_Symbol_replace":
-        # The inherited delete kernel advances only u, not v, empty matches.
-        # Keep its constructor/exec observation before choosing the v-aware
-        # generic loop; native intrinsic dispatch still handles admitted v.
-        delete_guard = (
-            "    if (rp && rp->len == 0 && is_global && js_is_standard_regexp(ctx, rx)) {"
-        )
-        generic_v_guard = """    if (rp && rp->len == 0 && is_global && js_is_standard_regexp(ctx, rx) &&
-        string_indexof_char(p, 'v', 0) < 0) {"""
-        assert text.count(delete_guard) == 1, "Review pinned empty replacement guard"
-        text = text.replace(delete_guard, generic_v_guard, 1)
-    return text.replace(before, after)
+    """0.17.0 upstream already implements v-mode Unicode progression."""
+    return text
 
 
 def split_body(source, body, native=False):
@@ -104,7 +74,7 @@ def section_name(c, index):
     return n
 
 
-PINNED_EXEC_SHA256 = "4462f3d0121b3d5ddc3f8a6714c32ec27ec608676394939e20fd7cb1a5fdb337"
+PINNED_EXEC_SHA256 = "a39e7eaef1d5bea60f96d075d6d182f8fa5f92720f995692b351c45d34a547b4"
 PINNED_STANDARD_EXEC_SHA256 = "4e84238f59476b5497c21752f3cb74af41eec2309a5462e168b130e03342054d"
 
 
@@ -114,16 +84,16 @@ def exec_body(source, text, native=False):
     assert hashlib.sha256(original.encode("utf-8")).hexdigest() == PINNED_EXEC_SHA256, (
         "Review pinned RegExp.exec after upstream change"
     )
-    assert text.count("js_regexp_exec") == 4, "Review additional exec identity users"
+    assert text.count("js_regexp_exec") == 5, "Review additional exec identity users"
     # The borrowed flag lookup has the same hash/type comparison as this pin.
     for prefix, digest in (
         (
             "static JSAtom __JS_FindAtom(",
-            "2e6024a80e33496d4a4b642ccf53fe5aff837401d57fa5143a450d549f099a88",
+            "cd1a1d5d41892236473dfc4ea883580bcfa31a6e8acd898aabe82d728be7025b",
         ),
         (
             "static inline uint32_t hash_string8(",
-            "aab7446c720ff041572344f347c2fab9ab4f76ec521a89a512f467cc80d45964",
+            "0183f4fa3f8f4669111ac99be76ae9562203e8e7e687f1750fcf70ad21c01186",
         ),
     ):
         start = text.index(prefix)
@@ -167,35 +137,15 @@ def semantic_source(source, inline=None, include_independent=True):
     legacy = next(
         m[0] for m in adapter.FUNCTION.finditer(text) if m[2] == "js_regexp_Symbol_replace"
     )
-    expected = (
-        "a9d8353d68ec5640f742e78683983f67ce72c8801ec99868ed62b51f8b94c49b"
-        if inline
-        else "93f939d05363f19d1b539ab7f53f2c4aacfa23f5ee85fed79147d576d06093fc"
-    )
+    expected = "93f939d05363f19d1b539ab7f53f2c4aacfa23f5ee85fed79147d576d06093fc"
     assert hashlib.sha256(legacy.encode("utf-8")).hexdigest() == expected, (
         "Upstream @@replace changed: review the owned-argv transplant before updating this guard."
     )
     body = _frame_source_text(source, "kernel-regexp-replace.inc")
     builtin_routes = {"js_regexp_Symbol_replace": "JS_RegExpOwnedReplace"}
     if inline:
-        # The pinned 0.15.1 algorithm queries rx.unicode, including its getter
-        # and abrupt completion. Keep that observable operation while porting
-        # the owned callback argv; 0.17 instead derives Unicode from flags.
-        old_unicode = """        // 'v' flag implies full Unicode, like 'u'
-        fullUnicode = (string_indexof_char(p, 'u', 0) >= 0 || string_indexof_char(p, 'v', 0) >= 0);
-"""
-        begin = legacy.index(
-            "        fullUnicode = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_unicode));"
-        )
-        copied_unicode = pinned_unicode_body("js_regexp_Symbol_replace", legacy)[begin:]
-        copied_unicode = copied_unicode[
-            : copied_unicode.index("        if (JS_SetProperty(ctx, rx, JS_ATOM_lastIndex")
-        ]
-        body = replace_one(body, old_unicode, copied_unicode)
-        # The non-callback fallback must share the v-aware progression rule.
-        # Its full pinned algorithm and getter/exception order are retained.
-        fallback = pinned_unicode_body("js_regexp_Symbol_replace", legacy)
-        fallback = fallback.replace("js_regexp_Symbol_replace(", "JS_RegExpPinnedReplace(", 1)
+        # 0.17.0 already derives fullUnicode from flags and handles v progression.
+        fallback = legacy.replace("js_regexp_Symbol_replace(", "JS_RegExpPinnedReplace(", 1)
         body = body.replace(
             "return js_regexp_Symbol_replace(ctx, this_val, argc, argv);",
             "return JS_RegExpPinnedReplace(ctx, this_val, argc, argv);",

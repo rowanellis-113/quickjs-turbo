@@ -132,7 +132,7 @@ static const char *cases[] = {
     "(function(){const r=new RegExp('(a)'.repeat(16));const s='a'.repeat(16);return function(){const a=r.exec(s);if(!a||a.length!==17||a[16]!=='a')throw Error('cap17');return 17;};})()",
     "(function(){const r=new RegExp('(a)'.repeat(64));const s='a'.repeat(64);return function(){const a=r.exec(s);if(!a||a.length!==65||a[64]!=='a')throw Error('cap65');return 65;};})()",
     "(function(){const r=/(?<x>a)(b)?/d;return function(){const a=r.exec('a');if(!a||a.length!==3||a.groups.x!=='a'||a.indices[1][1]!==1||a.indices[2]!==undefined||!a.hasOwnProperty(2))throw Error('named');return 3;};})()",
-    "(function(){const r=/(?<x>\u0100)(a)?(b)?/du;return function(){const a=r.exec('\u0100a');if(!a||a.length!==4||a.groups.x!=='\u0100'||a[3]!==undefined||!a.hasOwnProperty(3)||a.indices[2][1]!==2)throw Error('wide');return 4;};})()",
+    "(function(){const r=/(?<x>\\u0100)(a)?(b)?/du;return function(){const a=r.exec('\\u0100a');if(!a||a.length!==4||a.groups.x!=='\\u0100'||a[3]!==undefined||!a.hasOwnProperty(3)||a.indices[2][1]!==2)throw Error('wide');return 4;};})()",
     "(function(){const r=/notpresent/g;return function(){r.lastIndex=0;const a=r.exec('aaa');if(a!==null||r.lastIndex!==0)throw Error('miss');return 0;};})()"};
 static const int expected[] = {1, 3, 16, 17, 65, 3, 4, 0};
 static unsigned trials, failures;

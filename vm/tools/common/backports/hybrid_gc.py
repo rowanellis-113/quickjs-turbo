@@ -20,11 +20,24 @@ def replace_exact_lines(text, old, new):
 
 def core_overlay(text):
     before_lines = text.count("\n")
-    has_fp = "FramePool_NewRuntime" in text
 
-    # 1. Reorder JSGCObjectTypeEnum + struct JSGCObjectHeader right before struct JSRuntime
-    #    so JSRuntime can embed JSGCObjectHeader hybrid_gc_boundary_node inline without changing
-    #    line numbers or existing offsets, and split gc_obj_type : 4 into 3 + 1 for UBSan safety.
+    # 1. Split gc_obj_type : 7 in JSMallocBlockHeader into 6 + 1 (hybrid_young),
+    #    add JS_HYBRID_YOUNG accessor macro, reorder JSGCObjectTypeEnum +
+    #    JSGCObjectHeader before JSRuntime, and embed ISO C11 JSHybridGCBoundary
+    #    without nesting a flexible-array struct inside another struct.
+    text = replace_exact_lines(
+        text,
+        "    uint8_t  gc_obj_type : 7; /* JSGCObjectTypeEnum for GC objects */\n"
+        "    uint8_t  mark : 1;        /* used by the cycle collector */",
+        "    uint8_t  gc_obj_type : 6; /* JSGCObjectTypeEnum for GC objects */\n"
+        "    uint8_t  hybrid_young : 1; uint8_t mark : 1; /* cycle collector */",
+    )
+    text = replace_exact_lines(
+        text,
+        "#define JS_GC_MARK(p)   (js_rc(p)->mark)\n\n/* bigint */",
+        "#define JS_GC_MARK(p)   (js_rc(p)->mark)\n#define JS_HYBRID_YOUNG(p) (js_rc(p)->hybrid_young)\n/* bigint */",
+    )
+
     rt_start = text.index("\nstruct JSRuntime {\n")
     varref_start = text.index("\ntypedef struct JSVarRef {\n", rt_start)
     block = text[rt_start:varref_start]
@@ -37,25 +50,55 @@ def core_overlay(text):
     if not rt_final_re.search(rt_part):
         raise ValueError("JSRuntime finalizers anchor missing")
     rt_fields = (
-        " JSGCObjectHeader hybrid_gc_boundary_node;"
+        " JSHybridGCBoundary hybrid_gc_boundary;"
         " JSGCObjectHeader *hybrid_free_stack;"
         " size_t hybrid_gc_full_malloc;"
         " uint64_t hybrid_gc_full_count, hybrid_gc_minor_count, hybrid_gc_skipped_count, hybrid_gc_fast_frees;"
         " uint32_t hybrid_gc_mode, hybrid_gc_minor_since_full;"
-        " uint8_t hybrid_gc_boundary_linked, hybrid_gc_report, drc_ok, is_frame_pool, hybrid_free_active;"
+        " uint8_t hybrid_gc_boundary_linked, hybrid_gc_report, drc_ok, hybrid_free_active;"
     )
     rt_part = rt_final_re.sub(r"\1" + rt_fields + r"\n\2", rt_part, count=1)
 
-    gc_bit_old = "    JSGCObjectTypeEnum gc_obj_type : 4;"
-    gc_bit_new = "    uint8_t gc_obj_type : 3; uint8_t hybrid_young : 1;"
-    if gc_part.count(gc_bit_old) != 1:
-        raise ValueError("JSGCObjectHeader bitfield anchor missing")
-    gc_part = gc_part.replace(gc_bit_old, gc_bit_new, 1)
+    boundary_decl = (
+        "typedef struct JSHybridGCBoundary {"
+        " _Alignas(JS_ARENA_ALIGN) uint8_t prefix[offsetof(JSMallocBlockHeader, user_data)];"
+        " JSGCObjectHeader node;"
+        " } JSHybridGCBoundary; struct JSRuntime {"
+    )
+    assert rt_part.startswith("\nstruct JSRuntime {\n")
+    rt_part = "\n" + boundary_decl + rt_part[len("\nstruct JSRuntime {"):]
 
     new_block = gc_part + rt_part
     if new_block.count("\n") != block.count("\n"):
         raise ValueError("Header reorder changed line count")
     text = text[:rt_start] + new_block + text[varref_start:]
+
+    # Propagate hybrid_young across block realloc and shape resize/compaction.
+    text = replace_exact_lines(
+        text,
+        "            nb->gc_obj_type = b->gc_obj_type;\n"
+        "            nb->mark = b->mark;",
+        "            nb->gc_obj_type = b->gc_obj_type; nb->hybrid_young = b->hybrid_young;\n"
+        "            nb->mark = b->mark;",
+    )
+    text = replace_exact_lines(
+        text,
+        "        JS_REF_COUNT(sh) = JS_REF_COUNT(old_sh);\n"
+        "        JS_GC_TYPE(sh) = JS_GC_TYPE(old_sh);\n"
+        "        JS_GC_MARK(sh) = JS_GC_MARK(old_sh);",
+        "        JS_REF_COUNT(sh) = JS_REF_COUNT(old_sh);\n"
+        "        JS_GC_TYPE(sh) = JS_GC_TYPE(old_sh); JS_HYBRID_YOUNG(sh) = JS_HYBRID_YOUNG(old_sh);\n"
+        "        JS_GC_MARK(sh) = JS_GC_MARK(old_sh);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    JS_REF_COUNT(sh) = JS_REF_COUNT(old_sh);\n"
+        "    JS_GC_TYPE(sh) = JS_GC_TYPE(old_sh);\n"
+        "    JS_GC_MARK(sh) = JS_GC_MARK(old_sh);",
+        "    JS_REF_COUNT(sh) = JS_REF_COUNT(old_sh);\n"
+        "    JS_GC_TYPE(sh) = JS_GC_TYPE(old_sh); JS_HYBRID_YOUNG(sh) = JS_HYBRID_YOUNG(old_sh);\n"
+        "    JS_GC_MARK(sh) = JS_GC_MARK(old_sh);",
+    )
 
     # 2. Include hybrid-gc.h cleanly right before js_trigger_gc while preserving line numbers
     dup_trigger_old = (
@@ -66,10 +109,9 @@ def core_overlay(text):
         "static void js_trigger_gc(JSRuntime *rt, size_t size)"
     )
     dup_trigger_new = (
-        "JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v) { return js_dup(v); }\n"
-        + ("#define QJS_HYBRID_HAS_FRAME_POOL 1\n" if has_fp else "\n")
-        + '#include "src/common/memory/hybrid-gc.h"\n\n\n'
-        + "static void js_trigger_gc(JSRuntime *rt, size_t size)"
+        "JSValue JS_DupValueRT(JSRuntime *rt, JSValueConst v) { return js_dup(v); }\n\n"
+        '#include "src/common/memory/hybrid-gc.h"\n\n\n'
+        "static void js_trigger_gc(JSRuntime *rt, size_t size)"
     )
     text = replace_exact_lines(text, dup_trigger_old, dup_trigger_new)
 
@@ -107,54 +149,7 @@ def core_overlay(text):
 }"""
     text = replace_exact_lines(text, trigger_old, trigger_new)
 
-    # 4. Inline pool usable-size lookup inside core allocators
-    text = replace_exact_lines(
-        text,
-        "    s->malloc_count++;\n    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;\n    return ptr;\n}\n\nvoid *js_malloc_rt",
-        "    s->malloc_count++;\n    s->malloc_size += js_hybrid_usable_size_nonnull(rt, ptr) + MALLOC_OVERHEAD;\n    return ptr;\n}\n\nvoid *js_malloc_rt",
-    )
-    text = replace_exact_lines(
-        text,
-        "    s->malloc_count++;\n    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;\n    return ptr;\n}\n\nvoid js_free_rt",
-        "    s->malloc_count++;\n    s->malloc_size += js_hybrid_usable_size_nonnull(rt, ptr) + MALLOC_OVERHEAD;\n    return ptr;\n}\n\nvoid js_free_rt",
-    )
-    text = replace_exact_lines(
-        text,
-        "    s = &rt->malloc_state;\n    size_t free_size = rt->mf.js_malloc_usable_size(ptr) + MALLOC_OVERHEAD;",
-        "    s = &rt->malloc_state;\n    size_t free_size = js_hybrid_usable_size_nonnull(rt, ptr) + MALLOC_OVERHEAD;",
-    )
-    text = replace_exact_lines(
-        text,
-        """    old_size = rt->mf.js_malloc_usable_size(ptr);
-    s = &rt->malloc_state;
-    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
-    if (s->malloc_size + size - old_size > s->malloc_limit - 1)
-        return NULL;
-
-    ptr = rt->mf.js_realloc(s->opaque, ptr, size);
-    if (!ptr)
-        return NULL;
-
-    s->malloc_size += rt->mf.js_malloc_usable_size(ptr) - old_size;""",
-        """    old_size = js_hybrid_usable_size_nonnull(rt, ptr);
-    s = &rt->malloc_state;
-    /* When malloc_limit is 0 (unlimited), malloc_limit - 1 will be SIZE_MAX. */
-    if (s->malloc_size + size - old_size > s->malloc_limit - 1)
-        return NULL;
-
-    ptr = rt->mf.js_realloc(s->opaque, ptr, size);
-    if (!ptr)
-        return NULL;
-
-    s->malloc_size += js_hybrid_usable_size_nonnull(rt, ptr) - old_size;""",
-    )
-    text = replace_exact_lines(
-        text,
-        "size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr)\n{\n    return rt->mf.js_malloc_usable_size(ptr);\n}",
-        "size_t js_malloc_usable_size_rt(JSRuntime *rt, const void *ptr)\n{\n    return js_hybrid_usable_size(rt, ptr);\n}",
-    )
-
-    # 5. Lifecycle hooks: JS_NewRuntime2, JS_FreeRuntime, JS_FreeContext
+    # 4. Lifecycle hooks: JS_NewRuntime2, JS_FreeRuntime, JS_FreeContext
     text = replace_exact_lines(
         text,
         "    init_list_head(&rt->gc_zero_ref_count_list);\n    rt->gc_phase = JS_GC_PHASE_NONE;",
@@ -171,7 +166,7 @@ def core_overlay(text):
         "    js_hybrid_unlink_boundary(rt); list_del(&ctx->link);\n    remove_gc_object(&ctx->header);\n    js_free_rt(ctx->rt, ctx);",
     )
 
-    # 6. Core GC & RC hooks: js_free_value_rt, add_gc_object, JS_RunGC, include hybrid-gc.inc
+    # 5. Core GC & RC hooks: js_free_value_rt, add_gc_object, JS_RunGC, include hybrid-gc.inc
     #    JS_FreeValueRT and JS_FreeValue stay 100% untouched upstream frameless leaves!
     text = replace_exact_lines(
         text,
@@ -186,12 +181,12 @@ def core_overlay(text):
                 if (rt->hybrid_free_active) { list_del(&p->link); p->link.next = (struct list_head *)rt->hybrid_free_stack; rt->hybrid_free_stack = p; }
                 else if (rt->gc_phase == JS_GC_PHASE_NONE && tag == JS_TAG_OBJECT && (rt->hybrid_gc_mode & JS_HYBRID_MODE_FAST_RC) && !js_hybrid_dump_free_enabled(rt)) { js_hybrid_free_object_root(rt, p); }
                 else { list_del(&p->link); list_add(&p->link, &rt->gc_zero_ref_count_list); if (rt->gc_phase == JS_GC_PHASE_NONE) { free_zero_refcount(rt); } }
-            } else if (p->mark == 0) { p->mark = 1; list_del(&p->link); list_add_tail(&p->link, &rt->tmp_obj_list); }""",
+            } else if (JS_GC_MARK(p) == 0) { JS_GC_MARK(p) = 1; list_del(&p->link); list_add_tail(&p->link, &rt->tmp_obj_list); }""",
     )
     text = replace_exact_lines(
         text,
-        "    h->mark = 0;\n    h->gc_obj_type = type;\n    list_add_tail(&h->link, &rt->gc_obj_list);",
-        "    h->mark = 0; h->hybrid_young = 0;\n    h->gc_obj_type = type;\n    list_add_tail(&h->link, &rt->gc_obj_list);",
+        "    JS_GC_MARK(h) = 0;\n    JS_GC_TYPE(h) = type;\n    list_add_tail(&h->link, &rt->gc_obj_list);",
+        "    JS_GC_MARK(h) = 0; JS_HYBRID_YOUNG(h) = 0;\n    JS_GC_TYPE(h) = type;\n    list_add_tail(&h->link, &rt->gc_obj_list);",
     )
     text = replace_exact_lines(
         text,
