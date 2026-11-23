@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "source_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "source_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "scope": "Required private field names only. Values must be measured from actual compiler input; no foreign offsets are inherited.",
   "sizes": [
     "JSValue",
@@ -20,7 +20,9 @@
     "JSCFunctionType",
     "JSArrayBuffer",
     "JSTypedArray",
-    "JSMallocFunctions"
+    "JSMallocFunctions",
+    "JSMallocBlockHeader",
+    "JSArenaState"
   ],
   "offsets": [
     "JSValue.tag",
@@ -98,17 +100,18 @@
     "JSStackFrame.arg_count",
     "JSStackFrame.is_strict_mode",
     "JSStackFrame.cur_sp",
+    "JSStackFrame.is_constructor",
+    "JSStackFrame.cur_gc_obj",
     "JSVarRef.header",
     "JSVarRef.pvalue",
     "JSVarRef.value",
     "JSVarRef.is_detached",
     "JSVarRef.is_lexical",
     "JSVarRef.is_const",
+    "JSVarRef.is_coro",
     "JSString.hash_next",
     "JSString.first_weak_ref",
-    "JSString.header",
     "JSStringRope.len",
-    "JSStringRope.header",
     "JSStringRope.depth",
     "JSStringRope.left",
     "JSStringRope.right",
@@ -116,18 +119,19 @@
     "JSShape.prop_count",
     "JSShape.prop_size",
     "JSShape.proto",
-    "JSShape.prop",
     "JSShape.prop_hash_mask",
     "JSShape.hash",
     "JSShape.is_hashed",
     "JSShape.deleted_prop_count",
+    "JSShape.hash_table",
     "JSShapeProperty.atom",
     "JSArrayBuffer.immutable",
     "JSTypedArray.buffer",
     "JSBigInt.len",
     "JSBigInt.tab",
-    "JSGCObjectHeader.ref_count",
-    "JSGCObjectHeader.link"
+    "JSGCObjectHeader.link",
+    "JSMallocBlockHeader.ref_count",
+    "JSMallocBlockHeader.user_data"
   ],
   "property_ic_sizes": ["JSPropertyICWay", "JSPropertyICSite", "JSPropertyIC"],
   "property_ic_offsets": [
@@ -156,8 +160,8 @@
     "JSFunctionBytecode.func_kind",
     "JSFunctionBytecode.is_derived_class_constructor",
     "JSShapeProperty.flags",
-    "JSGCObjectHeader.gc_obj_type",
-    "JSGCObjectHeader.mark",
+    "JSMallocBlockHeader.gc_obj_type",
+    "JSMallocBlockHeader.mark",
     "JSContext.std_array_prototype"
   ],
   "constants": [
@@ -181,6 +185,7 @@
     "JS_PROP_WRITABLE",
     "JS_PROP_LENGTH",
     "JS_ATOM_length",
+    "JS_ATOM_bigint",
     "OP_COUNT",
     "JS_PROP_INITIAL_SIZE",
     "JS_STRING_ROPE_SHORT_LEN", "JS_STRING_ROPE_SHORT2_LEN", "JS_STRING_ROPE_MAX_DEPTH",

@@ -62,7 +62,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
     rhs = sp[-1];
     root = JS_VALUE_GET_STRING_ROPE(input);
     local = &sf->var_buf[index];
-    if (root->header.ref_count != 2 || !local_rope_same(*local, input) ||
+    if (JS_REF_COUNT(root) != 2 || !local_rope_same(*local, input) ||
         JS_VALUE_GET_TAG(root->right) != JS_TAG_STRING ||
         JS_VALUE_GET_STRING(root->right)->len > JS_STRING_ROPE_SHORT_LEN ||
         !JS_VALUE_GET_STRING(rhs)->len || JS_VALUE_GET_STRING(rhs)->len > JS_STRING_ROPE_SHORT_LEN)
@@ -81,14 +81,14 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
     if ((mode & 16) &&
         ctx->rt->mf.js_malloc_usable_size == FramePoolFunctions.js_malloc_usable_size) {
         JSString *leaf = JS_VALUE_GET_STRING(root->right), *suffix = JS_VALUE_GET_STRING(rhs);
-        bool nonlast = suffix->header.ref_count > 1;
+        bool nonlast = JS_REF_COUNT(suffix) > 1;
         unsigned depth = JS_VALUE_GET_TAG(root->left) == JS_TAG_STRING_ROPE
                              ? (unsigned)JS_VALUE_GET_STRING_ROPE(root->left)->depth + 1
                              : 1;
         uint64_t length = (uint64_t)root->len + suffix->len;
         /* The NORMAL leaf owns its payload. A slice or indirect string does
            not gain writable capacity from its descriptor allocation. */
-        if (leaf->header.ref_count == 1 && !leaf->atom_type &&
+        if (JS_REF_COUNT(leaf) == 1 && !leaf->atom_type &&
             leaf->kind == JS_STRING_KIND_NORMAL && leaf->is_wide_char == suffix->is_wide_char &&
             length <= JS_STRING_LEN_MAX && depth <= JS_STRING_ROPE_MAX_DEPTH &&
             (nonlast || (!suffix->atom_type && suffix->kind == JS_STRING_KIND_NORMAL &&
@@ -114,7 +114,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
                 root->depth = (uint8_t)depth;
                 sp[-1] = JS_UNDEFINED;
                 if (!keep) {
-                    --root->header.ref_count;
+                    --JS_REF_COUNT(root);
                     sp[-2] = JS_UNDEFINED;
                 }
                 state->sp = sp - (keep ? 1 : 2);
@@ -123,7 +123,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
                 sf->cur_sp = state->sp;
                 sf->cur_pc = state->pc;
                 if (nonlast)
-                    --suffix->header.ref_count;
+                    --JS_REF_COUNT(suffix);
                 else {
                     /* NORMAL non-atom string destruction plus the exact pure
                        pool free cannot invoke host code or release objects. */
@@ -154,7 +154,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
     }
     /* Two short flat strings use the original flat concat algorithm. No
        root/local mutation happens until every fallible leaf step succeeded. */
-    if (root->header.ref_count == 2 && local_rope_same(*local, input) &&
+    if (JS_REF_COUNT(root) == 2 && local_rope_same(*local, input) &&
         local_rope_same(root->left, prefix) && local_rope_same(root->right, old_right) &&
         root->len == old_length && root->depth == old_depth && root->is_wide_char == old_width &&
         JS_VALUE_GET_TAG(right) == JS_TAG_STRING) {
@@ -172,7 +172,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
             root->depth = (uint8_t)depth;
             JS_FreeValue(ctx, prefix); /* Non-last: the unchanged left edge owns it. */
             if (!keep) {
-                --root->header.ref_count;
+                --JS_REF_COUNT(root);
                 sp[-2] = JS_UNDEFINED;
             }
             state->sp = sp - (keep ? 1 : 2);

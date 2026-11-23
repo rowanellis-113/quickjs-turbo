@@ -38,7 +38,7 @@ def contract(source):
 
 def array_own_rows(source, layout):
     contract(source)
-    if layout["reference_count_model"] != "inline-header" or any(
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix") or any(
         layout[group].get(name) != value
         for group, name, value in (
             ("sizes", "JSValue", 16),
@@ -51,13 +51,14 @@ def array_own_rows(source, layout):
     first = raw.index("JS_FrameFastArrayOwnGet:")
     last = raw.index("JS_FrameFastArrayOwnGet_end:", first)
     text = raw[first:last] + "JS_FrameFastArrayOwnGet_end:"
-    if text.count(".if ") != 2 or text.count(".endif") != 2 or text.count(".error ") != 1:
-        raise ValueError("Review original inline-profile-only leaf directives")
-    text = "\n".join(
-        row
-        for row in text.splitlines()
-        if not row.strip().startswith((".if ", ".endif", ".error "))
+    size_guard = (
+        ".if QJS_ABI_SIZE_JSValue != 16 || QJS_ABI_SIZE_JSShapeProperty != 8 || QJS_ABI_OFF_JSShapeProperty_atom != 4\n"
+        '.error "array own leaf requires the reviewed value/shape descriptor ABI"\n'
+        ".endif\n"
     )
+    if size_guard not in text:
+        raise ValueError("Review original inline-profile-only leaf directives")
+    text = text.replace(size_guard, "", 1)
     from arguments import asm_body
 
     rows = asm_body(
@@ -110,13 +111,20 @@ def append(source, output, stream, handlers, layout):
     code = stream["code"]
     blocks = []
     worker = module(source, "indexed_own_native")
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        layout["offsets"]["JSMallocBlockHeader.ref_count"]
+        - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else layout["offsets"]["JSGCObjectHeader.ref_count"]
+    )
     for op in ("get_array_el", "get_array_el2", "put_array_el"):
         name = "JS_LinuxIndexedOwn_" + op
         rows = []
         worker.append(
             op,
             layout,
-            0,
+            rc_off,
             lambda *v: rows.extend(v),
             lambda v: rows.append(v + ":"),
             lambda: rows.extend(
@@ -375,8 +383,8 @@ def generate(
         "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
         "                   e->ctx == ctx && e->holder && fast_instof_holder_live(ctor, e->holder) &&\n"
         "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_count &&\n"
-        "                   e->holder->shape->prop[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
-        "                   !(e->holder->shape->prop[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
+        "                   get_shape_prop(e->holder->shape)[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
+        "                   !(get_shape_prop(e->holder->shape)[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
         "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
         "instanceof-fast live holder validation",
     )

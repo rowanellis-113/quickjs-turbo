@@ -14,9 +14,17 @@ from control_flow import property_note
 
 def generate(source, output, layout, ids):
     f, bits = layout["offsets"], layout["bits"]
-    if layout["reference_count_model"] != "inline-header" or f["JSGCObjectHeader.ref_count"] != 0:
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        f["JSMallocBlockHeader.ref_count"] - f["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else f["JSGCObjectHeader.ref_count"]
+    )
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix") or (
+        not prefix_rc and rc_off != 0
+    ):
         raise ValueError("Review entry value/reference ABI")
-    if layout["sizes"]["JSStackFrame"] != 72 or bits["JSShapeProperty.flags"] != [[3, 4]]:
+    if layout["sizes"]["JSStackFrame"] not in (72, 80) or bits["JSShapeProperty.flags"] != [[3, 4]]:
         raise ValueError("Review entry frame/own-property ABI")
     rt = f["JSRuntime.current_stack_frame"]
     code = f["JSFunctionBytecode.byte_code_buf"]
@@ -453,7 +461,7 @@ def generate(source, output, layout, ids):
             "cmp DWORD PTR [rdx+8], -9",
             "jb " + p + "_immediate",
             "mov rax, QWORD PTR [rdx]",
-            "inc DWORD PTR [rax]",
+            f"inc DWORD PTR [rax{rc_off:+d}]",
             p + "_immediate:",
             "add rdx, 16",
             "add r8, 16",

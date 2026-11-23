@@ -122,11 +122,20 @@ def main():
         if not nonzero:
             raise ValueError("Missing bitfield initializer: " + name)
         layout["bits"][name] = nonzero
+    prefix_rc = "JSMallocBlockHeader.ref_count" in layout["offsets"]
+    ref_model = "allocator-prefix" if prefix_rc else "inline-header"
+    rc_off = (
+        layout["offsets"]["JSMallocBlockHeader.ref_count"]
+        - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else layout["offsets"]["JSGCObjectHeader.ref_count"]
+    )
+    coro_owner = int("JSStackFrame.cur_gc_obj" in layout["offsets"])
     layout.update(
         source_sha256=sha(source_file(source, "quickjs.c")),
         compiler_input_sha256=sha(core),
         compiler_input=str(core),
-        reference_count_model="inline-header",
+        reference_count_model=ref_model,
         public_header_sha256=sha(source_file(source, "quickjs.h")),
         catalogue_sha256=sha(catalogue_path),
         compiler=subprocess.check_output([compiler, "--version"], text=True).splitlines()[0],
@@ -158,9 +167,9 @@ def main():
             "#define QJS_ABI_BIT_" + name.replace(".", "_") + "_MASK (" + str(bits[0][1]) + ")",
         ]
     contract += [
-        "#define QJS_ABI_HAS_CORO_OWNER 0",
-        "#define QJS_ABI_HAS_PREFIX_RC 0",
-        "#define QJS_ABI_REF_COUNT_OFFSET 0",
+        f"#define QJS_ABI_HAS_CORO_OWNER ({coro_owner})",
+        f"#define QJS_ABI_HAS_PREFIX_RC ({int(prefix_rc)})",
+        f"#define QJS_ABI_REF_COUNT_OFFSET ({rc_off})",
     ]
     values_hdr = [
         line.replace("QJS_LINUX_PRIVATE_ABI_H", "QJS_LINUX_PRIVATE_ABI_VALUES_H")

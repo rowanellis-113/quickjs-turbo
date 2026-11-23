@@ -470,6 +470,10 @@ static JSValue arm_copy_gc(JSContext *ctx, JSValueConst self, int argc, JSValueC
     assert(argc == 1 && JS_IsObject(argv[0]));
     const unsigned char *p = (const unsigned char *)JS_VALUE_GET_PTR(argv[0]);
     memcpy(&expected_vector, p + QJS_ABI_OFF_JSObject_u_array_u_values, sizeof(expected_vector));
+#if QJS_ABI_HAS_PREFIX_RC
+    if (expected_vector)
+        expected_vector = (unsigned char *)expected_vector - QJS_ABI_SIZE_JSMallocBlockHeader;
+#endif
     uint32_t capacity = 0;
     memcpy(&capacity, p + QJS_ABI_OFF_JSObject_u_array_u1, sizeof(capacity));
     assert(expected_vector && capacity < 638);

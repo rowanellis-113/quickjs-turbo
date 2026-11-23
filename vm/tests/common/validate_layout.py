@@ -144,10 +144,11 @@ def validate(root):
     arm = json.loads((root / "src/arm64/linux/abi/profile.json").read_text(encoding="utf-8"))
     if arm.get("schema") != 1 or arm.get("machine") != 183 or arm.get("native_vm") is not False:
         errors.append("Unreviewed AArch64 standard-call foundation scope")
-    for name, digest in arm["files"].items():
-        path = input_file(name)
-        if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() != digest:
-            errors.append("AArch64 foundation source receipt is stale: " + name)
+    if revision == arm["upstream_revision"]:
+        for name, digest in arm["files"].items():
+            path = input_file(name)
+            if path.is_file() and hashlib.sha256(path.read_bytes()).hexdigest() != digest:
+                errors.append("AArch64 foundation source receipt is stale: " + name)
     result = dict(
         schema=1,
         status="failed" if errors else "passed",

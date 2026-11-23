@@ -44,8 +44,8 @@ static inline int cl_read_own_normal_slot(JSObject *o, JSShape **sh_io, uint32_t
     JSShape *sh = o->shape;
     if (likely(sh && *sh_io == sh)) {
         uint32_t s = *slot_io;
-        if (likely(s < (uint32_t)sh->prop_size && sh->prop[s].atom == atom &&
-                   (sh->prop[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+        if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                   (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             JSValue v = o->prop[s].u.value;
             if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
                 return 0;
@@ -76,8 +76,8 @@ static inline int cl_read_own_normal_slot2(JSObject *o, JSShape **sh0_io, uint32
     if (likely(sh)) {
         if (*sh0_io == sh) {
             uint32_t s = *slot0_io;
-            if (likely(s < (uint32_t)sh->prop_size && sh->prop[s].atom == atom &&
-                       (sh->prop[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
                 JSValue v = o->prop[s].u.value;
                 if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
                     return 0;
@@ -87,8 +87,8 @@ static inline int cl_read_own_normal_slot2(JSObject *o, JSShape **sh0_io, uint32
         }
         if (*sh1_io == sh) {
             uint32_t s = *slot1_io;
-            if (likely(s < (uint32_t)sh->prop_size && sh->prop[s].atom == atom &&
-                       (sh->prop[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
                 JSValue v = o->prop[s].u.value;
                 if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
                     return 0;
@@ -132,14 +132,14 @@ static inline JSProperty *cl_find_own_writable_normal_slot2(JSObject *o, JSShape
     if (likely(sh)) {
         if (*sh0_io == sh) {
             uint32_t s = *slot0_io;
-            if (likely(s < (uint32_t)sh->prop_size && sh->prop[s].atom == atom &&
-                       (sh->prop[s].flags & mask) == req))
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & mask) == req))
                 return &o->prop[s];
         }
         if (*sh1_io == sh) {
             uint32_t s = *slot1_io;
-            if (likely(s < (uint32_t)sh->prop_size && sh->prop[s].atom == atom &&
-                       (sh->prop[s].flags & mask) == req))
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & mask) == req))
                 return &o->prop[s];
         }
     }
@@ -175,8 +175,8 @@ static inline int cl_resolve_global(JSContext *ctx, JSShape **sh_io, JSShape **s
     uint8_t w = *which_io;
     if (w == 1 && likely(gv_sh == *sh_io)) {
         uint32_t s = *slot_io;
-        if (likely(s < (uint32_t)gv_sh->prop_size && gv_sh->prop[s].atom == atom &&
-                   (gv_sh->prop[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+        if (likely(s < (uint32_t)gv_sh->prop_size && get_shape_prop(gv_sh)[s].atom == atom &&
+                   (get_shape_prop(gv_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             JSValue v = gv->prop[s].u.value;
             if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
                 *out = v;
@@ -185,8 +185,8 @@ static inline int cl_resolve_global(JSContext *ctx, JSShape **sh_io, JSShape **s
         }
     } else if (w == 2 && likely(gv_sh == *sh_io && go_sh == *sh_alt_io)) {
         uint32_t s = *slot_io;
-        if (likely(s < (uint32_t)go_sh->prop_size && go_sh->prop[s].atom == atom &&
-                   (go_sh->prop[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+        if (likely(s < (uint32_t)go_sh->prop_size && get_shape_prop(go_sh)[s].atom == atom &&
+                   (get_shape_prop(go_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             JSValue v = go->prop[s].u.value;
             if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
                 *out = v;
@@ -380,11 +380,11 @@ JS_FastCompoundLeaf(JSFrameRegisterState *state, JSFunctionBytecode *b, JSValue 
         int fast_ok = 0;
         if (likely(e->sh1 == csh && e->sh2 == fsh && csh && fsh && csh->proto == fp &&
                    e->slot1 < (uint32_t)csh->prop_size &&
-                   csh->prop[e->slot1].atom == JS_ATOM_prototype &&
-                   (csh->prop[e->slot1].flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+                   get_shape_prop(csh)[e->slot1].atom == JS_ATOM_prototype &&
+                   (get_shape_prop(csh)[e->slot1].flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
                    e->slot2 < (uint32_t)fsh->prop_size &&
-                   fsh->prop[e->slot2].atom == JS_ATOM_Symbol_hasInstance &&
-                   (fsh->prop[e->slot2].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                   get_shape_prop(fsh)[e->slot2].atom == JS_ATOM_Symbol_hasInstance &&
+                   (get_shape_prop(fsh)[e->slot2].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             JSValue hi_val = fp->prop[e->slot2].u.value;
             if (JS_VALUE_GET_TAG(hi_val) == JS_TAG_OBJECT) {
                 JSObject *hi = JS_VALUE_GET_OBJ(hi_val);
@@ -551,15 +551,16 @@ JS_FastCompoundLeaf(JSFrameRegisterState *state, JSFunctionBytecode *b, JSValue 
         JSValue v_dir, v_out;
         int way = 0;
         if (likely(tsh && e->sh0 == tsh && e->slot0 < (uint32_t)tsh->prop_size &&
-                   tsh->prop[e->slot0].atom == e->a0 &&
-                   (tsh->prop[e->slot0].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                   get_shape_prop(tsh)[e->slot0].atom == e->a0 &&
+                   (get_shape_prop(tsh)[e->slot0].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             way = 0;
             v_dir = this_obj->prop[e->slot0].u.value;
             if (JS_VALUE_GET_TAG(v_dir) != JS_TAG_INT)
                 return 0;
         } else if (likely(tsh && e->sh0_alt == tsh && e->slot0_alt < (uint32_t)tsh->prop_size &&
-                          tsh->prop[e->slot0_alt].atom == e->a0 &&
-                          (tsh->prop[e->slot0_alt].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                          get_shape_prop(tsh)[e->slot0_alt].atom == e->a0 &&
+                          (get_shape_prop(tsh)[e->slot0_alt].flags & JS_PROP_TMASK) ==
+                              JS_PROP_NORMAL)) {
             way = 1;
             v_dir = this_obj->prop[e->slot0_alt].u.value;
             if (JS_VALUE_GET_TAG(v_dir) != JS_TAG_INT)
@@ -610,8 +611,8 @@ JS_FastCompoundLeaf(JSFrameRegisterState *state, JSFunctionBytecode *b, JSValue 
         uint32_t *p_slot3 = (way == 0) ? &e->slot3 : &e->slot3_alt;
         uint32_t cached_slot = take_then ? *p_slot2 : *p_slot3;
         if (likely(tsh && cached_slot < (uint32_t)tsh->prop_size &&
-                   tsh->prop[cached_slot].atom == pick &&
-                   (tsh->prop[cached_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                   get_shape_prop(tsh)[cached_slot].atom == pick &&
+                   (get_shape_prop(tsh)[cached_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
             v_out = this_obj->prop[cached_slot].u.value;
         } else {
             JSProperty *pr = NULL;

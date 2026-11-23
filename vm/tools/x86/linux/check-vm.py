@@ -152,7 +152,7 @@ end
     gdb(
         "pic-and-cold",
         commands,
-        "test_property_ic.js",
+        "common/test_property_ic.js",
         [
             "PROPERTY_IC_SMOKE",
             "LINUX_COLD_HELPER_UNWIND",
@@ -195,7 +195,7 @@ end
     gdb(
         "deep-stack",
         deep,
-        "test_linux_vm_stack.js",
+        "common/linux/test_linux_vm_stack.js",
         ["LINUX_VM_STACK_OK", "LINUX_DEEP_VM_ACTIVATIONS=1"],
     )
     if receipt.get("native_virtual_arguments"):
@@ -222,7 +222,7 @@ end
         gdb(
             "virtual-arguments",
             commands,
-            "native_linux_virtual_arguments_unwind.js",
+            "common/linux/native_linux_virtual_arguments_unwind.js",
             ["LINUX_VIRTUAL_ARGUMENTS_UNWIND_OK", "LINUX_VIRTUAL_ARGUMENTS_CFI="],
         )
     result = dict(

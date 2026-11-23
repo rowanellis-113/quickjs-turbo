@@ -26,8 +26,19 @@ def contract(source, layout, *, contract_rel=None):
             raise ValueError("Review accepted numeric owner: " + name)
     if sha(source_file(source, "quickjs.c")) != data["pinned_core_sha256"]:
         raise ValueError("Review pinned numeric ownership and converter callers")
-    if layout["reference_count_model"] != "inline-header":
-        raise ValueError("Review original inline BigInt reference header")
+    ref_model = layout["reference_count_model"]
+    if ref_model == "inline-header":
+        if layout["offsets"]["JSGCObjectHeader.ref_count"] != 0:
+            raise ValueError("Review original inline BigInt reference header")
+    elif ref_model == "allocator-prefix":
+        if (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+            != -4
+        ):
+            raise ValueError("Review original prefix BigInt reference header")
+    else:
+        raise ValueError("Review original BigInt reference header")
     fields = layout["offsets"]
     if fields["JSRuntime.u"] - fields["JSRuntime.module_loader_has_attr"] < 4:
         raise ValueError("Local-add mode must occupy its original measured padding")
@@ -115,9 +126,14 @@ double JS_FrameAtod(const char *,const char **,int,int,JSATODTempMem *);
         '__attribute__((visibility("hidden"))) _Atomic unsigned char JS_FrameBigIntReleaseControl',
         "actual byte control shared with SysV leaf",
     )
-    assertions = """
+    ref_assert = (
+        '_Static_assert(offsetof(JSBigInt,header.ref_count)==0,"actual inline BigInt reference header");'
+        if layout["reference_count_model"] == "inline-header"
+        else '_Static_assert(offsetof(JSMallocBlockHeader,user_data)-offsetof(JSMallocBlockHeader,ref_count)==4,"actual prefix BigInt reference header");'
+    )
+    assertions = f"""
 _Static_assert(sizeof(JSValue)==16 && offsetof(JSValue,tag)==8,"SysV JSValue pair");
-_Static_assert(offsetof(JSBigInt,header.ref_count)==0,"actual inline BigInt reference header");
+{ref_assert}
 _Static_assert(JS_TAG_BIG_INT==-9 && JS_TAG_SHORT_BIG_INT==7,"retained BigInt tags");
 _Static_assert(offsetof(JSRuntime,u)>offsetof(JSRuntime,module_loader_has_attr)+3,"original local-add padding");
 _Static_assert(sizeof(_Atomic unsigned char)==1,"one-byte release policy");

@@ -78,9 +78,9 @@ def policy(source, output, loop):
 
 
 def append(source, stream, layout):
-    if (
-        layout["reference_count_model"] != "inline-header"
-        or layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix") or (
+        layout["reference_count_model"] == "inline-header"
+        and layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
     ):
         raise ValueError("Review native owned-argument reference model")
     fields = layout["offsets"]

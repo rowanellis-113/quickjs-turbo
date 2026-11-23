@@ -55,6 +55,9 @@ def generate(source, build, diagnostics=False, leaf_entry=False):
     if inline:
         assert "h = (uintptr_t)atom & sh->prop_hash_mask;" in core
         assert "return prop_hash_end(sh) - ((intptr_t)sh->prop_hash_mask + 1);" in core
+    else:
+        assert "h = hash_atom(atom, sh->prop_hash_mask);" in core
+        assert "return sh->hash_table + sh->prop_hash_mask + 1;" in core
     shape_property = core[
         core.index("typedef struct JSShapeProperty {") : core.index("} JSShapeProperty;")
     ]
@@ -288,8 +291,7 @@ def generate(source, build, diagnostics=False, leaf_entry=False):
             module(source, "property_ic_native").global_cell_probe(
                 abi, "activation", "global_binding_ready", "JS_FrameGlobalBindingFallback"
             )
-            if inline
-            and (build / "CMakeCache.txt").is_file()
+            if (build / "CMakeCache.txt").is_file()
             and "QJS_PROPERTY_IC:BOOL=ON" in (build / "CMakeCache.txt").read_text()
             else []
         ),

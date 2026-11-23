@@ -8,7 +8,7 @@ JSValue JS_FrameSharedConcatRope(JSContext *ctx, JSValue left, JSValue right)
     if (mode != 1)
         return JS_ConcatString(ctx, left, right);
     assert(JS_VALUE_GET_TAG(left) == JS_TAG_STRING && JS_VALUE_GET_TAG(right) == JS_TAG_STRING);
-    assert(JS_VALUE_GET_STRING(left)->header.ref_count > 1);
+    assert(JS_REF_COUNT(JS_VALUE_GET_STRING(left)) > 1);
     assert(JS_VALUE_GET_STRING(left)->len > JS_STRING_ROPE_SHORT_LEN &&
            JS_VALUE_GET_STRING(left)->len <= JS_STRING_ROPE_SHORT2_LEN);
     assert(JS_VALUE_GET_STRING(right)->len &&

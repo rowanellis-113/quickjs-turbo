@@ -3,8 +3,8 @@
   "owners": {
     "tools/x86/common/codegen/varargs.py": "efb360c4179562c614a772bd0c1a3189312d60ac04d46b27f7ff63cdc2e06684",
     "tools/x86/common/codegen/call-forward.py": "1a82fe0825e5b3329678e6ea1543447e6e15357391f0c73ca92832509dbde422",
-    "src/x86/win64/mingw64/mingw-apply-forward.c": "282bb6dc2b456eb6b1285f8893a0a94ace1327275ff3e9135857a55517980d0f",
-    "src/x86/win64/mingw64/mingw-arguments.c": "475a54e367848dee29a1beee10b83b69027f55d24212bb6560e3032b28100333"
+    "src/x86/win64/mingw64/mingw-apply-forward.c": "2508227e427447bf9f6b54337c24bbcad9617b5af2c1e76f1114f0b69489a65b",
+    "src/x86/win64/mingw64/mingw-arguments.c": "919154aae37144adce04cdf4ab2d3b1082a47a29eb86004b9130c6204d1881b9"
   },
   "ABI": "Actual C core types and SysV;source-owned guard/owned-copy2/root2 logical frames;no private clone",
   "direct_control": "FRAME_ITERATOR_OFFSET+1",

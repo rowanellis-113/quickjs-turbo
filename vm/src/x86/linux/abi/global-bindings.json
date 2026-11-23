@@ -1,13 +1,13 @@
 {
   "schema": 1,
   "owners": {
-    "tools/x86/common/codegen/global-binding.py": "f5f18cbf5c5b5bdb50dbff10b81662ff1e07e17f730a438efaa8b808c9411c33",
-    "tools/x86/common/codegen/property_ic_native.py": "4560f23df102beeef19aeecf58211c70956e03fa5cecc3dcb0a942c1fafdd2a1",
+    "tools/x86/common/codegen/global-binding.py": "17e6d018a1d2b0c1bb0e5e1b6bdd40ee868199a8b2b2988130637072a18c00e1",
+    "tools/x86/common/codegen/property_ic_native.py": "ef4c7f71d687c930c94aa3fb3be1d20028f5ae0d4e2ef87a311295990a3b6144",
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
-    "tools/x86/common/codegen/own-bytecode.py": "4c22899766529799ab01fcd1dc4ca6b9bb7f67752cc1093ae25c8ffb2002a22a"
+    "tools/x86/common/codegen/own-bytecode.py": "6ea86a03e68500acdae5d03dc2193f68ee9650af7ab85617aca90696ea2e221b"
   },
-  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "profile": "Compiler-measured Linux LP64 inline-header/JSValue16;existing frame128/state168 and sites16x32",
   "accepted_provenance": {
     "product": "70638ed/source92a48f8",

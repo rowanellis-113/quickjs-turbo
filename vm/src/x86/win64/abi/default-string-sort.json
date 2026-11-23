@@ -637,11 +637,11 @@
       }
     }
   },
-  "source_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
-  "cutils_sha256": "b93331edd1bf86e1c0b516657d0b16b95bba5f24d799d9824df16f903173b5c2",
+  "source_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
+  "cutils_sha256": "dffec8bea17f08108da5a91c1178804754698bbbb6202dc100268e78e8c5b770",
   "bodies": {
-    "js_array_sort": "2e23faba645e57a1249e0b8bda2e88be5b68a8bbd54a2ac034bf345953c04a42",
-    "js_array_cmp_generic": "5b82dfef7c64305ab4d45f0d9fbbc1cf27c3e97199ab9a86d6c6d7499b4604d2"
+    "js_array_sort": "fc890338a2052eef20dc02b848fdbd35d0ffc5f5f397f0ab236a069ecb919765",
+    "js_array_cmp_generic": "9cbb520913ed84cceb1acabfce8ef2cc8ebfcf9f09ba560e24a5a790b5d7ddae"
   },
   "scope": "Masks only explicit PC-relative relocations, retaining offset/kind/symbol and every other instruction byte, including GNU assembler-resolved calls. Review original concrete clone prototype/call registers, never call it through source rqsort ABI.",
   "notes": "Reviewed original Win64 ABI/code shapes. Different compiler output disables this optional route; it never calls a clone through a guessed signature.",

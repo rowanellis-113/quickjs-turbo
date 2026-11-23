@@ -1,17 +1,18 @@
 {
   "schema": 1,
-  "source_sha256": "c7aeac7a894185d97c17f61f16b7c833ff1333e4b73604c47591227d63f8244f",
+  "upstream": "7b5f588e0f9b643e2996f291bfc861abeaceddc2",
+  "source_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "reference_count_model": "allocator-prefix",
   "sizes": {
     "JSValue": 16,
     "JSGCObjectHeader": 16,
-    "JSRuntime": 1488,
+    "JSRuntime": 1520,
     "JSContext": 600,
     "JSObject": 72,
     "JSFunctionBytecode": 128,
     "JSStackFrame": 80,
     "JSVarRef": 48,
-    "JSString": 24,
+    "JSString": 40,
     "JSStringRope": 40,
     "JSShape": 56,
     "JSShapeProperty": 8,
@@ -20,30 +21,33 @@
     "JSCFunctionType": 8,
     "JSArrayBuffer": 56,
     "JSTypedArray": 48,
+    "JSMallocFunctions": 40,
     "JSMallocBlockHeader": 8,
     "JSArenaState": 1000
   },
   "offsets": {
     "JSValue.tag": 8,
     "JSRuntime.malloc_state": 40,
+    "JSRuntime.mf": 0,
     "JSRuntime.rt_info": 1072,
     "JSRuntime.atom_hash_size": 1080,
     "JSRuntime.atom_array": 1104,
-    "JSRuntime.current_exception": 1240,
-    "JSRuntime.in_free": 1258,
-    "JSRuntime.current_stack_frame": 1264,
-    "JSRuntime.stack_size": 1216,
-    "JSRuntime.stack_top": 1224,
-    "JSRuntime.stack_limit": 1232,
-    "JSRuntime.interrupt_handler": 1272,
-    "JSRuntime.interrupt_opaque": 1280,
-    "JSRuntime.module_normalize_has_attr": 1344,
-    "JSRuntime.normalize_u": 1352,
-    "JSRuntime.module_loader_has_attr": 1360,
-    "JSRuntime.u": 1368,
+    "JSRuntime.current_exception": 1256,
+    "JSRuntime.in_free": 1274,
+    "JSRuntime.current_stack_frame": 1280,
+    "JSRuntime.stack_size": 1232,
+    "JSRuntime.stack_top": 1240,
+    "JSRuntime.stack_limit": 1248,
+    "JSRuntime.interrupt_handler": 1288,
+    "JSRuntime.interrupt_opaque": 1296,
+    "JSRuntime.module_normalize_has_attr": 1360,
+    "JSRuntime.normalize_u": 1368,
+    "JSRuntime.module_loader_has_attr": 1376,
+    "JSRuntime.u": 1384,
     "JSRuntime.gc_obj_list": 1152,
-    "JSRuntime.can_block": 1432,
-    "JSRuntime.shape_hash_bits": 1440,
+    "JSRuntime.can_block": 1464,
+    "JSRuntime.shape_hash_bits": 1472,
+    "JSMallocFunctions.js_malloc_usable_size": 32,
     "JSContext.rt": 16,
     "JSContext.class_proto": 96,
     "JSContext.global_obj": 504,
@@ -109,6 +113,9 @@
     "JSString.hash_next": 8,
     "JSString.first_weak_ref": 16,
     "JSStringRope.len": 0,
+    "JSStringRope.depth": 5,
+    "JSStringRope.left": 8,
+    "JSStringRope.right": 24,
     "JSShape.header": 0,
     "JSShape.prop_count": 32,
     "JSShape.prop_size": 28,
@@ -123,13 +130,20 @@
     "JSTypedArray.buffer": 24,
     "JSBigInt.len": 0,
     "JSBigInt.tab": 4,
+    "JSGCObjectHeader.link": 0,
     "JSMallocBlockHeader.ref_count": 4,
     "JSMallocBlockHeader.user_data": 8
   },
   "bits": {
     "JSRuntime.dump_flags": [
       [
-        1436,
+        1468,
+        1
+      ]
+    ],
+    "JSContext.std_array_prototype": [
+      [
+        48,
         1
       ]
     ],
@@ -240,12 +254,6 @@
         3,
         128
       ]
-    ],
-    "JSContext.std_array_prototype": [
-      [
-        48,
-        1
-      ]
     ]
   },
   "constants": {
@@ -253,19 +261,38 @@
     "JS_TAG_STRING_ROPE": -6,
     "JS_TAG_OBJECT": -1,
     "JS_TAG_EXCEPTION": 6,
+    "JS_TAG_UNDEFINED": 3,
+    "JS_TAG_FLOAT64": 8,
+    "JS_TAG_INT": 0,
+    "JS_CFUNC_generic": 0,
+    "JS_CFUNC_generic_magic": 1,
+    "JS_CFUNC_f_f": 6,
+    "JS_CFUNC_f_f_f": 7,
     "JS_CLASS_OBJECT": 1,
     "JS_CLASS_ARRAY": 2,
     "JS_CLASS_BYTECODE_FUNCTION": 13,
     "JS_CLASS_C_FUNCTION": 12,
     "JS_CLASS_STRING": 5,
     "JS_PROP_TMASK": 48,
+    "JS_PROP_WRITABLE": 2,
+    "JS_PROP_LENGTH": 8,
     "JS_ATOM_length": 51,
+    "JS_ATOM_bigint": 149,
     "OP_COUNT": 252,
-    "JS_PROP_INITIAL_SIZE": 2
+    "JS_PROP_INITIAL_SIZE": 2,
+    "JS_STRING_ROPE_SHORT_LEN": 512,
+    "JS_STRING_ROPE_SHORT2_LEN": 8192,
+    "JS_STRING_ROPE_MAX_DEPTH": 60,
+    "JS_STRING_LEN_MAX": 1073741823,
+    "JS_STRING_KIND_NORMAL": 0,
+    "OP_put_loc0": 207,
+    "OP_set_loc0": 211,
+    "OP_put_loc8": 200,
+    "OP_set_loc8": 201,
+    "OP_put_loc": 88,
+    "OP_set_loc": 89
   },
-  "upstream": "60984dc07cbb6b7885303b9542944b114203e918",
   "measured_compilers": [
-    "MSVC 14.50.35717 x64",
-    "MinGW GCC 13.1.0 x86_64, default MS bitfields"
+    "MSVC 19.50.35722.0 x64"
   ]
 }

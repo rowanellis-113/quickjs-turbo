@@ -52,7 +52,7 @@ def generate(source, output, core, adapter, layout):
             js_frame_finish_c(state);
             return 2;
         }
-        if (p1->header.ref_count == 1 && !p1->atom_type && p1->is_wide_char == p2->is_wide_char &&
+        if (JS_REF_COUNT(p1) == 1 && !p1->atom_type && p1->is_wide_char == p2->is_wide_char &&
             js_malloc_usable_size(ctx, p1) >=
                 sizeof(*p1) + (((size_t)p1->len + (size_t)p2->len) << p1->is_wide_char) + 1 -
                     p1->is_wide_char) {
@@ -104,30 +104,6 @@ def generate(source, output, core, adapter, layout):
             "#define COMPOUND_NOINLINE __attribute__((noipa))",
             "#define COMPOUND_NOINLINE LINUX_STRING_CODE",
             "isolated Linux compound helper",
-        )
-        locale = replace_one(
-            locale,
-            "sizeof(JSFunctionBytecode) == 152",
-            "sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode",
-            "compound measured bytecode size",
-        )
-        locale = replace_one(
-            locale,
-            "offsetof(JSFunctionBytecode, property_ic) == 144",
-            "offsetof(JSFunctionBytecode, property_ic) == QJS_ABI_OFF_JSFunctionBytecode_property_ic",
-            "compound measured IC field",
-        )
-        locale = replace_one(
-            locale,
-            "sizeof(JSPropertyICSite) == 64",
-            "sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite",
-            "compound measured IC site",
-        )
-        locale = replace_one(
-            locale,
-            "sizeof(JSPropertyICWay) == 40",
-            "sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay",
-            "compound measured IC way",
         )
     else:
         locale = locale[: locale.index(boundary)]

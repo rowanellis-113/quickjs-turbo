@@ -34,11 +34,13 @@ SIZES = (
     "JSCFunctionType",
     "JSArrayBuffer",
     "JSTypedArray",
+    "JSMallocFunctions",
 )
 FIELDS = {
     "JSValue": ("tag",),
     "JSRuntime": (
         "malloc_state",
+        "mf",
         "rt_info",
         "atom_hash_size",
         "atom_array",
@@ -59,6 +61,7 @@ FIELDS = {
         "can_block",
         "shape_hash_bits",
     ),
+    "JSMallocFunctions": ("js_malloc_usable_size",),
     "JSContext": ("rt", "class_proto", "global_obj", "global_var_obj", "interrupt_counter"),
     "JSObject": (
         "header",
@@ -116,7 +119,7 @@ FIELDS = {
     ),
     "JSVarRef": ("header", "pvalue", "value"),
     "JSString": ("hash_next", "first_weak_ref"),
-    "JSStringRope": ("len",),
+    "JSStringRope": ("len", "depth", "left", "right"),
     "JSShape": (
         "header",
         "prop_count",
@@ -154,15 +157,36 @@ CONSTANTS = (
     "JS_TAG_STRING_ROPE",
     "JS_TAG_OBJECT",
     "JS_TAG_EXCEPTION",
+    "JS_TAG_UNDEFINED",
+    "JS_TAG_FLOAT64",
+    "JS_TAG_INT",
+    "JS_CFUNC_generic",
+    "JS_CFUNC_generic_magic",
+    "JS_CFUNC_f_f",
+    "JS_CFUNC_f_f_f",
     "JS_CLASS_OBJECT",
     "JS_CLASS_ARRAY",
     "JS_CLASS_BYTECODE_FUNCTION",
     "JS_CLASS_C_FUNCTION",
     "JS_CLASS_STRING",
     "JS_PROP_TMASK",
+    "JS_PROP_WRITABLE",
+    "JS_PROP_LENGTH",
     "JS_ATOM_length",
+    "JS_ATOM_bigint",
     "OP_COUNT",
     "JS_PROP_INITIAL_SIZE",
+    "JS_STRING_ROPE_SHORT_LEN",
+    "JS_STRING_ROPE_SHORT2_LEN",
+    "JS_STRING_ROPE_MAX_DEPTH",
+    "JS_STRING_LEN_MAX",
+    "JS_STRING_KIND_NORMAL",
+    "OP_put_loc0",
+    "OP_set_loc0",
+    "OP_put_loc8",
+    "OP_set_loc8",
+    "OP_put_loc",
+    "OP_set_loc",
 )
 
 
@@ -220,9 +244,11 @@ def generate(source, output):
         fields["JSShape"].append("hash_table")
     if prefix_model:
         sizes += ["JSMallocBlockHeader", "JSArenaState"]
+        fields["JSGCObjectHeader"] = ["link"]
         fields["JSMallocBlockHeader"] = ["ref_count", "user_data"]
         bits["JSMallocBlockHeader"] = ["gc_obj_type", "mark"]
     else:
+        fields["JSStringRope"] += ["header"]
         fields["JSGCObjectHeader"] = ["ref_count", "link"]
         fields["JSString"] += ["header"]
         bits["JSGCObjectHeader"] = ["gc_obj_type", "mark"]

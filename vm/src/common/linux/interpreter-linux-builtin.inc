@@ -3,7 +3,7 @@
  * Window bytes belong to the JSFrame and its ordinary pop/tail cleanup. MIT. */
 typedef struct JSLinuxBuiltinView {
     JSStackFrame sf;
-    void *reserved;
+    FRAME_STACK_TAIL_PADDING
     JSFrameSharedAnchor anchor;
     JSFrameSharedAnchor **slot;
     unsigned char active, padding[7];

@@ -22,11 +22,11 @@ typedef struct JSLinuxCInvokeFrame {
     unsigned char active, reserved;
     uint16_t formal;
 } JSLinuxCInvokeFrame;
-_Static_assert(sizeof(JSLinuxCInvokeFrame) == 96 && offsetof(JSLinuxCInvokeFrame, dispatch) == 72 &&
-                   offsetof(JSLinuxCInvokeFrame, caller_context) == 80 &&
-                   offsetof(JSLinuxCInvokeFrame, argc) == 88 &&
-                   offsetof(JSLinuxCInvokeFrame, active) == 92 &&
-                   offsetof(JSLinuxCInvokeFrame, formal) == 94,
+_Static_assert(sizeof(JSLinuxCInvokeFrame) == 104 && offsetof(JSLinuxCInvokeFrame, dispatch) == 80 &&
+                   offsetof(JSLinuxCInvokeFrame, caller_context) == 88 &&
+                   offsetof(JSLinuxCInvokeFrame, argc) == 96 &&
+                   offsetof(JSLinuxCInvokeFrame, active) == 100 &&
+                   offsetof(JSLinuxCInvokeFrame, formal) == 102,
                "Linux native C invocation frame contract");
 typedef JSValue (*JSLinuxGenericC)(JSContext *, JSValueConst, int, JSValueConst *);
 typedef JSValue (*JSLinuxMagicC)(JSContext *, JSValueConst, int, JSValueConst *, int);

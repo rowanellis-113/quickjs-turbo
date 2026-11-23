@@ -36,7 +36,7 @@ def contract(source, layout):
             raise ValueError("Review complete global semantic owner: " + name)
     if sha(source_file(source, "quickjs.c")) != data["pinned_core_sha256"]:
         raise ValueError("Review global constructor,shape and lexical invariants")
-    if layout["reference_count_model"] != "inline-header":
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review actual global value reference model")
     for name, expected in (
         ("JSFrame.bytecode", 80),

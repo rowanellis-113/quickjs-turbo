@@ -24,7 +24,15 @@ def contract(source, layout, *, contract_rel):
         and sha(source_file(source, "quickjs.c")) != data["pinned_core_sha256"]
     ):
         raise ValueError("Review pinned comparison core before native admission")
-    if layout["reference_count_model"] != "inline-header":
+    ref_model = layout["reference_count_model"]
+    if ref_model == "allocator-prefix":
+        if (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+            != -4
+        ):
+            raise ValueError("Review comparison reference profile")
+    elif ref_model != "inline-header":
         raise ValueError("Review comparison reference profile")
     for name, position in data.get("string_bits", {}).items():
         if layout["bits"][name] != position:

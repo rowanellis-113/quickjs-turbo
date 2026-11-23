@@ -25,7 +25,13 @@ from control_flow import property_note
 
 def apply_hybrid_gc_native(stream, handlers, layout):
     offs = layout["offsets"]
-    if "JSRuntime.drc_ok" not in offs or offs["JSGCObjectHeader.ref_count"] != 0:
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        offs["JSMallocBlockHeader.ref_count"] - offs["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else offs.get("JSGCObjectHeader.ref_count")
+    )
+    if "JSRuntime.drc_ok" not in offs or rc_off is None or (not prefix_rc and rc_off != 0):
         return [], []
     if (
         layout["constants"].get("JS_TAG_STRING") != -7
@@ -48,10 +54,10 @@ def apply_hybrid_gc_native(stream, handlers, layout):
         "mov r10, QWORD PTR [rbx+56]",
         f"cmp BYTE PTR [r10+{offs['JSRuntime.drc_ok']}], 1",
         "jne interp_property_slow_drop_c",
-        "cmp DWORD PTR [rax+0], 1",
+        f"cmp DWORD PTR [rax{rc_off:+d}], 1",
         "je interp_property_slow_drop_rc1",
         "jl interp_property_slow_drop_c",
-        "dec DWORD PTR [rax+0]",
+        f"dec DWORD PTR [rax{rc_off:+d}]",
         "sub r13, 16",
         "add r12, 1",
         "movzx eax, BYTE PTR [r12]",
@@ -105,7 +111,7 @@ def apply_hybrid_gc_native(stream, handlers, layout):
         "mov rdx, QWORD PTR [r9+rcx+8]",
         "test edx, edx",
         "jns borrowed_loc01_push",
-        "inc DWORD PTR [rax+0]",
+        f"inc DWORD PTR [rax{rc_off:+d}]",
         "borrowed_loc01_push:",
         "mov QWORD PTR [r13], rax",
         "mov QWORD PTR [r13+8], rdx",
@@ -151,13 +157,20 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
     """Add shared cold-section fast paths for dup2, put_var, and float-tagged int inc/dec."""
     offs = layout["offsets"]
     consts = layout["constants"]
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        offs["JSMallocBlockHeader.ref_count"] - offs["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else offs.get("JSGCObjectHeader.ref_count")
+    )
     if (
         consts.get("JS_TAG_INT") != 0
         or consts.get("JS_TAG_FLOAT64") != 8
         or consts.get("JS_PROP_WRITABLE") != 2
         or consts.get("JS_PROP_LENGTH") != 8
         or consts.get("JS_PROP_TMASK") != 48
-        or offs.get("JSGCObjectHeader.ref_count") != 0
+        or rc_off is None
+        or (not prefix_rc and rc_off != 0)
         or offs.get("JSShapeProperty.atom") != 4
     ):
         raise ValueError("Unexpected layout constants for native regression fast paths")
@@ -171,7 +184,7 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
             "mov rdx, QWORD PTR [r13-24]",
             "test edx, edx",
             "jns linux_dup2_first_ready",
-            "inc DWORD PTR [rax+0]",
+            f"inc DWORD PTR [rax{rc_off:+d}]",
             "linux_dup2_first_ready:",
             "mov QWORD PTR [r13], rax",
             "mov QWORD PTR [r13+8], rdx",
@@ -179,7 +192,7 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
             "mov rdx, QWORD PTR [r13-8]",
             "test edx, edx",
             "jns linux_dup2_second_ready",
-            "inc DWORD PTR [rax+0]",
+            f"inc DWORD PTR [rax{rc_off:+d}]",
             "linux_dup2_second_ready:",
             "mov QWORD PTR [r13+16], rax",
             "mov QWORD PTR [r13+24], rdx",
@@ -199,19 +212,40 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
         shape_off = offs["JSObject.shape"]
         prop_off = offs["JSObject.prop"]
         mask_off = offs["JSShape.prop_hash_mask"]
-        sprop_off = offs["JSShape.prop"]
         flags_mask = consts["JS_PROP_TMASK"] | consts["JS_PROP_LENGTH"] | consts["JS_PROP_WRITABLE"]
         flags_writable = consts["JS_PROP_WRITABLE"]
+
+        def put_var_hash(obj_off):
+            if prefix_rc:
+                return [
+                    f"mov r8, QWORD PTR [rsi+{obj_off}]",
+                    f"mov r10, QWORD PTR [r8+{shape_off}]",
+                    "mov eax, r9d",
+                    "mov rcx, 7046029254386353131",
+                    "imul rax, rcx",
+                    "shr rax, 32",
+                    f"mov ecx, DWORD PTR [r10+{mask_off}]",
+                    f"lea r11, [r10+rcx*4+{offs['JSShape.hash_table'] + 4}]",
+                    "inc ecx",
+                    "imul rax, rcx",
+                    "shr rax, 32",
+                    "neg rax",
+                    "mov ecx, DWORD PTR [r11+rax*4-4]",
+                ]
+            return [
+                f"mov r8, QWORD PTR [rsi+{obj_off}]",
+                f"mov r10, QWORD PTR [r8+{shape_off}]",
+                f"mov ecx, DWORD PTR [r10+{mask_off}]",
+                "mov edx, r9d",
+                "and edx, ecx",
+                "neg rdx",
+                "mov ecx, DWORD PTR [r10+rdx*4-4]",
+                f"lea r11, [r10+{offs['JSShape.prop']}]",
+            ]
+
         put_var_rows = [
             "mov r9d, DWORD PTR [r12+1]",
-            f"mov r8, QWORD PTR [rsi+{gvar_off}]",
-            f"mov r10, QWORD PTR [r8+{shape_off}]",
-            f"mov ecx, DWORD PTR [r10+{mask_off}]",
-            "mov edx, r9d",
-            "and edx, ecx",
-            "neg rdx",
-            "mov ecx, DWORD PTR [r10+rdx*4-4]",
-            f"lea r11, [r10+{sprop_off}]",
+            *put_var_hash(gvar_off),
             "linux_put_var_lex_probe:",
             "test ecx, ecx",
             "jz linux_put_var_global",
@@ -238,14 +272,7 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
             "js linux_put_var_slow",
             "jmp linux_put_var_store",
             "linux_put_var_global:",
-            f"mov r8, QWORD PTR [rsi+{gobj_off}]",
-            f"mov r10, QWORD PTR [r8+{shape_off}]",
-            f"mov ecx, DWORD PTR [r10+{mask_off}]",
-            "mov edx, r9d",
-            "and edx, ecx",
-            "neg rdx",
-            "mov ecx, DWORD PTR [r10+rdx*4-4]",
-            f"lea r11, [r10+{sprop_off}]",
+            *put_var_hash(gobj_off),
             "linux_put_var_obj_probe:",
             "test ecx, ecx",
             "jz linux_put_var_slow",
@@ -428,10 +455,10 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
                     "mov r10, QWORD PTR [rbx+56]",
                     f"cmp BYTE PTR [r10+{drc_off}], 1",
                     "jne linux_set_loc_uninit_slow",
-                    "cmp DWORD PTR [rax+0], 1",
+                    f"cmp DWORD PTR [rax{rc_off:+d}], 1",
                     "je linux_set_loc_uninit_rc1",
                     "jl linux_set_loc_uninit_slow",
-                    "dec DWORD PTR [rax+0]",
+                    f"dec DWORD PTR [rax{rc_off:+d}]",
                     "mov QWORD PTR [r8], 0",
                     "mov QWORD PTR [r8+8], 4",
                     "add r12, 3",
@@ -477,7 +504,7 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
                     "mov QWORD PTR [r8+8], rdx",
                     f"cmp BYTE PTR [r10+{drc_off}], 1",
                     "jne slot_store_last_bridge",
-                    "cmp DWORD PTR [rcx+0], 1",
+                    f"cmp DWORD PTR [rcx{rc_off:+d}], 1",
                     "jne slot_store_last_bridge",
                     "sub r11d, -7",
                     "cmp r11d, 1",

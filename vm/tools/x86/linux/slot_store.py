@@ -5,7 +5,7 @@ from arguments import asm_body
 from c_workers import module
 
 OWNER = "tools/x86/common/codegen/slot-store.py"
-OWNER_SHA = "271f31a97fdef879a64332565bcccb5098000dae539d76684c417b2bc6f5f75e"
+OWNER_SHA = "8a31469609990b677b03e941f9139547b6805bc2f77bb46dbc7149684e57628a"
 
 
 def append(source, stream, layout):
@@ -13,10 +13,16 @@ def append(source, stream, layout):
         raise ValueError("Review accepted complete slot-store factory")
     fields = layout["offsets"]
     mode = fields["JSRuntime.module_normalize_has_attr"] + 5
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        fields["JSMallocBlockHeader.ref_count"] - fields["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else fields["JSGCObjectHeader.ref_count"]
+    )
     if (
-        layout["reference_count_model"] != "inline-header"
+        layout["reference_count_model"] not in ("inline-header", "allocator-prefix")
         or layout["sizes"]["JSValue"] != 16
-        or fields["JSGCObjectHeader.ref_count"] != 0
+        or (not prefix_rc and rc_off != 0)
         or not fields["JSRuntime.module_normalize_has_attr"]
         < mode
         < fields["JSRuntime.normalize_u"]

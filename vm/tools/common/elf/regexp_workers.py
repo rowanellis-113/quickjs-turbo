@@ -67,7 +67,15 @@ def generate(
     arch_adapt=None,
 ):
     data = contract(source, contract_rel=contract_rel)
-    if layout["reference_count_model"] != "inline-header":
+    ref_model = layout["reference_count_model"]
+    if ref_model == "allocator-prefix":
+        if (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+            != -4
+        ):
+            raise ValueError("Review GNU RegExp source profile")
+    elif ref_model != "inline-header":
         raise ValueError("Review GNU RegExp source profile")
     owner = module(source, "regexp-c")
     raw = source_file(source, "quickjs.c").read_text()

@@ -100,7 +100,7 @@ LINUX_ADMISSION_CODE bool JS_LinuxValidateNativeNull(JSFunctionBytecode *b)
 
 def append(source, output, blocks, layout):
     data = contract(source)
-    if layout["reference_count_model"] != "inline-header":
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review null-object reference model")
     rows = next(rows for name, rows in blocks if name == "JS_FrameArgumentsOpClean")
     text = "\n".join(rows)
@@ -126,30 +126,34 @@ def append(source, output, blocks, layout):
 
 def generate(source, output, core, layout, *, admission_header="quickjs-linux-admission.h"):
     data = contract(source)
-    if (
-        layout["reference_count_model"] != "inline-header"
-        or layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix") or (
+        not prefix_rc and layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
     ):
         raise ValueError("Review null-object inline-header ownership")
     common = module(source, "null-arena")
     body = common.generate_body(source)
     assert body.count("FRAME_NULL_CODE JSValue JS_FrameNewNullObject(") == 1
-    assert body.count("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);") == 1
-    body = body.replace("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);", "")
-    body = body.replace("qjs_frame_core_js_free_shape0", "js_free_shape0")
+    if not prefix_rc:
+        assert body.count("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);") == 1
+        body = body.replace(
+            "extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);", ""
+        )
+        body = body.replace("qjs_frame_core_js_free_shape0", "js_free_shape0")
     body = body.replace("JS_FrameNewNullObject", "JS_LinuxNewNullObject")
-    body = replace_one(
-        body,
-        "    p->is_prototype = 0;",
-        "    p->__gc_mark = 0;\n    p->is_prototype = 0;",
-        "null-object birth initializes the inline storage bit to zero",
-    )
-    body = replace_one(
-        body,
-        "QJS_ABI_HAS_PREFIX_RC == 0 && QJS_ABI_REF_COUNT_OFFSET == 0",
-        "offsetof(JSObject,header.ref_count)==0 && offsetof(JSShape,header.ref_count)==0",
-        "actual same-TU inline ownership assertion",
-    )
+    if not prefix_rc:
+        body = replace_one(
+            body,
+            "    p->is_prototype = 0;",
+            "    p->__gc_mark = 0;\n    p->is_prototype = 0;",
+            "null-object birth initializes the inline storage bit to zero",
+        )
+        body = replace_one(
+            body,
+            "QJS_ABI_HAS_PREFIX_RC == 0 && QJS_ABI_REF_COUNT_OFFSET == 0",
+            "offsetof(JSObject,header.ref_count)==0 && offsetof(JSShape,header.ref_count)==0",
+            "actual same-TU inline ownership assertion",
+        )
     assert "QJS_ABI_" not in body
     platform = source / "src/common/linux/interpreter-null-proto.inc"
     from arguments import scoped

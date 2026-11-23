@@ -43,8 +43,8 @@ static FRAME_CODE bool js_linux_virtual_arguments_data(JSObject *object, JSAtom 
     return false;
 }
 
-_Static_assert(sizeof(JSStackFrame) == 72 && FRAME_FORWARD_BYTES == 80 && FRAME_ROOT_OFFSET == 62 &&
-                   FRAME_FLAGS_OFFSET == 63,
+_Static_assert(sizeof(JSStackFrame) == QJS_ABI_SIZE_JSStackFrame && FRAME_FORWARD_BYTES == 80 &&
+                   FRAME_ROOT_OFFSET == 62 && FRAME_FLAGS_OFFSET == 63,
                "virtual arguments uses the qualified logical frame ABI");
 
 static FRAME_CODE int js_linux_virtual_arguments_step(JSFrameRegisterState *state)

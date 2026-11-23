@@ -164,6 +164,17 @@ def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=F
             raise ValueError(f"Missing Win64 bitfield initializer: {name}")
         layout["bits"][name] = nonzero
 
+    prefix_rc = "JSMallocBlockHeader.ref_count" in layout["offsets"]
+    ref_model = "allocator-prefix" if prefix_rc else "inline-header"
+    rc_off = (
+        layout["offsets"]["JSMallocBlockHeader.ref_count"]
+        - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else layout["offsets"]["JSGCObjectHeader.ref_count"]
+    )
+    coro_owner = int("JSStackFrame.cur_gc_obj" in layout["offsets"])
+    layout["reference_count_model"] = ref_model
+
     (output / "layout.json").write_text(
         json.dumps(layout, indent=2) + "\n", encoding="utf-8", newline="\n"
     )
@@ -184,9 +195,9 @@ def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=F
             f"#define QJS_ABI_BIT_{name.replace('.', '_')}_MASK ({bits[0][1]})",
         ]
     contract += [
-        "#define QJS_ABI_HAS_CORO_OWNER 0",
-        "#define QJS_ABI_HAS_PREFIX_RC 0",
-        "#define QJS_ABI_REF_COUNT_OFFSET 0",
+        f"#define QJS_ABI_HAS_CORO_OWNER ({coro_owner})",
+        f"#define QJS_ABI_HAS_PREFIX_RC ({int(prefix_rc)})",
+        f"#define QJS_ABI_REF_COUNT_OFFSET ({rc_off})",
     ]
     values_hdr = [
         line.replace("QJS_WIN64_PRIVATE_ABI_H", "QJS_WIN64_PRIVATE_ABI_VALUES_H")

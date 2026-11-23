@@ -4,7 +4,7 @@ import re
 
 
 def render(source, layout, mapping):
-    if layout["sizes"]["JSStackFrame"] != 72 or layout["sizes"]["JSValue"] != 16:
+    if layout["sizes"]["JSStackFrame"] != 80 or layout["sizes"]["JSValue"] != 16:
         raise ValueError("Review the Linux native C frame before admitting a changed layout")
     offsets, constants = layout["offsets"], layout["constants"]
     if (constants["JS_CFUNC_generic"], constants["JS_CFUNC_generic_magic"]) != (0, 1):
@@ -53,14 +53,17 @@ def render(source, layout, mapping):
         SF_ARGV="JSStackFrame.arg_buf",
         SF_ARGC="JSStackFrame.arg_count",
         SF_STRICT="JSStackFrame.is_strict_mode",
+        SF_CTOR="JSStackFrame.is_constructor",
+        SF_GC_OBJ="JSStackFrame.cur_gc_obj",
         OBJ_SHAPE="JSObject.shape",
         OBJ_PROPERTIES="JSObject.prop",
-        SHAPE_PROPERTIES="JSShape.prop",
+        SHAPE_HASH_MASK="JSShape.prop_hash_mask",
         SHAPE_ATOM="JSShapeProperty.atom",
         ARRAY_COUNT="JSObject.u.array.count",
         ARRAY_VALUES="JSObject.u.array.u.values",
     ).items():
         values[name] = offsets[field]
+    values["SHAPE_PROP_BASE"] = offsets["JSShape.hash_table"] + 4
     for name, constant in dict(
         TAG_OBJECT="JS_TAG_OBJECT",
         TAG_UNDEFINED="JS_TAG_UNDEFINED",

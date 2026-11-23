@@ -191,7 +191,7 @@ def append(gas, diagnostics, out):
         "cmp DWORD PTR [rdx+8], -9",
         "jb root_args_copy_immediate",
         "mov rax, QWORD PTR [rdx]",
-        f"add DWORD PTR [rax+{abi_rc}], 1",
+        f"add DWORD PTR [rax{abi_rc:+d}], 1",
         "root_args_copy_immediate:",
         "add rdx, 16",
         "add r8, 16",

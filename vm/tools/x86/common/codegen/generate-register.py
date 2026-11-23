@@ -26,8 +26,8 @@ _frame_activate_tools()
 import argparse
 import re
 from pathlib import Path
-from abi_layout import load as load_layout, constants as layout_constants
-from native_abi import source_abi
+from abi_layout import constants as layout_constants
+from native_abi import current_or_load as load_layout, source_abi
 from indexed_own_native import append as indexed_own_append
 from property_store_native import append as property_store_append
 
@@ -139,7 +139,6 @@ def generate(
         foundation_only
         and internal_entry
         and not diagnostics
-        and not has_prefix
         and instruction_stream is not None
         and layout.get("platform") == "linux-x86_64-sysv"
     ):
@@ -148,7 +147,6 @@ def generate(
         foundation_only
         and internal_entry
         and not diagnostics
-        and not has_prefix
         and instruction_stream is not None
         and layout.get("platform") == "linux-x86_64-sysv"
     ):

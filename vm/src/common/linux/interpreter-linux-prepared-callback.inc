@@ -99,6 +99,7 @@ static LINUX_CALLBACK_CODE JSValue js_linux_prepared_callback(JSContext *ctx, JS
     sf->var_ref_count = 0;
     sf->arg_count = window ? window : argc;
     sf->is_strict_mode = b->is_strict_mode;
+    FRAME_CLEAR_STACK_AUX(sf);
     sf->cur_pc = NULL;
     sf->cur_sp = NULL;
     FRAME_ROOT(frame) = 1;

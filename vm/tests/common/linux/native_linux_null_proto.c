@@ -146,6 +146,8 @@ static size_t attempt(int warm, size_t failure, size_t trigger, unsigned *reject
         keeper = JS_Call(h.caller, function, JS_UNDEFINED, 0, NULL);
         null_object(h.caller, keeper);
     }
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(h.rt, &h.ledger, &drain);
     h.ledger.sequence = 0;
     h.ledger.fail_at = failure;
     h.trigger = trigger;
@@ -166,6 +168,7 @@ static size_t attempt(int warm, size_t failure, size_t trigger, unsigned *reject
     JS_FreeValue(h.caller, value);
     JS_FreeValue(h.caller, keeper);
     JS_FreeValue(h.realm, function);
+    oom_undrain_arenas(h.rt, &drain);
     teardown(&h);
     return requests;
 }

@@ -62,7 +62,7 @@ def append(source, stream, layout):
         policy="actual-type C string boundaries;no runtime padding policy byte",
     )
     globals_ = []
-    if flag:
+    if flag and layout["reference_count_model"] == "inline-header":
         expected_sizes = {"JSString": 24, "JSStringRope": 48}
         expected_offsets = {
             "JSString.header": 0,

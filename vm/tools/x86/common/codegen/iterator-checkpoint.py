@@ -359,7 +359,7 @@ FOOTER
 
 
 def append_leaf(source, build):
-    from abi_layout import load as load_layout
+    from native_abi import current_or_load as load_layout
 
     fields = load_layout(source)["offsets"]
     ops = [

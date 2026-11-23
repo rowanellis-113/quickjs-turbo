@@ -33,19 +33,17 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
     int v_is_obj = JS_IsObject(v_val);
     JSObject *vobj = v_is_obj ? JS_VALUE_GET_OBJ(v_val) : NULL;
     void *vptr = (!v_is_obj && v_has_rc) ? JS_VALUE_GET_PTR(v_val) : NULL;
-    int vrc = 0;
     if (vobj == ctor) {
-        if (ctor->header.ref_count <= 2)
+        if (JS_REF_COUNT(ctor) <= 2)
             return 0;
     } else if (v_is_obj) {
-        if (vobj->header.ref_count <= 1 || ctor->header.ref_count <= 1)
+        if (JS_REF_COUNT(vobj) <= 1 || JS_REF_COUNT(ctor) <= 1)
             return 0;
     } else if (vptr) {
-        __builtin_memcpy(&vrc, vptr, sizeof(vrc));
-        if (vrc <= 1 || ctor->header.ref_count <= 1)
+        if (JS_REF_COUNT(vptr) <= 1 || JS_REF_COUNT(ctor) <= 1)
             return 0;
     } else {
-        if (ctor->header.ref_count <= 1)
+        if (JS_REF_COUNT(ctor) <= 1)
             return 0;
     }
 
@@ -103,8 +101,8 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
     int result = 0;
     if (v_is_obj) {
         if (!e->has_proto || e->proto_slot >= (uint32_t)ctor->shape->prop_size ||
-            ctor->shape->prop[e->proto_slot].atom != JS_ATOM_prototype ||
-            (ctor->shape->prop[e->proto_slot].flags & JS_PROP_TMASK))
+            get_shape_prop(ctor->shape)[e->proto_slot].atom != JS_ATOM_prototype ||
+            (get_shape_prop(ctor->shape)[e->proto_slot].flags & JS_PROP_TMASK))
             return 0;
         JSValue pv = ctor->prop[e->proto_slot].u.value;
         if (!JS_IsObject(pv))
@@ -131,16 +129,14 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
 
     --ctx->interrupt_counter;
     if (vobj == ctor) {
-        ctor->header.ref_count -= 2;
+        JS_REF_COUNT(ctor) -= 2;
     } else {
         if (v_is_obj) {
-            --vobj->header.ref_count;
+            --JS_REF_COUNT(vobj);
         } else if (vptr) {
-            __builtin_memcpy(&vrc, vptr, sizeof(vrc));
-            --vrc;
-            __builtin_memcpy(vptr, &vrc, sizeof(vrc));
+            --JS_REF_COUNT(vptr);
         }
-        --ctor->header.ref_count;
+        --JS_REF_COUNT(ctor);
     }
     sp[-2] = JS_MKVAL(JS_TAG_BOOL, result);
     if (mode & 4)

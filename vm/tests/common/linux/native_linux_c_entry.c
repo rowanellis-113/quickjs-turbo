@@ -31,6 +31,8 @@ static size_t oom_case(size_t fail_at)
     JSValue value = JS_Call(ctx, root, JS_UNDEFINED, 0, NULL);
     assert(!JS_IsException(value));
     JS_FreeValue(ctx, value);
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &allocation, &drain);
     allocation.sequence = 0;
     allocation.fail_at = fail_at;
     value = JS_Call(ctx, root, JS_UNDEFINED, 0, NULL);
@@ -49,6 +51,7 @@ static size_t oom_case(size_t fail_at)
     value = JS_Call(ctx, root, JS_UNDEFINED, 0, NULL);
     assert(!JS_IsException(value));
     JS_FreeValue(ctx, value);
+    oom_undrain_arenas(rt, &drain);
     JS_RunGC(rt);
     JS_FreeValue(ctx, root);
     JS_FreeContext(ctx);

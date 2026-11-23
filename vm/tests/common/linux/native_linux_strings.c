@@ -153,6 +153,8 @@ static size_t trial(size_t fault, int cold)
             JS_FreeValue(ctx, warm);
         }
     }
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &memory, &drain);
     size_t before = memory.sequence;
     memory.fail_at = fault ? before + fault : 0;
     JSValue result = JS_UNDEFINED;
@@ -189,6 +191,7 @@ static size_t trial(size_t fault, int cold)
     assert(!JS_IsException(result) && JS_IsString(result));
     JS_FreeValue(ctx, result);
     JS_FreeValue(ctx, value);
+    oom_undrain_arenas(rt, &drain);
     JS_RunGC(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

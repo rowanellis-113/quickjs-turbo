@@ -10,7 +10,6 @@
 .globl JS_FrameFastArrayOwnGet, JS_FrameFastArrayOwnGet_end
 .def JS_FrameFastArrayOwnGet; .scl 2; .type 32; .endef
 JS_FrameFastArrayOwnGet:
-.if QJS_ABI_HAS_PREFIX_RC == 0
 .if QJS_ABI_SIZE_JSValue != 16 || QJS_ABI_SIZE_JSShapeProperty != 8 || QJS_ABI_OFF_JSShapeProperty_atom != 4
 .error "array own leaf requires the reviewed value/shape descriptor ABI"
 .endif
@@ -22,11 +21,27 @@ JS_FrameFastArrayOwnGet:
     test r8d, r8d
     js JS_FrameFastArrayOwnGet_fallback
     mov r10, QWORD PTR [rdx+QJS_ABI_OFF_JSObject_shape]
+.if QJS_ABI_HAS_PREFIX_RC == 0
     mov eax, r8d
     and eax, DWORD PTR [r10+QJS_ABI_OFF_JSShape_prop_hash_mask]
     neg rax
     mov eax, DWORD PTR [r10+rax*4-4]
     add r10, QJS_ABI_OFF_JSShape_prop
+.else
+    mov r11d, r8d
+    or r11d, 0x80000000
+    mov eax, r11d
+    mov r11, 0x61c8864680b583eb
+    imul rax, r11
+    shr rax, 32
+    mov r11d, DWORD PTR [r10+QJS_ABI_OFF_JSShape_prop_hash_mask]
+    inc r11d
+    imul rax, r11
+    shr rax, 32
+    lea r10, [r10+r11*4+QJS_ABI_OFF_JSShape_hash_table]
+    neg rax
+    mov eax, DWORD PTR [r10+rax*4-4]
+.endif
     mov r11d, r8d
     or r11d, 0x80000000
 JS_FrameFastArrayOwnGet_probe:
@@ -54,7 +69,6 @@ JS_FrameFastArrayOwnGet_value:
     mov QWORD PTR [r9+8], rax
     mov eax, 1
     ret
-.endif
 JS_FrameFastArrayOwnGet_fallback:
     jmp qjs_frame_core_js_get_fast_array_element
 JS_FrameFastArrayOwnGet_end:

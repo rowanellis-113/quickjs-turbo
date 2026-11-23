@@ -19,7 +19,7 @@ typedef union Header {
 } Header;
 typedef struct Memory {
     size_t attempts, fail_at, live, bytes;
-    unsigned failed;
+    unsigned failed, drain_probe;
 } Memory;
 static Memory *armed;
 static size_t offset;
@@ -35,6 +35,8 @@ static int reject(Memory *m)
 static void *allocate(void *opaque, size_t size)
 {
     Memory *m = opaque;
+    if (m->drain_probe)
+        return NULL;
     if (reject(m) || size > SIZE_MAX - sizeof(Header))
         return NULL;
     Header *h = malloc(sizeof(*h) + size);
@@ -89,13 +91,64 @@ static size_t usable(const void *ptr)
 {
     return ptr ? ((const Header *)ptr - 1)->size : 0;
 }
+typedef struct {
+    void **blocks;
+    size_t count, cap, saved_gc_threshold;
+    int active;
+} ConcatArenaDrain;
+static ConcatArenaDrain armed_drain;
+static void concat_drain_arenas(JSRuntime *rt, Memory *m, ConcatArenaDrain *d)
+{
+    static const uint16_t classes[31] = {
+        16,  24,  32,  40,  48,  56,  64,  72,  80,  88,  96,  104, 112, 120, 128, 144,
+        160, 176, 192, 208, 224, 240, 256, 288, 320, 352, 384, 416, 448, 480, 512};
+    size_t added = 0;
+    d->blocks = NULL;
+    d->count = 0;
+    d->cap = 0;
+    d->saved_gc_threshold = JS_GetGCThreshold(rt);
+    d->active = 1;
+    m->drain_probe = 1;
+    for (unsigned i = 0; i < 31; ++i) {
+        size_t req = (size_t)classes[i] - 8u;
+        for (;;) {
+            void *p = js_malloc_rt(rt, req);
+            if (!p)
+                break;
+            if (d->count == d->cap) {
+                size_t nc = d->cap ? d->cap * 2u : 256u;
+                void **nb = (void **)realloc(d->blocks, nc * sizeof(*nb));
+                assert(nb);
+                d->blocks = nb;
+                d->cap = nc;
+            }
+            d->blocks[d->count++] = p;
+            added += classes[i];
+        }
+    }
+    m->drain_probe = 0;
+    if (d->saved_gc_threshold != (size_t)-1 && d->saved_gc_threshold <= SIZE_MAX - added)
+        JS_SetGCThreshold(rt, d->saved_gc_threshold + added);
+}
+static void concat_undrain_arenas(JSRuntime *rt, ConcatArenaDrain *d)
+{
+    if (!d->active)
+        return;
+    while (d->count > 0)
+        js_free_rt(rt, d->blocks[--d->count]);
+    free(d->blocks);
+    d->blocks = NULL;
+    d->cap = 0;
+    JS_SetGCThreshold(rt, d->saved_gc_threshold);
+    d->active = 0;
+}
 static JSValue arm(JSContext *ctx, JSValueConst self, int argc, JSValueConst *argv)
 {
-    (void)ctx;
     (void)self;
     (void)argc;
     (void)argv;
     assert(armed);
+    concat_drain_arenas(JS_GetRuntime(ctx), armed, &armed_drain);
     armed->fail_at = offset ? armed->attempts + offset : 0;
     return JS_UNDEFINED;
 }
@@ -105,12 +158,12 @@ static JSValue evaluate(JSContext *ctx, const char *source)
 }
 static JSValue disarm(JSContext *ctx, JSValueConst self, int argc, JSValueConst *argv)
 {
-    (void)ctx;
     (void)self;
     (void)argc;
     (void)argv;
     assert(armed);
     armed->fail_at = 0;
+    concat_undrain_arenas(JS_GetRuntime(ctx), &armed_drain);
     return JS_UNDEFINED;
 }
 static void local_failures(void)
@@ -142,6 +195,7 @@ static void local_failures(void)
         JSValue result = JS_Call(ctx, function, JS_UNDEFINED, 0, NULL);
         memory.fail_at = 0;
         armed = NULL;
+        concat_undrain_arenas(rt, &armed_drain);
         if (!n)
             normal_allocations = memory.attempts - before;
         bool error = JS_IsException(result);
@@ -231,6 +285,7 @@ static void failures(void)
         JSValue result = JS_Call(ctx, function, JS_UNDEFINED, 0, NULL);
         memory.fail_at = 0;
         armed = NULL;
+        concat_undrain_arenas(rt, &armed_drain);
         if (JS_IsException(result)) {
             assert(memory.failed == 1);
             JSValue error = JS_GetException(ctx);

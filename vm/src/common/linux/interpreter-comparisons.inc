@@ -9,7 +9,10 @@ extern int JS_LinuxStrictIdentityLeaf(JSContext *, JSValue *, bool)
 
 _Static_assert(sizeof(JSValue) == 16 && offsetof(JSValue, tag) == 8 && sizeof(JSString) == 24 &&
                    offsetof(JSStringSlice, parent) == 0 && offsetof(JSStringSlice, start) == 8 &&
-                   offsetof(JSString, header.ref_count) == 0 && sizeof(_Atomic(unsigned)) == 4,
+                   (offsetof(JSMallocBlockHeader, user_data) -
+                        offsetof(JSMallocBlockHeader, ref_count) ==
+                    -QJS_ABI_REF_COUNT_OFFSET) &&
+                   sizeof(_Atomic(unsigned)) == 4,
                "Compiler-measured inline reference and flat/slice/indirect string profile");
 _Static_assert(JS_TAG_OBJECT == -1 && JS_TAG_STRING == -7 && JS_TAG_SYMBOL == -8 &&
                    JS_TAG_BIG_INT == -9 && JS_TAG_NULL == 2 && JS_TAG_UNDEFINED == 3 &&

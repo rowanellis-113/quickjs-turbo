@@ -139,8 +139,8 @@ FRAME_CODE int JS_FrameArgumentsConstructCall(JSFrameRegisterState *state)
     /* Exact existing continuation transfer. The second function owner stays
        live; the first operand now roots the newly allocated receiver. */
     JSObject *callee = JS_VALUE_GET_OBJ(func);
-    assert(callee->header.ref_count >= 2);
-    callee->header.ref_count--;
+    assert(JS_REF_COUNT(callee) >= 2);
+    JS_REF_COUNT(callee)--;
     argv[-2] = object;
     /* Constructor and JS body entry each retain their original poll. No
        allocation/callback occurs with an unrooted receiver or argument. */
@@ -153,6 +153,7 @@ FRAME_CODE int JS_FrameArgumentsConstructCall(JSFrameRegisterState *state)
         goto exception;
     }
     FRAME_ROOT(state->frame) = 3;
+    FRAME_INIT_STACK_AUX(&state->frame->sf, true);
     if (mode & 4)
         atomic_fetch_add_explicit(&JS_FrameArgumentsStats[2], 1, memory_order_relaxed);
     if (mode & 4)

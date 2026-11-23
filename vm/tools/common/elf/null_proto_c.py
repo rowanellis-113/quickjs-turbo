@@ -102,24 +102,35 @@ def generate(
     contract_rel=None,
 ):
     data = contract(source, contract_rel=contract_rel)
-    if (
-        layout["reference_count_model"] != "inline-header"
-        or layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
-    ):
-        raise ValueError("Review null-object inline-header ownership")
+    ref_model = layout["reference_count_model"]
+    if ref_model == "inline-header":
+        if layout["offsets"]["JSGCObjectHeader.ref_count"] != 0:
+            raise ValueError("Review null-object inline-header ownership")
+    elif ref_model == "allocator-prefix":
+        if (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+            != -4
+        ):
+            raise ValueError("Review null-object allocator-prefix ownership")
+    else:
+        raise ValueError("Review null-object reference-count model")
     common = module(source, "null-arena-c")
-    body = common.generate_body(source)
+    body = common.generate_body(source, reference_count_model=ref_model)
     assert body.count("FRAME_NULL_CODE JSValue JS_FrameNewNullObject(") == 1
-    assert body.count("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);") == 1
-    body = body.replace("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);", "")
-    body = body.replace("qjs_frame_core_js_free_shape0", "js_free_shape0")
+    if ref_model == "inline-header":
+        assert body.count("extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);") == 1
+        body = body.replace(
+            "extern void qjs_frame_core_js_free_shape0(JSRuntime *, JSShape *);", ""
+        )
+        body = body.replace("qjs_frame_core_js_free_shape0", "js_free_shape0")
+        body = replace_one(
+            body,
+            "QJS_ABI_HAS_PREFIX_RC == 0 && QJS_ABI_REF_COUNT_OFFSET == 0",
+            "offsetof(JSObject,header.ref_count)==0 && offsetof(JSShape,header.ref_count)==0",
+            "actual same-TU inline ownership assertion",
+        )
     body = body.replace("JS_FrameNewNullObject", "JS_LinuxNewNullObject")
-    body = replace_one(
-        body,
-        "QJS_ABI_HAS_PREFIX_RC == 0 && QJS_ABI_REF_COUNT_OFFSET == 0",
-        "offsetof(JSObject,header.ref_count)==0 && offsetof(JSShape,header.ref_count)==0",
-        "actual same-TU inline ownership assertion",
-    )
     assert "QJS_ABI_" not in body
     platform = source / platform_binding
     from arguments_c import scoped
@@ -160,7 +171,9 @@ _Static_assert(__builtin_types_compatible_p(__typeof__(&JS_LinuxNewNullObject),
             )
         },
         generated_sha256=sha(path),
-        common_allocator_sha256=hashlib.sha256(common.generate_body(source).encode()).hexdigest(),
+        common_allocator_sha256=hashlib.sha256(
+            common.generate_body(source, reference_count_model=ref_model).encode()
+        ).hexdigest(),
         adapted_allocator_sha256=hashlib.sha256(body.encode()).hexdigest(),
         admission_sha256=sha(output / admission_header),
         entries=[

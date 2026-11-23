@@ -88,7 +88,10 @@ def native_body(rows, name):
 
 def append(source, output, stream, blocks, handlers, leaves, layout, *, shared_global=False):
     data = contract(source)
-    if not layout["property_ic"] or layout["reference_count_model"] != "inline-header":
+    if not layout["property_ic"] or layout["reference_count_model"] not in (
+        "inline-header",
+        "allocator-prefix",
+    ):
         raise ValueError("Review complete GNU property profile")
     main_length = len(stream["code"])
     code = list(stream["code"]) + list(stream["cold_code"])

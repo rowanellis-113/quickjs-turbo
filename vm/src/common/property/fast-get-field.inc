@@ -73,7 +73,7 @@ JS_FastGetField(JSFrameRegisterState *state)
     if (!JS_IsObject(recv))
         return fg_fallback(state);
     JSObject *obj = JS_VALUE_GET_OBJ(recv);
-    if (obj->header.ref_count <= 1)
+    if (JS_REF_COUNT(obj) <= 1)
         return fg_fallback(state);
     JSFrame *frame = state->frame;
     JSRuntime *rt = state->rt;
@@ -275,8 +275,9 @@ JS_FastGetField(JSFrameRegisterState *state)
         } else if (tag == JS_TAG_OBJECT) {
             JSObject *sub = JS_VALUE_GET_OBJ(val);
             if (sub->class_id != JS_CLASS_ARRAY || !sub->fast_array || !sub->shape ||
-                sub->shape->prop_count < 1 || sub->shape->prop[0].atom != JS_ATOM_length ||
-                (sub->shape->prop[0].flags & JS_PROP_TMASK) != JS_PROP_NORMAL)
+                sub->shape->prop_count < 1 ||
+                get_shape_prop(sub->shape)[0].atom != JS_ATOM_length ||
+                (get_shape_prop(sub->shape)[0].flags & JS_PROP_TMASK) != JS_PROP_NORMAL)
                 return fg_fallback(state);
             JSValue lv = sub->prop[0].u.value;
             int ltag = JS_VALUE_GET_TAG(lv);
@@ -318,7 +319,7 @@ JS_FastGetField(JSFrameRegisterState *state)
     }
 
     sp[-1] = res;
-    obj->header.ref_count--;
+    JS_REF_COUNT(obj)--;
     pc += 5;
     state->pc = pc;
     frame->sf.cur_pc = pc;

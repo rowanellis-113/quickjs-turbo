@@ -425,7 +425,10 @@ def main():
         required += forwarding["entries"]
     if elf.kind != 3 or any(name not in symbols for name in required):
         raise ValueError("Expected the actually linked PIE native backend")
-    commands = json.loads((build / "compile_commands.json").read_text())
+    from layout_input import find_compile_commands
+
+    cc_path = find_compile_commands(build)
+    commands = json.loads(cc_path.read_text())
     cet = vm["compiler_cet"]
     object_properties = {}
     object_names = ["quickjs-linux-foundation.c", "quickjs-linux-vm.S", "quickjs-linux-bridges.S"]
@@ -483,7 +486,7 @@ def main():
         native_object_properties=object_properties,
         linked_cet_property=read_property(elf),
         vm_sha256=sha(generated / "VM.json"),
-        compile_commands_sha256=sha(build / "compile_commands.json"),
+        compile_commands_sha256=sha(cc_path),
         c_workers=prepare.get("c_workers", {}),
         c_worker_entries=worker_entries,
         c_worker_indirect_targets=worker_indirect,

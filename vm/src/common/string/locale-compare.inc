@@ -83,9 +83,11 @@ enum {
     COMPOUND_PIC = 8,
     COMPOUND_HASH = 9
 };
-_Static_assert(sizeof(JSFunctionBytecode) == 152 &&
-                   offsetof(JSFunctionBytecode, property_ic) == 144 && sizeof(JSValue) == 16 &&
-                   sizeof(JSPropertyICSite) == 64 && sizeof(JSPropertyICWay) == 40,
+_Static_assert(sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode &&
+                   offsetof(JSFunctionBytecode, property_ic) ==
+                       QJS_ABI_OFF_JSFunctionBytecode_property_ic &&
+                   sizeof(JSValue) == 16 && sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite &&
+                   sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay,
                "compound proof exact current private ABI");
 
 static CALL_LINK_INLINE int compound_shape(const JSFunctionBytecode *b)
@@ -105,9 +107,9 @@ static CALL_LINK_INLINE int compound_shape(const JSFunctionBytecode *b)
 static CALL_LINK_INLINE JSValue *compound_hash_slot(JSObject *p, JSAtom atom)
 {
     JSShape *sh = p->shape;
-    uint32_t h = ((uint32_t *)(void *)sh)[-((intptr_t)((uintptr_t)atom & sh->prop_hash_mask)) - 1];
+    uint32_t h = prop_hash_end(sh)[-hash_atom(atom, sh->prop_hash_mask) - 1];
     while (h) {
-        JSShapeProperty *pr = &sh->prop[h - 1];
+        JSShapeProperty *pr = &get_shape_prop(sh)[h - 1];
         if (pr->atom == atom)
             return (pr->flags & JS_PROP_TMASK) ? NULL : &p->prop[h - 1].u.value;
         h = pr->hash_next;
@@ -122,8 +124,8 @@ static CALL_LINK_INLINE JSValue *compound_own_slot(JSObject *p, JSAtom atom, JSP
         for (unsigned i = 0; i < site->count; i++) {
             JSPropertyICWay *w = i ? &site->secondary[i - 1] : &site->primary;
             if (w->shape == p->shape && w->kind == JS_IC_OWN && w->slot < p->shape->prop_count &&
-                p->shape->prop[w->slot].atom == atom &&
-                !(p->shape->prop[w->slot].flags & JS_PROP_TMASK)) {
+                get_shape_prop(p->shape)[w->slot].atom == atom &&
+                !(get_shape_prop(p->shape)[w->slot].flags & JS_PROP_TMASK)) {
                 (*pic)++;
                 return &p->prop[w->slot].u.value;
             }

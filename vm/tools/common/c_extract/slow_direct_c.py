@@ -270,13 +270,13 @@ FRAME_CODE int JS_FrameSlowDirectTryInstanceOfLeaf(JSContext *ctx, JSValue *sp)
         return 0;
     value = JS_VALUE_GET_OBJ(sp[-2]);
     ctor = JS_VALUE_GET_OBJ(sp[-1]);
-    if (value == ctor ? value->header.ref_count <= 2
-                      : value->header.ref_count <= 1 || ctor->header.ref_count <= 1)
+    if (value == ctor ? JS_REF_COUNT(value) <= 2
+                      : JS_REF_COUNT(value) <= 1 || JS_REF_COUNT(ctor) <= 1)
         return 0;
     if (js_frame_instance_leaf_try(ctx, sp[-2], sp[-1], &result))
         return 0;
-    --value->header.ref_count;
-    --ctor->header.ref_count;
+    --JS_REF_COUNT(value);
+    --JS_REF_COUNT(ctor);
     sp[-2] = JS_MKVAL(JS_TAG_BOOL, result);
     return 1;
 }

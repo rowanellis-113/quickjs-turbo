@@ -79,6 +79,7 @@ NATIVE_SORT_CODE JSValue JS_FramePreparedSortInvoke(JSFramePreparedSort *call, J
     sf->var_ref_count = 0;
     sf->arg_count = 2;
     sf->is_strict_mode = b->is_strict_mode;
+    FRAME_CLEAR_STACK_AUX(sf);
     sf->cur_pc = NULL;
     sf->cur_sp = NULL;
     FRAME_ROOT(frame) = 1;

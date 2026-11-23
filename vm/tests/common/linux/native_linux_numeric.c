@@ -79,6 +79,8 @@ static unsigned sample(unsigned fail, size_t *requests)
         JS_FreeValue(ctx, result);
     }
     JS_RunGC(rt);
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &ledger, &drain);
     ledger.sequence = 0;
     ledger.fail_at = fail;
     JSValue result = invoke(ctx, fn);
@@ -91,6 +93,7 @@ static unsigned sample(unsigned fail, size_t *requests)
     assert(!JS_IsException(result));
     JS_FreeValue(ctx, result);
     JS_FreeValue(ctx, fn);
+    oom_undrain_arenas(rt, &drain);
     JS_RunGC(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

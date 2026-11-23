@@ -575,7 +575,8 @@ static inline JSShape *fast_ctor_ensure_shape(JSContext *ctx, JSRuntime *rt, Ord
         sh->prop_count == n_fields) {
         bool match = true;
         for (uint8_t f = 0; f < n_fields; f++) {
-            if (sh->prop[f].atom != atoms[f] || sh->prop[f].flags != JS_PROP_C_W_E) {
+            if (get_shape_prop(sh)[f].atom != atoms[f] ||
+                get_shape_prop(sh)[f].flags != JS_PROP_C_W_E) {
                 match = false;
                 break;
             }
@@ -594,7 +595,7 @@ static inline JSShape *fast_ctor_ensure_shape(JSContext *ctx, JSRuntime *rt, Ord
             sh = js_dup_shape(next);
             js_free_shape(rt, old_sh);
         } else {
-            if (sh->header.ref_count != 1) {
+            if (JS_REF_COUNT(sh) != 1) {
                 JSShape *clone = js_clone_shape(ctx, sh);
                 if (!clone) {
                     js_free_shape(rt, sh);
@@ -1111,7 +1112,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         child->sf.var_refs[i] = NULL;
     child->sf.arg_count = owned_args ? owned_args : incoming_argc;
     child->sf.is_strict_mode = b->is_strict_mode;
-    FRAME_CLEAR_STACK_AUX(&child->sf);
+    FRAME_INIT_STACK_AUX(&child->sf, true);
     child->sf.cur_pc = NULL;
     child->sf.cur_sp = NULL;
     FRAME_FLAGS(child) = 0;

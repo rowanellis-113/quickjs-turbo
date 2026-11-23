@@ -2,8 +2,8 @@
   "schema": 1,
   "owners": {
     "asm/x86/win64/mingw64/mingw-loose.S": "8d965394375c9fae68d8f686a0dc22d8c86e53d2ace760fd87736dbefe91948b",
-    "asm/x86/win64/mingw64/mingw-strict.S": "8268bb71b83f815fa9fcf3fa3a3ec87b1451271399ade3b75c80ed07f9eb5430",
-    "asm/x86/win64/common/strict_body.inc": "a5b0da4ce477f0e2a5e2ef5d8287c7b9b7ba9607e7174e91ca5f477c49e56a46",
+    "asm/x86/win64/mingw64/mingw-strict.S": "37d8603b1f00484746d488143e6ab2705bf1fcaaa339d6d30f70f46879bf2225",
+    "asm/x86/win64/common/strict_body.inc": "6bf6d4d5b709d2f253c405756772ed3bc919e48c2f76f259d8f85545894b1474",
     "asm/x86/win64/common/strict_reference.inc": "3ff8ad76a8f7a18ab90c8f1d9be472be1310d9ff58b7ff05ee44c72b99e9a352",
     "asm/x86/win64/common/strict_identity.inc": "014432911a3db1445a00cf4d8b1c5d93877c7d9a8ca21b5e26173a7943c8fd1e",
     "src/common/value/loose_control.inc": "a745c1af37af6eb690d26053f91d223e19ef0ae3d19011ab14c807638f143ae9",
@@ -13,25 +13,25 @@
   "string_bits": {
     "JSString.len": [
       [
-        4,
+        0,
         1
       ]
     ],
     "JSString.is_wide_char": [
       [
-        7,
+        3,
         128
       ]
     ],
     "JSString.hash": [
       [
-        8,
+        4,
         1
       ]
     ],
     "JSString.kind": [
       [
-        11,
+        7,
         16
       ]
     ]
@@ -40,6 +40,6 @@
   "frame_growth": 0,
   "state_growth": 0,
   "new_strong_roots": 0,
-  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "retained_strict_slow_sha256": "bf460cd0a834f1ef64d1078f6baa85518c367c0d5b94ce1c937d27fee505a70c"
 }

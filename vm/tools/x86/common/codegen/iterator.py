@@ -17,8 +17,7 @@ from x86.common.paths_x86 import (
 
 _frame_activate_tools()
 from c_source_match import replace_one
-from native_abi import current as current_abi
-from abi_layout import load as load_layout
+from native_abi import current as current_abi, current_or_load as load_layout
 import shutil, time
 
 """Synchronous iteration coverage in an appended Win64 semantic island.

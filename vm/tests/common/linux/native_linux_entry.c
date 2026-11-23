@@ -75,6 +75,8 @@ static size_t fault_case(size_t fault)
         assert(!JS_IsException(value));
         JS_FreeValue(ctx, value);
     }
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &allocator, &drain);
     allocator.sequence = 0;
     allocator.fail_at = fault;
     JSValue result = JS_Call(ctx, fn, JS_UNDEFINED, 1, &seed);
@@ -100,6 +102,7 @@ static size_t fault_case(size_t fault)
     JS_FreeValue(ctx, result);
     JS_FreeValue(ctx, seed);
     JS_FreeValue(ctx, fn);
+    oom_undrain_arenas(rt, &drain);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);
     assert(!allocator.live && !allocator.bytes);

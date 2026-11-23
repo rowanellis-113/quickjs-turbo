@@ -48,6 +48,7 @@ def transform(source, text, module):
     # incoming_copy is always zero here; the apply-only copied-array branch
     # is still compiled from the original text but is unreachable.
     enter = replace(enter, "    FRAME_ROOT(frame) = parent == NULL;", "    FRAME_ROOT(frame) = 3;")
+    enter = replace(enter, "    FRAME_CLEAR_STACK_AUX(sf);", "    FRAME_INIT_STACK_AUX(sf, true);")
     stats = module(source, "generate-slow").COUNTERS
     statvars = (
         "\n#ifdef QJS_INTERP_FRAME_DIAGNOSTICS\n"
@@ -118,8 +119,8 @@ STATS
     if(JS_IsException(this_obj))goto original_push_exception;
     /* Both original operands own the same live function. Drop one provably
        nonlast reference and transfer that operand slot to the new object. */
-    assert(callee->header.ref_count>=2);
-    callee->header.ref_count--;
+    assert(JS_REF_COUNT(callee)>=2);
+    JS_REF_COUNT(callee)--;
     argv[-2]=this_obj;
 ENTER
     goto construct_step_done;

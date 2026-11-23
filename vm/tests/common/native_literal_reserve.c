@@ -140,6 +140,8 @@ static size_t trial(const struct Fixture *test, bool reserve, size_t fault)
     assert(!JS_IsException(fn));
     JSValue probe = JS_NewCFunction(ctx, probe_ordinary, "probe", 0);
     assert(!JS_IsException(probe));
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &memory, &drain);
     JSMemoryUsage before;
     JS_ComputeMemoryUsage(rt, &before);
     size_t start = memory.sequence;
@@ -169,6 +171,7 @@ static size_t trial(const struct Fixture *test, bool reserve, size_t fault)
     }
     JS_FreeValue(ctx, probe);
     JS_FreeValue(ctx, fn);
+    oom_undrain_arenas(rt, &drain);
     JS_RunGC(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

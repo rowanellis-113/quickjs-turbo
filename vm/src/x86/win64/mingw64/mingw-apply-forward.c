@@ -96,7 +96,7 @@ FRAME_CODE int JS_FrameApplyForwardCall(JSFrameRegisterState *state)
     if (shape->prop_count > 32)
         MISS(6);
     for (int i = 0; i < shape->prop_count; i++) {
-        JSShapeProperty *property = &shape->prop[i];
+        JSShapeProperty *property = &get_shape_prop(shape)[i];
         if (property->atom != JS_ATOM_length)
             continue;
         JSValue value = array->prop[i].u.value;

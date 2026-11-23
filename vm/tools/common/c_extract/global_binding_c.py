@@ -13,8 +13,14 @@ from common.paths import source_file as _frame_source_file
 
 def inspect_global_invariants(source):
     core = _frame_source_file(source, "quickjs.c").read_text(encoding="utf-8")
-    assert "h = (uintptr_t)atom & sh->prop_hash_mask;" in core
-    assert "return prop_hash_end(sh) - ((intptr_t)sh->prop_hash_mask + 1);" in core
+    assert (
+        "h = hash_atom(atom, sh->prop_hash_mask);" in core
+        or "h = (uintptr_t)atom & sh->prop_hash_mask;" in core
+    )
+    assert (
+        "return sh->hash_table + sh->prop_hash_mask + 1;" in core
+        or "return prop_hash_end(sh) - ((intptr_t)sh->prop_hash_mask + 1);" in core
+    )
     shape_property = core[
         core.index("typedef struct JSShapeProperty {") : core.index("} JSShapeProperty;")
     ]

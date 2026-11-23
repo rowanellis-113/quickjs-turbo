@@ -22,7 +22,10 @@ _Static_assert(FRAME_CACHE_SLOTS == 16 && sizeof(JSFrameCallSite) == 32 &&
                    offsetof(JSFrameCallSite, code_identity) == 16 &&
                    offsetof(JSFrameCallSite, argc) == 24,
                "source-owned shared call/global weak cells");
-_Static_assert(offsetof(JSRefCountHeader, ref_count) == 0 && sizeof(_Atomic(unsigned char)) == 1,
+_Static_assert((offsetof(JSMallocBlockHeader, user_data) -
+                    offsetof(JSMallocBlockHeader, ref_count) ==
+                -QJS_ABI_REF_COUNT_OFFSET) &&
+                   sizeof(_Atomic(unsigned char)) == 1,
                "actual inline duplicate and byte modes");
 GLOBAL_CODE int JS_LinuxGlobalBindingInit(JSFrameRegisterState *state)
 {

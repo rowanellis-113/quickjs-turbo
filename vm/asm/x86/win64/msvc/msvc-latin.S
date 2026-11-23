@@ -22,19 +22,19 @@ JS_FrameLatinIndexConsume:
     mov r9d, DWORD PTR [r8+QJS_ABI_BIT_JSString_hash_BYTE]
     shr r9d, 28
     and r9d, 3
-    lea r10, [r8+24]
+    lea r10, [r8+QJS_ABI_SIZE_JSString]
     test r9d, r9d
     jz JS_FrameLatinIndexConsume_data
     cmp r9d, 1
     je JS_FrameLatinIndexConsume_slice
     cmp r9d, 2
     jne JS_FrameTruthMSVCOldSlow
-    mov r10, QWORD PTR [r8+24]
+    mov r10, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
     jmp JS_FrameLatinIndexConsume_data
 JS_FrameLatinIndexConsume_slice:
-    mov r10, QWORD PTR [r8+24]
-    mov ecx, DWORD PTR [r8+32]
-    lea r10, [r10+rcx+24]
+    mov r10, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
+    mov ecx, DWORD PTR [r8+QJS_ABI_SIZE_JSString+8]
+    lea r10, [r10+rcx+QJS_ABI_SIZE_JSString]
 JS_FrameLatinIndexConsume_data:
     test BYTE PTR [r8+QJS_ABI_BIT_JSString_is_wide_char_BYTE], QJS_ABI_BIT_JSString_is_wide_char_MASK
     jnz JS_FrameLatinIndexConsume_wide
@@ -90,19 +90,19 @@ JS_FrameLatinIndexKeep:
     mov r9d, DWORD PTR [r8+QJS_ABI_BIT_JSString_hash_BYTE]
     shr r9d, 28
     and r9d, 3
-    lea r10, [r8+24]
+    lea r10, [r8+QJS_ABI_SIZE_JSString]
     test r9d, r9d
     jz JS_FrameLatinIndexKeep_data
     cmp r9d, 1
     je JS_FrameLatinIndexKeep_slice
     cmp r9d, 2
     jne JS_FrameTruthMSVCOldSlow
-    mov r10, QWORD PTR [r8+24]
+    mov r10, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
     jmp JS_FrameLatinIndexKeep_data
 JS_FrameLatinIndexKeep_slice:
-    mov r10, QWORD PTR [r8+24]
-    mov ecx, DWORD PTR [r8+32]
-    lea r10, [r10+rcx+24]
+    mov r10, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
+    mov ecx, DWORD PTR [r8+QJS_ABI_SIZE_JSString+8]
+    lea r10, [r10+rcx+QJS_ABI_SIZE_JSString]
 JS_FrameLatinIndexKeep_data:
     test BYTE PTR [r8+QJS_ABI_BIT_JSString_is_wide_char_BYTE], QJS_ABI_BIT_JSString_is_wide_char_MASK
     jnz JS_FrameLatinIndexKeep_wide

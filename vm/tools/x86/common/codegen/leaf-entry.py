@@ -309,7 +309,7 @@ def leaf_kernel(ids, diagnostics, original_unready):
         "cmp DWORD PTR [rax+8], 0",
         "jge JS_FrameLeafCommit",
         "mov rax, QWORD PTR [rax]",
-        f"inc DWORD PTR [rax+{abi_rc}]",
+        f"inc DWORD PTR [rax{abi_rc:+d}]",
         "JS_FrameLeafCommit:",
         # Exactly one original call poll, then the original caller-owned
         # argument/function/receiver consumer. There is no C call before all
@@ -476,10 +476,12 @@ def character_set_kernel(ids, stream):
     f = a["offsets"]
     g = list(stream)
     size = a["sizes"]["JSString"]
-    assert a["bits"]["JSString.len"] == [[4, 1]]
-    assert a["bits"]["JSString.is_wide_char"] == [[7, 128]]
-    assert a["bits"]["JSString.kind"] == [[11, 16]] and a["bits"]["JSString.atom_type"] == [
-        [11, 64]
+    len_byte = a["bits"]["JSString.len"][0][0]
+    kind_byte = len_byte + 7
+    assert len_byte in (0, 4) and a["bits"]["JSString.len"] == [[len_byte, 1]]
+    assert a["bits"]["JSString.is_wide_char"] == [[len_byte + 3, 128]]
+    assert a["bits"]["JSString.kind"] == [[kind_byte, 16]] and a["bits"]["JSString.atom_type"] == [
+        [kind_byte, 64]
     ]
     at = g.index("cmp eax, 1", g.index("JS_FrameLeafInitialize:"))
     g[at:at] = ["cmp eax, 30", "je character_set_classify"]
@@ -544,13 +546,13 @@ def character_set_kernel(ids, stream):
             "test eax, 2147483648",
             "jnz leaf_classify_reject",
             "mov rax, QWORD PTR [r11+rax*8]",
-            "cmp DWORD PTR [rax+4], 1",
+            f"cmp DWORD PTR [rax+{len_byte}], 1",
             "jne leaf_classify_reject",
-            "test BYTE PTR [rax+11], 48",
+            f"test BYTE PTR [rax+{kind_byte}], 48",
             "jnz leaf_classify_reject",
-            "test BYTE PTR [rax+11], 128",
+            f"test BYTE PTR [rax+{kind_byte}], 128",
             "jnz leaf_classify_reject",
-            "test BYTE PTR [rax+11], 64",
+            f"test BYTE PTR [rax+{kind_byte}], 64",
             "jz leaf_classify_reject",
         ]
     code += [
@@ -566,9 +568,9 @@ def character_set_kernel(ids, stream):
         "cmp DWORD PTR [r8+8], -7",
         "jne JS_FrameLeafReject",
         "mov rax, QWORD PTR [r8]",
-        "cmp DWORD PTR [rax+4], 1",
+        f"cmp DWORD PTR [rax+{len_byte}], 1",
         "jne JS_FrameLeafReject",
-        "test BYTE PTR [rax+11], 48",
+        f"test BYTE PTR [rax+{kind_byte}], 48",
         "jnz JS_FrameLeafReject",
         f"movzx edx, BYTE PTR [rax+{size}]",
         f"mov rax, QWORD PTR [rsi+{f['JSContext.rt']}]",

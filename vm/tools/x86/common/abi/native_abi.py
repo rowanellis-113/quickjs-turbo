@@ -16,6 +16,11 @@ def current():
     return value
 
 
+def current_or_load(source):
+    value = _layout.get()
+    return value if value is not None else load(source)
+
+
 def source_abi(function):
     """A nested generation restores the caller's contract, including on failure."""
     source_parameter = next(iter(signature(function).parameters))
@@ -28,7 +33,7 @@ def source_abi(function):
         if (
             override is None
             and parent is not None
-            and parent.get("platform") == "linux-x86_64-sysv"
+            and parent.get("platform") in ("linux-x86_64-sysv", "win64-x86_64")
         ):
             override = parent
         selected = (

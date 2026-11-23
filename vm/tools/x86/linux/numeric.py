@@ -32,7 +32,7 @@ def contract(source, layout):
             raise ValueError("Review accepted numeric owner: " + name)
     if sha(source_file(source, "quickjs.c")) != data["pinned_core_sha256"]:
         raise ValueError("Review pinned numeric ownership and converter callers")
-    if layout["reference_count_model"] != "inline-header":
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review original inline BigInt reference header")
     fields = layout["offsets"]
     if fields["JSRuntime.u"] - fields["JSRuntime.module_loader_has_attr"] < 4:
@@ -61,6 +61,12 @@ def append(source, output, stream, blocks, layout):
     stream["code"][:] = [
         "jne JS_FrameAddLocalBigCold" if r == before else r for r in stream["code"]
     ]
+    offs = layout["offsets"]
+    rc_off = (
+        offs["JSMallocBlockHeader.ref_count"] - offs["JSMallocBlockHeader.user_data"]
+        if layout["reference_count_model"] == "allocator-prefix"
+        else offs["JSGCObjectHeader.ref_count"]
+    )
     rows = local_rows(source, layout)
     record = dict(
         status="generated-not-qualified",
@@ -72,7 +78,7 @@ def append(source, output, stream, blocks, layout):
         local_add_edges=2,
         local_mode=layout["offsets"]["JSRuntime.module_loader_has_attr"] + 3,
         leaf_abi="void(ctx=RDI,payload=RSI,tag=RDX);tail actual js_free_rt(rt=RDI,ptr=RSI)",
-        reference_header=0,
+        reference_header=rc_off,
         frame_growth=0,
         state_growth=0,
         new_strong_roots=0,
@@ -86,7 +92,14 @@ def render_native(source, layout):
     # by-value JSValue registers. No caller stack frame, Windows home space,
     # private compiler clone or guessed header is involved.
     contract(source, layout)
-    ctxrt = layout["offsets"]["JSContext.rt"]
+    offs = layout["offsets"]
+    ctxrt = offs["JSContext.rt"]
+    rc_off = (
+        offs["JSMallocBlockHeader.ref_count"] - offs["JSMallocBlockHeader.user_data"]
+        if layout["reference_count_model"] == "allocator-prefix"
+        else offs["JSGCObjectHeader.ref_count"]
+    )
+    rc_disp = f"{rc_off:+d}" if rc_off else ""
     name = "JS_FrameBigIntRelease"
     return [
         '.section .text.qjs_linux_bigint_release,"ax",@progbits',
@@ -102,9 +115,9 @@ def render_native(source, layout):
         "jne linux_bigint_release_control",
         "cmp rdx, -9",
         "jne linux_bigint_release_generic",
-        "cmp DWORD PTR [rsi], 0",
+        f"cmp DWORD PTR [rsi{rc_disp}], 0",
         "jle linux_bigint_release_generic",
-        "sub DWORD PTR [rsi], 1",
+        f"sub DWORD PTR [rsi{rc_disp}], 1",
         "jg linux_bigint_release_return",
         "mov rdi, QWORD PTR [rdi+" + str(ctxrt) + "]",
         "jmp js_free_rt",
@@ -211,9 +224,14 @@ double JS_FrameAtod(const char *,const char **,int,int,JSATODTempMem *);
         '__attribute__((visibility("hidden"))) _Atomic unsigned char JS_FrameBigIntReleaseControl',
         "actual byte control shared with SysV leaf",
     )
-    assertions = """
+    rc_assert = (
+        f'_Static_assert(offsetof(JSMallocBlockHeader,ref_count)-offsetof(JSMallocBlockHeader,user_data)=={layout["offsets"]["JSMallocBlockHeader.ref_count"] - layout["offsets"]["JSMallocBlockHeader.user_data"]},"actual prefix BigInt reference header");'
+        if layout["reference_count_model"] == "allocator-prefix"
+        else '_Static_assert(offsetof(JSBigInt,header.ref_count)==0,"actual inline BigInt reference header");'
+    )
+    assertions = f"""
 _Static_assert(sizeof(JSValue)==16 && offsetof(JSValue,tag)==8,"SysV JSValue pair");
-_Static_assert(offsetof(JSBigInt,header.ref_count)==0,"actual inline BigInt reference header");
+{rc_assert}
 _Static_assert(JS_TAG_BIG_INT==-9 && JS_TAG_SHORT_BIG_INT==7,"retained BigInt tags");
 _Static_assert(offsetof(JSRuntime,u)>offsetof(JSRuntime,module_loader_has_attr)+3,"original local-add padding");
 _Static_assert(sizeof(_Atomic unsigned char)==1,"one-byte release policy");

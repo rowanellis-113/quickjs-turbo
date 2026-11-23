@@ -53,15 +53,15 @@ JS_FrameStrictEqClean_right_narrow:
     je JS_FrameStrictEqClean_left_indirect
     test eax, eax
     jnz JS_FrameStrictEqClean_fallback
-    lea rax, [r8+24]
+    lea rax, [r8+QJS_ABI_SIZE_JSString]
     jmp JS_FrameStrictEqClean_left_data
 JS_FrameStrictEqClean_left_slice:
-    mov rax, QWORD PTR [r8+24]
-    mov ecx, DWORD PTR [r8+32]
-    lea rax, [rax+rcx+24]
+    mov rax, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
+    mov ecx, DWORD PTR [r8+QJS_ABI_SIZE_JSString+8]
+    lea rax, [rax+rcx+QJS_ABI_SIZE_JSString]
     jmp JS_FrameStrictEqClean_left_data
 JS_FrameStrictEqClean_left_indirect:
-    mov rax, QWORD PTR [r8+24]
+    mov rax, QWORD PTR [r8+QJS_ABI_SIZE_JSString]
 JS_FrameStrictEqClean_left_data:
     mov edx, DWORD PTR [r9+QJS_ABI_BIT_JSString_hash_BYTE]
     shr edx, 28
@@ -72,15 +72,15 @@ JS_FrameStrictEqClean_left_data:
     je JS_FrameStrictEqClean_right_indirect
     test edx, edx
     jnz JS_FrameStrictEqClean_fallback
-    lea rdx, [r9+24]
+    lea rdx, [r9+QJS_ABI_SIZE_JSString]
     jmp JS_FrameStrictEqClean_right_data
 JS_FrameStrictEqClean_right_slice:
-    mov rdx, QWORD PTR [r9+24]
-    mov ecx, DWORD PTR [r9+32]
-    lea rdx, [rdx+rcx+24]
+    mov rdx, QWORD PTR [r9+QJS_ABI_SIZE_JSString]
+    mov ecx, DWORD PTR [r9+QJS_ABI_SIZE_JSString+8]
+    lea rdx, [rdx+rcx+QJS_ABI_SIZE_JSString]
     jmp JS_FrameStrictEqClean_right_data
 JS_FrameStrictEqClean_right_indirect:
-    mov rdx, QWORD PTR [r9+24]
+    mov rdx, QWORD PTR [r9+QJS_ABI_SIZE_JSString]
 JS_FrameStrictEqClean_right_data:
     mov ecx, r11d
     and ecx, 196608

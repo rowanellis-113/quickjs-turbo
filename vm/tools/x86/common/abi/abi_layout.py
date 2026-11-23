@@ -19,7 +19,10 @@ def validate_measured_override(source, layout):
     valid_target = (
         platform == "linux-x86_64-sysv"
         and (linux_target or target.startswith("x86_64-apple-darwin"))
-    ) or (platform == "win64-x86_64" and target == "x86_64-pc-windows-msvc")
+    ) or (
+        platform == "win64-x86_64"
+        and target in ("x86_64-pc-windows-msvc", "x86_64-w64-mingw32")
+    )
     if not valid_target:
         raise ValueError("Unsupported measured native platform override")
     if (
@@ -32,11 +35,18 @@ def validate_measured_override(source, layout):
     compiler_input = Path(layout["compiler_input"])
     if hashlib.sha256(compiler_input.read_bytes()).hexdigest() != layout["compiler_input_sha256"]:
         raise ValueError("Measured Linux compiler input changed")
-    if (
-        layout.get("reference_count_model") != "inline-header"
-        or layout["offsets"]["JSGCObjectHeader.ref_count"] != 0
-    ):
-        raise ValueError("Review Linux reference-count model before native generation")
+    ref_model = layout.get("reference_count_model")
+    offsets = layout["offsets"]
+    valid_ref_model = (
+        ref_model == "inline-header" and offsets.get("JSGCObjectHeader.ref_count") == 0
+    ) or (
+        ref_model == "allocator-prefix"
+        and offsets.get("JSMallocBlockHeader.ref_count", 0)
+        - offsets.get("JSMallocBlockHeader.user_data", 0)
+        == -4
+    )
+    if not valid_ref_model:
+        raise ValueError("Review reference-count model before native generation")
     return layout
 
 

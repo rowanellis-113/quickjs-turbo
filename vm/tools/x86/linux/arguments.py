@@ -29,14 +29,21 @@ def asm_body(source, owner, name, layout, extra_values=None, expanded=None):
     text = (source / owner).read_text() if expanded is None else expanded
     text = text[text.index(name + ":") + len(name) + 1 : text.index(name + "_end:")]
     text = re.sub(r"/\*.*?\*/", "", text, flags=re.S)
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        layout["offsets"]["JSMallocBlockHeader.ref_count"]
+        - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else layout["offsets"]["JSGCObjectHeader.ref_count"]
+    )
     values = {
-        "QJS_ABI_HAS_PREFIX_RC": 0,
-        "QJS_ABI_REF_COUNT_OFFSET": 0,
+        "QJS_ABI_HAS_PREFIX_RC": int(prefix_rc),
+        "QJS_ABI_REF_COUNT_OFFSET": rc_off,
         "QJS_FRAME_DIAGNOSTICS": 0,
         "FRAME_STATE_NATIVE_LIMIT": 72,
     }
     values.update(extra_values or {})
-    for prefix, key in (("SIZE", "sizes"), ("OFF", "offsets")):
+    for prefix, key in (("SIZE", "sizes"), ("OFF", "offsets"), ("CONST", "constants")):
         values.update(
             {"QJS_ABI_" + prefix + "_" + n.replace(".", "_"): v for n, v in layout[key].items()}
         )
@@ -53,7 +60,12 @@ def asm_body(source, owner, name, layout, extra_values=None, expanded=None):
         if not row:
             continue
         if row.startswith(".if "):
-            conditions.append(bool(values[row[4:]]))
+            expr = row[4:].strip()
+            if " == " in expr:
+                lhs, rhs = expr.split(" == ", 1)
+                conditions.append(values[lhs.strip()] == int(rhs.strip(), 0))
+            else:
+                conditions.append(bool(values[expr]))
             continue
         if row == ".else":
             conditions[-1] = not conditions[-1]
@@ -65,6 +77,7 @@ def asm_body(source, owner, name, layout, extra_values=None, expanded=None):
             continue
         for n, v in sorted(values.items(), key=lambda p: len(p[0]), reverse=True):
             row = re.sub(r"\b" + re.escape(n) + r"\b", str(v), row)
+        row = row.replace("+-", "-")
         if "QJS_ABI_" in row or "FRAME_STATE_" in row:
             raise ValueError("Unmeasured argument ASM operand: " + row)
         rows.append(row)
@@ -75,7 +88,7 @@ def asm_body(source, owner, name, layout, extra_values=None, expanded=None):
 
 def append(source, output, stream, blocks, handlers, forward_leaves, layout):
     source_contract(source)
-    if layout["reference_count_model"] != "inline-header":
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review argument native reference model")
     added = []
     for name in ("Guard", "Cold", "OpClean", "Ready"):

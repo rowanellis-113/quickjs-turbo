@@ -7,7 +7,7 @@ No pointer cache, allocation, C call, length update or last release on a hit.
 
 def append(name, layout, rc, emit, label, next_):
     fields = layout["offsets"]
-    assert layout["reference_count_model"] == "inline-header"
+    assert layout["reference_count_model"] in ("inline-header", "allocator-prefix")
     assert layout["sizes"]["JSValue"] == 16 and layout["sizes"]["JSShapeProperty"] == 8
     assert fields["JSShapeProperty.atom"] == 4
     fast_byte, fast_mask = layout["bits"]["JSObject.fast_array"][0]
@@ -30,14 +30,33 @@ def append(name, layout, rc, emit, label, next_):
         "mov r9d, DWORD PTR [r13-" + str(32 if writing else 16) + "]",
         "test r9d, r9d",
         "js interp_slow",
-        "mov ecx, r9d",
-        "or r9d, 2147483648",
-        f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
-        f"and ecx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
-        "neg rcx",
-        "mov ecx, DWORD PTR [r10+rcx*4-4]",
-        f"add r10, {fields['JSShape.prop']}",
     )
+    if layout["reference_count_model"] == "allocator-prefix":
+        emit(
+            "or r9d, 2147483648",
+            "mov eax, r9d",
+            "mov rcx, 7046029254386353131",
+            "imul rax, rcx",
+            "shr rax, 32",
+            f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
+            f"mov ecx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
+            f"lea r10, [r10+rcx*4+{fields['JSShape.hash_table'] + 4}]",
+            "inc ecx",
+            "imul rax, rcx",
+            "shr rax, 32",
+            "neg rax",
+            "mov ecx, DWORD PTR [r10+rax*4-4]",
+        )
+    else:
+        emit(
+            "mov ecx, r9d",
+            "or r9d, 2147483648",
+            f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
+            f"and ecx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
+            "neg rcx",
+            "mov ecx, DWORD PTR [r10+rcx*4-4]",
+            f"add r10, {fields['JSShape.prop']}",
+        )
     label(p + "_probe")
     emit(
         "test ecx, ecx",

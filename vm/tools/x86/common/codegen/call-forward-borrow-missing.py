@@ -23,7 +23,8 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from abi_layout import load as load_layout, constants as abi_constants
+from abi_layout import constants as abi_constants
+from native_abi import current_or_load as load_layout
 from pathlib import Path
 import hashlib, importlib.util, json, re, subprocess
 

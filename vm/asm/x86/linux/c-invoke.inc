@@ -147,7 +147,8 @@ linux_c_builtin_miss:
     cmp r11d, @OBJ_ARRAY_FLAG_MASK@
     jne linux_c_invoke_ordinary
     mov r11, QWORD PTR [r10+@OBJ_SHAPE@]
-    add r11, @SHAPE_PROPERTIES@
+    mov eax, DWORD PTR [r11+@SHAPE_HASH_MASK@]
+    lea r11, [r11+rax*4+@SHAPE_PROP_BASE@]
     cmp DWORD PTR [r11+@SHAPE_ATOM@], @ATOM_LENGTH@
     jne linux_c_invoke_ordinary
     mov r11d, DWORD PTR [r11]
@@ -193,14 +194,14 @@ linux_c_invoke_stack_ready:
     push rbp
 .cfi_adjust_cfa_offset 8
 .cfi_offset rbp, -16
-    sub rsp, 96
-.cfi_adjust_cfa_offset 96
+    sub rsp, 112
+.cfi_adjust_cfa_offset 112
     mov rbp, rsp
-.cfi_def_cfa rbp, 112
-    mov QWORD PTR [rbp+72], rdi
-    mov QWORD PTR [rbp+80], rsi
-    mov DWORD PTR [rbp+88], r8d
-    mov WORD PTR [rbp+94], cx
+.cfi_def_cfa rbp, 128
+    mov QWORD PTR [rbp+80], rdi
+    mov QWORD PTR [rbp+88], rsi
+    mov DWORD PTR [rbp+96], r8d
+    mov WORD PTR [rbp+102], cx
     mov r10, QWORD PTR [rbx+56]
     mov rax, QWORD PTR [r10+@RT_SF@]
     mov QWORD PTR [rbp+@SF_PREV@], rax
@@ -212,6 +213,8 @@ linux_c_invoke_stack_ready:
     cmovb eax, ecx
     mov WORD PTR [rbp+@SF_ARGC@], ax
     mov BYTE PTR [rbp+@SF_STRICT@], 0
+    mov BYTE PTR [rbp+@SF_CTOR@], 0
+    mov QWORD PTR [rbp+@SF_GC_OBJ@], 0
     test r9d, r9d
     jz linux_c_invoke_undefined_this
     movdqu xmm2, XMMWORD PTR [rdx-32]
@@ -227,11 +230,11 @@ linux_c_invoke_this_ready:
     mov QWORD PTR [rbp+@SF_ARGV@], rsp
     mov rsi, rdx
     mov rdi, rsp
-    mov ecx, DWORD PTR [rbp+88]
+    mov ecx, DWORD PTR [rbp+96]
     shl ecx, 1
     rep movsq
-    movzx ecx, WORD PTR [rbp+94]
-    sub ecx, DWORD PTR [rbp+88]
+    movzx ecx, WORD PTR [rbp+102]
+    sub ecx, DWORD PTR [rbp+96]
 linux_c_invoke_fill:
     mov QWORD PTR [rdi], 0
     mov QWORD PTR [rdi+8], @TAG_UNDEFINED@
@@ -242,11 +245,11 @@ linux_c_invoke_args_ready:
     mov r10, QWORD PTR [rbx+56]
     mov al, BYTE PTR [r10+@RT_SHARED@]
     and al, 4
-    mov BYTE PTR [rbp+92], al
+    mov BYTE PTR [rbp+100], al
     mov QWORD PTR [r10+@RT_SF@], rbp
     or BYTE PTR [r10+@RT_SHARED@], 4
-/* rootSP is RBP+112; its canonical kind is rootSP+16. */
-    mov DWORD PTR [rbp+128], 0
+/* rootSP is RBP+128; its canonical kind is rootSP+16. */
+    mov DWORD PTR [rbp+144], 0
     mov rax, QWORD PTR [rbp+@SF_FUNC@]
     mov rdi, QWORD PTR [rax+@OBJ_REALM@]
     mov r11, QWORD PTR [rax+@OBJ_FUNCTION@]
@@ -254,7 +257,7 @@ linux_c_invoke_args_ready:
     movq rsi, xmm2
     movhlps xmm1, xmm2
     movq rdx, xmm1
-    mov ecx, DWORD PTR [rbp+88]
+    mov ecx, DWORD PTR [rbp+96]
     mov r8, QWORD PTR [rbp+@SF_ARGV@]
 linux_c_invoke_call:
     call r11
@@ -271,10 +274,10 @@ linux_c_invoke_return:
     mov QWORD PTR [rbx+48], rdx
 linux_c_invoke_result_ready:
     mov r10, QWORD PTR [rbx+56]
-    mov DWORD PTR [rbp+128], 3
+    mov DWORD PTR [rbp+144], 3
     mov al, BYTE PTR [r10+@RT_SHARED@]
     and al, 251
-    or al, BYTE PTR [rbp+92]
+    or al, BYTE PTR [rbp+100]
     mov BYTE PTR [r10+@RT_SHARED@], al
     mov rax, QWORD PTR [rbp+@SF_PREV@]
     mov QWORD PTR [r10+@RT_SF@], rax
@@ -293,13 +296,13 @@ linux_c_invoke_refresh:
 linux_c_invoke_limit:
     mov QWORD PTR [rbx+72], rdx
 linux_c_invoke_refreshed:
-    mov rdi, QWORD PTR [rbp+72]
-    mov rsi, QWORD PTR [rbp+80]
+    mov rdi, QWORD PTR [rbp+80]
+    mov rsi, QWORD PTR [rbp+88]
     movzx eax, BYTE PTR [rbx+160]
     mov rsp, rbp
-.cfi_def_cfa rsp, 112
-    add rsp, 96
-.cfi_adjust_cfa_offset -96
+.cfi_def_cfa rsp, 128
+    add rsp, 112
+.cfi_adjust_cfa_offset -112
     pop rbp
 .cfi_restore rbp
 .cfi_adjust_cfa_offset -8

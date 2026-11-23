@@ -35,7 +35,7 @@ def contract(source, layout):
             raise ValueError("Review comparison semantic owner: " + name)
     if sha(source_file(source, "quickjs.c")) != data["pinned_core_sha256"]:
         raise ValueError("Review pinned comparison core before native admission")
-    if layout["reference_count_model"] != "inline-header":
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review comparison reference profile")
     for name, position in data["string_bits"].items():
         if layout["bits"][name] != position:

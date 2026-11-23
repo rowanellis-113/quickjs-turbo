@@ -18,8 +18,7 @@ from x86.common.paths_x86 import (
 
 _frame_activate_tools()
 from c_source_match import replace_one
-from native_abi import source_abi
-from abi_layout import load as load_layout
+from native_abi import current_or_load as load_layout, source_abi
 from native_build import find_objdump
 
 """Extract JSON traversal bodies and current prepared-capsule declarations. MIT."""
@@ -2837,7 +2836,7 @@ def direct_quote_private(source, header, *, msvc=False, reference_count_model=No
         # exports or formerly unreferenced early COMDAT retention.
         text = funcs["string_buffer_widen"] + "\n" + funcs["string_buffer_write16"] + "\n" + text
         names += ("string_buffer_widen", "string_buffer_write16")
-        from abi_layout import load as load_layout
+        from native_abi import current_or_load as load_layout
 
         if (
             reference_count_model

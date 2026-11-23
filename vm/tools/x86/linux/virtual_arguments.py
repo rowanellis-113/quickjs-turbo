@@ -9,11 +9,23 @@ def generate(source, output, actual_input, layout):
     # Extract from the same actual backported input that the core/layout use.
     # No COFF layout, cloned struct, guessed compiler clone or public ABI change.
     signatures = (
-        "static inline uintptr_t js_get_stack_pointer(void)",
-        "static inline bool js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)",
-        "static JSValue js_dup(JSValueConst v)",
-        "static inline uint32_t *prop_hash_end(JSShape *sh)",
-        "static inline JSShapeProperty *find_own_property(JSProperty **ppr,",
+        (
+            "static inline uintptr_t js_get_stack_pointer(void)",
+            "static inline bool js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)",
+            "static JSValue js_dup(JSValueConst v)",
+            "static inline JSShapeProperty *get_shape_prop(JSShape *sh)",
+            "static inline uint32_t *prop_hash_end(JSShape *sh)",
+            "static uintptr_t hash_atom(JSAtom atom, uintptr_t mask)",
+            "static inline JSShapeProperty *find_own_property(JSProperty **ppr,",
+        )
+        if layout["reference_count_model"] == "allocator-prefix"
+        else (
+            "static inline uintptr_t js_get_stack_pointer(void)",
+            "static inline bool js_check_stack_overflow(JSRuntime *rt, size_t alloca_size)",
+            "static JSValue js_dup(JSValueConst v)",
+            "static inline uint32_t *prop_hash_end(JSShape *sh)",
+            "static inline JSShapeProperty *find_own_property(JSProperty **ppr,",
+        )
     )
     helpers = [function(actual_input, s) for s in signatures]
     helpers[2] = helpers[2].replace(
@@ -41,6 +53,7 @@ def generate(source, output, actual_input, layout):
         + "\n".join(helpers)
         + """
 extern void close_var_ref(JSRuntime *,JSVarRef *); /* unused shared inline declaration */
+#include "interpreter-private-abi.h"
 #include "src/x86/linux/interpreter-private-compat.inc"
 #include "src/common/call/interpreter-retained-context.inc"
 """

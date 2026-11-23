@@ -72,7 +72,7 @@ def frame_body(body, layout, diagnostics=False):
                 "cmp DWORD PTR [r11+8], 0",
                 "jge owned_js_copy_next",
                 "mov rax, QWORD PTR [r11]",
-                f"inc DWORD PTR [rax+{abi_rc}]",
+                f"inc DWORD PTR [rax{abi_rc:+d}]",
                 "owned_js_copy_next:",
                 "add r10, 16",
                 "add r11, 16",

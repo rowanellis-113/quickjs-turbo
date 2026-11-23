@@ -54,7 +54,7 @@ int JS_FrameArrayCopySubArray(JSContext *ctx, JSValue obj, int64_t to, int64_t f
         p->shape->proto != JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_ARRAY]) ||
         p->u.array.count != length || JS_VALUE_GET_TAG(p->prop[0].u.value) != JS_TAG_INT ||
         JS_VALUE_GET_INT(p->prop[0].u.value) != length ||
-        !(p->shape->prop->flags & JS_PROP_WRITABLE))
+        !(get_shape_prop(p->shape)->flags & JS_PROP_WRITABLE))
         goto original;
 
     /* Check the live chain as well as the upstream summary flag. Creation
@@ -71,7 +71,7 @@ int JS_FrameArrayCopySubArray(JSContext *ctx, JSValue obj, int64_t to, int64_t f
         object_prototype->shape->proto || object_prototype->shape->prop_count > 32)
         goto original;
     for (i = 0; i < object_prototype->shape->prop_count; i++)
-        if (__JS_AtomIsTaggedInt(object_prototype->shape->prop[i].atom))
+        if (__JS_AtomIsTaggedInt(get_shape_prop(object_prototype->shape)[i].atom))
             goto original;
 
     /* Normal and native synthetic C frames both publish this original argv.

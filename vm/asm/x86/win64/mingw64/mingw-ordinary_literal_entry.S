@@ -392,7 +392,7 @@ JS_FrameTypeofValueClean_atom76:
     mov ecx, 76
     jmp JS_FrameTypeofValueClean_result
 JS_FrameTypeofValueClean_atom150:
-    mov ecx, 150
+    mov ecx, QJS_ABI_CONST_JS_ATOM_bigint
     jmp JS_FrameTypeofValueClean_result
 JS_FrameTypeofValueClean_atom78:
     mov ecx, 78
@@ -554,7 +554,7 @@ JS_FrameTypeofValueDirty_atom76:
     mov ecx, 76
     jmp JS_FrameTypeofValueDirty_result
 JS_FrameTypeofValueDirty_atom150:
-    mov ecx, 150
+    mov ecx, QJS_ABI_CONST_JS_ATOM_bigint
     jmp JS_FrameTypeofValueDirty_result
 JS_FrameTypeofValueDirty_atom78:
     mov ecx, 78

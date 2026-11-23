@@ -6,9 +6,9 @@ from c_workers import module
 
 def append(source, stream, layout):
     expected_sizes = {"JSValue": 16, "JSShapeProperty": 8, "JSProperty": 16}
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
     expected_bits = {
-        "JSObject.extensible": [[5, 1]],
-        "JSContext.std_array_prototype": [[55, 128]],
+        "JSObject.extensible": [[16, 2]] if prefix_rc else [[5, 1]],
         "JSShapeProperty.flags": [[3, 4]],
     }
     # Shape/object/context geometry is measured for this compiler input. The
@@ -20,7 +20,13 @@ def append(source, stream, layout):
     for name, value in expected_bits.items():
         if layout["bits"].get(name) != value:
             raise ValueError("Review dense append bit encoding: " + name)
-    if layout["reference_count_model"] != "inline-header":
+    std_proto_bits = layout["bits"].get("JSContext.std_array_prototype")
+    if (
+        len(std_proto_bits or ()) != 1
+        or (not prefix_rc and std_proto_bits != [[55, 128]])
+    ):
+        raise ValueError("Review dense append bit encoding: JSContext.std_array_prototype")
+    if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review native append release protocol")
     code = stream["code"]
     start = code.index("interp_put_array_el:")
@@ -51,9 +57,10 @@ def append(source, stream, layout):
         "JSObject.shape",
         "JSObject.prop",
         "JSShape.proto",
-        "JSShape.prop",
+        "JSShape.hash_table" if prefix_rc else "JSShape.prop",
         "JSContext.class_proto",
     ]
+    measured_bits = {**expected_bits, "JSContext.std_array_prototype": std_proto_bits}
     return (
         [(name, rows)],
         ["JS_FrameVarargsArrayAppendData"],
@@ -64,7 +71,7 @@ def append(source, stream, layout):
                 (source / "tools/x86/common/codegen/array-append.py").read_bytes()
             ).hexdigest(),
             measured_fields={name: layout["offsets"][name] for name in fields},
-            measured_bits=expected_bits,
+            measured_bits=measured_bits,
             measured_sizes=expected_sizes,
             length_guard="INT32_MAX extension retains original uint32-to-number C semantics",
             diagnostics="atomic counter update only when explicitly observed",

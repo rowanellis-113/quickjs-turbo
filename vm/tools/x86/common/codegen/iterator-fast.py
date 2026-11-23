@@ -22,7 +22,7 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from abi_layout import load as load_layout
+from native_abi import current_or_load as load_layout
 import argparse, hashlib, json, re, struct, subprocess
 from pathlib import Path
 

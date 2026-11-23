@@ -7,15 +7,15 @@ def render(source, layout, ordinary):
     start = ordinary.index(
         "mov r10, QWORD PTR [rbx+56]", ordinary.index("linux_c_invoke_result_ready:")
     )
-    end = ordinary.index("mov rdi, QWORD PTR [rbp+72]", start)
+    end = ordinary.index("mov rdi, QWORD PTR [rbp+80]", start)
     finish = ordinary[start:end].replace("[rbp+", "[rsp+")
     setup = """
-sub rsp, 104
-.cfi_adjust_cfa_offset 104
-mov QWORD PTR [rsp+72], rdi
-mov QWORD PTR [rsp+80], rsi
-mov DWORD PTR [rsp+88], r8d
-mov WORD PTR [rsp+94], cx
+sub rsp, 120
+.cfi_adjust_cfa_offset 120
+mov QWORD PTR [rsp+80], rdi
+mov QWORD PTR [rsp+88], rsi
+mov DWORD PTR [rsp+96], r8d
+mov WORD PTR [rsp+102], cx
 dec DWORD PTR [rsi+@CTX_INTERRUPT@]
 mov r10, QWORD PTR [rbx+56]
 mov rax, QWORD PTR [r10+@RT_SF@]
@@ -26,15 +26,15 @@ mov QWORD PTR [rsp+@SF_ARGV@], rdx
 pxor xmm0, xmm0
 movdqu XMMWORD PTR [rsp+32], xmm0
 movdqu XMMWORD PTR [rsp+48], xmm0
-mov QWORD PTR [rsp+64], 0
+mov QWORD PTR [rsp+72], 0
 mov WORD PTR [rsp+@SF_ARGC@], r8w
 mov al, BYTE PTR [r10+@RT_SHARED@]
 and al, 4
-mov BYTE PTR [rsp+92], al
-mov BYTE PTR [rsp+93], 0
+mov BYTE PTR [rsp+100], al
+mov BYTE PTR [rsp+101], 0
 mov QWORD PTR [r10+@RT_SF@], rsp
 or BYTE PTR [r10+@RT_SHARED@], 4
-mov DWORD PTR [rsp+128], 0
+mov DWORD PTR [rsp+144], 0
 """.strip().splitlines()
     # Exact accepted bitwise double_is_int32 boxing, including -0,NaN and
     # INT32_MIN. Only labels differ from numeric-invoke.py's shared algorithm.
@@ -127,11 +127,11 @@ scalar_pop_value:
             *body,
             *packed,
             *finish.replace("linux_c_invoke_", name + "_").splitlines(),
-            "mov rdi, QWORD PTR [rsp+72]",
-            "mov rsi, QWORD PTR [rsp+80]",
+            "mov rdi, QWORD PTR [rsp+80]",
+            "mov rsi, QWORD PTR [rsp+88]",
             "xor eax, eax",
-            "add rsp, 104",
-            ".cfi_adjust_cfa_offset -104",
+            "add rsp, 120",
+            ".cfi_adjust_cfa_offset -120",
             "ret",
             ".cfi_endproc",
             ".size " + name + ", .-" + name,

@@ -24,7 +24,8 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from abi_layout import load as load_layout, constants as layout_constants
+from abi_layout import constants as layout_constants
+from native_abi import current_or_load as load_layout
 
 
 def append(masm, gas, entries, diagnostics, source=None):

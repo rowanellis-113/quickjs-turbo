@@ -22,8 +22,11 @@ def enabled(build):
 
 
 def blocks(build, abi, generation, fallbacks=None, method_learning=False):
+    from abi_layout import constants as abi_constants
+
     fields = abi["offsets"]
-    assert abi["reference_count_model"] == "inline-header"
+    assert abi["reference_count_model"] in ("inline-header", "allocator-prefix")
+    rc = abi_constants(abi)["QJS_ABI_REF_COUNT_OFFSET"]
     # Windows profiles describe the original core followed by owned tails.
     # Linux measures the complete overlaid types, including those fields.
     bc_extra = fields.get("JSFunctionBytecode.property_ic", abi["sizes"]["JSFunctionBytecode"])
@@ -48,7 +51,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 "mov r8, QWORD PTR [r13-" + str(receiver_slot) + "]",
             ]
             if kind != 2:
-                g += ["cmp DWORD PTR [r8], 1", "jle " + slow]
+                g += [f"cmp DWORD PTR [r8{rc:+d}], 1", "jle " + slow]
             # Arrays/typed arrays and other exotic receivers retain the R9
             # dispatch before metadata lookup. They cannot learn prototype or
             # transition ways; routing every method/length miss through the IC
@@ -97,16 +100,16 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     "jz " + p + "_target_active",
                     f"and BYTE PTR [rax+{fields['JSShape.is_hashed']}], 191",
                     f"mov rcx, QWORD PTR [rax+{fields['JSShape.proto']}]",
-                    "inc DWORD PTR [rcx]",
+                    f"inc DWORD PTR [rcx{rc:+d}]",
                     p + "_target_active:",
-                    "inc DWORD PTR [rax]",
+                    f"inc DWORD PTR [rax{rc:+d}]",
                     f"mov QWORD PTR [r8+{fields['JSObject.shape']}], rax",
-                    "dec DWORD PTR [r10]",
+                    f"dec DWORD PTR [r10{rc:+d}]",
                     f"test DWORD PTR [rdx+{rt_extra + 12}], 4",
                     "jnz " + p + "_store",
                     f"mov ecx, DWORD PTR [r10+{fields['JSShape.is_hashed']}]",
                     "shr ecx, 8",
-                    "cmp DWORD PTR [r10], ecx",
+                    f"cmp DWORD PTR [r10{rc:+d}], ecx",
                     "jne " + p + "_store",
                     f"mov rcx, QWORD PTR [r10+{fields['JSShape.proto']}]",
                     "test rcx, rcx",
@@ -114,7 +117,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     f"or BYTE PTR [r10+{fields['JSShape.is_hashed']}], 64",
                     # Successor owns the same prototype before this decref;
                     # it cannot be a last release or require a C boundary.
-                    "dec DWORD PTR [rcx]",
+                    f"dec DWORD PTR [rcx{rc:+d}]",
                     "jmp " + p + "_store",
                     p + "_replace:",
                     "mov ecx, DWORD PTR [r11+8]",
@@ -123,17 +126,17 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     "cmp DWORD PTR [rcx+8], 0",
                     "jge " + p + "_store_at",
                     "mov rax, QWORD PTR [rcx]",
-                    "cmp DWORD PTR [rax], 1",
+                    f"cmp DWORD PTR [rax{rc:+d}], 1",
                     "jle " + slow,
                     # Replacing obj.value===obj also consumes the receiver
                     # operand. Two references would BOTH be released here;
                     # defer the final release to the published C boundary.
                     "cmp rax, r8",
                     "jne " + p + "_old_ref_safe",
-                    "cmp DWORD PTR [rax], 2",
+                    f"cmp DWORD PTR [rax{rc:+d}], 2",
                     "jle " + slow,
                     p + "_old_ref_safe:",
-                    "dec DWORD PTR [rax]",
+                    f"dec DWORD PTR [rax{rc:+d}]",
                     "jmp " + p + "_store_at",
                     p + "_store:",
                     "mov ecx, DWORD PTR [r11+8]",
@@ -144,7 +147,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     "mov rdx, QWORD PTR [r13-8]",
                     "mov QWORD PTR [rcx], rax",
                     "mov QWORD PTR [rcx+8], rdx",
-                    "dec DWORD PTR [r8]",
+                    f"dec DWORD PTR [r8{rc:+d}]",
                     "sub r13, 32",
                     "add r12, 5",
                     "movzx eax, BYTE PTR [r12]",
@@ -178,7 +181,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     "mov rdx, QWORD PTR [rcx+8]",
                     "test edx, edx",
                     "jns " + ready,
-                    "inc DWORD PTR [rax]",
+                    f"inc DWORD PTR [rax{rc:+d}]",
                     "jmp " + ready,
                     p + "_unset:",
                     "xor eax, eax",
@@ -187,7 +190,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 ]
                 if kind == 1:
                     g += [
-                        "dec DWORD PTR [r8]",
+                        f"dec DWORD PTR [r8{rc:+d}]",
                         "mov QWORD PTR [r13-16], rax",
                         "mov QWORD PTR [r13-8], rdx",
                     ]
@@ -347,7 +350,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
     for line in ordinary[start:stop]:
         line = re.sub(r"\b\w+\b", lambda m: replacements.get(m[0], m[0]), line)
         line = line.replace("property_ic_M1_", "property_ic_borrowed_")
-        if line == "dec DWORD PTR [r8]":
+        if line == f"dec DWORD PTR [r8{rc:+d}]":
             continue
         line = line.replace("[r13-16]", "[r13]").replace("[r13-8]", "[r13+8]")
         if line == "add r12, 5":
@@ -355,7 +358,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
         body.append(line)
     body += [
         fallback + ":",
-        "inc DWORD PTR [r8]",
+        f"inc DWORD PTR [r8{rc:+d}]",
         "mov QWORD PTR [r13], r8",
         "mov QWORD PTR [r13+8], -1",
         "add r13, 16",

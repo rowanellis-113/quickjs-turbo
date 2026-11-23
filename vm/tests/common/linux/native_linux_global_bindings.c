@@ -232,6 +232,8 @@ static size_t fault_sample(size_t fault, unsigned *rejected)
         JS_FreeValue(ctx, result);
     }
     JS_RunGC(rt);
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &ledger, &drain);
     ledger.sequence = 0;
     ledger.fail_at = fault;
     result = JS_Call(ctx, fn, JS_UNDEFINED, 1, &n);
@@ -243,6 +245,7 @@ static size_t fault_sample(size_t fault, unsigned *rejected)
     assert(!JS_IsException(result));
     JS_FreeValue(ctx, result);
     JS_FreeValue(ctx, fn);
+    oom_undrain_arenas(rt, &drain);
     JS_FreeContext(ctx);
     JS_RunGC(rt);
     JS_FreeRuntime(rt);

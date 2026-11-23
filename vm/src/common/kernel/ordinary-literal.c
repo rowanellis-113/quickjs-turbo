@@ -340,12 +340,6 @@ static FRAME_INLINE uint32_t ord_shape_initial_hash(JSObject *proto)
 static FRAME_CODE JSValue ord_literal_new(JSContext *ctx, JSObject *proto,
                                           const JSFunctionBytecode *b, const uint8_t *pc)
 {
-#if QJS_ABI_HAS_PREFIX_RC
-    (void)proto;
-    (void)b;
-    (void)pc;
-    return JS_NewObject(ctx);
-#else
     const uint8_t *end = b->byte_code_buf + b->byte_code_len;
     unsigned fields = 0;
     while (fields < 16 && pc < end) {
@@ -400,8 +394,13 @@ static FRAME_CODE JSValue ord_literal_new(JSContext *ctx, JSObject *proto,
         js_malloc(ctx, hash_bytes + sizeof(JSShape) + (size_t)reserve * sizeof(JSShapeProperty));
     if (!sh_alloc)
         return JS_EXCEPTION;
+#if QJS_ABI_HAS_PREFIX_RC
+    memset(sh_alloc, 0, sizeof(JSShape) + hash_bytes);
+    JSShape *shape = (JSShape *)sh_alloc;
+#else
     memset(sh_alloc, 0, hash_bytes + sizeof(JSShape));
     JSShape *shape = (JSShape *)(void *)((uint32_t *)sh_alloc + reserve);
+#endif
     JS_REF_COUNT(shape) = 1;
     add_gc_object(rt, &shape->header, JS_GC_OBJ_TYPE_SHAPE);
     if (proto)
@@ -417,7 +416,6 @@ static FRAME_CODE JSValue ord_literal_new(JSContext *ctx, JSObject *proto,
     /* The constructor consumes the factory reference on both success and OOM.
        The ordinary site takes its existing independent reference on success. */
     return qjs_literal_core_JS_NewObjectFromShape(ctx, shape, JS_CLASS_OBJECT, NULL);
-#endif
 }
 
 FRAME_CODE int JS_FrameOrdinaryLiteralStep(JSFrameRegisterState *s)

@@ -24,11 +24,14 @@ from x86.common.paths_x86 import (
 
 _frame_activate_tools()
 from native_abi import current as current_abi
+from abi_layout import constants as abi_constants
 
 
 def append(masm, gas, diagnostics, opcodes):
     layout = current_abi()
     abi_fields = layout["offsets"]
+    abi_rc = abi_constants(layout)["QJS_ABI_REF_COUNT_OFFSET"]
+    len_disp = layout["bits"]["JSString.len"][0][0]
     committed = 2304 if diagnostics else 64
     native = 2312 if diagnostics else 72
     shared = 2320 if diagnostics else 80
@@ -62,7 +65,7 @@ def append(masm, gas, diagnostics, opcodes):
         "cmp DWORD PTR [r10-8], -7",
         "jne " + tramp,
         "mov rdx, QWORD PTR [r10-32]",
-        "cmp DWORD PTR [rdx], 2",
+        f"cmp DWORD PTR [rdx{abi_rc:+d}], 2",
         "jne " + tramp,
         "cmp BYTE PTR [JS_FrameLocalRopeMode], 2",
         "je " + tramp,
@@ -220,18 +223,18 @@ def append(masm, gas, diagnostics, opcodes):
         "cmp DWORD PTR [r8+8], -7",
         "jne shared_concat_fallback",
         "mov r10, QWORD PTR [r8]",
-        "mov r11d, DWORD PTR [r10+4]",
+        f"mov r11d, DWORD PTR [r10{f'+{len_disp}' if len_disp else ''}]",
         "and r11d, 7fffffffh",
         "cmp r11d, 512",
         "jbe shared_concat_fallback",
         "cmp r11d, 8192",
         "ja shared_concat_fallback",
-        "cmp DWORD PTR [r10], 1",
+        f"cmp DWORD PTR [r10{abi_rc:+d}], 1",
         "jle shared_concat_fallback",
         "cmp DWORD PTR [r9+8], -7",
         "jne shared_concat_fallback",
         "mov r10, QWORD PTR [r9]",
-        "mov r11d, DWORD PTR [r10+4]",
+        f"mov r11d, DWORD PTR [r10{f'+{len_disp}' if len_disp else ''}]",
         "and r11d, 7fffffffh",
         "test r11d, r11d",
         "jz shared_concat_fallback",

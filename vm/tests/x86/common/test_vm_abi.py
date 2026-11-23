@@ -57,12 +57,15 @@ class PrivateABIContracts(unittest.TestCase):
         self.assertEqual(result["status"], "failed")
         self.assertEqual(result["differences"][0]["field"], "offsets.JSContext.rt")
 
-    def test_inline_contract_has_no_prefix_allocator_or_removed_frame_fields(self):
+    def test_prefix_contract_has_allocator_prefix_and_coro_owner_fields(self):
         text = abi_layout.c_contract(self.layout)
-        self.assertNotIn("offsetof(JSStackFrame, cur_gc_obj)", text)
-        self.assertNotIn("sizeof(JSMallocBlockHeader)", text)
-        self.assertIn("offsetof(JSString, header)", text)
-        self.assertEqual(abi_layout.constants(self.layout)["QJS_ABI_REF_COUNT_OFFSET"], 0)
+        self.assertIn("offsetof(JSStackFrame, cur_gc_obj)", text)
+        self.assertIn("sizeof(JSMallocBlockHeader)", text)
+        self.assertNotIn("offsetof(JSString, header)", text)
+        consts = abi_layout.constants(self.layout)
+        self.assertEqual(consts["QJS_ABI_REF_COUNT_OFFSET"], -4)
+        self.assertEqual(consts["QJS_ABI_HAS_PREFIX_RC"], 1)
+        self.assertEqual(consts["QJS_ABI_HAS_CORO_OWNER"], 1)
 
     def test_unchanged_contracts_do_not_invalidate_ninja(self):
         build = ROOT.parent / "build"

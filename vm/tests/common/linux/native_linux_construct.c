@@ -132,6 +132,8 @@ static size_t fault(size_t fail_at, int grown)
         JS_FreeValue(ctx, v);
     }
     assert(made == finalized);
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &a, &drain);
     a.sequence = 0;
     a.fail_at = fail_at;
     JSValue v = JS_Call(ctx, driver, JS_UNDEFINED, 1, &ctor);
@@ -150,6 +152,7 @@ static size_t fault(size_t fail_at, int grown)
     JS_FreeValue(ctx, v);
     JS_FreeValue(ctx, driver);
     JS_FreeValue(ctx, ctor);
+    oom_undrain_arenas(rt, &drain);
     JS_RunGC(rt);
     JS_FreeContext(ctx);
     JS_FreeRuntime(rt);

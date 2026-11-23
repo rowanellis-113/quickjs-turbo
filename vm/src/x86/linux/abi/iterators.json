@@ -2,10 +2,10 @@
   "schema": 1,
   "status": "reviewed-source-algorithms-pending-Linux-qualification",
   "owners": {
-    "tools/x86/common/codegen/iterator.py": "ffcf870ba33e28a4fa21a7ccef189f073d2260eeefe44710b3c0be103ef0b0f3",
-    "tools/x86/common/codegen/iterator-fast.py": "32869f6726086b8af32f7df121722da7aa44888395e8a08736a67a0a2ccc9745",
+    "tools/x86/common/codegen/iterator.py": "e1794224dbfae442cfc410cd14ae25fe70f03dbfbf20687edb52628da0398e9a",
+    "tools/x86/common/codegen/iterator-fast.py": "e338665df4448f7d57391cd6239d89336d76331e6beb89632b1e06c6dd229b56",
     "tools/x86/common/codegen/iterator-slow.py": "eb2a9477e60b1105ae4ef2cb8ec8d9f2f401ed3e3807f8ecabcb66d59ae6d3bc",
-    "tools/x86/common/codegen/iterator-checkpoint.py": "f708ec3b4a22c7fdfd6742d460b593268db14b1f96a673a0e8b16b105e1cc82d",
+    "tools/x86/common/codegen/iterator-checkpoint.py": "e1295e831f03c0e8872aa289cbf6fd50d7e9e46fc9e7dec432a7c827188b236c",
     "tools/x86/common/codegen/varargs.py": "efb360c4179562c614a772bd0c1a3189312d60ac04d46b27f7ff63cdc2e06684"
   },
   "metadata": "Existing combined tail byte after pc2line_len;prefix leaf/argument byte untouched",

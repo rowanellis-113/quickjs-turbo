@@ -26,7 +26,7 @@ LINUX_STRING_CODE JSValue JS_FrameLinuxSharedConcatSelect(JSContext *ctx, JSValu
     if (JS_VALUE_GET_TAG(left) == JS_TAG_STRING && JS_VALUE_GET_TAG(right) == JS_TAG_STRING) {
         JSString *a = JS_VALUE_GET_STRING(left), *b = JS_VALUE_GET_STRING(right);
         if (a->len > JS_STRING_ROPE_SHORT_LEN && a->len <= JS_STRING_ROPE_SHORT2_LEN &&
-            a->header.ref_count > 1 && b->len && b->len <= JS_STRING_ROPE_SHORT_LEN)
+            JS_REF_COUNT(a) > 1 && b->len && b->len <= JS_STRING_ROPE_SHORT_LEN)
             return JS_FrameSharedConcatRope(ctx, left, right);
     }
     return JS_ConcatString(ctx, left, right);
@@ -66,7 +66,7 @@ LINUX_STRING_CODE int JS_FrameLinuxStringAdd(JSFrameRegisterState *state)
         linux_string_policy(&qjs_linux_string_add_mode, "QJS_DISABLE_NATIVE_ADD_BOUNDARY") != 1)
         return JS_FrameInterpBig_add(state);
     if (left == JS_TAG_STRING_ROPE && right == JS_TAG_STRING &&
-        JS_VALUE_GET_STRING_ROPE(sp[-2])->header.ref_count == 2)
+        JS_REF_COUNT(JS_VALUE_GET_STRING_ROPE(sp[-2])) == 2)
         return JS_FrameLocalRopeAppendStep(state);
     return JS_FrameLinuxStringConcat(state);
 }

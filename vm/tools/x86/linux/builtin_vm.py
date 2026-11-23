@@ -5,7 +5,7 @@ def render(ordinary):
     start = ordinary.index(
         "mov rax, QWORD PTR [rbx+32]", ordinary.index("linux_c_invoke_result_ready:")
     )
-    end = ordinary.index("mov rdi, QWORD PTR [rbp+72]", start)
+    end = ordinary.index("mov rdi, QWORD PTR [rbp+80]", start)
     quota = ordinary[start:end]
     lines = [
         ".hidden JS_LinuxBuiltinControl, JS_LinuxBuiltinTargets",

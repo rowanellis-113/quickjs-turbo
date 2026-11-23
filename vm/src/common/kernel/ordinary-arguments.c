@@ -425,7 +425,7 @@ static FRAME_CODE bool js_frame_arguments_push(JSFrameRegisterState *state, JSVa
     for (unsigned i = 0; i < sf->var_ref_count; i++)
         sf->var_refs[i] = NULL;
     sf->is_strict_mode = b->is_strict_mode;
-    FRAME_CLEAR_STACK_AUX(sf);
+    FRAME_INIT_STACK_AUX(sf, (flags & 1) != 0);
     sf->cur_pc = b->byte_code_buf;
     sf->cur_sp = stack;
     FRAME_ROOT(frame) = root;

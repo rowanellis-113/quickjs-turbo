@@ -13,7 +13,9 @@ _Static_assert(sizeof(JSFrame) == 128 && offsetof(JSFrame, bytecode) == 80 &&
                    offsetof(JSStackFrame, arg_count) == 58 &&
                    offsetof(JSStackFrame, is_strict_mode) == 60 &&
                    offsetof(JSStackFrame, cur_sp) == 64 &&
-                   offsetof(JSGCObjectHeader, ref_count) == 0,
+                   (offsetof(JSMallocBlockHeader, user_data) -
+                        offsetof(JSMallocBlockHeader, ref_count) ==
+                    -QJS_ABI_REF_COUNT_OFFSET),
                "Actual Linux owned-argument/closure frame and reference contract");
 
 static FRAME_INLINE void js_frame_linux_js_calls_init(void)

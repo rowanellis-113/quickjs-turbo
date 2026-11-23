@@ -28,58 +28,28 @@ _frame_activate_tools()
 from c_source_match import replace_one
 from pathlib import Path
 import argparse, hashlib, importlib.util, json, re, struct
-from abi_layout import load as load_layout
+from native_abi import current_or_load as load_layout
 
 sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
 PINNED_UNICODE_BUILTINS = {
     "js_regexp_Symbol_match": (
         "JS_RegExpOwnedMatch",
-        "e6c35b4c53de9aa37908832e8710a3cf470769c8c6f7f4c8c578f491d7ea91fd",
+        "d7dd65674cb64f6e3258bea214de510f31b12b5b15431c9a5ef44fd3138325db",
     ),
     "js_regexp_Symbol_matchAll": (
         "JS_RegExpOwnedMatchAll",
-        "0da1dd4b46588f5d96c94961bd04826924ab238f27cee4c2de09c25e4567ce3f",
+        "08682a7f974929e4dd361697b27beac9f93bde5d65e3014573c5d9c5164bc5ba",
     ),
     "js_regexp_Symbol_split": (
         "JS_RegExpOwnedSplit",
-        "7c9f4d591669e5af88935fca6eff06b398705cb8e10ef15ba5a965f2311d5702",
+        "2f484d458cedb3e48ac6b3ccde63895651293a6d840b114f9e6f215170885271",
     ),
 }
 
 
 def pinned_unicode_body(name, text):
-    """Keep pinned observable operations; advance v matches by code point."""
-    if name in ("js_regexp_Symbol_match", "js_regexp_Symbol_replace"):
-        before = """        fullUnicode = JS_ToBoolFree(ctx, JS_GetProperty(ctx, rx, JS_ATOM_unicode));
-        if (fullUnicode < 0)
-            goto exception;
-"""
-        after = (
-            before
-            + """        if (!fullUnicode)
-            fullUnicode = string_indexof_char(p, 'v', 0) >= 0;
-"""
-        )
-    else:
-        field = "it->unicode" if name.endswith("matchAll") else "unicodeMatching"
-        before = f"    {field} = string_indexof_char(strp, 'u', 0) >= 0;"
-        after = (
-            f"    {field} = (string_indexof_char(strp, 'u', 0) >= 0 ||\n"
-            + "                   string_indexof_char(strp, 'v', 0) >= 0);"
-        )
-    assert text.count(before) == 1, "Pinned Unicode boundary changed: " + name
-    if name == "js_regexp_Symbol_replace":
-        # The inherited delete kernel advances only u, not v, empty matches.
-        # Keep its constructor/exec observation before choosing the v-aware
-        # generic loop; native intrinsic dispatch still handles admitted v.
-        delete_guard = (
-            "    if (rp && rp->len == 0 && is_global && js_is_standard_regexp(ctx, rx)) {"
-        )
-        generic_v_guard = """    if (rp && rp->len == 0 && is_global && js_is_standard_regexp(ctx, rx) &&
-        string_indexof_char(p, 'v', 0) < 0) {"""
-        assert text.count(delete_guard) == 1, "Review pinned empty replacement guard"
-        text = text.replace(delete_guard, generic_v_guard, 1)
-    return text.replace(before, after)
+    """0.17.0 upstream already implements v-mode Unicode progression."""
+    return text
 
 
 def split_body(source, body, native=False):
@@ -112,7 +82,7 @@ def section_name(c, index):
     return n
 
 
-PINNED_EXEC_SHA256 = "4462f3d0121b3d5ddc3f8a6714c32ec27ec608676394939e20fd7cb1a5fdb337"
+PINNED_EXEC_SHA256 = "a39e7eaef1d5bea60f96d075d6d182f8fa5f92720f995692b351c45d34a547b4"
 PINNED_STANDARD_EXEC_SHA256 = "4e84238f59476b5497c21752f3cb74af41eec2309a5462e168b130e03342054d"
 
 
@@ -122,16 +92,16 @@ def exec_body(source, text, native=False):
     assert hashlib.sha256(original.encode("utf-8")).hexdigest() == PINNED_EXEC_SHA256, (
         "Review pinned RegExp.exec after upstream change"
     )
-    assert text.count("js_regexp_exec") == 4, "Review additional exec identity users"
+    assert text.count("js_regexp_exec") == 5, "Review additional exec identity users"
     # The borrowed flag lookup has the same hash/type comparison as this pin.
     for prefix, digest in (
         (
             "static JSAtom __JS_FindAtom(",
-            "2e6024a80e33496d4a4b642ccf53fe5aff837401d57fa5143a450d549f099a88",
+            "cd1a1d5d41892236473dfc4ea883580bcfa31a6e8acd898aabe82d728be7025b",
         ),
         (
             "static inline uint32_t hash_string8(",
-            "aab7446c720ff041572344f347c2fab9ab4f76ec521a89a512f467cc80d45964",
+            "0183f4fa3f8f4669111ac99be76ae9562203e8e7e687f1750fcf70ad21c01186",
         ),
     ):
         start = text.index(prefix)

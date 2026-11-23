@@ -15,21 +15,28 @@ def core_storage(core, *, property_ic):
         "static no_inline int resize_properties(JSContext *ctx, JSShape **psh,",
         "Linux property storage helper types",
     )
+    if "turbo_obj_flags" not in core:
+        change(
+            "    uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */",
+            "    uint8_t is_HTMLDDA : 1; uint8_t turbo_obj_flags : 7; /* specific annex B IsHtmlDDA behavior */",
+            "Linux private object flags",
+        )
     change(
-        "    js_trigger_gc(ctx->rt, sizeof(JSObject));\n    p = js_malloc(ctx, sizeof(JSObject));",
+        "    js_trigger_gc(ctx->rt, sizeof(JSObject) + sizeof(JSProperty) * sh->prop_size);\n    p = js_malloc(ctx, sizeof(JSObject));",
         "    /* Reserve extra slots only when the caller supplies a complete payload. */\n"
         "    size_t inline_bytes = class_id == JS_CLASS_OBJECT\n"
         "        ? qjs_inline_property_plan(sh, 0, props ? 4u : 0u) : 0;\n"
         "    size_t object_bytes = inline_bytes ? inline_bytes : sizeof(JSObject);\n"
-        "    js_trigger_gc(ctx->rt, object_bytes);\n"
+        "    js_trigger_gc(ctx->rt, object_bytes + (inline_bytes ? 0 : sizeof(JSProperty) * sh->prop_size));\n"
         "    p = js_malloc(ctx, object_bytes);",
         "Linux plain-object allocation",
     )
-    change(
-        "    p->is_prototype = 0;\n    p->first_weak_ref = NULL;",
-        "    p->__gc_mark = 0;\n    p->is_prototype = 0;\n    p->first_weak_ref = NULL;",
-        "initialize inline bit before installing GC header",
-    )
+    if "p->turbo_obj_flags = 0;" not in core:
+        change(
+            "    p->is_prototype = 0;\n    p->first_weak_ref = NULL;",
+            "    p->is_prototype = 0; p->turbo_obj_flags = 0;\n    p->first_weak_ref = NULL;",
+            "initialize inline bit before installing GC header",
+        )
     change(
         "    p->prop = js_malloc(ctx, sizeof(JSProperty) * sh->prop_size);",
         "    p->prop = inline_bytes ? qjs_inline_property_initialize(p, sh, 0, inline_bytes)\n"

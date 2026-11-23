@@ -18,8 +18,8 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from native_abi import current as current_abi, source_abi
-from abi_layout import load as load_layout, constants as abi_constants
+from native_abi import current as current_abi, current_or_load as load_layout, source_abi
+from abi_layout import constants as abi_constants
 from native_build import find_objdump
 from pathlib import Path
 import hashlib, importlib.util, json, os, re, struct, subprocess
@@ -596,9 +596,10 @@ def symbol_global_blocks(
     names = re.findall(
         r"^\s*DEF\(\s*(\w+)", _frame_source_file(source, "quickjs-opcode.h").read_text(), re.M
     )
-    assert abi["reference_count_model"] == "inline-header"
+    assert abi["reference_count_model"] in ("inline-header", "allocator-prefix")
     ids = {n: i for i, n in enumerate(names)}
     f = abi["offsets"]
+    rc = abi_constants(abi)["QJS_ABI_REF_COUNT_OFFSET"]
     p = prefix
     body = [
         "cmp edx, -8",
@@ -610,7 +611,7 @@ def symbol_global_blocks(
         "mov r10, QWORD PTR [r13-16]",
         # An arbitrary existing operand need not be a DUP. Last ownership
         # preserves original finalization/C semantics instead of committing.
-        "cmp DWORD PTR [r10], 1",
+        f"cmp DWORD PTR [r10{rc:+d}], 1",
         "jle " + old,
         f"cmp DWORD PTR [rsi+{f['JSContext.interrupt_counter']}], 1",
         "jle " + old,
@@ -666,7 +667,7 @@ def symbol_global_blocks(
         "jb " + old,
         "cmp r8, r9",
         "jae " + old,
-        "sub DWORD PTR [r10], 1",
+        f"sub DWORD PTR [r10{rc:+d}], 1",
         "sub r13, 16",
         f"dec DWORD PTR [rsi+{f['JSContext.interrupt_counter']}]",
         "mov r12, r8",

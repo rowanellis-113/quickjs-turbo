@@ -177,7 +177,7 @@ def append(g, diagnostics, length_atom):
         ".p2align 2",
         ".rva JS_FrameProtoLoadEntry, JS_FrameProtoLoadEntry_end, proto_load_unwind",
     ]
-    if not diagnostics and abi["reference_count_model"] == "inline-header":
+    if not diagnostics and abi["reference_count_model"] in ("inline-header", "allocator-prefix"):
         append_live_chain(g, abi)
     append_persistent(g, diagnostics)
 
@@ -237,12 +237,30 @@ def live_chain_body(name, slow, abi, deep_only=False):
         "mov eax, 32",
         name + "_object:",
         f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
-        f"mov ecx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
-        "mov edx, r9d",
-        "and edx, ecx",
-        "neg rdx",
-        "mov ecx, DWORD PTR [r10+rdx*4-4]",
-        f"lea r11, [r10+{fields['JSShape.prop']}]",
+        *(
+            [
+                "mov ecx, r9d",
+                "mov rdx, 7046029254386353131",
+                "imul rcx, rdx",
+                "shr rcx, 32",
+                f"mov edx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
+                "inc edx",
+                "imul rcx, rdx",
+                "shr rcx, 32",
+                f"lea r11, [r10+rdx*4+{fields['JSShape.hash_table']}]",
+                "neg rcx",
+                "mov ecx, DWORD PTR [r11+rcx*4-4]",
+            ]
+            if abi["reference_count_model"] == "allocator-prefix"
+            else [
+                f"mov ecx, DWORD PTR [r10+{fields['JSShape.prop_hash_mask']}]",
+                "mov edx, r9d",
+                "and edx, ecx",
+                "neg rdx",
+                "mov ecx, DWORD PTR [r10+rdx*4-4]",
+                f"lea r11, [r10+{fields['JSShape.prop']}]",
+            ]
+        ),
         name + "_probe:",
         "test ecx, ecx",
         "jz " + name + "_absent",
@@ -296,7 +314,7 @@ def append_masm(masm, gas, abi):
     Descriptor/type misses still use their original opcode boundary. Other
     reference layouts/foundation/diagnostic builds do not select this entry.
     """
-    assert abi["reference_count_model"] == "inline-header"
+    assert abi["reference_count_model"] in ("inline-header", "allocator-prefix")
     name = "JS_FrameProtoChainLive"
     slow = "interp_property_slow_get_field2"
     body = live_chain_body(name, slow, abi)

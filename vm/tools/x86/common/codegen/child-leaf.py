@@ -141,13 +141,46 @@ def append(masm, gas, ids, diagnostics):
     assert values["QJS_ABI_SIZE_JSValue"] == 16
     assert values["QJS_ABI_SIZE_JSShapeProperty"] == 8
     assert values["QJS_ABI_OFF_JSShapeProperty_atom"] == 4
-    assert values["QJS_ABI_HAS_PREFIX_RC"] == 0
+    assert values["QJS_ABI_HAS_PREFIX_RC"] in (0, 1)
     assert values["QJS_ABI_CONST_JS_PROP_TMASK"] == 48
     assert layout["bits"]["JSShapeProperty.flags"] == [[3, 4]]
 
     def own_data_probe(prefix, miss):
         # R10=borrowed receiver, R8d=live bytecode atom. No prototype/exotic
         # hook is called. R10/R11 return the borrowed data payload/tag.
+        if values["QJS_ABI_HAS_PREFIX_RC"]:
+            return [
+                f"mov r11, QWORD PTR [r10+{abi_fields['JSObject.shape']}]",
+                "movq xmm0, r10",
+                "mov eax, r8d",
+                "mov r10, 7046029254386353131",
+                "imul rax, r10",
+                "shr rax, 32",
+                f"mov r10d, DWORD PTR [r11+{abi_fields['JSShape.prop_hash_mask']}]",
+                "inc r10d",
+                "imul rax, r10",
+                "shr rax, 32",
+                f"lea r11, [r11+r10*4+{abi_fields['JSShape.hash_table']}]",
+                "neg rax",
+                "mov eax, DWORD PTR [r11+rax*4-4]",
+                "movq r10, xmm0",
+                prefix + "_probe:",
+                "test eax, eax",
+                "jz " + miss,
+                "cmp DWORD PTR [r11+rax*8-4], r8d",
+                "je " + prefix + "_found",
+                "mov eax, DWORD PTR [r11+rax*8-8]",
+                "and eax, 67108863",
+                "jmp " + prefix + "_probe",
+                prefix + "_found:",
+                "test DWORD PTR [r11+rax*8-8], 3221225472",
+                "jnz " + miss,
+                "dec eax",
+                "shl rax, 4",
+                f"add rax, QWORD PTR [r10+{abi_fields['JSObject.prop']}]",
+                "mov r10, QWORD PTR [rax]",
+                "mov r11, QWORD PTR [rax+8]",
+            ]
         return [
             f"mov r11, QWORD PTR [r10+{abi_fields['JSObject.shape']}]",
             "mov eax, r8d",
@@ -205,7 +238,7 @@ def append(masm, gas, ids, diagnostics):
         "je this_field_miss",
         "test r11d, r11d",
         "jns this_field_result",
-        f"inc DWORD PTR [r10+{values['QJS_ABI_REF_COUNT_OFFSET']}]",
+        f"inc DWORD PTR [r10{values['QJS_ABI_REF_COUNT_OFFSET']:+d}]",
         "this_field_result:",
         f"dec DWORD PTR [rdx+{abi_fields['JSContext.interrupt_counter']}]",
         "mov QWORD PTR [rcx], r10",

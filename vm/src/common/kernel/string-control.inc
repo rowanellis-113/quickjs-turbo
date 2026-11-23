@@ -15,6 +15,25 @@ __attribute__((section(".qjsem$strings"))) _Atomic(unsigned char) JS_FrameConcat
 __attribute__((section(".qjsem$strings"))) _Atomic(unsigned char) JS_FrameLocalRopeMode = 0;
 #endif
 
+#if QJS_ABI_HAS_PREFIX_RC
+_Static_assert(JS_TAG_STRING == -7 &&
+                   offsetof(JSMallocBlockHeader, user_data) -
+                           offsetof(JSMallocBlockHeader, ref_count) ==
+                       4,
+               "review native flat-string selector after upstream change");
+_Static_assert(sizeof(JSValue) == 16 && offsetof(JSString, hash_next) == 8,
+               "selector uses the pinned native value and string header");
+_Static_assert(JS_STRING_ROPE_SHORT_LEN == 512 && JS_STRING_ROPE_SHORT2_LEN == 8192,
+               "selector follows the pinned original flat/short-leaf limits");
+_Static_assert(sizeof(JSString) == 24 && sizeof(JSStringRope) == 40 &&
+                   offsetof(JSStringRope, len) == 0 && offsetof(JSStringRope, depth) == 5 &&
+                   offsetof(JSStringRope, left) == 8 && offsetof(JSStringRope, right) == 24 &&
+                   offsetof(JSMallocFunctions, js_malloc_usable_size) ==
+                       QJS_ABI_OFF_JSMallocFunctions_js_malloc_usable_size &&
+                   JS_STRING_LEN_MAX == 1073741823 && JS_STRING_ROPE_MAX_DEPTH == 60 &&
+                   JS_STRING_KIND_NORMAL == 0 && JS_TAG_UNDEFINED == 3,
+               "native append lane private offsets and limits");
+#else
 _Static_assert(JS_TAG_STRING == -7 && sizeof(JSRefCountHeader) == 4,
                "review native flat-string selector after upstream change");
 _Static_assert(sizeof(JSValue) == 16 && offsetof(JSString, header) == 0 &&
@@ -30,6 +49,7 @@ _Static_assert(sizeof(JSString) == 24 && offsetof(JSStringRope, header) == 0 &&
                    JS_STRING_LEN_MAX == 1073741823 && JS_STRING_ROPE_MAX_DEPTH == 60 &&
                    JS_STRING_KIND_NORMAL == 0 && JS_TAG_UNDEFINED == 3,
                "native append lane private offsets and limits");
+#endif
 
 static inline unsigned char js_frame_shared_concat_mode(void)
 {

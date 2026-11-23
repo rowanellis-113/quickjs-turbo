@@ -32,7 +32,6 @@ def inline_header_body(source, hashes, initialize):
         "static void add_gc_object(", "static FRAME_NULL_INLINE void frame_null_add_gc_object(", 1
     )
     assert link.count("frame_null_add_gc_object(") == 1
-    hashes = hashes.replace("shape_initial_hash(", "frame_null_shape_initial_hash(")
     return (
         """
 /* Inline-header upstreams have no small-block arenas. Keep the warm null-shape
@@ -101,8 +100,10 @@ def generate_body(source, *, reference_count_model="inline-header"):
     end = text.index("\nstatic int resize_shape_hash", start)
     hashes = text[start:end]
     assert hashes.count("shape_initial_hash(JSObject *proto)") == 1
-    hashes = hashes.replace("shape_hash", "frame_null_shape_hash").replace(
-        "static uint32_t", "static FRAME_NULL_INLINE uint32_t"
+    hashes = (
+        hashes.replace("shape_hash", "frame_null_shape_hash")
+        .replace("shape_initial_hash(", "frame_null_shape_initial_hash(")
+        .replace("static uint32_t", "static FRAME_NULL_INLINE uint32_t")
     )
     constructor = text.index(
         "static JSValue JS_NewObjectFromShape(JSContext *ctx, JSShape *sh, JSClassID class_id,\n                                     JSProperty *props)\n{"
@@ -122,7 +123,7 @@ def generate_body(source, *, reference_count_model="inline-header"):
    identical to JS_NewObjectProtoClass (matching the target platform aggregate C ABI).
    Runtime byte1366 is unused original padding: zero enables this fast path.
    Never commit an allocation before every guard succeeds. */
-_Static_assert(offsetof(JSRuntime,module_loader_has_attr)==1360 && offsetof(JSRuntime,u)==1368, "null arena switch1366 remains original padding");
+_Static_assert(offsetof(JSRuntime,module_loader_has_attr)+6<offsetof(JSRuntime,u), "null arena switch remains original padding");
 _Static_assert(JS_ARENA_ALIGN==8 && sizeof(JSMallocBlockHeader)==8, "original arena prefix");
 _Static_assert(sizeof(JSObject)>=16 && sizeof(JSObject)+8<=128, "object stays in exact eight-byte size classes");
 _Static_assert(sizeof(JSProperty)*JS_PROP_INITIAL_SIZE>=16 && sizeof(JSProperty)*JS_PROP_INITIAL_SIZE+8<=128, "properties stay in exact eight-byte size classes");
@@ -154,7 +155,7 @@ FRAME_NULL_CODE JSValue JS_FrameNewNullObject(JSContext *ctx, JSValueConst proto
     size_t used,limit,budget;
     uint32_t hash;
     if (class_id!=JS_CLASS_OBJECT || !JS_IsNull(proto_val) ||
-        ((unsigned char *)rt)[1366] || rt->gc_phase!=JS_GC_PHASE_NONE)
+        ((unsigned char *)rt)[offsetof(JSRuntime,module_loader_has_attr)+6] || rt->gc_phase!=JS_GC_PHASE_NONE)
         goto slow;
     used=rt->malloc_state.malloc_size;
     /* Original constructor triggers GC before the object allocation. */
@@ -195,7 +196,13 @@ FRAME_NULL_CODE JSValue JS_FrameNewNullObject(JSContext *ctx, JSValueConst proto
     rt->malloc_state.malloc_size+=budget;
 """
         + initialize
-        + """    p->prop=props;
+        + """#if defined(QJS_PROPERTY_IC) || defined(QJS_HYBRID_INLINE_PROPERTIES)
+    p->turbo_obj_flags=0;
+#endif
+#ifdef QJS_HYBRID_GC
+    JS_HYBRID_YOUNG(p)=0;
+#endif
+    p->prop=props;
     JS_REF_COUNT(p)=1;
     JS_GC_MARK(p)=0;
     JS_GC_TYPE(p)=JS_GC_OBJ_TYPE_JS_OBJECT;
