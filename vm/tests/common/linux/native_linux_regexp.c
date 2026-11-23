@@ -128,8 +128,9 @@ static void realms(void)
     JS_FreeRuntime(rt);
     assert(!memory.live && !memory.bytes);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     Host *s = opaque;
     ++s->interrupts;
     if (s->abort_poll)

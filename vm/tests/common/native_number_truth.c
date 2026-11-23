@@ -60,10 +60,10 @@ static void execute(JSContext *ctx, const char *source)
     JS_FreeValue(ctx, result);
 }
 
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
     (void)opaque;
-    JS_RunGC(rt);
+    JS_RunGC(JS_GetRuntime(ctx));
     interrupts++;
     return interrupts == 3;
 }

@@ -132,8 +132,9 @@ static JSValue mutate(JSContext *ctx, JSValueConst self, int argc, JSValueConst 
     JS_RunGC(JS_GetRuntime(ctx));
     return JS_UNDEFINED;
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     Host *h = opaque;
     ++h->polls;
     JS_RunGC(rt);

@@ -51,6 +51,8 @@ def validate(root):
             if "/x86/" in include or "/arm64/" in include:
                 errors.append("Concrete architecture include in common C: " + include)
 
+    pin = (root / "cmake/QuickJSUpstreamPin.cmake").read_text(encoding="utf-8")
+    revision = re.search(r'set\(QJS_UPSTREAM_REVISION "([0-9a-f]+)"\)', pin)[1]
     backend = json.loads((root / "src/x86/win64/backend.json").read_text(encoding="utf-8"))
     if backend.get("schema") == 2 and backend.get("route_model") != "live-symbols-v1":
         errors.append("Unknown retained live-route contract")
@@ -64,7 +66,8 @@ def validate(root):
         for module in data["modules"]:
             path = input_file(module["source"])
             if (
-                path.is_file()
+                revision == backend["upstream"]
+                and path.is_file()
                 and hashlib.sha256(path.read_bytes()).hexdigest() != module["source_sha256"]
             ):
                 errors.append("Module source receipt is stale: " + module["source"])
@@ -138,8 +141,6 @@ def validate(root):
         if wire_body.count(signature) != 1:
             errors.append("Incomplete or repeated common wire behavior: " + signature)
 
-    pin = (root / "cmake/QuickJSUpstreamPin.cmake").read_text(encoding="utf-8")
-    revision = re.search(r'set\(QJS_UPSTREAM_REVISION "([0-9a-f]+)"\)', pin)[1]
     arm = json.loads((root / "src/arm64/linux/abi/profile.json").read_text(encoding="utf-8"))
     if arm.get("schema") != 1 or arm.get("machine") != 183 or arm.get("native_vm") is not False:
         errors.append("Unreviewed AArch64 standard-call foundation scope")

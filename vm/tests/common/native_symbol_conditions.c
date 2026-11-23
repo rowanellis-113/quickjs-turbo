@@ -5,8 +5,9 @@
 typedef struct {
     unsigned polls, limit;
 } State;
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     State *s = opaque;
     ++s->polls;
     if (s->polls == 2)

@@ -149,9 +149,9 @@ static void identity(JSContext *ctx, JSValue result, JSValueConst seed, int clos
     JS_FreeValue(ctx, result);
 }
 
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     Fixture *f = opaque;
     return ++f->interrupts >= 3;
 }

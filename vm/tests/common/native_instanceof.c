@@ -2,8 +2,9 @@
 extern int JS_FrameInstanceOf(JSContext *, JSValueConst, JSValueConst);
 static int callbacks;
 static int cancel;
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    (void)ctx;
     callbacks++;
     return cancel;
 }

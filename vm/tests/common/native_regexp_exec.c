@@ -194,8 +194,9 @@ typedef struct {
     unsigned calls;
     int inside;
 } Reentry;
-static int poll(JSRuntime *rt, void *opaque)
+static int poll(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     Reentry *r = opaque;
     if (r->inside)
         return 0;

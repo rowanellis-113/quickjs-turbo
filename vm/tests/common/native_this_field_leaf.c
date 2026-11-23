@@ -51,9 +51,9 @@ static JSValue collect(JSContext *ctx, JSValueConst self, int argc, JSValueConst
     JS_RunGC(JS_GetRuntime(ctx));
     return JS_UNDEFINED;
 }
-static int interrupted(JSRuntime *rt, void *opaque)
+static int interrupted(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     (void)opaque;
     interrupts++;
     return 0;

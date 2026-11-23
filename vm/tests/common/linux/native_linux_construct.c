@@ -90,9 +90,9 @@ static void setup_class(JSRuntime *rt)
     JS_NewClassID(rt, &resource_class);
     assert(!JS_NewClass(rt, resource_class, &def));
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     (void)opaque;
     return ++interrupts >= 3;
 }

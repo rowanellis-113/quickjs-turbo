@@ -176,10 +176,10 @@ static size_t run_trial(unsigned mode, size_t at)
     return calls;
 }
 
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
     unsigned *calls = opaque;
-    (void)rt;
+    (void)ctx;
     ++*calls;
     return 1;
 }

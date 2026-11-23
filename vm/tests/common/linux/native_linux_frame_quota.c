@@ -3,9 +3,9 @@
 #include <stdio.h>
 #include <string.h>
 
-static int interrupted(JSRuntime *rt, void *opaque)
+static int interrupted(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     int *count = opaque;
     return ++*count > 2;
 }

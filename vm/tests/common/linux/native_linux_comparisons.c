@@ -141,8 +141,9 @@ static size_t oom_trial(size_t fault)
     assert(!memory.live && !memory.bytes);
     return count;
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     unsigned *count = opaque;
     ++*count;
     JS_RunGC(rt);

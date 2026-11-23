@@ -50,8 +50,9 @@ static void eval(JSContext *ctx, const char *source)
     }
     JS_FreeValue(ctx, result);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     (void)opaque;
     JS_RunGC(rt);
     ++interrupted;

@@ -688,47 +688,49 @@ add_test(NAME interpreter-minimum-calls
          COMMAND qjs_exe -m "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_min_call_state.js")
 
 # Closure storage remains observable through GC, OOM and public embedding.
-add_executable(interpreter-test-coroutine_segments tests/common/native_coroutine_segments.c)
-target_compile_features(interpreter-test-coroutine_segments PRIVATE c_std_11)
-target_link_libraries(interpreter-test-coroutine_segments PRIVATE qjs)
-foreach(
-    coroutine_mode
-    default
-    off
-    off-zero
-    clone-only
-    c
-    register-c
-    noic
-    closure-off)
-    add_test(
-        NAME interpreter-coroutine-segments-${coroutine_mode}
-        COMMAND qjs_exe --std -m
-                "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_vm_coroutine_native_segments.js")
-    add_test(NAME interpreter-coroutine-segments-host-${coroutine_mode}
-             COMMAND interpreter-test-coroutine_segments)
-endforeach()
-set_tests_properties(interpreter-coroutine-segments-off interpreter-coroutine-segments-host-off
-                     PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENTS=1")
-set_tests_properties(
-    interpreter-coroutine-segments-off-zero interpreter-coroutine-segments-host-off-zero
-    PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENTS=0")
-set_tests_properties(
-    interpreter-coroutine-segments-clone-only interpreter-coroutine-segments-host-clone-only
-    PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENT_OPS=1")
-set_tests_properties(
-    interpreter-coroutine-segments-c interpreter-coroutine-segments-host-c
-    PROPERTIES
-        ENVIRONMENT
-        "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1")
-set_tests_properties(
-    interpreter-coroutine-segments-register-c interpreter-coroutine-segments-host-register-c
-    PROPERTIES ENVIRONMENT "QJS_DISABLE_REGISTER_INTERP=1")
-set_tests_properties(interpreter-coroutine-segments-noic interpreter-coroutine-segments-host-noic
-                     PROPERTIES ENVIRONMENT "QJS_DISABLE_PROPERTY_IC=1")
-set_tests_properties(
-    interpreter-coroutine-segments-closure-off interpreter-coroutine-segments-host-closure-off
-    PROPERTIES ENVIRONMENT "QJS_DISABLE_CLOSURE_INLINE_REFS=1;QJS_DISABLE_CLOSURE_SHAPE_TEMPLATE=1")
+if(QJS_TURBO_COROUTINE_SEGMENTS)
+    add_executable(interpreter-test-coroutine_segments tests/common/native_coroutine_segments.c)
+    target_compile_features(interpreter-test-coroutine_segments PRIVATE c_std_11)
+    target_link_libraries(interpreter-test-coroutine_segments PRIVATE qjs)
+    foreach(
+        coroutine_mode
+        default
+        off
+        off-zero
+        clone-only
+        c
+        register-c
+        noic
+        closure-off)
+        add_test(
+            NAME interpreter-coroutine-segments-${coroutine_mode}
+            COMMAND qjs_exe --std -m
+                    "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_vm_coroutine_native_segments.js")
+        add_test(NAME interpreter-coroutine-segments-host-${coroutine_mode}
+                 COMMAND interpreter-test-coroutine_segments)
+    endforeach()
+    set_tests_properties(interpreter-coroutine-segments-off interpreter-coroutine-segments-host-off
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENTS=1")
+    set_tests_properties(
+        interpreter-coroutine-segments-off-zero interpreter-coroutine-segments-host-off-zero
+        PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENTS=0")
+    set_tests_properties(
+        interpreter-coroutine-segments-clone-only interpreter-coroutine-segments-host-clone-only
+        PROPERTIES ENVIRONMENT "QJS_DISABLE_CVM_NATIVE_SEGMENT_OPS=1")
+    set_tests_properties(
+        interpreter-coroutine-segments-c interpreter-coroutine-segments-host-c
+        PROPERTIES
+            ENVIRONMENT
+            "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1")
+    set_tests_properties(
+        interpreter-coroutine-segments-register-c interpreter-coroutine-segments-host-register-c
+        PROPERTIES ENVIRONMENT "QJS_DISABLE_REGISTER_INTERP=1")
+    set_tests_properties(interpreter-coroutine-segments-noic interpreter-coroutine-segments-host-noic
+                         PROPERTIES ENVIRONMENT "QJS_DISABLE_PROPERTY_IC=1")
+    set_tests_properties(
+        interpreter-coroutine-segments-closure-off interpreter-coroutine-segments-host-closure-off
+        PROPERTIES ENVIRONMENT "QJS_DISABLE_CLOSURE_INLINE_REFS=1;QJS_DISABLE_CLOSURE_SHAPE_TEMPLATE=1")
+endif()
 foreach(internal_function_mode native disabled disabled-zero c)
     add_test(
         NAME interpreter-internal-function-template-${internal_function_mode}

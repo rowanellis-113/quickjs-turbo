@@ -120,9 +120,9 @@ static void reset(Observer *o)
     memset(o->first, 0, sizeof(o->first));
 }
 static unsigned interrupts;
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     (void)opaque;
     return ++interrupts >= 2;
 }

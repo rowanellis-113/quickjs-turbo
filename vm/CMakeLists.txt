@@ -12,9 +12,6 @@ else()
     get_filename_component(QJS_UPSTREAM_DIR "${QJS_UPSTREAM_DIR}" ABSOLUTE)
 endif()
 
-include(cmake/QuickJSUpstreamPin.cmake)
-include(cmake/common/Backports.cmake)
-
 include(CheckCCompilerFlag)
 include(GNUInstallDirs)
 
@@ -40,7 +37,7 @@ endmacro()
 # QJS_ENABLE_MSAN only works with clang at the time of writing; also not checked
 # for the same reason
 xoption(BUILD_SHARED_LIBS "Build a shared library" OFF)
-if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR OR QJS_PARENT_IS_TOP_LEVEL)
     set(qjs_default_top_level ON)
 else()
     set(qjs_default_top_level OFF)
@@ -58,6 +55,42 @@ xoption(QJS_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
 xoption(QJS_ENABLE_MSAN "Enable MemorySanitizer (MSan)" OFF)
 xoption(QJS_ENABLE_TSAN "Enable ThreadSanitizer (TSan)" OFF)
 xoption(QJS_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
+xoption(QJS_ENABLE_GC_STRESS "Force a full GC before every allocation (GC stress test)" OFF)
+if(QJS_ENABLE_GC_STRESS)
+    add_compile_definitions(FORCE_GC_AT_MALLOC)
+endif()
+
+get_directory_property(qjs_dir_compile_defs COMPILE_DEFINITIONS)
+get_directory_property(qjs_parent_dir PARENT_DIRECTORY)
+set(qjs_parent_compile_defs "")
+if(qjs_parent_dir)
+    get_directory_property(qjs_parent_compile_defs DIRECTORY "${qjs_parent_dir}"
+                           COMPILE_DEFINITIONS)
+endif()
+if(QJS_ENABLE_GC_STRESS
+   OR "${qjs_dir_compile_defs};${qjs_parent_compile_defs}" MATCHES "(^|;)FORCE_GC_AT_MALLOC(=|;|$)"
+   OR "${CMAKE_C_FLAGS}" MATCHES "(^|[ \t])-DFORCE_GC_AT_MALLOC([= \t]|$)"
+   OR QJS_ENABLE_ASAN
+   OR QJS_ENABLE_MSAN
+   OR QJS_ENABLE_TSAN
+   OR QJS_ENABLE_UBSAN)
+    if(DEFINED QJS_FRAME_BACKEND AND NOT QJS_FRAME_BACKEND STREQUAL "PORTABLE")
+        message(STATUS "Sanitizer or GC stress active; forcing PORTABLE backend")
+    endif()
+    set(QJS_FRAME_BACKEND
+        "PORTABLE"
+        CACHE STRING "Selected Turbo VM execution backend" FORCE)
+    if(DEFINED QJS_HYBRID_GC AND QJS_HYBRID_GC)
+        message(STATUS "Sanitizer or GC stress active; disabling QJS_HYBRID_GC")
+    endif()
+    set(QJS_HYBRID_GC
+        OFF
+        CACHE BOOL "Build hybrid reference counting with generational partial cycle collection"
+              FORCE)
+endif()
+
+include(cmake/QuickJSUpstreamPin.cmake)
+include(cmake/common/Backports.cmake)
 
 # Used to properly define JS_LIBC_EXTERN.
 add_compile_definitions(QUICKJS_NG_BUILD)
@@ -316,6 +349,9 @@ list(APPEND qjs_defines _GNU_SOURCE)
 if(WIN32)
     # NB: Windows 7 is EOL and we are only supporting in so far as it doesn't interfere with progress.
     list(APPEND qjs_defines WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
+else()
+    # UNIX-y platforms.
+    list(APPEND qjs_libs m)
 endif()
 if(TVOS)
     list(APPEND qjs_defines _TVOS)
@@ -327,14 +363,6 @@ list(APPEND qjs_libs ${CMAKE_DL_LIBS})
 find_package(Threads)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
     list(APPEND qjs_libs ${CMAKE_THREAD_LIBS_INIT})
-endif()
-
-# try to find libm
-if(NOT MSVC)
-    find_library(M_LIBRARIES m)
-    if(M_LIBRARIES OR CMAKE_C_COMPILER_ID STREQUAL "TinyCC")
-        list(APPEND qjs_libs m)
-    endif()
 endif()
 
 # Always compile the runtime configuration API and environment helpers into qjs.
@@ -567,8 +595,8 @@ if(WIN32)
     target_link_libraries(qjs_module_lib INTERFACE qjs)
 endif()
 
-if((QJS_BUILD_CLI OR QJS_BUILD_EXAMPLES) AND NOT QJS_BUILD_LIBC)
-    add_library(qjs-libc STATIC "${QJS_UPSTREAM_DIR}/quickjs-libc.c")
+if(NOT QJS_BUILD_LIBC)
+    add_library(qjs-libc STATIC EXCLUDE_FROM_ALL "${QJS_UPSTREAM_DIR}/quickjs-libc.c")
     qjs_apply_declared_backports(qjs-libc)
     target_include_directories(qjs-libc PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${QJS_UPSTREAM_DIR}")
     target_compile_definitions(qjs-libc PRIVATE ${qjs_defines})
@@ -634,7 +662,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
                                                     "${QJS_UPSTREAM_DIR}")
         qjs_apply_declared_backports(qjs_wasi)
         set_target_properties(qjs_wasi PROPERTIES OUTPUT_NAME "qjs" SUFFIX ".wasm")
-        target_compile_definitions(qjs_wasi PRIVATE ${qjs_defines})
+        target_compile_definitions(qjs PRIVATE BUILDING_QJS_SHARED)
+        target_compile_definitions(qjs_wasi PRIVATE ${qjs_defines} BUILDING_QJS_SHARED)
         target_link_libraries(qjs_wasi qjs)
         target_link_options(
             qjs_wasi
@@ -678,6 +707,7 @@ if(QJS_BUILD_CLI)
     add_executable(api-test "${QJS_UPSTREAM_DIR}/api-test.c")
     target_compile_definitions(api-test PRIVATE ${qjs_defines})
     target_link_libraries(api-test PRIVATE qjs)
+    add_qjs_libc_if_needed(api-test)
 
     add_executable(lre-test "${QJS_UPSTREAM_DIR}/lre-test.c" "${QJS_UPSTREAM_DIR}/libregexp.c"
                             "${QJS_UPSTREAM_DIR}/libunicode.c")
@@ -687,8 +717,9 @@ if(QJS_BUILD_CLI)
     # Unicode generator
     #
 
-    add_executable(unicode_gen EXCLUDE_FROM_ALL "${QJS_UPSTREAM_DIR}/libunicode.c"
-                                                "${QJS_UPSTREAM_DIR}/unicode_gen.c")
+    # Note: do not link libunicode.c here, it needs the generated libunicode-table.h,
+    # which would make it impossible to regenerate the table from scratch.
+    add_executable(unicode_gen EXCLUDE_FROM_ALL "${QJS_UPSTREAM_DIR}/unicode_gen.c")
     target_include_directories(unicode_gen PRIVATE "${QJS_UPSTREAM_DIR}")
     target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
 

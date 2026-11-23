@@ -16,9 +16,9 @@ struct InterruptState {
     int limit;
 };
 
-int on_interrupt(JSRuntime *rt, void *opaque)
+int on_interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     InterruptState *state = static_cast<InterruptState *>(opaque);
     state->calls++;
     return state->limit > 0 && state->calls >= state->limit;

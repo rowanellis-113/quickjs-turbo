@@ -54,9 +54,9 @@ static void number(JSContext *ctx, JSValue value, int expected)
     ++checks;
 }
 
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     (void)opaque;
     return ++interrupts >= 3;
 }

@@ -148,9 +148,9 @@ static void wire(JSContext *ctx, JSRuntime *runtime)
     checks++;
 }
 
-static int stop(JSRuntime *runtime, void *opaque)
+static int stop(JSContext *ctx, void *opaque)
 {
-    (void)runtime;
+    (void)ctx;
     (void)opaque;
     interrupts++;
     return 1;
@@ -162,8 +162,9 @@ typedef struct {
     int length, entered;
 } Reentry;
 
-static int reenter(JSRuntime *runtime, void *opaque)
+static int reenter(JSContext *ctx, void *opaque)
 {
+    JSRuntime *runtime = JS_GetRuntime(ctx);
     Reentry *state = opaque;
     if (state->entered++)
         return 0;

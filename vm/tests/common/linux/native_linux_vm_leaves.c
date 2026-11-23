@@ -61,9 +61,9 @@ static void numeric(JSContext *ctx, JSValue value, int expected)
     assert(!JS_IsException(value) && JS_ToInt32(ctx, &n, value) == 0 && n == expected);
     JS_FreeValue(ctx, value);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     (void)opaque;
     return ++interrupts >= 3;
 }

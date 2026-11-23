@@ -2,7 +2,7 @@
 #include "quickjs.h"
 #if QJS_VERSION_MAJOR == 0 && QJS_VERSION_MINOR == 15
 #define QJS_FRAME_INTERRUPT_CONTEXT 0
-#elif QJS_VERSION_MAJOR == 0 && QJS_VERSION_MINOR == 17
+#elif QJS_VERSION_MAJOR == 0 && QJS_VERSION_MINOR >= 17
 #define QJS_FRAME_INTERRUPT_CONTEXT 1
 #else
 #error Review the selected upstream interrupt callback ABI

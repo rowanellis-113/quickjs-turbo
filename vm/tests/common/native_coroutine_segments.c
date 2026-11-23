@@ -54,11 +54,11 @@ static JSValue tagged(JSContext *ctx, JSValueConst self, int argc, JSValueConst 
     return value;
 }
 
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
     (void)opaque;
     interrupts++;
-    JS_RunGC(rt);
+    JS_RunGC(JS_GetRuntime(ctx));
     return abort_interrupt && interrupts == 2;
 }
 

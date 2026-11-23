@@ -117,9 +117,9 @@ static uint64_t entered(void)
     return JS_LinuxVirtualArgumentsStats ? atomic_load(&JS_LinuxVirtualArgumentsStats[1]) : 0;
 }
 
-static int stop_after_two(JSRuntime *rt, void *opaque)
+static int stop_after_two(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     return ++*(unsigned *)opaque >= 2;
 }
 

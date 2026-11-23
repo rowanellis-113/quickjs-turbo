@@ -199,8 +199,9 @@ static JSValue oom_string(JSContext *ctx, JSValueConst self, int argc, JSValueCo
     ++s->oom;
     return value;
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     Host *s = opaque;
     ++s->interrupts;
     if (s->interrupts == 2)

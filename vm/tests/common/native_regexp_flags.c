@@ -32,8 +32,9 @@ static void expect(JSContext *ctx, JSValue value, const char *wanted)
     JS_FreeCString(ctx, text);
     JS_FreeValue(ctx, value);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    JSRuntime *rt = JS_GetRuntime(ctx);
     FlagInterrupt *state = opaque;
     state->calls++;
     if (state->abort)

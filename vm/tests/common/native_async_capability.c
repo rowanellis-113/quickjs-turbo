@@ -19,7 +19,7 @@ typedef struct Block {
     uint64_t magic;
 } Block;
 typedef struct State {
-    size_t blocks, bytes, peak, attempts, fail_after, armed64, fired;
+    size_t blocks, bytes, peak, attempts, fail_after, armed_alloc, fired;
     unsigned hooks[4], reentries, interrupts, stop_after;
     JSRuntime *rt;
     JSContext *other;
@@ -43,7 +43,7 @@ static void *allocate(void *opaque, size_t size)
     s->attempts++;
     if (s->fail_after && --s->fail_after == 0)
         return NULL;
-    if (size == 64 && s->armed64 && --s->armed64 == 0) {
+    if (s->armed_alloc && --s->armed_alloc == 0) {
         JSValue v;
         s->fired++;
         JS_SetPromiseHook(s->rt, hook, s);
@@ -118,7 +118,12 @@ static const char *generator_body =
     "(async function(n){let sum=0;const g=(async function*(){for(let i=0;i<n;i++)yield {i:i&7};})();for await(const v of g)sum+=v.i;return sum;})";
 static const char *ordinary_body =
     "(function(){async function get(x){return x;}return async function(n){let sum=0;for(let i=0;i<n;i++)sum+=await get(i&7);return sum;};})()";
+static const char *reentry_generator_body =
+    "(async function(n){let sum=0;const g=(async function*(){for(let i=0;i<n;i++)yield {i:i&7,pad:new Array(80).fill(i)};})();for await(const v of g)sum+=v.i;return sum;})";
+static const char *reentry_ordinary_body =
+    "(function(){async function get(x){return {v:x,pad:new Array(80).fill(x)};}return async function(n){let sum=0;for(let i=0;i<n;i++)sum+=(await get(i&7)).v;return sum;};})()";
 static const char *body;
+static const char *reentry_body;
 static JSValue eval(JSContext *ctx, const char *source)
 {
     JSValue v =
@@ -182,7 +187,7 @@ static void setup(State *s, JSContext **ctx, JSValue *fn)
 static void teardown(State *s, JSContext *ctx, JSValue fn)
 {
     s->fail_after = 0;
-    s->armed64 = 0;
+    s->armed_alloc = 0;
     JS_SetPromiseHook(s->rt, NULL, NULL);
     JS_SetInterruptHandler(s->rt, NULL, NULL);
     if (s->other) {
@@ -195,10 +200,10 @@ static void teardown(State *s, JSContext *ctx, JSValue fn)
     JS_FreeRuntime(s->rt);
     CHECK(s->blocks == 0 && s->bytes == 0);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
     State *s = opaque;
-    (void)rt;
+    (void)ctx;
     return ++s->interrupts > s->stop_after;
 }
 int main(int argc, char **argv)
@@ -212,6 +217,7 @@ int main(int argc, char **argv)
     CHECK(!strcmp(kind, "generator") || !strcmp(kind, "ordinary"));
     CHECK(argc <= 3 && (argc < 3 || !strcmp(argv[2], "sweep")));
     body = !strcmp(kind, "ordinary") ? ordinary_body : generator_body;
+    reentry_body = !strcmp(kind, "ordinary") ? reentry_ordinary_body : reentry_generator_body;
     setvbuf(stdout, NULL, _IONBF, 0);
     if (argc == 3) {
         for (i = 1; i <= 340; i++) {
@@ -243,13 +249,17 @@ int main(int argc, char **argv)
     s.other = JS_NewContext(s.rt);
     CHECK(s.other);
     s.nested = eval(s.other, "(function(){return {nested:17};})");
-    for (i = 1; sizeof(void *) == 8 && sizeof(JSValue) == 16 && i <= 6; i++) {
-        unsigned initial = (unsigned)s.fired;
-        s.armed64 = i;
-        execute(ctx, s.rt, fn, 16, 0);
-        CHECK(s.fired == initial + 1 && s.reentries == s.fired);
-        JS_SetPromiseHook(s.rt, NULL, NULL);
-        s.armed64 = 0;
+    {
+        JSValue reentry_fn = eval(ctx, reentry_body);
+        for (i = 1; sizeof(void *) == 8 && sizeof(JSValue) == 16 && i <= 6; i++) {
+            unsigned initial = (unsigned)s.fired;
+            s.armed_alloc = i;
+            execute(ctx, s.rt, reentry_fn, 16, 0);
+            CHECK(s.fired == initial + 1 && s.reentries == s.fired);
+            JS_SetPromiseHook(s.rt, NULL, NULL);
+            s.armed_alloc = 0;
+        }
+        JS_FreeValue(ctx, reentry_fn);
     }
     {
         JSValue other_fn = eval(s.other, body);

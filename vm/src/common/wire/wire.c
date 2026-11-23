@@ -1,5 +1,4 @@
-/* Generated from quickjs.c SHA256 ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe; do not edit. */
-#define QJS_FRAME_REGEXP_LEGACY_WIRE 1
+/* Generated from quickjs.c SHA256 51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74; do not edit. */
 #include "src/common/regexp/libregexp.h"
 #include "interpreter-wire-private.h"
 extern void *JS_FrameOwnBytecodeAllocateContext(JSContext *,size_t);
@@ -136,7 +135,7 @@ typedef enum BCTagEnum {
     BC_TAG_SYMBOL,
 } BCTagEnum;
 
-#define BC_VERSION 26
+#define BC_VERSION 29
 
 typedef struct BCWriterState {
     JSContext *ctx;
@@ -647,7 +646,7 @@ static int JS_WriteObjectTag(BCWriterState *s, JSValueConst obj)
     for(pass = 0; pass < 2; pass++) {
         if (pass == 1)
             bc_put_leb128(s, prop_count);
-        for(i = 0, pr = sh->prop; i < sh->prop_count; i++, pr++) {
+        for(i = 0, pr = get_shape_prop(sh); i < sh->prop_count; i++, pr++) {
             atom = pr->atom;
             if (atom != JS_ATOM_NULL && (pr->flags & JS_PROP_ENUMERABLE)) {
                 if (pr->flags & JS_PROP_TMASK) {
@@ -920,10 +919,12 @@ static int JS_WriteObjectAtoms(BCWriterState *s)
     for(i = 0; i < s->idx_to_atom_count; i++) {
         JSAtom atom = s->idx_to_atom[i];
         if (__JS_AtomIsConst(atom)) {
-            bc_put_u8(s, 0 /* the type */);
-            /* TODO(saghul): encoding for tagged integers and keyword-ish atoms could be
-               more efficient. */
-            bc_put_u32(s, atom);
+            if (atom < 64) {
+                bc_put_u8(s, 0x80 | atom);
+            } else {
+                bc_put_u8(s, 0xC0 | (atom & 0x3F));
+                bc_put_leb128(s, atom >> 6);
+            }
         } else {
             JSAtomStruct *p = rt->atom_array[atom];
             uint8_t type = p->atom_type;
@@ -1315,9 +1316,8 @@ static int JS_ReadFunctionBytecode(BCReaderState *s, JSFunctionBytecode *b,
 
 static JSValue JS_ReadBigInt(BCReaderState *s)
 {
-    JSValue obj = JS_UNDEFINED;
     uint32_t len, i, n;
-    JSBigInt *p;
+    JSBigInt *p = NULL;
     js_limb_t v;
     uint8_t v8;
 
@@ -1356,7 +1356,7 @@ static JSValue JS_ReadBigInt(BCReaderState *s)
     bc_read_trace(s, "}\n");
     return JS_CompactBigInt(s->ctx, p);
  fail:
-    JS_FreeValue(s->ctx, obj);
+    js_free(s->ctx, p);
     return JS_EXCEPTION;
 }
 
@@ -1391,7 +1391,6 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
     int closure_var_offset, vardefs_offset;
 
     memset(&bc, 0, sizeof(bc));
-    bc.header.ref_count = 1;
     //bc.gc_header.mark = 0;
 
     if (bc_get_u16(s, &v16))
@@ -1433,8 +1432,8 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
         goto fail;
 
     function_size = sizeof(*b);
-    cpool_offset = function_size;
-    function_size += bc.cpool_count * sizeof(*bc.cpool);
+    cpool_offset = (function_size + 7) & ~7;
+    function_size = cpool_offset + bc.cpool_count * sizeof(*bc.cpool);
     vardefs_offset = function_size;
     function_size += local_count * sizeof(*bc.vardefs);
     closure_var_offset = function_size;
@@ -1448,7 +1447,7 @@ static JSValue JS_ReadFunctionTag(BCReaderState *s)
 
     memcpy(b, &bc, sizeof(*b));
     bc.func_name = JS_ATOM_NULL;
-    b->header.ref_count = 1;
+    JS_REF_COUNT(b) = 1;
     if (local_count != 0) {
         b->vardefs = (void *)((uint8_t*)b + vardefs_offset);
     }
@@ -1653,6 +1652,7 @@ static JSValue JS_ReadModule(BCReaderState *s)
         for(i = 0; i < m->req_module_entries_count; i++) {
             JSReqModuleEntry *rme = &m->req_module_entries[i];
             JSModuleDef **pm = &rme->module;
+            rme->attributes = JS_UNDEFINED;
             if (bc_get_atom(s, &rme->module_name))
                 goto fail;
             // Resolves a module either from the cache or by requesting
@@ -1902,7 +1902,7 @@ static JSValue JS_ReadArrayBuffer(BCReaderState *s)
                                        byte_length, pmax_byte_length,
                                        JS_CLASS_ARRAY_BUFFER,
                                        (uint8_t*)s->ptr,
-                                       js_array_buffer_free, NULL,
+                                       js_array_buffer_realloc, NULL,
                                        /*alloc_flag*/true);
     if (JS_IsException(obj))
         goto fail;
@@ -2234,9 +2234,11 @@ static int JS_ReadObjectAtoms(BCReaderState *s)
         if (bc_get_u8(s, &type)) {
             return -1;
         }
-        if (type == 0) {
-            if (bc_get_u32(s, &atom))
+        if (type & 0x80) {
+            atom = 0;
+            if ((type & 0x40) && bc_get_leb128(s, &atom))
                 return -1;
+            atom = (atom << 6) | (type & 0x3F);
             if (!__JS_AtomIsConst(atom)) {
                 JS_ThrowInternalError(s->ctx, "out of range atom");
                 return -1;

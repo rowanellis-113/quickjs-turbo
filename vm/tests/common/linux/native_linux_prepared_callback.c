@@ -172,8 +172,9 @@ static void validate(JSContext *ctx, const char *name, JSValueConst value)
     }
 }
 static unsigned interrupts;
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
+    (void)ctx;
     return ++interrupts >= 2;
 }
 static int disabled(void)

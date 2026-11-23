@@ -1,13 +1,20 @@
 # Explicit source overlays for the pinned upstream. Never edit checked-in core
 # inputs or weaken their hash checks. Receipts accompany the compiler input.
-option(QJS_BACKPORT_CONTEXT_OOM "Apply declared upstream context-construction OOM cleanup fix" ON)
-option(QJS_FRAME_EXPERIMENTAL_ALLOCATOR "Build same-image allocator ablations (runtime opt-in)" OFF)
+option(QJS_ENABLE_TURBO_CORE_OVERLAY
+       "Apply declared QuickJS-Turbo core source overlay" OFF)
+if(DEFINED QJS_BACKPORT_CONTEXT_OOM)
+    set(QJS_ENABLE_TURBO_CORE_OVERLAY
+        ${QJS_BACKPORT_CONTEXT_OOM}
+        CACHE BOOL "Apply declared QuickJS-Turbo core source overlay" FORCE)
+endif()
+set(QJS_BACKPORT_CONTEXT_OOM ${QJS_ENABLE_TURBO_CORE_OVERLAY})
+option(QJS_FRAME_EXPERIMENTAL_ALLOCATOR
+       "Retired no-op compatibility option; upstream JSArenaState replaced FramePool" OFF)
 set(QJS_DEFAULT_EXPERIMENT_ALLOCATOR
     ""
     CACHE
         STRING
-        "Compile-time fallback for QJS_EXPERIMENT_ALLOCATOR when unset in environment (empty, off, 0, header, 128, 256, 512)"
-)
+        "Retired no-op compatibility variable from FramePool experiment")
 option(QJS_FRAME_EXPERIMENTAL_COMPARE
        "Build mixed integer/double comparison ablation in native handlers" OFF)
 option(QJS_BACKPORT_COMPUTED_ASSIGN
@@ -21,16 +28,21 @@ option(QJS_BACKPORT_MAP_POINTER_HASH
 option(QJS_BACKPORT_PORTABLE_REGEXP
        "Use accepted common RegExp and wire semantics in the C backend" OFF)
 option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" OFF)
+option(QJS_TURBO_COROUTINE_SEGMENTS
+       "Enable QuickJS-Turbo coroutine segment fast paths in the core overlay" OFF)
 option(QJS_HYBRID_GC "Build hybrid reference counting with generational partial cycle collection"
-       ON)
-if(QJS_PROPERTY_IC AND NOT QJS_BACKPORT_CONTEXT_OOM)
+       ${QJS_ENABLE_TURBO_CORE_OVERLAY})
+if(QJS_PROPERTY_IC AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
     message(FATAL_ERROR "Property IC requires the declared core overlay")
 endif()
-if(QJS_HYBRID_GC AND NOT QJS_BACKPORT_CONTEXT_OOM)
+if(QJS_HYBRID_GC AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
     message(FATAL_ERROR "Hybrid GC requires the declared core source overlay")
 endif()
-if(QJS_BACKPORT_PORTABLE_REGEXP AND NOT QJS_BACKPORT_CONTEXT_OOM)
+if(QJS_BACKPORT_PORTABLE_REGEXP AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
     message(FATAL_ERROR "Portable RegExp compatibility requires the declared core source overlay")
+endif()
+if(QJS_TURBO_COROUTINE_SEGMENTS AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
+    message(FATAL_ERROR "Coroutine segments require the declared core source overlay")
 endif()
 if(QJS_PROPERTY_IC)
     add_compile_definitions(QJS_PROPERTY_IC)
@@ -38,32 +50,14 @@ endif()
 if((QJS_BACKPORT_VALUE64_INIT
     OR QJS_BACKPORT_MIXED_NUMBERS
     OR QJS_BACKPORT_MAP_POINTER_HASH)
-   AND NOT QJS_BACKPORT_CONTEXT_OOM)
+   AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
     message(FATAL_ERROR "Bellard backports require the declared core source overlay")
 endif()
-if(QJS_BACKPORT_COMPUTED_ASSIGN AND NOT QJS_BACKPORT_CONTEXT_OOM)
+if(QJS_BACKPORT_COMPUTED_ASSIGN AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
     message(FATAL_ERROR "The compiler ablation currently requires the declared context-OOM overlay")
 endif()
-if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR AND NOT QJS_BACKPORT_CONTEXT_OOM)
-    message(FATAL_ERROR "The allocator experiment requires the declared context-OOM correction")
-endif()
-if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR AND NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "The current allocator experiment requires a 64-bit target")
-endif()
-if(NOT QJS_DEFAULT_EXPERIMENT_ALLOCATOR STREQUAL "")
-    if(NOT QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        message(
-            FATAL_ERROR
-                "QJS_DEFAULT_EXPERIMENT_ALLOCATOR requires QJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON")
-    endif()
-    if(NOT QJS_DEFAULT_EXPERIMENT_ALLOCATOR MATCHES "^(off|0|header|128|256|512)$")
-        message(
-            FATAL_ERROR
-                "QJS_DEFAULT_EXPERIMENT_ALLOCATOR must be empty, off, 0, header, 128, 256 or 512")
-    endif()
-endif()
 function(qjs_apply_declared_backports target)
-    if(NOT QJS_BACKPORT_CONTEXT_OOM)
+    if(NOT QJS_ENABLE_TURBO_CORE_OVERLAY)
         return()
     endif()
     if(QJS_USE_PREGEN_ASM AND QJS_PREGEN_BACKPORTS_READY)
@@ -101,27 +95,14 @@ function(qjs_apply_declared_backports target)
             target_compile_options(${target} PRIVATE /we4013)
         endif()
     endif()
-    if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        list(APPEND backport_launcher --allocator)
-    endif()
-    if(QJS_BACKPORT_COMPUTED_ASSIGN)
-        list(APPEND backport_launcher --computed-assign)
-    endif()
-    if(QJS_BACKPORT_VALUE64_INIT)
-        list(APPEND backport_launcher --value64-init)
-        # Narrow readers may be requested by toolchain policy while retaining complete-width stores.
-        if(QJS_BACKPORT_NARROW_VALUE_READERS)
-            list(APPEND backport_launcher --narrow-value-readers)
-        endif()
-    endif()
-    if(QJS_BACKPORT_MIXED_NUMBERS)
-        list(APPEND backport_launcher --mixed-numbers)
-    endif()
     if(QJS_BACKPORT_MAP_POINTER_HASH)
         list(APPEND backport_launcher --map-pointer-hash)
     endif()
     if(QJS_PROPERTY_IC)
         list(APPEND backport_launcher --property-ic)
+    endif()
+    if(QJS_TURBO_COROUTINE_SEGMENTS)
+        list(APPEND backport_launcher --coroutine-segments)
     endif()
     # Native object-module binary adapters pin original core function bytes.
     if(QJS_HYBRID_GC AND NOT QJS_BACKPORT_NATIVE_MODULES)

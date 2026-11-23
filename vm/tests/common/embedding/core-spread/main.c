@@ -186,9 +186,9 @@ static JSValue target(JSContext *ctx, JSValueConst self, int argc, JSValueConst 
     }
     return JS_DupValue(ctx, argv[2]);
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     Host *s = opaque;
     ++s->interrupts;
     return 1;

@@ -56,9 +56,9 @@ static size_t oom_case(size_t fail_at)
     assert(!allocation.live && !allocation.bytes);
     return count;
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
-    (void)rt;
+    (void)ctx;
     return ++*(unsigned *)opaque > 2;
 }
 

@@ -1,6 +1,26 @@
 cmake_minimum_required(VERSION 3.10)
 
+if(POLICY CMP0091)
+    cmake_policy(SET CMP0091 NEW)
+endif()
+
 project(quickjs LANGUAGES C)
+
+option(QJS_ENABLE_TURBO "Build QuickJS-Turbo VM instead of stock QuickJS-NG" ON)
+if(QJS_ENABLE_TURBO)
+    if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
+        enable_testing()
+        set(QJS_PARENT_IS_TOP_LEVEL ON)
+    else()
+        set(QJS_PARENT_IS_TOP_LEVEL OFF)
+    endif()
+    set(QJS_UPSTREAM_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    if(NOT DEFINED QJS_FRAME_BACKEND OR QJS_FRAME_BACKEND STREQUAL "")
+        set(QJS_FRAME_BACKEND "PORTABLE" CACHE STRING "Selected Turbo VM execution backend")
+    endif()
+    add_subdirectory(vm)
+    return()
+endif()
 
 include(CheckCCompilerFlag)
 include(GNUInstallDirs)
@@ -40,6 +60,7 @@ xoption(QJS_ENABLE_ASAN "Enable AddressSanitizer (ASan)" OFF)
 xoption(QJS_ENABLE_MSAN "Enable MemorySanitizer (MSan)" OFF)
 xoption(QJS_ENABLE_TSAN "Enable ThreadSanitizer (TSan)" OFF)
 xoption(QJS_ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer (UBSan)" OFF)
+xoption(QJS_ENABLE_GC_STRESS "Force a full GC before every allocation (GC stress test)" OFF)
 
 # Used to properly define JS_LIBC_EXTERN.
 add_compile_definitions(QUICKJS_NG_BUILD)
@@ -172,6 +193,7 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
         _WASI_EMULATED_SIGNAL
     )
     add_link_options(
+        -Wl,-z,stack-size=2097152
         -lwasi-emulated-process-clocks
         -lwasi-emulated-signal
     )
@@ -244,6 +266,11 @@ add_link_options(
 )
 endif()
 
+if(QJS_ENABLE_GC_STRESS)
+message(STATUS "Building with GC stress (FORCE_GC_AT_MALLOC)")
+add_compile_definitions(FORCE_GC_AT_MALLOC)
+endif()
+
 
 # QuickJS library
 #
@@ -279,6 +306,9 @@ list(APPEND qjs_defines _GNU_SOURCE)
 if(WIN32)
     # NB: Windows 7 is EOL and we are only supporting in so far as it doesn't interfere with progress.
     list(APPEND qjs_defines WIN32_LEAN_AND_MEAN _WIN32_WINNT=0x0601)
+else()
+    # UNIX-y platforms.
+    list(APPEND qjs_libs m)
 endif()
 if(TVOS)
     list(APPEND qjs_defines _TVOS)
@@ -290,12 +320,6 @@ list(APPEND qjs_libs ${CMAKE_DL_LIBS})
 find_package(Threads)
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "WASI")
     list(APPEND qjs_libs ${CMAKE_THREAD_LIBS_INIT})
-endif()
-
-# try to find libm
-find_library(M_LIBRARIES m)
-if(M_LIBRARIES OR CMAKE_C_COMPILER_ID STREQUAL "TinyCC")
-    list(APPEND qjs_libs m)
 endif()
 
 add_library(qjs ${qjs_sources})
@@ -404,7 +428,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
             OUTPUT_NAME "qjs"
             SUFFIX ".wasm"
         )
-        target_compile_definitions(qjs_wasi PRIVATE ${qjs_defines})
+        target_compile_definitions(qjs PRIVATE BUILDING_QJS_SHARED)
+        target_compile_definitions(qjs_wasi PRIVATE ${qjs_defines} BUILDING_QJS_SHARED)
         target_link_libraries(qjs_wasi qjs)
         target_link_options(qjs_wasi PRIVATE
             -mexec-model=reactor
@@ -415,6 +440,10 @@ if(CMAKE_SYSTEM_NAME STREQUAL "WASI")
             -Wl,--export=free
             -Wl,--export=realloc
             -Wl,--export=calloc
+            # Enable hosts to pass callbacks to JS_SetInterruptHandler,
+            # JS_SetModuleLoaderFunc2, etc.
+            -Wl,--export-table
+            -Wl,--growable-table
         )
     endif()
 endif()
@@ -442,7 +471,7 @@ if(NOT EMSCRIPTEN)
     target_link_libraries(run-test262 PRIVATE qjs)
 endif()
 
-# Interrupt test
+# C API tests
 #
 
 add_executable(api-test
@@ -450,6 +479,7 @@ add_executable(api-test
 )
 target_compile_definitions(api-test PRIVATE ${qjs_defines})
 target_link_libraries(api-test PRIVATE qjs)
+add_qjs_libc_if_needed(api-test)
 
 add_executable(lre-test
     lre-test.c
@@ -461,8 +491,9 @@ target_compile_definitions(lre-test PRIVATE ${qjs_defines})
 # Unicode generator
 #
 
+# Note: do not link libunicode.c here, it needs the generated libunicode-table.h,
+# which would make it impossible to regenerate the table from scratch.
 add_executable(unicode_gen EXCLUDE_FROM_ALL
-    libunicode.c
     unicode_gen.c
 )
 target_compile_definitions(unicode_gen PRIVATE ${qjs_defines})
@@ -555,6 +586,8 @@ if (QJS_ENABLE_INSTALL)
     if(NOT IOS AND NOT TVOS AND NOT WATCHOS)
         install(TARGETS qjs_exe RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         install(TARGETS qjsc RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+        install(FILES qjs.man DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1 RENAME qjs.1)
+        install(FILES qjsc.man DESTINATION ${CMAKE_INSTALL_DATADIR}/man/man1 RENAME qjsc.1)
     endif()
     install(TARGETS qjs EXPORT qjsConfig
             RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

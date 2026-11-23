@@ -261,10 +261,10 @@ static void clear_exception(JSContext *ctx)
     restore_proto(ctx);
 #endif
 }
-static int interrupt(JSRuntime *rt, void *opaque)
+static int interrupt(JSContext *ctx, void *opaque)
 {
     (void)opaque;
-    JS_RunGC(rt);
+    JS_RunGC(JS_GetRuntime(ctx));
     return ++interrupts >= 3;
 }
 static size_t fault(size_t fail_at)

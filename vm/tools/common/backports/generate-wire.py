@@ -154,7 +154,7 @@ def generate(source):
         "JS_ReadRegExp",
         [
             (
-                "    if (bc->is_wide_char) {",
+                "    if (bc->is_wide_char ||\n        lre_check_bytecode(str8(bc), bc->len) != 0) {",
                 "#ifdef QJS_FRAME_REGEXP_LEGACY_WIRE\n"
                 "    {\n        JSString *runtime = JS_CompileImportedRegExp(ctx, pattern, bc);\n"
                 "        if (!runtime) {\n            js_free_string(ctx->rt, pattern);\n"
