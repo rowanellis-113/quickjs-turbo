@@ -5,7 +5,7 @@
     "tools/x86/common/codegen/property_ic_native.py": "ef4c7f71d687c930c94aa3fb3be1d20028f5ae0d4e2ef87a311295990a3b6144",
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
-    "tools/x86/common/codegen/own-bytecode.py": "6ea86a03e68500acdae5d03dc2193f68ee9650af7ab85617aca90696ea2e221b"
+    "tools/x86/common/codegen/own-bytecode.py": "228fb18556d48f7f0413e6ee139da7864691e39de81fd7d45d3f40f8aefda2e0"
   },
   "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "profile": "Compiler-measured Linux LP64 inline-header/JSValue16;existing frame128/state168 and sites16x32",

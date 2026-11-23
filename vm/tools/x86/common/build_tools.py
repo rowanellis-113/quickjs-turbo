@@ -1,25 +1,15 @@
-"""Build-local tool discovery and hashes of actual frame source inputs.
+"""Build-local tool discovery and hashes of actual frame source inputs."""
 
-This module performs no compilation, mutation or global environment changes.
-Generated receipts must describe the current checkout, not a stale source
-manifest copied from a previous experiment.
-"""
-
-# Shared source/tool/artifact addressing for the x86 backend package.
 import sys as _frame_sys
 from pathlib import Path as _FramePath
 
-_frame_tools_root = str(_FramePath(__file__).resolve().parents[3])
+_frame_tools_root = str(_FramePath(__file__).resolve().parents[2])
 if _frame_tools_root not in _frame_sys.path:
     _frame_sys.path.insert(0, _frame_tools_root)
 from x86.common.paths_x86 import (
     activate_tools as _frame_activate_tools,
-    tool_path as _frame_tool_path,
-    source_file as _frame_source_file,
-    source_text as _frame_source_text,
-    generated_file as _frame_generated_file,
     project_root as _frame_project_root,
-    build_file as _frame_build_file,
+    source_file as _frame_source_file,
     upstream_root as _frame_upstream_root,
 )
 
@@ -32,12 +22,7 @@ import shutil
 
 
 def source_inputs(source):
-    """Select owned native inputs without absorbing upstream tests/bench data.
-
-    The inventory preserves the pre-flattening dependency scope. Paths, not
-    basenames, identify each input; adding a native fixture updates the list.
-    Minimal temporary source trees used by build-policy tests have no inventory.
-    """
+    """Collect root and declared C/ASM source inputs for x86 codegen tools."""
     source = Path(source).resolve()
     up = _frame_upstream_root(source)
     paths = []
@@ -91,6 +76,7 @@ def source_inputs(source):
 
 
 def source_digest(source):
+    """Return a canonical SHA-256 digest of the collected source inputs."""
     source = Path(source).resolve()
     up = _frame_upstream_root(source)
     paths = source_inputs(source)
@@ -107,6 +93,7 @@ def source_digest(source):
 
 
 def find_objdump(build=None):
+    """Locate GNU objdump from QJS_FRAME_OBJDUMP, build binding, or PATH."""
     configured = os.environ.get("QJS_FRAME_OBJDUMP")
     if build is not None and not configured:
         directory = Path(build).resolve()

@@ -3,8 +3,7 @@
   "owners": {
     "tools/x86/common/codegen/iterator-literal.py": "01d72a67046c0bdb490f012974713c7232932b13a94904806a43cae4fec11ac8",
     "src/x86/win64/mingw64/mingw-ordinary_literal.c": "5693bea842806b8058df863a751a91dbef5b3b2757eb9f15d1213b96a6b33f4d",
-    "asm/x86/win64/mingw64/mingw-ordinary_literal_entry.S": "28e7069cc80c55c03c13b55bec840bce459411be141b9a0ab15967b31183e9d4",
-    "tools/x86/win64/coff/retained_routes.py": "24e29202765f9fee56e147b9beaff234197786f606c859b45ab37ecbc88def45"
+    "asm/x86/win64/mingw64/mingw-ordinary_literal_entry.S": "28e7069cc80c55c03c13b55bec840bce459411be141b9a0ab15967b31183e9d4"
   },
   "state_constants": {
     "FRAME_STATE_LITERAL_ACTIVE": 162,

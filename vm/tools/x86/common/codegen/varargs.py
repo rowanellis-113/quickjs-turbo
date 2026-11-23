@@ -17,7 +17,7 @@ from x86.common.paths_x86 import (
 
 _frame_activate_tools()
 from c_source_match import replace_one
-from native_build import find_objdump
+from x86.common.build_tools import find_objdump
 
 """Isolated append/apply coverage; inherited interpreter code is never rebuilt.
 

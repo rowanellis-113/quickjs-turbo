@@ -22,7 +22,6 @@ OWNERS = (
     "tools/x86/common/codegen/iterator-literal.py",
     "src/x86/win64/mingw64/mingw-ordinary_literal.c",
     "asm/x86/win64/mingw64/mingw-ordinary_literal_entry.S",
-    "tools/x86/win64/coff/retained_routes.py",
 )
 
 

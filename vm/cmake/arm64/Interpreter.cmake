@@ -19,9 +19,6 @@ if(QJS_INTERP_FRAME_CALL_LEAVES)
 endif()
 if(QJS_INTERP_FRAME_STRING_WORKERS)
     list(APPEND qjs_defines QJS_AARCH64_STRING_WORKERS)
-    if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        list(APPEND qjs_defines QJS_AARCH64_STRING_POOL)
-    endif()
 endif()
 if(QJS_INTERP_FRAME_NATIVE_NUMERIC)
     list(APPEND qjs_defines QJS_AARCH64_NUMERIC_WORKERS)
@@ -251,7 +248,6 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/elf/string_workers.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/asm/arm64/common/register-strings.inc"
             "${CMAKE_CURRENT_SOURCE_DIR}/asm/arm64/common/register-string-append.inc"
-            "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/allocator-pool.c"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/c_extract/local_string_c.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/workers/numeric_workers.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/elf/numeric_c.py"

@@ -185,36 +185,38 @@ jobs:
           $sdkName = "quickjs-turbo-$tag-windows-x86_64-${{ matrix.slug }}-sdk"
           $sdkDir = "$PWD/dist/$sdkName"
 
-          $buildArgs = @{
-            Toolchain = '${{ matrix.toolchain }}'
-            Backend   = 'WIN64'
-            BuildPath = $buildDir
-            CMake     = $cmake
-            Ninja     = $ninja
-            Objdump   = '${{ steps.tools.outputs.objdump }}'
-            Assembler = '${{ steps.tools.outputs.as }}'
-            Jobs      = 4
-            Test      = $true
-          }
-          if ('${{ matrix.toolchain }}' -eq 'msvc') {
-            $buildArgs.MsvcRuntime = '${{ matrix.runtime }}'
-            if ('${{ matrix.runtime }}' -eq 'MT') {
-              $buildArgs.DefaultExperimentAllocator = '256'
-            }
-          } else {
-            $buildArgs.Compiler = '${{ steps.tools.outputs.gcc }}'
-          }
-          ./vm/tools/x86/win64/build/build-baseline.ps1 @buildArgs
-
-          & $cmake --install $buildDir --prefix $sdkDir
-          if ($LASTEXITCODE -ne 0) { throw "cmake --install failed" }
-
+          $cmakeArgs = @(
+            '-S', 'vm',
+            '-B', $buildDir,
+            '-G', 'Ninja',
+            "-DCMAKE_MAKE_PROGRAM=$ninja",
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DQJS_FRAME_BACKEND=WIN_X86_64',
+            '-DQJS_PROPERTY_IC=ON',
+            '-DQJS_FRAME_BUILD_TESTS=ON'
+          )
           if ('${{ matrix.toolchain }}' -eq 'msvc') {
             $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
             $vsPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
             if (-not $vsPath) { throw "Visual Studio installation not found" }
             & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
 
+            $rt = if ('${{ matrix.runtime }}' -eq 'MT') { 'MultiThreaded' } else { 'MultiThreadedDLL' }
+            $cmakeArgs += "-DCMAKE_MSVC_RUNTIME_LIBRARY=$rt"
+          } else {
+            $cmakeArgs += "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}"
+          }
+          & $cmake @cmakeArgs
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 configure failed" }
+          & $cmake --build $buildDir --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 build failed" }
+          & $ctest --test-dir $buildDir --no-tests=error --output-on-failure --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 CTest failed" }
+
+          & $cmake --install $buildDir --prefix $sdkDir
+          if ($LASTEXITCODE -ne 0) { throw "cmake --install failed" }
+
+          if ('${{ matrix.toolchain }}' -eq 'msvc') {
             $rt = if ('${{ matrix.runtime }}' -eq 'MT') { 'MultiThreaded' } else { 'MultiThreadedDLL' }
             $consumerDir = "build/consumer-${{ matrix.slug }}"
             & $cmake -S vm/tests/common/consumer -B $consumerDir -G Ninja `
@@ -225,7 +227,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer configure failed" }
             & $cmake --build $consumerDir --parallel 4
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer build failed" }
-            & $ctest --test-dir $consumerDir --output-on-failure
+            & $ctest --test-dir $consumerDir --no-tests=error --output-on-failure
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer CTest failed" }
 
             if ('${{ matrix.runtime }}' -eq 'MT') {
@@ -242,9 +244,15 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer configure failed" }
             & $cmake --build build/consumer-mingw --parallel 4
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer build failed" }
-            & $ctest --test-dir build/consumer-mingw --output-on-failure
+            & $ctest --test-dir build/consumer-mingw --no-tests=error --output-on-failure
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer CTest failed" }
           }
+
+          python -B vm/tools/common/export-pregen.py `
+            --source vm `
+            --build $buildDir `
+            --output "$sdkDir/share/quickjs-turbo/pregen"
+          if ($LASTEXITCODE -ne 0) { throw "Pregen export failed for WIN_X86_64" }
 
           python -B vm/ci/release_version.py `
             --write-sdk-metadata $sdkDir `
@@ -278,7 +286,6 @@ jobs:
             -DQJS_FRAME_BACKEND=PORTABLE \
             -DQJS_FRAME_BUILD_TESTS=ON \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \

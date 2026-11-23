@@ -219,43 +219,13 @@
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
-    "src/x86/win64/common/quickjs-interpreter-cached-sort.inc": {
-      "sha256": "512adc14521bdf527f24495ab428d3fdcc1f02cbb3f98019f1570d98570a5595",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
-    "src/x86/win64/common/quickjs-interpreter-call-link.inc": {
-      "sha256": "2e8e43f5ae542898a1432792dabaaec034371e306a8709ad01a99ca98c51cd91",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
-    "src/x86/win64/common/quickjs-interpreter-json-callback.inc": {
-      "sha256": "373008da1c4cf8bcb63c3e616557f2b124b6ffe9ad9a86b3a6557fd0eececb5c",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
-    "src/x86/win64/common/quickjs-interpreter-json.inc": {
-      "sha256": "193889d190789318cf4de1a05641f8349b999a38c629f979e59da9e8593f4100",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
     "src/common/call/quickjs-interpreter-loop.inc": {
       "sha256": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
-    "src/x86/win64/common/quickjs-interpreter-native-root.inc": {
-      "sha256": "cb8237d9966589cb2cfa1e3490edb9d22eee12311c9f96534fe25cc20fdcd511",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
     "src/x86/win64/common/quickjs-interpreter-number-property.inc": {
       "sha256": "ebdacc6699d09761299be66726886a29f10469b2e192d8cb6b5e7801610352b9",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
-    "src/x86/win64/common/quickjs-interpreter-prepared-callback.inc": {
-      "sha256": "925c7e87075bd95a7c85a9e021b1d8c2ff1a3c9d6021b92887b5e609b327aa0a",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -269,11 +239,6 @@
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
-    "src/x86/win64/common/quickjs-interpreter-slice-native.inc": {
-      "sha256": "b6c65d09244b0840b429d175e64f27711534bd00f4ed8eab44c539d264b117da",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
     "src/x86/win64/common/quickjs-regexp-flags.inc": {
       "sha256": "4f0fd0ddeec490a6ed857eab58b95cb8ea09902f2b014002a9f62abce3571ff5",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
@@ -283,15 +248,6 @@
       "sha256": "0af0f839daac222a35fb34931d71fedd4f5c034f92e5e59d30f953b04899350e",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
-    },
-    "src/x86/win64/common/quickjs-string-control.inc": {
-      "sha256": "7491b48619eea2602b62bb9b1be04f46deb6ea62137c3fbb69fe9daa628e23b2",
-      "reason": "handwritten source-text generator input; hash-protected and format-checked",
-      "format_check": true
-    },
-    "asm/x86/win64/common/cvm-segments.S": {
-      "sha256": "a1db4e1ba1da37ceb8a3bd0cb17fbe5215ca9922a1d5f37a44dfe3e5acf8f109",
-      "reason": "Generated canonical opcode catalog/Win64 assembler; regenerate and verify with tools/x86/win64/codegen/cvm_segments.py --source-root . --check"
     },
     "src/common/call/cvm-native-segment-opcodes.inc": {
       "sha256": "6c5ee8d0622a2665318e69a5d56dc79263048b9c5717c012b9c5a2e24524fac0",

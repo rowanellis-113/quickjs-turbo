@@ -9,6 +9,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 from pathlib import Path
 import struct
 import subprocess
@@ -27,7 +28,7 @@ def sha(path):
 
 
 def load_coff_class(source):
-    adapter_path = source / "tools/x86/win64/coff/object-adapter.py"
+    adapter_path = source / "tools/x86/common/coff_probe.py"
     spec = importlib.util.spec_from_file_location("qjs_win64_coff_adapter", adapter_path)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
@@ -42,7 +43,7 @@ def section_bytes(coff, name):
     raise ValueError(f"Missing COFF section {name!r} in layout probe")
 
 
-def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=False):
+def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=False, is_gnu=False):
     source = Path(source).resolve()
     upstream = Path(upstream).resolve()
     build = Path(build).resolve()
@@ -71,50 +72,88 @@ def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=F
         keys.append(("offsets", "JSRuntime.drc_ok"))
         expressions.append("offsetof(JSRuntime, drc_ok)")
 
-    lines = [
-        prelude,
-        "#include <stdint.h>",
-        "#include <stddef.h>",
-        '#pragma section(".qjlay", read)',
-        '__declspec(allocate(".qjlay")) const uint64_t qjs_win64_layout[] = {',
-        f"0x514a534c41594f55ULL, 1, {len(keys)},",
-    ]
-    lines += [expr + "," for expr in expressions]
-    lines += ["};"]
-    for index, name in enumerate(catalogue["bits"]):
-        typename, field = name.split(".", 1)
-        sec = f".qjb{index:03d}"
-        lines += [
-            f'#pragma section("{sec}", read)',
-            f'__declspec(allocate("{sec}")) const {typename} qjs_win64_bit_{index} = {{ .{field} = 1 }};',
+    if is_gnu:
+        lines = [
+            prelude,
+            "#include <stdint.h>",
+            "#include <stddef.h>",
+            '__attribute__((used, section(".qjlay"), aligned(8))) const uint64_t qjs_win64_layout[] = {',
+            f"0x514a534c41594f55ULL, 1, {len(keys)},",
         ]
+        lines += [expr + "," for expr in expressions]
+        lines += ["};"]
+        for index, name in enumerate(catalogue["bits"]):
+            typename, field = name.split(".", 1)
+            sec = f".qjb{index:03d}"
+            lines.append(
+                f'__attribute__((used, section("{sec}"))) const {typename} qjs_win64_bit_{index} = {{ .{field} = 1 }};'
+            )
+    else:
+        lines = [
+            prelude,
+            "#include <stdint.h>",
+            "#include <stddef.h>",
+            '#pragma section(".qjlay", read)',
+            '__declspec(allocate(".qjlay")) const uint64_t qjs_win64_layout[] = {',
+            f"0x514a534c41594f55ULL, 1, {len(keys)},",
+        ]
+        lines += [expr + "," for expr in expressions]
+        lines += ["};"]
+        for index, name in enumerate(catalogue["bits"]):
+            typename, field = name.split(".", 1)
+            sec = f".qjb{index:03d}"
+            lines += [
+                f'#pragma section("{sec}", read)',
+                f'__declspec(allocate("{sec}")) const {typename} qjs_win64_bit_{index} = {{ .{field} = 1 }};',
+            ]
 
     probe = output / "layout-probe.c"
     obj = output / "layout-probe.obj"
     probe.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
 
-    cmd = [
-        str(compiler),
-        "/nologo",
-        "/c",
-        "/O2",
-        "/std:c11",
-        "/GL-",
-        f"/I{core.parent}",
-        f"/I{source}",
-        f"/I{upstream}",
-        f"/I{build}",
-    ]
-    if not is_clang_cl:
-        cmd.append("/experimental:c11atomics")
+    if is_gnu:
+        cmd = [
+            str(compiler),
+            "-c",
+            "-O2",
+            "-std=c11",
+            "-fno-lto",
+            f"-I{core.parent}",
+            f"-I{source}",
+            f"-I{upstream}",
+            f"-I{build}",
+        ]
+        for d in defines:
+            if d:
+                cmd.append(f"-D{d}")
+        cmd.extend(["-o", str(obj), str(probe)])
     else:
-        cmd.append("-fno-lto")
-    for d in defines:
-        if d:
-            cmd.append(f"/D{d}")
-    cmd.extend([f"/Fo{obj}", str(probe)])
+        cmd = [
+            str(compiler),
+            "/nologo",
+            "/c",
+            "/O2",
+            "/std:c11",
+            "/GL-",
+            f"/I{core.parent}",
+            f"/I{source}",
+            f"/I{upstream}",
+            f"/I{build}",
+        ]
+        if not is_clang_cl:
+            cmd.append("/experimental:c11atomics")
+        else:
+            cmd.append("-fno-lto")
+        for d in defines:
+            if d:
+                cmd.append(f"/D{d}")
+        cmd.extend([f"/Fo{obj}", str(probe)])
 
-    res = subprocess.run(cmd, cwd=str(output), capture_output=True, text=True)
+    run_env = os.environ.copy()
+    compiler_dir = Path(compiler).resolve().parent
+    if compiler_dir.is_dir():
+        run_env["PATH"] = str(compiler_dir) + os.pathsep + run_env.get("PATH", "")
+    res = subprocess.run(cmd, cwd=str(output), env=run_env, capture_output=True, text=True)
     (output / "compile.stdout").write_text(res.stdout, encoding="utf-8")
     (output / "compile.stderr").write_text(res.stderr, encoding="utf-8")
     if res.returncode != 0:
@@ -135,7 +174,7 @@ def measure(source, upstream, build, output, compiler, defines=(), is_clang_cl=F
     layout = dict(
         schema=1,
         platform="win64-x86_64",
-        target="x86_64-pc-windows-msvc",
+        target="x86_64-w64-mingw32" if is_gnu else "x86_64-pc-windows-msvc",
         sizes={},
         offsets={},
         constants={},
@@ -231,6 +270,7 @@ def main():
     ap.add_argument("--output", type=Path, required=True)
     ap.add_argument("--compiler", required=True)
     ap.add_argument("--clang-cl", action="store_true")
+    ap.add_argument("--gnu", action="store_true")
     ap.add_argument("--define", action="append", default=[])
     args = ap.parse_args()
     measure(
@@ -241,6 +281,7 @@ def main():
         args.compiler,
         defines=args.define,
         is_clang_cl=args.clang_cl,
+        is_gnu=args.gnu,
     )
 
 

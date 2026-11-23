@@ -53,70 +53,17 @@ def validate(root):
 
     pin = (root / "cmake/QuickJSUpstreamPin.cmake").read_text(encoding="utf-8")
     revision = re.search(r'set\(QJS_UPSTREAM_REVISION "([0-9a-f]+)"\)', pin)[1]
-    backend = json.loads((root / "src/x86/win64/backend.json").read_text(encoding="utf-8"))
-    if backend.get("schema") == 2 and backend.get("route_model") != "live-symbols-v1":
-        errors.append("Unknown retained live-route contract")
-    counts = {}
-    for compiler, data in backend["toolchains"].items():
-        ids = {module["id"]: module for module in data["modules"]}
-        ordered = sum((data["build_order"][kind] for kind in ("c", "gas", "masm")), [])
-        if len(ids) != len(data["modules"]) or sorted(ordered) != sorted(ids):
-            errors.append("Incomplete or repeated backend build order: " + compiler)
-        objects = set()
-        for module in data["modules"]:
-            path = input_file(module["source"])
-            if (
-                revision == backend["upstream"]
-                and path.is_file()
-                and hashlib.sha256(path.read_bytes()).hexdigest() != module["source_sha256"]
-            ):
-                errors.append("Module source receipt is stale: " + module["source"])
-            if (
-                module["object"] in objects
-                or Path(module["object"]).is_absolute()
-                or ".." in Path(module["object"]).parts
-            ):
-                errors.append("Ambiguous or unsafe archive member: " + module["object"])
-            objects.add(module["object"])
-            if "private_header" in module:
-                input_file(module["private_header"])
-            if "generated_private_header" in module and (
-                module["id"] != "wire"
-                or module["generated_private_header"] != "interpreter-wire-private.h"
-            ):
-                errors.append("Unknown generated private interface: " + module["id"])
-        for recipe in data["routes"]:
-            if (
-                "object_path" not in recipe
-                or Path(recipe["object_path"]).is_absolute()
-                or ".." in Path(recipe["object_path"]).parts
-            ):
-                errors.append(
-                    "Root route has no build-relative member identity: " + recipe["object"]
-                )
-            if backend.get("schema") == 2:
-                route_flags = {"strict_identity_calls", "strict_identity_only", "array_own_calls"}
-                if set(recipe) - ({"object", "object_path", "aliases"} | route_flags):
-                    errors.append(
-                        "Historical object recipe in live-route bundle: " + recipe["object"]
-                    )
-                if any(type(recipe[key]) is not bool for key in route_flags if key in recipe):
-                    errors.append("Live-route control must be boolean: " + recipe["object"])
-                if recipe.get("strict_identity_only") and not recipe.get("strict_identity_calls"):
-                    errors.append(
-                        "Strict-only route requires strict-identity calls: " + recipe["object"]
-                    )
-                if any(
-                    set(alias) != {"name"} or not alias["name"].startswith("qjs_frame_core_")
-                    for alias in recipe.get("aliases", [])
-                ):
-                    errors.append(
-                        "Non-symbol helper alias in live-route bundle: " + recipe["object"]
-                    )
-        counts[compiler] = len(ids)
+    core_fields = json.loads(
+        (root / "src/common/internal/abi/core-fields.json").read_text(encoding="utf-8")
+    )
+    actual_core_sha = hashlib.sha256(
+        source_file(root, "quickjs.c").read_bytes().replace(b"\r\n", b"\n")
+    ).hexdigest()
+    if actual_core_sha != core_fields["source_sha256"]:
+        errors.append("Core ABI field catalogue source receipt is stale: core-fields.json")
 
     # Source extraction must see a complete C body after shared-fragment factoring.
-    json_body = source_text(root, "quickjs-interpreter-json.h")
+    json_body = source_text(root, "kernel-json.inc")
     for signature in (
         "static JSValue frame_json_number(",
         "static JSValue frame_json_value(",
@@ -154,10 +101,9 @@ def validate(root):
         status="failed" if errors else "passed",
         source_ids=len(sources),
         tool_modules=len(modules),
-        backend_modules=counts,
+        core_fields_count=len(core_fields["sizes"]) + len(core_fields["offsets"]),
         upstream=revision,
-        native_adapter_upstream=backend["upstream"],
-        native_abi_compatible=revision == backend["upstream"],
+        native_abi_compatible=actual_core_sha == core_fields["source_sha256"],
         aarch64_standard_call_foundation=dict(
             inputs=len(arm["files"]),
             native_vm=False,

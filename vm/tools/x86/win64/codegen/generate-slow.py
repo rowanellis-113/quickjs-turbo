@@ -17,7 +17,8 @@ from common.c_extract.generate_slow_c import (
 )
 
 WIN64_ARG_CONSTRUCT_CONDITION = (
-    "#if defined(__MINGW32__) && defined(QJS_INTERP_FRAME_INTERNAL_ENTRY) "
+    "#if defined(__MINGW32__) && !defined(QJS_WIN64_NATIVE_VM) "
+    "&& defined(QJS_INTERP_FRAME_INTERNAL_ENTRY) "
     "&& defined(QJS_INTERP_FRAME_REGISTER_ABI) && !defined(QJS_INTERP_FRAME_DIAGNOSTICS)"
 )
 

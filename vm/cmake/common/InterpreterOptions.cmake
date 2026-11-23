@@ -50,17 +50,17 @@ set(QJS_PREGEN_DIR
 if(NOT DEFINED QJS_FRAME_BACKEND)
     if(QJS_ENABLE_INTERP_FRAME)
         set(QJS_FRAME_BACKEND
-            WIN64
+            WIN_X86_64
             CACHE
                 STRING
-                "Frame backend: PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+                "Frame backend: PORTABLE, AUTO, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
         )
     else()
         set(QJS_FRAME_BACKEND
             PORTABLE
             CACHE
                 STRING
-                "Frame backend: PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+                "Frame backend: PORTABLE, AUTO, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
         )
     endif()
 endif()
@@ -69,17 +69,16 @@ set_property(
     PROPERTY STRINGS
              PORTABLE
              AUTO
-             WIN64
              WIN_X86_64
              LINUX_X86_64
              LINUX_AARCH64
              MACOS_X86_64)
 string(TOUPPER "${QJS_FRAME_BACKEND}" frame_requested)
 if(NOT frame_requested MATCHES
-   "^(PORTABLE|AUTO|WIN64|WIN_X86_64|LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64)$")
+   "^(PORTABLE|AUTO|WIN_X86_64|LINUX_X86_64|LINUX_AARCH64|MACOS_X86_64)$")
     message(
         FATAL_ERROR
-            "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN64, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
+            "QJS_FRAME_BACKEND must be PORTABLE, AUTO, WIN_X86_64, LINUX_X86_64, LINUX_AARCH64 or MACOS_X86_64"
     )
 endif()
 

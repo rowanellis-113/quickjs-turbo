@@ -47,112 +47,13 @@ def append(source, stream, layout):
             ],
         )
     ]
-    flag = False
-    for value in layout["flags"]:
-        if value == "-UQJS_FRAME_EXPERIMENTAL_ALLOCATOR":
-            flag = False
-        elif value == "-DQJS_FRAME_EXPERIMENTAL_ALLOCATOR" or value.startswith(
-            "-DQJS_FRAME_EXPERIMENTAL_ALLOCATOR="
-        ):
-            flag = True
     contract = dict(
         native_byte_append=False,
-        allocator_compiler_define=flag,
+        allocator_compiler_define=False,
         actual_add_loc_rejection_edges=2,
         policy="actual-type C string boundaries;no runtime padding policy byte",
     )
     globals_ = []
-    if flag and layout["reference_count_model"] == "inline-header":
-        expected_sizes = {"JSString": 24, "JSStringRope": 48}
-        expected_offsets = {
-            "JSString.header": 0,
-            "JSString.hash_next": 12,
-            "JSStringRope.header": 0,
-            "JSStringRope.len": 4,
-            "JSStringRope.depth": 9,
-            "JSStringRope.left": 16,
-            "JSStringRope.right": 32,
-            "JSRuntime.mf": 0,
-            "JSMallocFunctions.js_malloc_usable_size": 32,
-        }
-        expected_bits = {
-            "JSString.len": [[4, 1]],
-            "JSString.is_wide_char": [[7, 128]],
-            "JSString.kind": [[11, 16]],
-            "JSString.atom_type": [[11, 64]],
-        }
-        expected_constants = {
-            "JS_TAG_STRING": -7,
-            "JS_TAG_STRING_ROPE": -6,
-            "JS_TAG_UNDEFINED": 3,
-            "JS_STRING_ROPE_SHORT_LEN": 512,
-            "JS_STRING_ROPE_SHORT2_LEN": 8192,
-            "JS_STRING_LEN_MAX": 1073741823,
-            "JS_STRING_ROPE_MAX_DEPTH": 60,
-            "JS_STRING_KIND_NORMAL": 0,
-        }
-        for group, values in (
-            ("sizes", expected_sizes),
-            ("offsets", expected_offsets),
-            ("bits", expected_bits),
-            ("constants", expected_constants),
-        ):
-            for field, expected in values.items():
-                if layout[group].get(field) != expected:
-                    raise ValueError("Review native string geometry: " + field)
-        if layout["reference_count_model"] != "inline-header":
-            raise ValueError("Review native string reference count protocol")
-        path = tool_path("add-boundary")
-        spec = importlib.util.spec_from_file_location("linux_shared_append", path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        opcodes = {
-            name.removeprefix("OP_"): layout["constants"][name]
-            for name in (
-                "OP_put_loc0",
-                "OP_set_loc0",
-                "OP_put_loc8",
-                "OP_set_loc8",
-                "OP_put_loc",
-                "OP_set_loc",
-            )
-        }
-        name = "JS_FrameLinuxNativeRopeAppend"
-        begin = stream["short_code"].index("interp_short_big_add:")
-        end = stream["short_code"].index("interp_short_big_mul:", begin)
-        positions = [
-            i
-            for i in range(begin, end)
-            if stream["short_code"][i] in ("jne interp_op_slow_add", "jo interp_op_slow_add")
-        ]
-        if len(positions) != 3:
-            raise ValueError("Review all short-BigInt add miss edges")
-        for at in positions:
-            stream["short_code"][at] = stream["short_code"][at].split()[0] + " " + name
-        rows = module.native_append_body(
-            layout, opcodes, name, "interp_op_slow_add", add_mode="qjs_linux_string_add_mode"
-        )
-        rows = [
-            row.replace("[JS_FrameLocalRopeMode]", "[rip+JS_FrameLocalRopeMode]").replace(
-                "[FramePoolFunctions]", "[rip+FramePoolFunctions]"
-            )
-            for row in rows
-        ]
-        blocks.append((name, rows))
-        globals_ = ["JS_FrameLocalRopeMode", "FramePoolFunctions", "qjs_linux_string_add_mode"]
-        contract.update(
-            native_byte_append=True,
-            short_add_rejection_edges=3,
-            measured_sizes=expected_sizes,
-            measured_offsets=expected_offsets,
-            measured_bits=expected_bits,
-            measured_constants=expected_constants,
-            shared_factory_sha256=hashlib.sha256(Path(path).read_bytes()).hexdigest(),
-            pool_source_sha256=hashlib.sha256(
-                (source / "src/common/memory/allocator-pool.c").read_bytes()
-            ).hexdigest(),
-            pool_contract="Actual allocator TU asserts16-byte FramePoolHeader and capacity offset8;callback identity guard precedes header read",
-        )
     # The accepted GNU route changes only the receiver object-tag miss,
     # after the original integer-index guard. Keep all other slow transfers.
     import json

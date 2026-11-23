@@ -1,5 +1,5 @@
-# Source-level Windows x86-64 native ASM VM (MSVC cl+ml64 and clang-cl).
-# Zero GNU binutils required; supports standalone, add_subdirectory(), and pregen builds.
+# Source-level Windows x86-64 native ASM VM (MSVC cl+ml64, clang-cl, and MinGW GNU/Clang).
+# Zero custom COFF patching required; supports standalone, add_subdirectory(), and pregen builds.
 set(qjs_win64_native_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/win64-native")
 set(qjs_win64_abi_dir "${CMAKE_CURRENT_BINARY_DIR}/generated/win64-abi")
 set(qjs_win64_core "${qjs_win64_native_dir}/quickjs-win64-foundation.c")
@@ -41,6 +41,9 @@ else()
     endif()
     if(QJS_PROPERTY_IC)
         list(APPEND qjs_win64_backport_args --property-ic)
+    endif()
+    if(QJS_TURBO_COROUTINE_SEGMENTS)
+        list(APPEND qjs_win64_backport_args --coroutine-segments)
     endif()
     if(QJS_HYBRID_GC)
         list(APPEND qjs_win64_backport_args --hybrid-gc)
@@ -94,7 +97,9 @@ else()
     if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
         list(APPEND qjs_win64_prepare_args --define QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
     endif()
-    if(CMAKE_C_COMPILER_ID STREQUAL "Clang")
+    if(MINGW)
+        list(APPEND qjs_win64_prepare_args --gnu)
+    elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
         list(APPEND qjs_win64_prepare_args --clang-cl)
     endif()
 
@@ -144,6 +149,14 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
         DEPENDS "${qjs_win64_vm_masm}"
         COMMENT "Assemble Windows x86-64 native ASM VM (ml64)"
         VERBATIM)
+elseif(MINGW)
+    add_custom_command(
+        OUTPUT "${qjs_win64_vm_object}"
+        COMMAND "${CMAKE_C_COMPILER}" -c -x assembler-with-cpp -fno-lto "${qjs_win64_vm_gas}"
+                -o "${qjs_win64_vm_object}"
+        DEPENDS "${qjs_win64_vm_gas}"
+        COMMENT "Assemble Windows x86-64 native ASM VM (MinGW GAS)"
+        VERBATIM)
 elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
     add_custom_command(
         OUTPUT "${qjs_win64_vm_object}"
@@ -153,7 +166,7 @@ elseif(CMAKE_C_COMPILER_ID STREQUAL "Clang")
         COMMENT "Assemble Windows x86-64 native ASM VM (clang-cl)"
         VERBATIM)
 else()
-    message(FATAL_ERROR "WIN_X86_64 requires MSVC (cl.exe) or clang-cl")
+    message(FATAL_ERROR "WIN_X86_64 requires MSVC (cl.exe), clang-cl, or MinGW (gcc/clang)")
 endif()
 
 set_source_files_properties("${qjs_win64_vm_object}" PROPERTIES GENERATED TRUE EXTERNAL_OBJECT TRUE)

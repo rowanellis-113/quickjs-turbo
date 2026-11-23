@@ -18,7 +18,7 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from native_build import source_digest, find_objdump
+from x86.common.build_tools import source_digest, find_objdump
 from native_abi import current_or_load as load_layout, source_abi
 from pathlib import Path
 import hashlib, importlib.util, json, re, struct, subprocess, time

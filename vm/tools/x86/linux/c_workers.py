@@ -61,7 +61,7 @@ def generate_async_generator(source, output, core):
     for name, key in (("quickjs.c", "source_sha256"), ("cutils.h", "cutils_sha256")):
         if hashlib.sha256(source_file(source, name).read_bytes()).hexdigest() != contract[key]:
             raise ValueError("Unreviewed Linux source-owned worker input: " + name)
-    adapter = module(source, "object-adapter")
+    adapter = module(source, "object-adapter-c")
     raw = source_file(source, "quickjs.c").read_text()
     functions = {m[2]: m[0] for m in adapter.FUNCTION.finditer(raw)}
     async_contract = contract["async_generator"]
@@ -152,7 +152,7 @@ static JSValue JS_GeneratorCapabilityNext(JSContext *, JSValueConst, int, JSValu
 def generate(source, output, core, layout):
     source, output = Path(source), Path(output)
     contract_path = source / "src/x86/linux/abi/c-workers.json"
-    adapter = module(source, "object-adapter")
+    adapter = module(source, "object-adapter-c")
     core, async_record = generate_async_generator(source, output, core)
     worker = (output / "quickjs-linux-c-workers.h").read_text()
     from x86.linux.prepared_callbacks import generate as generate_prepared_callbacks

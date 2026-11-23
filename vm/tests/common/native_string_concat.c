@@ -8,9 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#ifdef FRAME_TEST_STRING_POOL
-#include "allocator-pool.h"
-#endif
 
 typedef union Header {
     size_t size;
@@ -311,81 +308,11 @@ static void failures(void)
     assert(failed && succeeded);
     printf("bounded concat allocation failures=%u successes=%u\n", failed, succeeded);
 }
-#ifdef FRAME_TEST_STRING_POOL
-static size_t pool_free_calls;
-static void pool_count_free(void *opaque, void *ptr)
-{
-    ++pool_free_calls;
-    FramePoolFunctions.js_free(opaque, ptr);
-}
-static void pool_capacity(bool wide, bool wrapped)
-{
-    FramePool *pool = FramePoolCreate(256, FRAME_POOL_TRACK);
-    assert(pool);
-    JSMallocFunctions functions = FramePoolFunctions;
-    if (wrapped)
-        functions.js_free = pool_count_free;
-    JSRuntime *rt = JS_NewRuntime2(&functions, pool);
-    assert(rt);
-    JSContext *ctx = JS_NewContext(rt);
-    assert(ctx);
-    JSValue global = JS_GetGlobalObject(ctx);
-    assert(JS_SetPropertyStr(ctx, global, "poolWide", JS_NewBool(ctx, wide)) > 0);
-    JSValue value = evaluate(
-        ctx,
-        "var poolSeed='x'.repeat(600);"
-        "function poolLoop(){var s=poolSeed+String.fromCharCode(poolWide?1000:97);for(var i=0;i<200;++i)s=s+String.fromCharCode((poolWide?1001:97)+i%26);return s.length}"
-        "function poolDriver(){return poolLoop()+0}");
-    assert(!JS_IsException(value));
-    JS_FreeValue(ctx, value);
-    JSValue function = JS_GetPropertyStr(ctx, global, "poolDriver");
-    JS_FreeValue(ctx, global);
-    for (unsigned warm = 0; warm < 3; ++warm) {
-        value = JS_Call(ctx, function, JS_UNDEFINED, 0, NULL);
-        assert(!JS_IsException(value));
-        JS_FreeValue(ctx, value);
-    }
-    FramePoolStats before, after;
-    FramePoolGetStats(pool, &before);
-    value = JS_Call(ctx, function, JS_UNDEFINED, 0, NULL);
-    assert(!JS_IsException(value));
-    int32_t length = 0;
-    assert(JS_ToInt32(ctx, &length, value) == 0 && length == 801);
-    FramePoolGetStats(pool, &after);
-    size_t allocations = after.allocations - before.allocations;
-    bool enabled = false;
-#ifdef FRAME_TEST_STRING_POOL_NATIVE
-    enabled = !getenv("QJS_DISABLE_LOCAL_ROPE_APPEND") && !getenv("QJS_DISABLE_LOCAL_ROPE_SPARE") &&
-              !getenv("QJS_DISABLE_CONCAT_ROPE") && !getenv("QJS_DISABLE_INTERP_FRAME") &&
-              !getenv("QJS_DISABLE_INTERNAL_INTERP") && !getenv("QJS_DISABLE_REGISTER_INTERP");
-#endif
-    if (enabled && (!wide || !wrapped))
-        assert(allocations < (wide ? 300 : 80));
-    else
-        assert(allocations >= (wide ? 400 : 200));
-    printf("pool capacity allocations=%zu enabled=%d wide=%d wrapped-free=%d\n", allocations,
-           enabled, wide, wrapped);
-    JS_FreeValue(ctx, value);
-    JS_FreeValue(ctx, function);
-    JS_FreeContext(ctx);
-    JS_FreeRuntime(rt);
-    FramePoolGetStats(pool, &after);
-    assert(after.live_blocks == 0);
-    assert(FramePoolDestroy(pool) == 0);
-}
-#endif
 int main(void)
 {
     roundtrip();
     failures();
     local_failures();
-#ifdef FRAME_TEST_STRING_POOL
-    pool_capacity(false, false);
-    pool_capacity(true, false);
-    pool_capacity(false, true);
-    pool_capacity(true, true);
-    assert(pool_free_calls > 0);
-#endif
     puts("string concat public roundtrip, roots and bounded OOM ownership passed");
     return 0;
 }

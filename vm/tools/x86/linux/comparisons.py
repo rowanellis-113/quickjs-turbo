@@ -20,7 +20,6 @@ OWNERS = (
     "asm/x86/win64/common/strict_identity.inc",
     "src/common/value/loose_control.inc",
     "src/common/call/reference-config.inc",
-    "tools/x86/win64/coff/retained_routes.py",
 )
 
 

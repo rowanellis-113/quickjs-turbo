@@ -10,18 +10,7 @@ def sha(p):
 
 
 def probe_types(source, text, names):
-    raw = (source / "src/common/memory/allocator-pool.c").read_text()
-    types = re.findall(
-        r"typedef struct FramePoolPage FramePoolPage;\s*typedef struct FramePoolHeader \{.*?\} FramePoolHeader;",
-        raw,
-        re.S,
-    )
-    if len(types) != 1:
-        raise ValueError("Review actual original pool header type")
-    text += "\n" + types[0] + "\n"
     names += [
-        ("SIZE_FramePoolHeader", "sizeof(FramePoolHeader)"),
-        ("OFF_FramePoolHeader_capacity", "offsetof(FramePoolHeader,capacity)"),
         ("STRING_FLAGS_OFFSET", "offsetof(JSString,hash_next)-sizeof(uint32_t)"),
     ]
     text += '\n#pragma GCC diagnostic push\n#pragma GCC diagnostic ignored "-Woverflow"\n'

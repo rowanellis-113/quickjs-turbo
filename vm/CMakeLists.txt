@@ -324,13 +324,11 @@ if(QJS_ENABLE_UBSAN)
     list(APPEND qjs_sources "${qjs_ubsan_libunicode_out}")
 endif()
 
-if((QJS_BACKPORT_PORTABLE_REGEXP
-    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64"
-    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64"
-    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64"
-    OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64"
-   )
-   AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
+if(QJS_BACKPORT_PORTABLE_REGEXP
+   OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64"
+   OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64"
+   OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64"
+   OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64")
     # Native workers share this common engine and its wire translation;
     # the portable backend selects the same ordinary C through its option.
     list(REMOVE_ITEM qjs_sources "${QJS_UPSTREAM_DIR}/libregexp.c")
@@ -381,8 +379,7 @@ elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
 elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
     set(qjs_turbo_backend_id 3)
     set(qjs_turbo_backend_name "MACOS_X86_64")
-elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64" OR QJS_FRAME_BACKEND_EFFECTIVE STREQUAL
-                                                       "WIN_X86_64")
+elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64")
     set(qjs_turbo_backend_id 4)
     set(qjs_turbo_backend_name "WIN_X86_64")
 endif()
@@ -399,25 +396,15 @@ if(NOT QJS_BACKPORT_CONTEXT_OOM)
 endif()
 
 if(QJS_ENABLE_INTERP_FRAME)
-    # Win64 derives its private header from the core object; Linux, macOS, ARM64
-    # and WIN_X86_64 measure and generate source inputs first. All keep the core
-    # in its own object target.
+    # Linux, macOS, ARM64 and WIN_X86_64 measure and generate source inputs first.
+    # All keep the core in its own object target.
     list(REMOVE_ITEM qjs_sources "${QJS_UPSTREAM_DIR}/quickjs.c")
-    if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
-        include(cmake/x86/win64/InterpreterEpoch.cmake)
-        configure_file("${QJS_UPSTREAM_DIR}/quickjs.c" "${CMAKE_CURRENT_BINARY_DIR}/quickjs.c"
-                       COPYONLY)
-        add_library(qjs-core OBJECT "${CMAKE_CURRENT_BINARY_DIR}/quickjs.c")
-        qjs_apply_declared_backports(qjs-core)
-    elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64")
+    if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN_X86_64")
         include(cmake/x86/win64/NativeWin64.cmake)
         add_library(qjs-core OBJECT "${qjs_win64_core}")
         target_compile_definitions(
             qjs-core PRIVATE QJS_ENABLE_INTERP_FRAME QJS_INTERP_FRAME_INTERNAL_ENTRY
                              QJS_INTERP_FRAME_REGISTER_ABI QJS_WIN64_NATIVE_VM)
-        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-            target_compile_definitions(qjs-core PRIVATE QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        endif()
         target_include_directories(
             qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
                                     "${qjs_win64_native_dir}" "${qjs_win64_abi_dir}")
@@ -450,9 +437,6 @@ if(QJS_ENABLE_INTERP_FRAME)
             PRIVATE QJS_INTERP_FRAME_LINUX QJS_INTERP_FRAME_INTERNAL_ENTRY
                     QJS_INTERP_FRAME_REGISTER_ABI QJS_LINUX_REGISTER_FOUNDATION
                     QJS_INTERP_FRAME_LINUX_SHARED)
-        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-            target_compile_definitions(qjs-core PRIVATE QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        endif()
         target_include_directories(
             qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
                                     "${qjs_macos_native_dir}" "${qjs_macos_abi_dir}")
@@ -466,9 +450,6 @@ if(QJS_ENABLE_INTERP_FRAME)
             PRIVATE QJS_INTERP_FRAME_LINUX QJS_INTERP_FRAME_INTERNAL_ENTRY
                     QJS_INTERP_FRAME_REGISTER_ABI QJS_LINUX_REGISTER_FOUNDATION
                     QJS_INTERP_FRAME_LINUX_SHARED)
-        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-            target_compile_definitions(qjs-core PRIVATE QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        endif()
         target_include_directories(
             qjs-core BEFORE PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports"
                                     "${qjs_linux_native_dir}" "${qjs_linux_abi_dir}")
@@ -479,7 +460,7 @@ if(QJS_ENABLE_INTERP_FRAME)
                                                 "${CMAKE_CURRENT_BINARY_DIR}")
     list(APPEND qjs_sources $<TARGET_OBJECTS:qjs-core>)
 endif()
-if(QJS_BACKPORT_CONTEXT_OOM AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
+if(QJS_BACKPORT_CONTEXT_OOM)
     list(APPEND qjs_sources src/common/bytecode/compiler-plan.c)
 endif()
 add_library(qjs ${qjs_sources})
@@ -488,7 +469,7 @@ add_library(quickjs-turbo::qjs ALIAS qjs)
 
 # Isolate native ASM/bridge compilation units from host LTO/IPO so downstream
 # projects can keep full LTO enabled on their own code.
-if(QJS_ENABLE_INTERP_FRAME AND NOT QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
+if(QJS_ENABLE_INTERP_FRAME)
     foreach(_qjs_lto_target IN ITEMS qjs-core qjs)
         if(TARGET ${_qjs_lto_target})
             set_target_properties(
@@ -531,12 +512,6 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
                 COMPILE_DEFINITIONS
                 "QJS_INTERP_FRAME_INTERNAL_ENTRY;QJS_INTERP_FRAME_REGISTER_ABI;QJS_INTERP_FRAME_LINUX;QJS_LINUX_REGISTER_FOUNDATION;QJS_INTERP_FRAME_LINUX_SHARED"
         )
-        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-            set_property(
-                SOURCE "${qjs_arm_projection}"
-                APPEND
-                PROPERTY COMPILE_DEFINITIONS QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        endif()
         target_sources(qjs PRIVATE "${qjs_arm_projection}")
     endif()
     target_include_directories(qjs PRIVATE "${qjs_arm_vm_dir}")
@@ -546,16 +521,6 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
         target_sources(qjs PRIVATE src/arm64/linux/interpreter-observe.c)
     endif()
 endif()
-if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-    target_sources(qjs PRIVATE src/common/memory/allocator-pool.c)
-    if(NOT QJS_DEFAULT_EXPERIMENT_ALLOCATOR STREQUAL "")
-        set_property(
-            SOURCE src/common/memory/allocator-pool.c
-            APPEND
-            PROPERTY COMPILE_DEFINITIONS
-                     "QJS_DEFAULT_EXPERIMENT_ALLOCATOR=\"${QJS_DEFAULT_EXPERIMENT_ALLOCATOR}\"")
-    endif()
-endif()
 qjs_apply_declared_backports(qjs)
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
     target_sources(qjs PRIVATE src/x86/linux/integer-expression.c)
@@ -563,12 +528,6 @@ elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64")
     target_sources(qjs PRIVATE "${qjs_macos_int_expr}")
 endif()
 target_compile_definitions(qjs PRIVATE ${qjs_defines})
-if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
-    include(cmake/x86/win64/Interpreter.cmake)
-    if(QJS_BACKPORT_CONTEXT_OOM)
-        include(cmake/x86/win64/CompilerPlan.cmake)
-    endif()
-endif()
 target_include_directories(
     qjs
     PUBLIC $<BUILD_INTERFACE:${QJS_UPSTREAM_DIR}> $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
@@ -842,9 +801,7 @@ if(QJS_FRAME_BUILD_TESTS)
         message(FATAL_ERROR "QJS_FRAME_BUILD_TESTS requires QJS_BUILD_CLI=ON")
     endif()
     include(cmake/common/InterpreterTests.cmake)
-    if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "WIN64")
-        include(cmake/x86/win64/InterpreterTests.cmake)
-    elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
+    if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
         include(cmake/arm64/InterpreterTests.cmake)
     elseif(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
         include(cmake/x86/linux/InterpreterTests.cmake)

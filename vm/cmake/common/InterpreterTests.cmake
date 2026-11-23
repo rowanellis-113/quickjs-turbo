@@ -378,16 +378,6 @@ if(QJS_BACKPORT_CONTEXT_OOM)
     if(NOT BUILD_SHARED_LIBS)
         add_executable(interpreter-test-string_concat tests/common/native_string_concat.c)
         target_link_libraries(interpreter-test-string_concat PRIVATE qjs)
-        if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-            target_compile_definitions(interpreter-test-string_concat
-                                       PRIVATE FRAME_TEST_STRING_POOL)
-            target_include_directories(interpreter-test-string_concat
-                                       PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory")
-            if(QJS_FRAME_STRING_POOL_NATIVE)
-                target_compile_definitions(interpreter-test-string_concat
-                                           PRIVATE FRAME_TEST_STRING_POOL_NATIVE)
-            endif()
-        endif()
         foreach(concat_mode native c disabled)
             add_test(NAME interpreter-string-concat-host-${concat_mode}
                      COMMAND interpreter-test-string_concat)
@@ -654,11 +644,6 @@ if(QJS_BACKPORT_VALUE64_INIT OR QJS_BACKPORT_MIXED_NUMBERS)
         interpreter-value-payload-host-abi-c
         PROPERTIES ENVIRONMENT "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1")
 endif()
-if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR AND NOT BUILD_SHARED_LIBS)
-    add_executable(interpreter-test-pool tests/common/test_pool.c)
-    target_link_libraries(interpreter-test-pool PRIVATE qjs)
-    add_test(NAME interpreter-pool-contract COMMAND interpreter-test-pool)
-endif()
 if(QJS_ENABLE_INTERP_FRAME AND QJS_FRAME_EXPERIMENTAL_COMPARE)
     add_test(NAME interpreter-number-compare
              COMMAND qjs_exe -m
@@ -892,15 +877,6 @@ if(QJS_HYBRID_GC
                                                                      "QJS_DISABLE_PARTIAL_CYCLE=1")
     set_tests_properties(interpreter-hybrid-gc-no-fast-rc PROPERTIES ENVIRONMENT
                                                                      "QJS_DISABLE_FAST_RC=1")
-    if(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        add_test(NAME interpreter-hybrid-gc-pool512
-                 COMMAND qjs_exe --std
-                         "${CMAKE_CURRENT_SOURCE_DIR}/tests/common/test_hybrid_gc_ab.js")
-        set_tests_properties(
-            interpreter-hybrid-gc-pool512
-            PROPERTIES ENVIRONMENT "QJS_EXPERIMENT_ALLOCATOR=512" PASS_REGULAR_EXPRESSION
-                       "HYBRID_GC_AB_TORTURE_OK" FAIL_REGULAR_EXPRESSION "Error:|Assertion failed")
-    endif()
 endif()
 
 if(QJS_BACKPORT_CONTEXT_OOM)

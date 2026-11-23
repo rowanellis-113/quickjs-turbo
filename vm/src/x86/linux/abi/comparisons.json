@@ -7,8 +7,7 @@
     "asm/x86/win64/common/strict_reference.inc": "3ff8ad76a8f7a18ab90c8f1d9be472be1310d9ff58b7ff05ee44c72b99e9a352",
     "asm/x86/win64/common/strict_identity.inc": "014432911a3db1445a00cf4d8b1c5d93877c7d9a8ca21b5e26173a7943c8fd1e",
     "src/common/value/loose_control.inc": "a745c1af37af6eb690d26053f91d223e19ef0ae3d19011ab14c807638f143ae9",
-    "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
-    "tools/x86/win64/coff/retained_routes.py": "24e29202765f9fee56e147b9beaff234197786f606c859b45ab37ecbc88def45"
+    "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78"
   },
   "string_bits": {
     "JSString.len": [

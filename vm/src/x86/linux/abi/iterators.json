@@ -6,7 +6,7 @@
     "tools/x86/common/codegen/iterator-fast.py": "e338665df4448f7d57391cd6239d89336d76331e6beb89632b1e06c6dd229b56",
     "tools/x86/common/codegen/iterator-slow.py": "eb2a9477e60b1105ae4ef2cb8ec8d9f2f401ed3e3807f8ecabcb66d59ae6d3bc",
     "tools/x86/common/codegen/iterator-checkpoint.py": "e1295e831f03c0e8872aa289cbf6fd50d7e9e46fc9e7dec432a7c827188b236c",
-    "tools/x86/common/codegen/varargs.py": "efb360c4179562c614a772bd0c1a3189312d60ac04d46b27f7ff63cdc2e06684"
+    "tools/x86/common/codegen/varargs.py": "8fb167966c593b027543cd5265fd58bc2822a5ee093f5a3ae040cc05b17be0ae"
   },
   "metadata": "Existing combined tail byte after pc2line_len;prefix leaf/argument byte untouched",
   "metadata_bits": {

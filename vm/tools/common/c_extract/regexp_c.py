@@ -59,7 +59,7 @@ def split_body(source, body, native=False):
 def module(source, name):
     sp = importlib.util.spec_from_file_location(
         "regexp_" + name.replace("-", "_"),
-        _frame_tool_path((name + "-c" if name == "object-adapter" else name)),
+        _frame_tool_path(name),
     )
     m = importlib.util.module_from_spec(sp)
     sp.loader.exec_module(m)

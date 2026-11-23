@@ -249,6 +249,7 @@ def main():
     ap.add_argument("--build", type=Path, required=True)
     ap.add_argument("--compiler", required=True)
     ap.add_argument("--clang-cl", action="store_true")
+    ap.add_argument("--gnu", action="store_true")
     ap.add_argument("--define", action="append", default=[])
     args = ap.parse_args()
 
@@ -268,6 +269,7 @@ def main():
         args.compiler,
         defines=args.define,
         is_clang_cl=args.clang_cl,
+        is_gnu=args.gnu,
     )
 
     # 2. Generate quickjs-interpreter-slow.h
@@ -327,6 +329,7 @@ def main():
     receipt = dict(
         schema=1,
         backend="WIN_X86_64",
+        toolchain="gnu" if args.gnu else ("clang-cl" if args.clang_cl else "msvc"),
         property_ic=bool(layout.get("property_ic")),
         masm_sha256=_sha(masm_out),
         gas_sha256=_sha(gas_out),

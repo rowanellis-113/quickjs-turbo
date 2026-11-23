@@ -47,7 +47,7 @@ jobs:
           path: |
             test262
             .git/modules/test262
-          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+          key: test262-5ef1e5723be95296f36afb0386676fed0205869c-${{ runner.os }}
 
       - name: Initialize pinned Test262 corpus
         if: steps.cache-test262.outputs.cache-hit != 'true'
@@ -68,7 +68,6 @@ jobs:
             -DQJS_FRAME_BACKEND=LINUX_X86_64 \
             -DQJS_FRAME_BUILD_TESTS=OFF \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \
@@ -110,7 +109,7 @@ jobs:
           path: |
             test262
             .git/modules/test262
-          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+          key: test262-5ef1e5723be95296f36afb0386676fed0205869c-${{ runner.os }}
 
       - name: Initialize pinned Test262 corpus
         if: steps.cache-test262.outputs.cache-hit != 'true'
@@ -132,7 +131,6 @@ jobs:
             -DQJS_FRAME_BUILD_TESTS=OFF \
             -DQJS_BUILD_LIBC=ON \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \
             -DQJS_BACKPORT_MIXED_NUMBERS=ON \
@@ -174,7 +172,7 @@ jobs:
           path: |
             test262
             .git/modules/test262
-          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+          key: test262-5ef1e5723be95296f36afb0386676fed0205869c-${{ runner.os }}
 
       - name: Initialize pinned Test262 corpus
         if: steps.cache-test262.outputs.cache-hit != 'true'
@@ -195,7 +193,6 @@ jobs:
             -DQJS_FRAME_BACKEND=PORTABLE \
             -DQJS_FRAME_BUILD_TESTS=OFF \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \
@@ -243,7 +240,7 @@ jobs:
           path: |
             test262
             .git/modules/test262
-          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+          key: test262-5ef1e5723be95296f36afb0386676fed0205869c-${{ runner.os }}
 
       - name: Initialize pinned Test262 corpus
         if: steps.cache-test262.outputs.cache-hit != 'true'
@@ -263,19 +260,25 @@ jobs:
           python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
           if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
-      - name: Build WIN64 MSVC & run Test262
+      - name: Build WIN_X86_64 MSVC & run Test262
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          ./vm/tools/x86/win64/build/build-baseline.ps1 `
-            -Toolchain msvc `
-            -Backend WIN64 `
-            -BuildPath build/test262-msvc `
-            -CMake '${{ steps.tools.outputs.cmake }}' `
-            -Ninja '${{ steps.tools.outputs.ninja }}' `
-            -Objdump '${{ steps.tools.outputs.objdump }}' `
-            -Assembler '${{ steps.tools.outputs.as }}' `
-            -Jobs 4
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vsPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+          if (-not $vsPath) { throw "Visual Studio installation not found" }
+          & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+          $cmake = '${{ steps.tools.outputs.cmake }}'
+          $ninja = '${{ steps.tools.outputs.ninja }}'
+          & $cmake -S vm -B build/test262-msvc -G Ninja `
+            "-DCMAKE_MAKE_PROGRAM=$ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DQJS_FRAME_BACKEND=WIN_X86_64 `
+            -DQJS_PROPERTY_IC=ON `
+            -DQJS_FRAME_BUILD_TESTS=OFF
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 MSVC configure failed" }
+          & $cmake --build build/test262-msvc --target run-test262 --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 MSVC build failed" }
           python -B vm/ci/verify_test262.py `
             --runner build/test262-msvc/run-test262.exe `
             --name windows-msvc `
@@ -311,7 +314,7 @@ jobs:
           path: |
             test262
             .git/modules/test262
-          key: test262-de8e621cdba4f40cff3cf244e6cfb8cb48746b4a-${{ runner.os }}
+          key: test262-5ef1e5723be95296f36afb0386676fed0205869c-${{ runner.os }}
 
       - name: Initialize pinned Test262 corpus
         if: steps.cache-test262.outputs.cache-hit != 'true'
@@ -331,21 +334,23 @@ jobs:
           python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
           if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
-      - name: Build WIN64 MinGW & run Test262
+      - name: Build WIN_X86_64 MinGW & run Test262
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
-          ./vm/tools/x86/win64/build/build-baseline.ps1 `
-            -Toolchain mingw `
-            -Backend WIN64 `
-            -BuildPath build/test262-mingw `
-            -CMake '${{ steps.tools.outputs.cmake }}' `
-            -Ninja '${{ steps.tools.outputs.ninja }}' `
-            -Compiler '${{ steps.tools.outputs.gcc }}' `
-            -Objdump '${{ steps.tools.outputs.objdump }}' `
-            -Assembler '${{ steps.tools.outputs.as }}' `
-            -Jobs 4
+          $cmake = '${{ steps.tools.outputs.cmake }}'
+          $ninja = '${{ steps.tools.outputs.ninja }}'
+          & $cmake -S vm -B build/test262-mingw -G Ninja `
+            "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}" `
+            "-DCMAKE_MAKE_PROGRAM=$ninja" `
+            -DCMAKE_BUILD_TYPE=Release `
+            -DQJS_FRAME_BACKEND=WIN_X86_64 `
+            -DQJS_PROPERTY_IC=ON `
+            -DQJS_FRAME_BUILD_TESTS=OFF
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 MinGW configure failed" }
+          & $cmake --build build/test262-mingw --target run-test262 --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 MinGW build failed" }
           python -B vm/ci/verify_test262.py `
             --runner build/test262-mingw/run-test262.exe `
             --name windows-mingw `

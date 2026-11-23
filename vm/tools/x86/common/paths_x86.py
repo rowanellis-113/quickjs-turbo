@@ -31,8 +31,6 @@ def activate_tools():
     for path in (
         X86_COMMON_ROOT / "abi",
         X86_COMMON_ROOT / "codegen",
-        X86_ROOT / "win64/build",
-        X86_ROOT / "win64/coff",
         X86_ROOT / "linux",
     ):
         s = str(path)

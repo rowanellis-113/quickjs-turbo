@@ -16,7 +16,7 @@ from x86.common.paths_x86 import (
 )
 
 _frame_activate_tools()
-from native_build import find_objdump
+from x86.common.build_tools import find_objdump
 from native_abi import current as current_abi, source_abi
 
 """Private .call forwarding: owned JS window plus logical native SF chain. MIT."""

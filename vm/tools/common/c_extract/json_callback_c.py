@@ -288,14 +288,12 @@ def compile_reviver_value(
     here = Path(__file__).resolve().parent
 
     def module(name, file):
-        sp = importlib.util.spec_from_file_location(
-            name, _frame_tool_path(file if file != "object-adapter.py" else "object-adapter-c")
-        )
+        sp = importlib.util.spec_from_file_location(name, _frame_tool_path(file))
         m = importlib.util.module_from_spec(sp)
         sp.loader.exec_module(m)
         return m
 
-    C = module("reviver_value_coff", "object-adapter.py")
+    C = module("reviver_value_c_extract", "object-adapter-c")
     original = _frame_source_file(source, "quickjs.c").read_text(encoding="utf-8")
     functions = {m[2]: m for m in C.FUNCTION.finditer(original)}
     old = functions["internalize_json_property"][0]
@@ -501,14 +499,12 @@ def _prepare_source_variant(
     here = __import__("pathlib").Path(__file__).resolve().parent
 
     def module(name, file):
-        spec = importlib.util.spec_from_file_location(
-            name, _frame_tool_path(file if file != "object-adapter.py" else "object-adapter-c")
-        )
+        spec = importlib.util.spec_from_file_location(name, _frame_tool_path(file))
         m = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(m)
         return m
 
-    C = module("source_record_generator", "object-adapter.py")
+    C = module("source_record_generator", "object-adapter-c")
     original = _frame_source_file(source, "quickjs.c").read_text(encoding="utf-8")
     functions = {m[2]: m for m in C.FUNCTION.finditer(original)}
     parser = _frame_source_text(source, "linux-json.inc")

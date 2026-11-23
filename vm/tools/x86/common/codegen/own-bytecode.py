@@ -20,7 +20,7 @@ from x86.common.paths_x86 import (
 _frame_activate_tools()
 from native_abi import current as current_abi, current_or_load as load_layout, source_abi
 from abi_layout import constants as abi_constants
-from native_build import find_objdump
+from x86.common.build_tools import find_objdump
 from pathlib import Path
 import hashlib, importlib.util, json, os, re, struct, subprocess
 

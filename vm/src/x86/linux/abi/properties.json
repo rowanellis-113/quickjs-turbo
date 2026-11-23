@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "owners": {
-    "tools/x86/common/codegen/own-bytecode.py": "6ea86a03e68500acdae5d03dc2193f68ee9650af7ab85617aca90696ea2e221b",
+    "tools/x86/common/codegen/own-bytecode.py": "228fb18556d48f7f0413e6ee139da7864691e39de81fd7d45d3f40f8aefda2e0",
     "tools/x86/common/codegen/number-property.py": "1ec1fdd00c905755098e1589d8ddbe5fea85f6fc70c26250c11c3b73f2355e81",
     "tools/x86/common/codegen/proto-load.py": "db10a61d319779eefcbcfd12b2bd312706b85bf9d40e42c0b2c529bf1a4c1233",
     "tools/x86/common/codegen/proto-direct.py": "5efc2f8758f9195593571f69fd069cfc3ccf474675cdabed921bb581b1fcf40b",

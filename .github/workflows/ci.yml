@@ -62,7 +62,6 @@ jobs:
           python -B vm/tests/common/test_c_source_match.py
           python -B vm/tests/common/test_target_runner.py
           python -B vm/tests/x86/common/test_vm_abi.py
-          python -B vm/tests/x86/win64/test_vm_private.py
           python -B vm/tests/arm64/test_publication_directive.py
           python -B vm/tests/x86/linux/test_elf_machine_x86.py
           python -B vm/tests/arm64/test_elf_machine_arm64.py
@@ -112,8 +111,6 @@ jobs:
             -DQJS_FRAME_BUILD_TESTS=OFF \
             -DQJS_BUILD_CLI=OFF \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
-            -DQJS_DEFAULT_EXPERIMENT_ALLOCATOR=256 \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \
@@ -141,7 +138,6 @@ jobs:
             -DQJS_ENABLE_INSTALL=OFF
           python3 -c 'import json; d = json.load(open("build/linux-lto/interpreter-backend.json", encoding="utf-8")); assert d["effective"] == "LINUX_X86_64", d'
           cmake --build build/linux-lto --parallel 4
-          python3 -B vm/tests/x86/win64/test_vm_build.py --cmake cmake
 
   linux-arm64:
     name: Linux ARM64 (LINUX_AARCH64 + PORTABLE)
@@ -211,17 +207,20 @@ jobs:
 
       - uses: actions/checkout@v7
 
-      - name: Install pinned Win64 MinGW GCC 13.1.0 & COFF binutils
+      - name: Install toolchain & configure Windows x86-64
         id: tools
         shell: pwsh
         run: |
           python -B vm/ci/install_win64_mingw.py --github-output $env:GITHUB_OUTPUT
           if ($LASTEXITCODE -ne 0) { throw "Failed to install Win64 MinGW toolchain" }
 
-      - name: Build, CTest & verify WIN64 native backend
+      - name: Build, CTest & verify WIN_X86_64 native backend
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+          $cmake = '${{ steps.tools.outputs.cmake }}'
+          $ninja = '${{ steps.tools.outputs.ninja }}'
+          $ctest = Join-Path (Split-Path -Parent $cmake) 'ctest.exe'
           if ('${{ matrix.toolchain }}' -eq 'mingw') {
             $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
           }
@@ -229,33 +228,39 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "validate_layout.py failed" }
 
           $buildDir = "build/${{ matrix.slug }}"
-          $buildArgs = @{
-            Toolchain = '${{ matrix.toolchain }}'
-            Backend   = 'WIN64'
-            BuildPath = $buildDir
-            CMake     = '${{ steps.tools.outputs.cmake }}'
-            Ninja     = '${{ steps.tools.outputs.ninja }}'
-            Objdump   = '${{ steps.tools.outputs.objdump }}'
-            Assembler = '${{ steps.tools.outputs.as }}'
-            Jobs      = 4
-            Test      = $true
-          }
+          $cmakeArgs = @(
+            '-S', 'vm',
+            '-B', $buildDir,
+            '-G', 'Ninja',
+            "-DCMAKE_MAKE_PROGRAM=$ninja",
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DQJS_FRAME_BACKEND=WIN_X86_64',
+            '-DQJS_PROPERTY_IC=ON',
+            '-DQJS_FRAME_BUILD_TESTS=ON'
+          )
           if ('${{ matrix.toolchain }}' -eq 'msvc') {
-            $buildArgs.MsvcRuntime = '${{ matrix.runtime }}'
-            if ('${{ matrix.runtime }}' -eq 'MT') {
-              $buildArgs.DefaultExperimentAllocator = '256'
-            }
+            $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+            $vsPath = (& $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath | Select-Object -First 1)
+            if (-not $vsPath) { throw "Visual Studio installation not found" }
+            & (Join-Path $vsPath 'Common7/Tools/Launch-VsDevShell.ps1') -Arch amd64 -HostArch amd64 -SkipAutomaticLocation
+            $rt = if ('${{ matrix.runtime }}' -eq 'MT') { 'MultiThreaded' } else { 'MultiThreadedDLL' }
+            $cmakeArgs += "-DCMAKE_MSVC_RUNTIME_LIBRARY=$rt"
           } else {
-            $buildArgs.Compiler = '${{ steps.tools.outputs.gcc }}'
+            $cmakeArgs += "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}"
           }
-          ./vm/tools/x86/win64/build/build-baseline.ps1 @buildArgs
+          & $cmake @cmakeArgs
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 configure failed" }
 
           $backend = Get-Content "$buildDir/interpreter-backend.json" -Raw | ConvertFrom-Json
-          if ($backend.effective -ne 'WIN64') {
-            throw "Expected effective backend WIN64, got $($backend.effective)"
+          if ($backend.effective -ne 'WIN_X86_64') {
+            throw "Expected effective backend WIN_X86_64, got $($backend.effective)"
           }
-          & '${{ steps.tools.outputs.cmake }}' --build $buildDir --parallel 4
-          if ($LASTEXITCODE -ne 0) { throw "Unchanged native rebuild failed" }
+          & $cmake --build $buildDir --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 build failed" }
+          & $ctest --test-dir $buildDir --no-tests=error --output-on-failure --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 CTest failed" }
+          & $cmake --build $buildDir --parallel 4
+          if ($LASTEXITCODE -ne 0) { throw "Unchanged WIN_X86_64 rebuild failed" }
 
       - name: Verify SDK consumer, CRT purity & fallback contracts
         shell: pwsh
@@ -286,7 +291,7 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer configure failed" }
             & $cmake --build $consumerDir --parallel 4
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer build failed" }
-            & $ctest --test-dir $consumerDir --output-on-failure
+            & $ctest --test-dir $consumerDir --no-tests=error --output-on-failure
             if ($LASTEXITCODE -ne 0) { throw "MSVC consumer CTest failed" }
 
             if ('${{ matrix.runtime }}' -eq 'MT') {
@@ -298,19 +303,8 @@ jobs:
                 "-DCMAKE_MAKE_PROGRAM=$ninja" `
                 -DCMAKE_BUILD_TYPE=Release `
                 -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded `
-                -DQJS_FRAME_BACKEND=WIN64 `
-                "-DQJS_FRAME_OBJDUMP=${{ steps.tools.outputs.objdump }}" `
-                "-DQJS_FRAME_AS=${{ steps.tools.outputs.as }}" `
-                -DQJS_BACKPORT_CONTEXT_OOM=ON `
-                -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON `
-                -DQJS_DEFAULT_EXPERIMENT_ALLOCATOR=256 `
-                -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON `
-                -DQJS_BACKPORT_COMPUTED_ASSIGN=ON `
-                -DQJS_BACKPORT_VALUE64_INIT=ON `
-                -DQJS_BACKPORT_MIXED_NUMBERS=ON `
-                -DQJS_BACKPORT_MAP_POINTER_HASH=ON `
+                -DQJS_FRAME_BACKEND=WIN_X86_64 `
                 -DQJS_PROPERTY_IC=ON `
-                -DQJS_BACKPORT_PORTABLE_REGEXP=ON `
                 -DQJS_BUILD_CLI=OFF `
                 "-DCMAKE_INSTALL_PREFIX=$libSdk"
               if ($LASTEXITCODE -ne 0) { throw "MSVC /MT libonly configure failed" }
@@ -320,21 +314,6 @@ jobs:
               if ($LASTEXITCODE -ne 0) { throw "MSVC /MT libonly install failed" }
               if (Test-Path "$libSdk/bin/qjs.exe") { throw "QJS_BUILD_CLI=OFF unexpectedly installed qjs.exe" }
               if (-not (Test-Path "$libSdk/lib/qjs.lib")) { throw "QJS_BUILD_CLI=OFF did not install qjs.lib" }
-
-              # Verify source-level WIN_X86_64 native ASM VM (zero GNU binutils required)
-              & $cmake -S vm -B build/win-x86-64-native -G Ninja `
-                "-DCMAKE_MAKE_PROGRAM=$ninja" `
-                -DCMAKE_BUILD_TYPE=Release `
-                -DQJS_FRAME_BACKEND=WIN_X86_64 `
-                -DQJS_PROPERTY_IC=ON `
-                -DQJS_FRAME_BUILD_TESTS=ON
-              if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 configure failed" }
-              $winNative = Get-Content build/win-x86-64-native/interpreter-backend.json -Raw | ConvertFrom-Json
-              if ($winNative.effective -ne 'WIN_X86_64') { throw "Expected WIN_X86_64, got $($winNative.effective)" }
-              & $cmake --build build/win-x86-64-native --target interpreter-test-turbo_api --parallel 4
-              if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 build failed" }
-              & $ctest --test-dir build/win-x86-64-native -R "interpreter-turbo-api" --output-on-failure
-              if ($LASTEXITCODE -ne 0) { throw "WIN_X86_64 CTest failed" }
             }
           } else {
             $env:Path = "${{ steps.tools.outputs.mingw_bin }};$env:Path"
@@ -347,29 +326,26 @@ jobs:
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer configure failed" }
             & $cmake --build build/consumer-mingw --parallel 4
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer build failed" }
-            & $ctest --test-dir build/consumer-mingw --output-on-failure
+            & $ctest --test-dir build/consumer-mingw --no-tests=error --output-on-failure
             if ($LASTEXITCODE -ne 0) { throw "MinGW consumer CTest failed" }
 
-            ./vm/tools/x86/win64/build/build-interpreter.ps1 `
-              -Toolchain mingw `
-              -Backend AUTO `
-              -Shared `
-              -BuildPath build/mingw-shared `
-              -CMake $cmake `
-              -Ninja $ninja `
-              -Compiler '${{ steps.tools.outputs.gcc }}' `
-              -Jobs 4 `
-              -Test
+            & $cmake -S vm -B build/mingw-shared -G Ninja `
+              "-DCMAKE_C_COMPILER=${{ steps.tools.outputs.gcc }}" `
+              "-DCMAKE_MAKE_PROGRAM=$ninja" `
+              -DCMAKE_BUILD_TYPE=Release `
+              -DBUILD_SHARED_LIBS=ON `
+              -DQJS_FRAME_BACKEND=AUTO `
+              -DQJS_PROPERTY_IC=ON `
+              -DQJS_FRAME_BUILD_TESTS=ON
+            if ($LASTEXITCODE -ne 0) { throw "MinGW shared fallback configure failed" }
             $sharedBackend = Get-Content build/mingw-shared/interpreter-backend.json -Raw | ConvertFrom-Json
             if ($sharedBackend.effective -ne 'PORTABLE') {
               throw "Shared AUTO did not select PORTABLE fallback"
             }
-
-            python -B vm/tests/x86/win64/test_vm_core_routes.py
-            if ($LASTEXITCODE -ne 0) { throw "test_vm_core_routes.py failed" }
-            Remove-Item Env:PSModulePath -ErrorAction SilentlyContinue
-            python -B vm/tests/x86/win64/test_vm_build.py --cmake $cmake
-            if ($LASTEXITCODE -ne 0) { throw "test_vm_build.py failed" }
+            & $cmake --build build/mingw-shared --parallel 4
+            if ($LASTEXITCODE -ne 0) { throw "MinGW shared build failed" }
+            & $ctest --test-dir build/mingw-shared --no-tests=error --output-on-failure --parallel 4
+            if ($LASTEXITCODE -ne 0) { throw "MinGW shared CTest failed" }
           }
 
   portable-sanitizers:
@@ -406,7 +382,6 @@ jobs:
             -DQJS_ENABLE_ASAN=ON \
             -DQJS_ENABLE_UBSAN=ON \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \
@@ -429,7 +404,6 @@ jobs:
             -DQJS_FRAME_BACKEND=AUTO \
             -DQJS_FRAME_BUILD_TESTS=ON \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
-            -DQJS_FRAME_EXPERIMENTAL_ALLOCATOR=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
             -DQJS_BACKPORT_VALUE64_INIT=ON \

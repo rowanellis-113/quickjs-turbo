@@ -143,12 +143,12 @@ def write_release_notes(md_path: Path, info: ReleaseInfo, *, git_sha: str) -> Pa
             "(`LINUX_AARCH64` native register VM + pre-generated ASM bundle)"
         ),
         f"- `quickjs-turbo-{info.tag}-macos-x86_64-sdk.tar.gz` (`MACOS_X86_64` native Mach-O register VM + pre-generated ASM bundle)",
-        f"- `quickjs-turbo-{info.tag}-windows-x86_64-msvc-md-sdk.zip` (`WIN64` MSVC `/MD`)",
+        f"- `quickjs-turbo-{info.tag}-windows-x86_64-msvc-md-sdk.zip` (`WIN_X86_64` MSVC `/MD` + pre-generated ASM bundle)",
         (
             f"- `quickjs-turbo-{info.tag}-windows-x86_64-msvc-mt-sdk.zip` "
-            "(`WIN64` MSVC `/MT` static CRT + `QJS_DEFAULT_EXPERIMENT_ALLOCATOR=256`)"
+            "(`WIN_X86_64` MSVC `/MT` static CRT + pre-generated ASM bundle)"
         ),
-        f"- `quickjs-turbo-{info.tag}-windows-x86_64-mingw-sdk.zip` (`WIN64` MinGW GCC 13.1)",
+        f"- `quickjs-turbo-{info.tag}-windows-x86_64-mingw-sdk.zip` (`WIN_X86_64` MinGW GCC 13.1 + pre-generated ASM bundle)",
         f"- `quickjs-turbo-{info.tag}-macos-arm64-portable-sdk.tar.gz` (`PORTABLE` C fallback)",
         "- `SHA256SUMS.txt` (SHA-256 checksums for all archives)",
         "",

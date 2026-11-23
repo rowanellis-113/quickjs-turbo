@@ -1,8 +1,8 @@
 {
   "schema": 1,
   "owners": {
-    "tools/x86/common/codegen/varargs.py": "efb360c4179562c614a772bd0c1a3189312d60ac04d46b27f7ff63cdc2e06684",
-    "tools/x86/common/codegen/call-forward.py": "1a82fe0825e5b3329678e6ea1543447e6e15357391f0c73ca92832509dbde422",
+    "tools/x86/common/codegen/varargs.py": "8fb167966c593b027543cd5265fd58bc2822a5ee093f5a3ae040cc05b17be0ae",
+    "tools/x86/common/codegen/call-forward.py": "7b8805cdfb881880b48c37ebce1a14e607e6899823a5d4b050cb8a6d5c3afee9",
     "src/x86/win64/mingw64/mingw-apply-forward.c": "2508227e427447bf9f6b54337c24bbcad9617b5af2c1e76f1114f0b69489a65b",
     "src/x86/win64/mingw64/mingw-arguments.c": "919154aae37144adce04cdf4ab2d3b1082a47a29eb86004b9130c6204d1881b9"
   },
