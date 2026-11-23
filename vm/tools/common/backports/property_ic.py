@@ -124,8 +124,8 @@ def core_overlay(text):
     )
     text = replace_once(
         text,
-        "    sh->proto = proto;\n    memset(prop_hash_end(sh)",
-        "    sh->proto = proto; if (proto) proto->is_prototype = true;\n    memset(prop_hash_end(sh)",
+        "    sh->proto = proto;\n    /* prop_hash_mask must be set",
+        "    sh->proto = proto; if (proto) proto->is_prototype = true;\n    /* prop_hash_mask must be set",
     )
     # Allocation/cloning assign is_hashed=0/1. Its private validity bit makes
     # their padding unreadable until the first cache edge initializes it.
@@ -140,7 +140,7 @@ def core_overlay(text):
     )
     text = replace_once(
         text,
-        "static JSShape *js_dup_shape(JSShape *sh)\n{\n    sh->header.ref_count++;\n    return sh;\n}",
+        "static JSShape *js_dup_shape(JSShape *sh)\n{\n    JS_REF_COUNT(sh)++;\n    return sh;\n}",
         "static JSShape *js_dup_shape(JSShape *sh)\n{\n    return js_property_ic_acquire_shape_ref(sh);\n}",
     )
     text = replace_once(
@@ -161,7 +161,7 @@ def core_overlay(text):
     text = replace_once(
         text,
         "        js_free_shape0(rt, sh);\n    }\n}\n\nstatic void js_free_shape_null",
-        "        js_free_shape0(rt, sh);\n    } else if (js_property_ic_shape_refs(sh) && (uint32_t)sh->header.ref_count == js_property_ic_shape_refs(sh)) { js_property_ic_shape_released(rt, sh); }\n}\n\nstatic void js_free_shape_null",
+        "        js_free_shape0(rt, sh);\n    } else if (js_property_ic_shape_refs(sh) && (uint32_t)JS_REF_COUNT(sh) == js_property_ic_shape_refs(sh)) { js_property_ic_shape_released(rt, sh); }\n}\n\nstatic void js_free_shape_null",
     )
     text = replace_once(
         text,
@@ -175,13 +175,6 @@ def core_overlay(text):
         body, "    sh = p->shape;", "    js_property_ic_invalidate_proto(ctx, p); sh = p->shape;"
     )
     text = text[:start] + body + text[end:]
-    # A public bulk constructor previously assumes its shared empty shape is
-    # unique. A retained IC predecessor makes the required clone explicit.
-    text = replace_once(
-        text,
-        "        assert(sh->header.ref_count == 1);\n        js_shape_hash_unlink(rt, sh);",
-        "        if (sh->header.ref_count != 1) { JSShape *copy = js_clone_shape(ctx, sh); if (!copy) { JS_FreeValue(ctx, obj); return JS_EXCEPTION; } copy->is_hashed = true; js_shape_hash_link(rt, copy); p->shape = copy; js_free_shape(rt, sh); sh = copy; }\n        js_shape_hash_unlink(rt, sh);",
-    )
     text = replace_once(
         text,
         "            int i;\n            for(i = 0; i < b->cpool_count; i++) {",

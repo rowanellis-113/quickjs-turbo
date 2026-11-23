@@ -612,7 +612,7 @@ _Static_assert(sizeof(JSValue) == QJS_ABI_SIZE_JSValue &&
                    JS_TAG_BOOL == 1 && JS_TAG_NULL == 2 && JS_TAG_UNDEFINED == 3 &&
                    JS_TAG_SHORT_BIG_INT == 7 && JS_TAG_FLOAT64 == 8 && JS_ATOM_string == 76 &&
                    JS_ATOM_number == 74 && JS_ATOM_undefined == 73 && JS_ATOM_boolean == 75 &&
-                   JS_ATOM_object == 77 && JS_ATOM_bigint == 150 && JS_ATOM_symbol == 78,
+                   JS_ATOM_object == 77 && JS_ATOM_bigint == 149 && JS_ATOM_symbol == 78,
                "typeof leaf private ABI");
 
 _Static_assert(JS_ATOM_object == 77, "predicate leaf atom identity");

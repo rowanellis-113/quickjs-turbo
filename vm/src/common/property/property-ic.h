@@ -70,11 +70,11 @@ static inline void js_property_ic_set_shape_refs(JSShape *shape, uint32_t refs)
 static inline JSShape *js_property_ic_acquire_shape_ref(JSShape *shape)
 {
     if (shape->is_hashed & JS_IC_PROTO_WEAK) {
-        assert(shape->proto && shape->proto->header.ref_count > 0);
+        assert(shape->proto && JS_REF_COUNT(shape->proto) > 0);
         shape->is_hashed &= ~JS_IC_PROTO_WEAK;
-        shape->proto->header.ref_count++;
+        JS_REF_COUNT(shape->proto)++;
     }
-    shape->header.ref_count++;
+    JS_REF_COUNT(shape)++;
     return shape;
 }
 

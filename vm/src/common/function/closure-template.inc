@@ -10,11 +10,13 @@ static bool js_closure_template_recipe(JSContext *ctx, JSObject *p, JSFunctionBy
         (JS_VALUE_GET_TAG(proto) != JS_TAG_OBJECT && !JS_IsNull(proto)) ||
         sh->proto != (JS_IsNull(proto) ? NULL : JS_VALUE_GET_OBJ(proto)))
         return false;
-    if (sh->prop[0].atom != JS_ATOM_length || sh->prop[0].flags != JS_PROP_CONFIGURABLE ||
-        sh->prop[1].atom != JS_ATOM_name || sh->prop[1].flags != JS_PROP_CONFIGURABLE)
+    if (get_shape_prop(sh)[0].atom != JS_ATOM_length ||
+        get_shape_prop(sh)[0].flags != JS_PROP_CONFIGURABLE ||
+        get_shape_prop(sh)[1].atom != JS_ATOM_name ||
+        get_shape_prop(sh)[1].flags != JS_PROP_CONFIGURABLE)
         return false;
-    if (count == 3 && (sh->prop[2].atom != JS_ATOM_prototype ||
-                       sh->prop[2].flags != (JS_PROP_WRITABLE | JS_PROP_AUTOINIT)))
+    if (count == 3 && (get_shape_prop(sh)[2].atom != JS_ATOM_prototype ||
+                       get_shape_prop(sh)[2].flags != (JS_PROP_WRITABLE | JS_PROP_AUTOINIT)))
         return false;
     return true;
 }
@@ -45,7 +47,7 @@ static no_inline JSValue js_closure_tail_object(JSContext *ctx, JSShape *sh, JSC
     p->tmp_mark = 0;
     p->is_HTMLDDA = 0;
     p->is_prototype = 0;
-    p->__gc_mark = 64; /* explicit owned-tail flag, preserved by GC bitfields */
+    p->turbo_obj_flags = 64; /* explicit owned-tail flag, preserved by GC bitfields */
     p->first_weak_ref = NULL;
     p->u.func.function_bytecode = NULL;
     p->u.func.home_object = NULL;
@@ -57,11 +59,11 @@ static no_inline JSValue js_closure_tail_object(JSContext *ctx, JSShape *sh, JSC
         js_free(ctx, p);
     fail:
         for (i = 0; i < sh->prop_count; i++)
-            free_property(ctx->rt, &props[i], sh->prop[i].flags);
+            free_property(ctx->rt, &props[i], get_shape_prop(sh)[i].flags);
         js_free_shape(ctx->rt, sh);
         return JS_EXCEPTION;
     }
-    p->header.ref_count = 1;
+    JS_REF_COUNT(p) = 1;
     add_gc_object(ctx->rt, &p->header, JS_GC_OBJ_TYPE_JS_OBJECT);
     for (i = 0; i < sh->prop_count; i++)
         p->prop[i] = props[i];
@@ -89,7 +91,7 @@ static no_inline JSValue js_closure_tail_bind(JSContext *ctx, JSValue obj, JSFun
         case JS_CLOSURE_REF:
         case JS_CLOSURE_GLOBAL_REF:
             var_ref = cur_var_refs[cv->var_idx];
-            var_ref->header.ref_count++;
+            JS_REF_COUNT(var_ref)++;
             break;
         default:
             abort();

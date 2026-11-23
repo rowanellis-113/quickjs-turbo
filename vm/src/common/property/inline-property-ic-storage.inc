@@ -435,7 +435,7 @@ bool js_property_ic_gc_propagate(JSRuntime *rt, JS_MarkFunc *mark)
     bool changed = false;
     uint32_t i, j;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
-        if (ic->owner->header.mark)
+        if (JS_GC_MARK(ic->owner))
             continue;
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];
@@ -445,11 +445,11 @@ bool js_property_ic_gc_propagate(JSRuntime *rt, JS_MarkFunc *mark)
                     way->epoch != rt->property_ic_epoch)
                     continue;
                 assert(way->shape->proto == way->transition->proto);
-                if (!way->shape->header.mark && way->transition->header.mark) {
+                if (!JS_GC_MARK(way->shape) && JS_GC_MARK(way->transition)) {
                     mark(rt, &way->transition->header);
                     way->kind |= JS_IC_GC_TARGET;
                     changed = true;
-                } else if (way->shape->header.mark && !way->transition->header.mark) {
+                } else if (JS_GC_MARK(way->shape) && !JS_GC_MARK(way->transition)) {
                     mark(rt, &way->shape->header);
                     way->kind |= JS_IC_GC_SHAPE;
                     changed = true;
@@ -465,16 +465,16 @@ void js_property_ic_gc_restore(JSRuntime *rt)
     JSPropertyIC *ic;
     uint32_t i, j;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
-        if (ic->owner->header.mark)
+        if (JS_GC_MARK(ic->owner))
             continue;
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];
             for (j = 0; j < site->count; j++) {
                 JSPropertyICWay *way = js_ic_way(site, j);
                 if (way->shape && !(way->kind & JS_IC_GC_SHAPE))
-                    way->shape->header.ref_count++;
+                    JS_REF_COUNT(way->shape)++;
                 if (way->transition && !(way->kind & JS_IC_GC_TARGET))
-                    way->transition->header.ref_count++;
+                    JS_REF_COUNT(way->transition)++;
                 way->kind &= JS_IC_KIND_MASK;
             }
         }
@@ -486,13 +486,13 @@ void js_property_ic_gc_prune(JSRuntime *rt)
     JSPropertyIC *ic;
     uint32_t i, j, write;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
-        if (ic->owner->header.mark)
+        if (JS_GC_MARK(ic->owner))
             continue;
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];
             for (j = 0; j < site->count; j++) {
                 JSPropertyICWay *way = js_ic_way(site, j);
-                if (way->shape->header.mark || (way->transition && way->transition->header.mark) ||
+                if (JS_GC_MARK(way->shape) || (way->transition && JS_GC_MARK(way->transition)) ||
                     ((way->kind != JS_IC_OWN && way->kind != JS_IC_REPLACE) &&
                      (!rt->property_ic_epoch || way->epoch != rt->property_ic_epoch)))
                     js_ic_release_way(rt, way);
@@ -556,7 +556,7 @@ size_t js_property_ic_purge(JSRuntime *rt)
             JSFunctionBytecode *owner = rt->property_ic_list->owner;
             int allocs = 0;
             freed_bytes += js_property_ic_memory_size(owner, &allocs);
-            owner->header.ref_count++;
+            JS_REF_COUNT(owner)++;
             js_property_ic_free(rt, owner);
             JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, owner));
         }
@@ -572,7 +572,7 @@ size_t js_property_ic_purge(JSRuntime *rt)
             JSFunctionBytecode *owner = ic->owner;
             int allocs = 0;
             freed_bytes += js_property_ic_memory_size(owner, &allocs);
-            owner->header.ref_count++;
+            JS_REF_COUNT(owner)++;
             js_property_ic_free(rt, owner);
             JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, owner));
         }

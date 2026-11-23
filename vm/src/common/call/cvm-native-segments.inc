@@ -4,7 +4,9 @@
  * Copyright (c) 2026. MIT license, as in quickjs.c.
  */
 #include "src/common/internal/interpreter-env.h"
+#ifdef _MSC_VER
 #pragma section(".qjcvmm", read, write)
+#endif
 
 typedef struct JSCVMSegmentState {
     uint8_t *pc;
@@ -25,9 +27,11 @@ _Static_assert(sizeof(JSCVMSegmentState) == 48 && offsetof(JSCVMSegmentState, pc
 _Static_assert(sizeof(JSValue) == 16 && offsetof(JSValue, tag) == 8 && JS_TAG_FIRST == -9 &&
                    JS_TAG_INT == 0 && JS_TAG_BOOL == 1 && JS_TAG_NULL == 2 &&
                    JS_TAG_UNDEFINED == 3 && JS_TAG_UNINITIALIZED == 4 &&
-                   offsetof(JSRefCountHeader, ref_count) == 0 && sizeof(int) == 4 &&
-                   offsetof(JSContext, interrupt_counter) == 568 &&
-                   offsetof(JSVarRef, pvalue) == 32,
+                   offsetof(JSMallocBlockHeader, user_data) - offsetof(JSMallocBlockHeader, ref_count) == 4 &&
+                   sizeof(int) == 4 &&
+                   (offsetof(JSContext, interrupt_counter) == 548 ||
+                    offsetof(JSContext, interrupt_counter) == 556) &&
+                   offsetof(JSVarRef, pvalue) == 24,
                "native coroutine reads the pinned value/RC/context/capture contract");
 #ifdef QJS_CVM_NATIVE_OPS
 extern void JS_CVMRunSegment(JSCVMSegmentState *state);
@@ -41,7 +45,11 @@ static JSValue JS_CVMResumeInternal(JSContext *, JSValueConst, JSValueConst, JSV
 static unsigned char js_cvm_segment_mode(void)
 {
 #ifdef CONFIG_ATOMICS
+#ifdef _MSC_VER
     __declspec(allocate(".qjcvmm")) static _Atomic(unsigned char) cached;
+#else
+    static _Atomic(unsigned char) cached;
+#endif
     unsigned char mode = atomic_load_explicit(&cached, memory_order_relaxed);
     if (mode)
         return mode;

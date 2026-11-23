@@ -16,7 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from paths import source_file
 
 SIGNATURE = "static JSValue JS_CallInternal(JSContext *caller_ctx, JSValueConst func_obj,\n"
-RAW_SHA = "66c75eb2039185806eaf19c37073b6314ff9ea0cf363a57764ac337c6aeccaeb"
+RAW_SHA = "ffe47da76827b050f4a267b4893c3aac30f79887dff3b416156a8c43d9c56fa6"
 ELIGIBLE_OPCODES = (
     "add",
     "add_loc",

@@ -27,9 +27,9 @@ option(QJS_BACKPORT_MAP_POINTER_HASH
        "Mix Map/Set object and symbol pointer hashes before narrowing" OFF)
 option(QJS_BACKPORT_PORTABLE_REGEXP
        "Use accepted common RegExp and wire semantics in the C backend" ON)
-option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" OFF)
+option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" ON)
 option(QJS_TURBO_COROUTINE_SEGMENTS
-       "Enable QuickJS-Turbo coroutine segment fast paths in the core overlay" OFF)
+       "Enable QuickJS-Turbo coroutine segment fast paths in the core overlay" ON)
 option(QJS_HYBRID_GC "Build hybrid reference counting with generational partial cycle collection"
        ${QJS_ENABLE_TURBO_CORE_OVERLAY})
 if(QJS_PROPERTY_IC AND NOT QJS_ENABLE_TURBO_CORE_OVERLAY)

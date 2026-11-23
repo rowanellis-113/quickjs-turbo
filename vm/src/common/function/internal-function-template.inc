@@ -52,8 +52,10 @@ static void js_internal_function_finish_properties(JSContext *ctx, JSValue obj, 
         (JS_IsObject(ctx->function_proto) || JS_IsNull(ctx->function_proto)) &&
         shape->proto ==
             (JS_IsNull(ctx->function_proto) ? NULL : JS_VALUE_GET_OBJ(ctx->function_proto)) &&
-        shape->prop[0].atom == JS_ATOM_length && shape->prop[0].flags == JS_PROP_CONFIGURABLE &&
-        shape->prop[1].atom == JS_ATOM_name && shape->prop[1].flags == JS_PROP_CONFIGURABLE) {
+        get_shape_prop(shape)[0].atom == JS_ATOM_length &&
+        get_shape_prop(shape)[0].flags == JS_PROP_CONFIGURABLE &&
+        get_shape_prop(shape)[1].atom == JS_ATOM_name &&
+        get_shape_prop(shape)[1].flags == JS_PROP_CONFIGURABLE) {
         JSShape *old = ctx->internal_function_shape;
         ctx->internal_function_shape = js_dup_shape(shape);
         js_free_shape_null(ctx->rt, old);

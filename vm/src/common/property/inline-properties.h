@@ -40,14 +40,14 @@ static inline JSProperty *qjs_inline_property_initialize(JSObject *p, JSShape *s
         (QJSInlinePropertyHeader *)((uint8_t *)p + offset - sizeof(*header));
     header->allocation_bytes = bytes;
     header->property_capacity = (uint32_t)((bytes - offset) / sizeof(JSProperty));
-    p->__gc_mark |= 32;
+    p->turbo_obj_flags |= 32;
     return (JSProperty *)((uint8_t *)p + offset);
 }
 
 static inline size_t qjs_inline_property_tail_bytes(const JSObject *p)
 {
     if ((p->class_id == JS_CLASS_BYTECODE_FUNCTION || p->class_id == JS_CLASS_ASYNC_FUNCTION) &&
-        (p->__gc_mark & 64)) {
+        (p->turbo_obj_flags & 64)) {
         assert(p->u.func.function_bytecode);
         return (size_t)p->u.func.function_bytecode->closure_var_count * sizeof(JSVarRef *);
     }
@@ -62,7 +62,7 @@ static inline QJSInlinePropertyHeader *qjs_inline_property_header(const JSObject
 
 static inline int qjs_inline_property_current(const JSObject *p)
 {
-    if (!(p->__gc_mark & 32))
+    if (!(p->turbo_obj_flags & 32))
         return 0;
     return (uint8_t *)p->prop ==
            (uint8_t *)qjs_inline_property_header(p) + sizeof(QJSInlinePropertyHeader);
@@ -107,7 +107,7 @@ JSProperty *qjs_inline_property_realloc_rt(JSRuntime *rt, JSObject *p, size_t by
 static inline void qjs_inline_property_account(JSMemoryUsage *s, const JSObject *p)
 {
     size_t extra;
-    if (!(p->__gc_mark & 32))
+    if (!(p->turbo_obj_flags & 32))
         return;
     extra = qjs_inline_property_header(p)->allocation_bytes - sizeof(JSObject) -
             qjs_inline_property_tail_bytes(p);

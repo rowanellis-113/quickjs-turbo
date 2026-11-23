@@ -61,7 +61,7 @@ static void js_ic_evict_group(JSRuntime *rt, JSObject *proto)
      * Protect every metadata owner until the full traversal has completed.
      * No allocation, persistent root, JS call or ownership change survives it. */
     for (ic = rt->property_ic_list; ic; ic = ic->next)
-        ic->owner->header.ref_count++;
+        JS_REF_COUNT(ic->owner)++;
     for (ic = rt->property_ic_list; ic; ic = ic->next) {
         for (i = 0; i < ic->site_count; i++) {
             JSPropertyICSite *site = &ic->sites[i];

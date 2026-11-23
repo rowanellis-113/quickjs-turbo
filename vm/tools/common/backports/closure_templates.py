@@ -5,15 +5,15 @@ import hashlib
 FUNCTIONS = {
     "JS_NewObjectFromShape": (
         "static JSValue JS_NewObjectFromShape(",
-        "ad9d8d6ad2352e4d244447a926ef02424c71344f0660d911b83f6e4619b007b7",
+        "e81578f4a6807b1dc97b49c2698b213e277cb2f764bd1543f15534ac6223c58c",
     ),
     "js_closure2": (
         "static JSValue js_closure2(",
-        "330f7c7d9d45d6224605281d1053e1dce77cfa164875d7a3954a54f36331f396",
+        "faa7a9dde472205ed040a4affe635167a5ce6a0a1ec0bc61b51028ac56abc89c",
     ),
     "js_create_module_bytecode_function": (
         "static int js_create_module_bytecode_function(JSContext *ctx, JSModuleDef *m)\n{",
-        "4a962938bcf332eadff3be4562fbc3997610f7c626baa99fd3d4419f8285bfc3",
+        "97af52a0177b4a49689c4ff76b799c0db8c26e2e6888ec944370724be7b1e859",
     ),
     "js_bytecode_function_finalizer": (
         "static void js_bytecode_function_finalizer(JSRuntime *rt, JSValueConst val)\n{",
@@ -21,7 +21,7 @@ FUNCTIONS = {
     ),
     "JS_ComputeMemoryUsage": (
         "void JS_ComputeMemoryUsage(",
-        "dd87916e26844b5c3bde07b1fe55826777d6ee31b7f448f490e0cee064178047",
+        "41029f7c34eb2757a7e949dccf6eda4f87ff03564701582119e2037647e5094a",
     ),
     "js_closure": (
         "static JSValue js_closure(",
@@ -37,7 +37,7 @@ FUNCTIONS = {
     ),
     "JS_FreeContext": (
         "void JS_FreeContext(",
-        "583c657bcacdfe93d9ebedd5f805e06438cecc7e80c1188cc9820d675d7f5dab",
+        "6e60f4c57e0d73aaae2f85834fd7a84e3259ffb3221c096ad608a38abff6cb2a",
     ),
     "JS_NewCFunctionData2": (
         "JSValue JS_NewCFunctionData2(",
@@ -45,7 +45,7 @@ FUNCTIONS = {
     ),
     "js_create_resolving_functions": (
         "static int js_create_resolving_functions(JSContext *ctx,\n                                         JSValue *resolving_funcs,\n                                         JSValueConst promise)\n\n{",
-        "4d81b91dc3f8b1c43e2e92aa8139190605264b7c73c4987159bd6a32015c95f4",
+        "85b4294240c01eec5c83727c98415f5cf7b90c5c43ef80dc2ae73856d7ff3ba9",
     ),
 }
 
@@ -57,6 +57,21 @@ def replace_once(text, old, new):
 
 
 def private_types(text, conditional=False):
+    obj_old = "    uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */"
+    if obj_old in text:
+        if conditional:
+            assert text.count(obj_old) == 1
+            text = text.replace(
+                obj_old,
+                obj_old + "\n#ifdef QJS_PROPERTY_IC\n    uint8_t turbo_obj_flags : 7;\n#endif",
+                1,
+            )
+        else:
+            text = replace_once(
+                text,
+                obj_old,
+                "    uint8_t is_HTMLDDA : 1; uint8_t turbo_obj_flags : 7; /* specific annex B IsHtmlDDA behavior */",
+            )
     old = "    void *user_opaque;\n};"
     if old not in text:
         return text
@@ -94,13 +109,18 @@ def core_overlay(text, raw):
     )
     text = replace_once(
         text,
-        "    assert(ctx->header.ref_count == 0);",
-        "    assert(ctx->header.ref_count == 0); ctx->closure_template_mode = 2; ctx->internal_function_mode = 2;",
+        "    assert(JS_REF_COUNT(ctx) == 0);",
+        "    assert(JS_REF_COUNT(ctx) == 0); ctx->closure_template_mode = 2; ctx->internal_function_mode = 2;",
     )
     text = replace_once(
         text,
         "    js_free_shape_null(ctx->rt, ctx->array_shape);",
         "    js_free_shape_null(ctx->rt, ctx->array_shape); js_closure_templates_cleanup(ctx);",
+    )
+    text = replace_once(
+        text,
+        "    p->is_prototype = 0;",
+        "    p->is_prototype = 0; p->turbo_obj_flags = 0;",
     )
     text = replace_once(
         text,
@@ -115,18 +135,18 @@ def core_overlay(text, raw):
     text = replace_once(
         text,
         "            js_free_rt(rt, var_refs);\n        }\n        JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, b));",
-        "            if (!(p->__gc_mark & 64)) js_free_rt(rt, var_refs);\n        }\n        JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, b));",
+        "            if (!(p->turbo_obj_flags & 64)) js_free_rt(rt, var_refs);\n        }\n        JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_FUNCTION_BYTECODE, b));",
     )
     text = replace_once(
         text,
         "                    s->memory_used_count++;\n                    s->js_func_size += b->closure_var_count * sizeof(*var_refs);",
-        "                    if (!(p->__gc_mark & 64)) s->memory_used_count++;\n                    s->js_func_size += b->closure_var_count * sizeof(*var_refs);",
+        "                    if (!(p->turbo_obj_flags & 64)) s->memory_used_count++;\n                    s->js_func_size += b->closure_var_count * sizeof(*var_refs);",
     )
-    # Bit6 is an unused JSObject header bit, independent of GC mark/type and
-    # prototype bit7. Every ordinary bytecode-function publisher clears it.
+    # Use private bit 6 in turbo_obj_flags, independent of GC mark/type and
+    # prototype bit. Every ordinary bytecode-function publisher clears it.
     old = "    p->u.func.function_bytecode = b;"
     assert text.count(old) == 2
-    text = text.replace(old, old + " p->__gc_mark &= ~64;")
+    text = text.replace(old, old + " p->turbo_obj_flags &= ~64;")
     text = replace_once(
         text,
         "\n\nJSValue JS_NewCFunctionData2(",
