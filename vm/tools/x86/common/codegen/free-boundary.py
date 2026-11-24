@@ -37,14 +37,12 @@ def append(masm, gas, diagnostics, source=None):
     assert masm.pop() == "END"
     name = "JS_FrameSlotFreeBorrowed"
     committed, native, shared = (2304, 2312, 2320) if diagnostics else (64, 72, 80)
-    body = []
-    if layout["reference_count_model"] == "inline-header":
-        # This island can call a reentrant finalizer. Publish the consumed
-        # operand cursor and next PC, as required by the 0.15.1 stack view.
-        body += [
-            f"mov QWORD PTR [rbp+{fields['JSStackFrame.cur_pc']}], r12",
-            f"mov QWORD PTR [rbp+{fields['JSStackFrame.cur_sp']}], r13",
-        ]
+    # This island can call a reentrant finalizer. Always publish the consumed
+    # operand cursor and next PC under both reference-count models.
+    body = [
+        f"mov QWORD PTR [rbp+{fields['JSStackFrame.cur_pc']}], r12",
+        f"mov QWORD PTR [rbp+{fields['JSStackFrame.cur_sp']}], r13",
+    ]
     body += [
         "mov r10, QWORD PTR [rbx+56]",
         f"cmp BYTE PTR [r10+{mode}], 0",

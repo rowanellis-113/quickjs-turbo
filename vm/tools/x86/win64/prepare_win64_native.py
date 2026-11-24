@@ -306,6 +306,8 @@ def main():
         diagnostics=False,
         internal_entry=True,
         foundation_only=True,
+        numeric_compare=("QJS_FRAME_EXPERIMENTAL_COMPARE" in args.define),
+        win64_native=True,
         layout_override=layout,
         array_append_body=append_mod.body,
     )

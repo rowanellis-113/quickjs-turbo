@@ -1,9 +1,6 @@
 /* Backend supplies LOCAL_STRING_CODE, the mode getter, legacy boundary and
  * consuming rope constructor. No opcode, public value or frame layout changes.
  * Only the operand and the matching local may own the candidate root. */
-#if defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-extern const JSMallocFunctions FramePoolFunctions;
-#endif
 static FRAME_INLINE uint32_t local_rope_length(JSValueConst value)
 {
     return JS_VALUE_GET_TAG(value) == JS_TAG_STRING ? JS_VALUE_GET_STRING(value)->len
@@ -25,7 +22,7 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
     uintptr_t start = (uintptr_t)bytecode->byte_code_buf;
     uintptr_t end = start + (uintptr_t)bytecode->byte_code_len;
     unsigned op, size, index, mode;
-    bool keep = false;
+    bool keep = false, is_arg = false;
     JSValue *sp = state->sp, *local;
     JSValue input, rhs, prefix, old_right, right, result;
     JSStringRope *root;
@@ -53,15 +50,36 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
         size = 3;
         index = (unsigned)pc[2] | ((unsigned)pc[3] << 8);
         keep = op == OP_set_loc;
+    } else if (op >= OP_put_arg0 && op <= OP_put_arg3) {
+        index = op - OP_put_arg0;
+        is_arg = true;
+    } else if (op >= OP_set_arg0 && op <= OP_set_arg3) {
+        index = op - OP_set_arg0;
+        keep = true;
+        is_arg = true;
+    } else if (op == OP_put_arg || op == OP_set_arg) {
+        if ((uintptr_t)pc + 3 >= end)
+            return JS_FrameInterpAddTrampoline(state);
+        size = 3;
+        index = (unsigned)pc[2] | ((unsigned)pc[3] << 8);
+        keep = op == OP_set_arg;
+        is_arg = true;
     } else
         return JS_FrameInterpAddTrampoline(state);
-    if (index >= bytecode->var_count || !sf->var_buf ||
-        JS_VALUE_GET_TAG(sp[-2]) != JS_TAG_STRING_ROPE || JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_STRING)
+    if (is_arg) {
+        if (index >= sf->arg_count || !sf->arg_buf || FRAME_CAPTURED_ARGS(bytecode))
+            return JS_FrameInterpAddTrampoline(state);
+        local = &sf->arg_buf[index];
+    } else {
+        if (index >= bytecode->var_count || !sf->var_buf)
+            return JS_FrameInterpAddTrampoline(state);
+        local = &sf->var_buf[index];
+    }
+    if (JS_VALUE_GET_TAG(sp[-2]) != JS_TAG_STRING_ROPE || JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_STRING)
         return JS_FrameInterpAddTrampoline(state);
     input = sp[-2];
     rhs = sp[-1];
     root = JS_VALUE_GET_STRING_ROPE(input);
-    local = &sf->var_buf[index];
     if (JS_REF_COUNT(root) != 2 || !local_rope_same(*local, input) ||
         JS_VALUE_GET_TAG(root->right) != JS_TAG_STRING ||
         JS_VALUE_GET_STRING(root->right)->len > JS_STRING_ROPE_SHORT_LEN ||
@@ -77,29 +95,28 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
     state->pc = pc + 1;
     sf->cur_pc = state->pc;
     js_frame_begin_c(state);
-#if defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-    if ((mode & 16) &&
-        ctx->rt->mf.js_malloc_usable_size == FramePoolFunctions.js_malloc_usable_size) {
+#if defined(JS_ARENA_FREE_NIL)
+    if (mode & 16) {
         JSString *leaf = JS_VALUE_GET_STRING(root->right), *suffix = JS_VALUE_GET_STRING(rhs);
         bool nonlast = JS_REF_COUNT(suffix) > 1;
         unsigned depth = JS_VALUE_GET_TAG(root->left) == JS_TAG_STRING_ROPE
                              ? (unsigned)JS_VALUE_GET_STRING_ROPE(root->left)->depth + 1
                              : 1;
         uint64_t length = (uint64_t)root->len + suffix->len;
-        /* The NORMAL leaf owns its payload. A slice or indirect string does
-           not gain writable capacity from its descriptor allocation. */
+        /* The NORMAL arena leaf owns its payload. A slice, indirect or
+           backing-allocator string does not use inline payload growth. */
         if (JS_REF_COUNT(leaf) == 1 && !leaf->atom_type && leaf->kind == JS_STRING_KIND_NORMAL &&
             leaf->is_wide_char == suffix->is_wide_char && length <= JS_STRING_LEN_MAX &&
             depth <= JS_STRING_ROPE_MAX_DEPTH &&
-            (nonlast || (!suffix->atom_type && suffix->kind == JS_STRING_KIND_NORMAL &&
-                         ctx->rt->mf.js_free == FramePoolFunctions.js_free))) {
+            container_of(leaf, JSMallocBlockHeader, user_data)->u.block_idx != JS_ARENA_FREE_NIL &&
+            (nonlast || (!suffix->atom_type && suffix->kind == JS_STRING_KIND_NORMAL))) {
             unsigned wide = leaf->is_wide_char;
             uint32_t leaf_length = leaf->len, suffix_length = suffix->len;
             size_t required =
                 sizeof(*leaf) + ((size_t)(leaf_length + suffix_length) << wide) + 1 - wide;
-            /* This exact callback only reads pool metadata: no allocation,
+            /* Small arena blocks only read JSArena block metadata: no allocation,
                owner change or reentry between the proof and the commit. */
-            size_t capacity = FramePoolFunctions.js_malloc_usable_size(leaf);
+            size_t capacity = js_malloc_usable_size(ctx, leaf);
             if (capacity >= required) {
                 if (wide)
                     memcpy(str16(leaf) + leaf_length, str16(suffix), (size_t)suffix_length << 1);
@@ -125,8 +142,8 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
                 if (nonlast)
                     --JS_REF_COUNT(suffix);
                 else {
-                    /* NORMAL non-atom string destruction plus the exact pure
-                       pool free cannot invoke host code or release objects. */
+                    /* NORMAL non-atom string destruction only frees memory and
+                       cannot invoke host code or release objects. */
                     JS_FreeValue(ctx, rhs);
                 }
                 js_frame_finish_c(state);

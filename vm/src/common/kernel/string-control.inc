@@ -79,12 +79,10 @@ unsigned char JS_FrameLocalRopeModeGet(void)
 #endif
     if (unlikely(!mode)) {
         mode = getenv("QJS_DISABLE_LOCAL_ROPE_APPEND") ? 2 : 1;
-#if defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
-        /* Low bits retain root mode 1/2; mask0x10 opts into proven pool spare
+        /* Low bits retain root mode 1/2; mask 0x10 opts into proven arena spare
            capacity. The native selector only tests the disabled value 2. */
         if (mode == 1 && !getenv("QJS_DISABLE_LOCAL_ROPE_SPARE"))
             mode |= 16;
-#endif
         /* GNU-only native lane: retain the original legacy policy/code path.
            Presence, including value 0, disables only the new native lane. */
 #if !defined(_MSC_VER) && defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)

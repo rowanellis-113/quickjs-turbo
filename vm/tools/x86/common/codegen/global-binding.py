@@ -240,26 +240,22 @@ def generate(source, build, diagnostics=False, leaf_entry=False):
             "lea r11, [r10+rcx*4+60]",
             "mov eax, ecx",
             "inc ecx",
-            "bsr ecx, ecx",
-            "mov edx, 64",
-            "sub edx, ecx",
-            "mov ecx, edx",
             "mov edx, r9d",
             "mov r10, 7046029254386353131",
             "imul rdx, r10",
-            "shr rdx, cl",
+            "shr rdx, 32",
+            "imul rdx, rcx",
+            "shr rdx, 32",
         ]
         object_hash = [
             "lea r11, [r10+rcx*4+60]",
             "inc ecx",
-            "bsr ecx, ecx",
-            "mov eax, 64",
-            "sub eax, ecx",
-            "mov ecx, eax",
             "mov edx, r9d",
             "mov rax, 7046029254386353131",
             "imul rdx, rax",
-            "shr rdx, cl",
+            "shr rdx, 32",
+            "imul rdx, rcx",
+            "shr rdx, 32",
         ]
         after_bucket = []
         undefined_bucket = ["lea r11, [r10+rax*4+60]", "neg rdx"]

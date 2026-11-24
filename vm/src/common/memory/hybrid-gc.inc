@@ -58,6 +58,28 @@ static void js_hybrid_on_free_runtime(JSRuntime *rt)
 
 static inline void js_hybrid_free_rt_fast(JSRuntime *rt, void *ptr)
 {
+    if (likely(ptr != NULL)) {
+        JSMallocBlockHeader *b = container_of(ptr, JSMallocBlockHeader, user_data);
+        if (likely(b->u.block_idx != JS_ARENA_FREE_NIL)) {
+            unsigned int block_idx = b->u.block_idx;
+            unsigned int block_size_idx = b->block_size_idx;
+            unsigned int block_size = arena_block_sizes[block_size_idx];
+            size_t free_size = (size_t)block_size - sizeof(JSMallocBlockHeader) + MALLOC_OVERHEAD;
+            JSArena *ar =
+                (JSArena *)((uint8_t *)b - (size_t)block_size * block_idx - sizeof(JSArena));
+            JSMallocState *s = &rt->malloc_state;
+            if (likely(free_size <= s->malloc_size && ar->n_used_blocks > 1)) {
+                s->malloc_count--;
+                s->malloc_size -= free_size;
+                b->u.free_next = ar->first_free_block;
+                ar->first_free_block = block_idx;
+                if (unlikely(ar->n_used_blocks == ar->n_blocks))
+                    list_add(&ar->free_link, &rt->arena_state.free_arena_list[block_size_idx]);
+                ar->n_used_blocks--;
+                return;
+            }
+        }
+    }
     js_free_rt(rt, ptr);
 }
 

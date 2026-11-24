@@ -49,6 +49,7 @@ def generate(
     linux_borrowed_field=False,
     linux_stack_insert=False,
     linux_reference_stores=False,
+    win64_native=False,
     array_append_body=None,
 ):
     layout = layout_override if layout_override is not None else load_layout(root)
@@ -62,6 +63,8 @@ def generate(
         and not diagnostics
         and not has_prefix
     )
+    win64_indexed_own = bool(win64_native and internal_entry and not diagnostics)
+    emit_indexed_own = bool(indexed_own or win64_indexed_own)
     typed_enum = _frame_source_file(root, "quickjs.c").read_text(encoding="utf-8")
     typed_enum = typed_enum[
         typed_enum.index("    JS_CLASS_OBJECT = 1,") : typed_enum.index("    JS_CLASS_INIT_COUNT,")
@@ -114,6 +117,7 @@ def generate(
         fields["JSObject." + name] for name in ("u.typed_array", "u.array_buffer", "u.cfunc.cproto")
     )
     obj_fast_byte, obj_fast_mask = layout["bits"]["JSObject.fast_array"][0]
+    htmldda_byte, htmldda_mask = layout["bits"]["JSObject.is_HTMLDDA"][0]
     ref_value = fields["JSVarRef.pvalue"]
     string_hash = layout["bits"]["JSString.hash"][0][0]
     string_len_byte = layout["bits"]["JSString.len"][0][0]
@@ -352,7 +356,8 @@ def generate(
             emit(
                 "cmp DWORD PTR [r8+8], 0",
                 "jl " + target
-                if internal_entry and (not foundation_only or linux_reference_stores)
+                if internal_entry
+                and (not foundation_only or linux_reference_stores or win64_native)
                 else "jl interp_slow",
             )
             emit("mov rax, QWORD PTR [r13-16]", "mov rdx, QWORD PTR [r13-8]")
@@ -442,14 +447,12 @@ def generate(
                 "mov ecx, DWORD PTR [r10+24]",
                 "lea r11, [r10+rcx*4+60]",
                 "inc ecx",
-                "bsr ecx, ecx",
-                "mov eax, 64",
-                "sub eax, ecx",
-                "mov ecx, eax",
                 "mov edx, r9d",
                 "mov rax, 7046029254386353131",
                 "imul rdx, rax",
-                "shr rdx, cl",
+                "shr rdx, 32",
+                "imul rdx, rcx",
+                "shr rdx, 32",
                 "neg rdx",
                 "mov ecx, DWORD PTR [r11+rdx*4-4]",
             )
@@ -579,7 +582,7 @@ def generate(
         )
         if name == "get_array_el":
             emit(f"cmp DWORD PTR [r8{rc:+d}], 1", "jle interp_slow")
-        indexed_miss = "interp_" + name + "_indexed_own" if indexed_own else "interp_slow"
+        indexed_miss = "interp_" + name + "_indexed_own" if emit_indexed_own else "interp_slow"
         emit(
             "mov ecx, DWORD PTR [r13-16]",
             f"cmp ecx, DWORD PTR [r8+{obj_count}]",
@@ -630,7 +633,7 @@ def generate(
         else:
             emit("mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], rdx")
         next_()
-        if indexed_own:
+        if emit_indexed_own:
             indexed_own_append(name, layout, rc, emit, label, next_)
         # Interp's sign/zero-extending typed loads adapted to NG's owned 16B
         # values. Unlike the retained Interp Uint32 high-half fallback, NG can
@@ -690,7 +693,7 @@ def generate(
         f"cmp WORD PTR [r8+{obj_class}], 2",
         "jne interp_put_array_el_typed",
         f"test BYTE PTR [r8+{obj_fast_byte}], {obj_fast_mask}",
-        "jz " + ("interp_put_array_el_indexed_own" if indexed_own else "interp_slow"),
+        "jz " + ("interp_put_array_el_indexed_own" if emit_indexed_own else "interp_slow"),
         f"cmp DWORD PTR [r8{rc:+d}], 1",
         "jle interp_slow",
         "mov ecx, DWORD PTR [r13-32]",
@@ -764,7 +767,7 @@ def generate(
     emit("mov DWORD PTR [r10+rcx*4], eax", f"dec DWORD PTR [r8{rc:+d}]", "sub r13, 48")
     next_()
 
-    if indexed_own:
+    if emit_indexed_own:
         indexed_own_append("put_array_el", layout, rc, emit, label, next_)
     for width, store in ((8, "mov BYTE PTR [r10+rcx], al"), (16, "mov WORD PTR [r10+rcx*2], ax")):
         label("interp_put_array_el_typed_" + str(width))
@@ -1168,7 +1171,7 @@ def generate(
     op("lnot")
     emit(
         "cmp DWORD PTR [r13-8], 3",
-        "ja interp_slow",
+        "ja interp_lnot_cold" if win64_native else "ja interp_slow",
         "xor eax, eax",
         "cmp DWORD PTR [r13-16], 0",
         "sete al",
@@ -1193,7 +1196,7 @@ def generate(
         if name.startswith("if"):
             emit(
                 "cmp DWORD PTR [r13-8], 3",
-                "ja interp_slow",
+                ("ja interp_" + name + "_cold") if win64_native else "ja interp_slow",
                 "mov eax, DWORD PTR [r13-16]",
                 "sub r13, 16",
             )
@@ -1691,6 +1694,16 @@ def generate(
     next_()
     for name in property_ops:
         label("interp_property_slow_" + name)
+        if name == "drop" and win64_native:
+            emit(
+                "mov rax, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [rax{rc:+d}], 1",
+                "jle interp_property_slow_drop_c",
+                f"dec DWORD PTR [rax{rc:+d}]",
+                "sub r13, 16",
+            )
+            next_()
+            label("interp_property_slow_drop_c")
         if diagnostics:
             emit("inc QWORD PTR [rbx+80]", f"inc QWORD PTR [rbx+{ids[name] * 8 + 144}]")
         emit(
@@ -1940,6 +1953,59 @@ def generate(
             "jmp interp_number_compare_strict_eq",
         )
         label("interp_primitive_eq_original_fallback")
+    if win64_native:
+        emit(
+            "mov eax, DWORD PTR [r13-24]",
+            "mov edx, DWORD PTR [r13-8]",
+            "cmp eax, -1",
+            "jne interp_win64_strict_rhs",
+            "cmp edx, -1",
+            "jne interp_win64_strict_lhs_imm",
+            "mov r8, QWORD PTR [r13-32]",
+            "mov r9, QWORD PTR [r13-16]",
+            "cmp r8, r9",
+            "jne interp_win64_strict_diff",
+            f"cmp DWORD PTR [r8{rc:+d}], 2",
+            "jle interp_win64_strict_c",
+            f"sub DWORD PTR [r8{rc:+d}], 2",
+            "jmp interp_primitive_eq_true",
+        )
+        label("interp_win64_strict_diff")
+        emit(
+            f"cmp DWORD PTR [r8{rc:+d}], 1",
+            "jle interp_win64_strict_c",
+            f"cmp DWORD PTR [r9{rc:+d}], 1",
+            "jle interp_win64_strict_c",
+            f"dec DWORD PTR [r8{rc:+d}]",
+            f"dec DWORD PTR [r9{rc:+d}]",
+            "xor eax, eax",
+            "jmp interp_primitive_eq_store",
+        )
+        label("interp_win64_strict_lhs_imm")
+        emit(
+            "test edx, edx",
+            "js interp_win64_strict_c",
+            "mov r8, QWORD PTR [r13-32]",
+            f"cmp DWORD PTR [r8{rc:+d}], 1",
+            "jle interp_win64_strict_c",
+            f"dec DWORD PTR [r8{rc:+d}]",
+            "xor eax, eax",
+            "jmp interp_primitive_eq_store",
+        )
+        label("interp_win64_strict_rhs")
+        emit(
+            "cmp edx, -1",
+            "jne interp_win64_strict_c",
+            "test eax, eax",
+            "js interp_win64_strict_c",
+            "mov r9, QWORD PTR [r13-16]",
+            f"cmp DWORD PTR [r9{rc:+d}], 1",
+            "jle interp_win64_strict_c",
+            f"dec DWORD PTR [r9{rc:+d}]",
+            "xor eax, eax",
+            "jmp interp_primitive_eq_store",
+        )
+        label("interp_win64_strict_c")
     emit("test ecx, ecx", "jnz interp_op_slow_strict_neq", "jmp interp_op_slow_strict_eq")
     # Independently selectable ablation. Leave every integer handler's
     # instruction count unchanged and append the mixed/double cases to this
@@ -1954,8 +2020,13 @@ def generate(
                 number_to_xmm(prefix + "_rhs", "r13-16", "r13-8", "xmm1", rel_miss)
                 emit_rel_xmm_compare(name)
             else:
-                number_to_xmm(prefix + "_lhs", "r13-32", "r13-24", "xmm0", miss)
-                number_to_xmm(prefix + "_rhs", "r13-16", "r13-8", "xmm1", miss)
+                num_miss = (
+                    ("interp_win64_loose_" + name)
+                    if (win64_native and name in ("eq", "neq"))
+                    else miss
+                )
+                number_to_xmm(prefix + "_lhs", "r13-32", "r13-24", "xmm0", num_miss)
+                number_to_xmm(prefix + "_rhs", "r13-16", "r13-8", "xmm1", num_miss)
                 emit("xor eax, eax", "ucomisd xmm0, xmm1")
                 if name in ("eq", "strict_eq"):
                     emit("sete al", "setnp dl", "and al, dl")
@@ -1963,7 +2034,297 @@ def generate(
                     emit("setne al", "setp dl", "or al, dl")
                 emit("mov QWORD PTR [r13-32], rax", "mov QWORD PTR [r13-24], 1", "sub r13, 16")
                 next_()
+        if win64_native:
+            label("interp_win64_loose_eq")
+            emit("xor ecx, ecx", "jmp interp_win64_loose_common")
+            label("interp_win64_loose_neq")
+            emit("mov ecx, 1")
+            label("interp_win64_loose_common")
+            emit(
+                "mov eax, DWORD PTR [r13-24]",
+                "mov edx, DWORD PTR [r13-8]",
+                "cmp eax, -1",
+                "jne interp_win64_loose_not_lhs_obj",
+                "cmp edx, -1",
+                "jne interp_win64_loose_lhs_obj_prim",
+                "mov r8, QWORD PTR [r13-32]",
+                "mov r9, QWORD PTR [r13-16]",
+                "cmp r8, r9",
+                "jne interp_win64_loose_obj_diff",
+                f"cmp DWORD PTR [r8{rc:+d}], 2",
+                "jle interp_win64_loose_c",
+                f"sub DWORD PTR [r8{rc:+d}], 2",
+                "jmp interp_primitive_eq_true",
+            )
+            label("interp_win64_loose_obj_diff")
+            emit(
+                f"cmp DWORD PTR [r8{rc:+d}], 1",
+                "jle interp_win64_loose_c",
+                f"cmp DWORD PTR [r9{rc:+d}], 1",
+                "jle interp_win64_loose_c",
+                f"dec DWORD PTR [r8{rc:+d}]",
+                f"dec DWORD PTR [r9{rc:+d}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+            )
+            label("interp_win64_loose_lhs_obj_prim")
+            emit(
+                "lea r10d, [rdx-2]",
+                "cmp r10d, 1",
+                "ja interp_win64_loose_c",
+                "mov r8, QWORD PTR [r13-32]",
+                f"cmp DWORD PTR [r8{rc:+d}], 1",
+                "jle interp_win64_loose_c",
+                f"test BYTE PTR [r8+{htmldda_byte}], {htmldda_mask}",
+                "jnz interp_win64_loose_c",
+                f"dec DWORD PTR [r8{rc:+d}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+            )
+            label("interp_win64_loose_not_lhs_obj")
+            emit(
+                "cmp edx, -1",
+                "jne interp_win64_loose_both_nonobj",
+                "lea r10d, [rax-2]",
+                "cmp r10d, 1",
+                "ja interp_win64_loose_c",
+                "mov r9, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r9{rc:+d}], 1",
+                "jle interp_win64_loose_c",
+                f"test BYTE PTR [r9+{htmldda_byte}], {htmldda_mask}",
+                "jnz interp_win64_loose_c",
+                f"dec DWORD PTR [r9{rc:+d}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+            )
+            label("interp_win64_loose_both_nonobj")
+            emit(
+                "lea r10d, [rax-2]",
+                "cmp r10d, 1",
+                "ja interp_win64_loose_rhs_nullish",
+                "lea r10d, [rdx-2]",
+                "cmp r10d, 1",
+                "jbe interp_primitive_eq_true",
+                "test edx, edx",
+                "jz interp_win64_loose_ret_false",
+                "cmp edx, 1",
+                "je interp_win64_loose_ret_false",
+                "cmp edx, 8",
+                "je interp_win64_loose_ret_false",
+                "jmp interp_win64_loose_c",
+            )
+            label("interp_win64_loose_rhs_nullish")
+            emit(
+                "lea r10d, [rdx-2]",
+                "cmp r10d, 1",
+                "ja interp_win64_loose_c",
+                "test eax, eax",
+                "jz interp_win64_loose_ret_false",
+                "cmp eax, 1",
+                "je interp_win64_loose_ret_false",
+                "cmp eax, 8",
+                "jne interp_win64_loose_c",
+            )
+            label("interp_win64_loose_ret_false")
+            emit("xor eax, eax", "jmp interp_primitive_eq_store")
+            label("interp_win64_loose_c")
+            emit("test ecx, ecx", "jnz interp_op_slow_neq", "jmp interp_op_slow_eq")
     code.extend(cold_stage3)
+    if win64_native:
+        if not stack_insert:
+            op("insert3")
+            emit(
+                "cmp DWORD PTR [r13-8], 0",
+                "jns interp_win64_insert3_copy",
+                "mov rax, QWORD PTR [r13-16]",
+                f"inc DWORD PTR [rax{rc:+d}]",
+            )
+            label("interp_win64_insert3_copy")
+            emit(
+                "movdqu xmm0, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13], xmm0",
+                "movdqu xmm1, XMMWORD PTR [r13-32]",
+                "movdqu XMMWORD PTR [r13-16], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "movdqu XMMWORD PTR [r13-48], xmm0",
+                "add r13, 16",
+            )
+            next_()
+        op("insert2")
+        emit(
+            "cmp DWORD PTR [r13-8], 0",
+            "jns interp_win64_insert2_copy",
+            "mov rax, QWORD PTR [r13-16]",
+            f"inc DWORD PTR [rax{rc:+d}]",
+        )
+        label("interp_win64_insert2_copy")
+        emit(
+            "movdqu xmm0, XMMWORD PTR [r13-16]",
+            "movdqu XMMWORD PTR [r13], xmm0",
+            "movdqu xmm1, XMMWORD PTR [r13-32]",
+            "movdqu XMMWORD PTR [r13-16], xmm1",
+            "movdqu XMMWORD PTR [r13-32], xmm0",
+            "add r13, 16",
+        )
+        next_()
+        op("dup1")
+        emit(
+            "cmp DWORD PTR [r13-24], 0",
+            "jns interp_win64_dup1_copy",
+            "mov rax, QWORD PTR [r13-32]",
+            f"inc DWORD PTR [rax{rc:+d}]",
+        )
+        label("interp_win64_dup1_copy")
+        emit(
+            "movdqu xmm0, XMMWORD PTR [r13-16]",
+            "movdqu XMMWORD PTR [r13], xmm0",
+            "movdqu xmm1, XMMWORD PTR [r13-32]",
+            "movdqu XMMWORD PTR [r13-16], xmm1",
+            "add r13, 16",
+        )
+        next_()
+        op("dup2")
+        emit(
+            "mov rax, QWORD PTR [r13-32]",
+            "mov rdx, QWORD PTR [r13-24]",
+            "test edx, edx",
+            "jns interp_win64_dup2_first",
+            f"inc DWORD PTR [rax{rc:+d}]",
+        )
+        label("interp_win64_dup2_first")
+        emit(
+            "mov QWORD PTR [r13], rax",
+            "mov QWORD PTR [r13+8], rdx",
+            "mov rax, QWORD PTR [r13-16]",
+            "mov rdx, QWORD PTR [r13-8]",
+            "test edx, edx",
+            "jns interp_win64_dup2_second",
+            f"inc DWORD PTR [rax{rc:+d}]",
+        )
+        label("interp_win64_dup2_second")
+        emit(
+            "mov QWORD PTR [r13+16], rax",
+            "mov QWORD PTR [r13+24], rdx",
+            "add r13, 32",
+        )
+        next_()
+        op("nip")
+        emit(
+            "cmp DWORD PTR [r13-24], 0",
+            "jns interp_win64_nip_copy",
+            "mov rax, QWORD PTR [r13-32]",
+            f"cmp DWORD PTR [rax{rc:+d}], 1",
+            "jle interp_slow",
+            f"dec DWORD PTR [rax{rc:+d}]",
+        )
+        label("interp_win64_nip_copy")
+        emit(
+            "movdqu xmm0, XMMWORD PTR [r13-16]",
+            "movdqu XMMWORD PTR [r13-32], xmm0",
+            "sub r13, 16",
+        )
+        next_()
+        op("get_length")
+        emit(
+            "cmp DWORD PTR [r13-8], -1",
+            "je interp_win64_get_length_obj",
+            "cmp DWORD PTR [r13-8], -7",
+            "jne interp_slow",
+            "mov r8, QWORD PTR [r13-16]",
+            f"cmp DWORD PTR [r8{rc:+d}], 1",
+            "jle interp_slow",
+            f"mov eax, DWORD PTR [r8+{string_len_byte}]",
+            "and eax, 2147483647",
+            "xor edx, edx",
+            f"dec DWORD PTR [r8{rc:+d}]",
+            "mov QWORD PTR [r13-16], rax",
+            "mov QWORD PTR [r13-8], rdx",
+        )
+        next_()
+        label("interp_win64_get_length_obj")
+        emit(
+            "mov r8, QWORD PTR [r13-16]",
+            f"cmp DWORD PTR [r8{rc:+d}], 1",
+            "jle interp_slow",
+            f"cmp WORD PTR [r8+{obj_class}], 2",
+            "jne interp_slow",
+            f"test BYTE PTR [r8+{obj_fast_byte}], {obj_fast_mask}",
+            "jz interp_slow",
+            f"mov r10, QWORD PTR [r8+{obj_props}]",
+            "test r10, r10",
+            "jz interp_slow",
+            "mov rax, QWORD PTR [r10]",
+            "mov rdx, QWORD PTR [r10+8]",
+            "test edx, edx",
+            "js interp_slow",
+            f"dec DWORD PTR [r8{rc:+d}]",
+            "mov QWORD PTR [r13-16], rax",
+            "mov QWORD PTR [r13-8], rdx",
+        )
+        next_()
+
+        def emit_win64_truthy(p, done_label):
+            emit(
+                "cmp DWORD PTR [r13-8], -1",
+                "je " + p + "_obj",
+                "cmp DWORD PTR [r13-8], 8",
+                "je " + p + "_f64",
+                "cmp DWORD PTR [r13-8], -7",
+                "jne interp_slow",
+                "mov rcx, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [rcx{rc:+d}], 1",
+                "jle interp_slow",
+                f"mov edx, DWORD PTR [rcx+{string_len_byte}]",
+                "and edx, 2147483647",
+                "xor eax, eax",
+                "test edx, edx",
+                "setne al",
+                f"dec DWORD PTR [rcx{rc:+d}]",
+                "jmp " + done_label,
+            )
+            label(p + "_f64")
+            emit(
+                "xorpd xmm0, xmm0",
+                "ucomisd xmm0, QWORD PTR [r13-16]",
+                "setne al",
+                "setnp dl",
+                "and al, dl",
+                "movzx eax, al",
+                "jmp " + done_label,
+            )
+            label(p + "_obj")
+            emit(
+                "mov rcx, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [rcx{rc:+d}], 1",
+                "jle interp_slow",
+                f"test BYTE PTR [rcx+{htmldda_byte}], {htmldda_mask}",
+                "jnz interp_slow",
+                f"dec DWORD PTR [rcx{rc:+d}]",
+                "mov eax, 1",
+            )
+            label(done_label)
+
+        label("interp_lnot_cold")
+        emit_win64_truthy("interp_win64_lnot_cold", "interp_win64_lnot_cold_done")
+        emit("xor eax, 1", "mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], 1")
+        next_()
+        for name, width in [("if_true", 4), ("if_false", 4), ("if_true8", 1), ("if_false8", 1)]:
+            label("interp_" + name + "_cold")
+            emit_win64_truthy(
+                "interp_win64_" + name + "_cold", "interp_win64_" + name + "_cold_done"
+            )
+            emit(
+                "sub r13, 16",
+                f"dec DWORD PTR [rsi+{ctx_poll}]",
+                "test eax, eax",
+                ("jz" if "true" in name else "jnz") + " interp_" + name + "_untaken",
+            )
+            if width == 4:
+                emit("movsxd rax, DWORD PTR [r12+1]")
+            else:
+                emit("movsx rax, BYTE PTR [r12+1]")
+            emit("lea r12, [r12+rax+1]", "jmp interp_dispatch")
     eq_code, code = code, main_code
     eq_labels = {row[:-1] for row in eq_code if row.endswith(":")}
     new_labels = {row[:-1] for row in call_code if row.endswith(":")}
@@ -2038,6 +2399,11 @@ def generate(
             )
             if not (foundation_only and name == "JS_FrameCallEntryLegacy")
         ]
+        if win64_native:
+            masm[3:3] = [
+                "EXTERN JS_FrameInterpHostDirectScoped:PROC",
+                "EXTERN JS_FrameInterpHostScoped:PROC",
+            ]
     if binding_index and native_slice:
         masm.insert(3, "EXTERN JS_FrameBorrowedField:PROC")
     masm[3:3] = ["EXTERN JS_FrameInterpOp_" + name + ":PROC" for name in numeric_ops]
@@ -2088,7 +2454,7 @@ def generate(
         )
 
     masm += [masm_main_line(line) for line in code]
-    if indexed_own:
+    if emit_indexed_own:
         masm[3:3] = ["EXTERN JS_FrameSlowDirectData:BYTE"]
         masm = [x.replace("[rip+JS_FrameSlowDirectData]", "[JS_FrameSlowDirectData]") for x in masm]
     gas += code
@@ -2290,9 +2656,19 @@ def generate(
         f"cmp BYTE PTR [rax+{obj_cproto}], 1",
         "ja "
         + ("interp_host_dispatch_numeric" if use_host_gates else "interp_host_dispatch_legacy"),
-        "jmp " + ("JS_FrameInterpHostDirectGate" if use_host_gates else "JS_FrameInterpHostDirect"),
+        "jmp "
+        + (
+            "JS_FrameInterpHostDirectGate"
+            if use_host_gates
+            else ("JS_FrameInterpHostDirectScoped" if win64_native else "JS_FrameInterpHostDirect")
+        ),
         "interp_host_dispatch_legacy:",
-        "jmp " + ("JS_FrameInterpHostGate" if use_host_gates else "JS_FrameInterpHost"),
+        "jmp "
+        + (
+            "JS_FrameInterpHostGate"
+            if use_host_gates
+            else ("JS_FrameInterpHostScoped" if win64_native else "JS_FrameInterpHost")
+        ),
     ]
     masm.pop()  # END follows the appended independent section and unwind.
     masm += [

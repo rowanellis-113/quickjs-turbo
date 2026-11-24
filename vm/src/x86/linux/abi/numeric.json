@@ -2,13 +2,13 @@
   "schema": 1,
   "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "owners": {
-    "tools/x86/common/codegen/free-boundary.py": "78df8f4ace58cf0ea4a5f597e8eb2cd12140e4b10251e9c52382ea0b2ecb7c7d",
+    "tools/x86/common/codegen/free-boundary.py": "38c94a0c3ee6fa61b8d09451f7400ffa3ad6318b211b1cb831d5bd30e0e8f7ac",
     "tools/x86/common/codegen/add-local.py": "dd5c0f37181145bf28d31f9eca770f9aab6700bc22218f9bcd550336ad4bbd4d",
     "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
     "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"
   },
   "accepted_windows_owners": {
-    "tools/x86/common/codegen/free-boundary.py": "78df8f4ace58cf0ea4a5f597e8eb2cd12140e4b10251e9c52382ea0b2ecb7c7d",
+    "tools/x86/common/codegen/free-boundary.py": "38c94a0c3ee6fa61b8d09451f7400ffa3ad6318b211b1cb831d5bd30e0e8f7ac",
     "tools/x86/common/codegen/add-local.py": "dd5c0f37181145bf28d31f9eca770f9aab6700bc22218f9bcd550336ad4bbd4d",
     "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
     "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"

@@ -13,15 +13,18 @@ set(QJS_DEFAULT_EXPERIMENT_ALLOCATOR
     ""
     CACHE STRING "Retired no-op compatibility variable from FramePool experiment")
 option(QJS_FRAME_EXPERIMENTAL_COMPARE
-       "Build mixed integer/double comparison ablation in native handlers" OFF)
+       "Build mixed integer/double comparison ablation in native handlers" ON)
 option(QJS_BACKPORT_COMPUTED_ASSIGN
-       "Apply declared upstream computed-assignment compiler correction" OFF)
+       "Apply declared upstream computed-assignment compiler correction"
+       ${QJS_ENABLE_TURBO_CORE_OVERLAY})
 option(QJS_BACKPORT_VALUE64_INIT
-       "Backport Bellard's complete integer payload initialization in the private core" OFF)
+       "Backport Bellard's complete integer payload initialization in the private core"
+       ${QJS_ENABLE_TURBO_CORE_OVERLAY})
 option(QJS_BACKPORT_MIXED_NUMBERS "Backport Bellard's mixed int/double C interpreter fast paths"
-       OFF)
+       ${QJS_ENABLE_TURBO_CORE_OVERLAY})
 option(QJS_BACKPORT_MAP_POINTER_HASH
-       "Mix Map/Set object and symbol pointer hashes before narrowing" OFF)
+       "Mix Map/Set object and symbol pointer hashes before narrowing"
+       ${QJS_ENABLE_TURBO_CORE_OVERLAY})
 option(QJS_BACKPORT_PORTABLE_REGEXP
        "Use accepted common RegExp and wire semantics in the C backend" ON)
 option(QJS_PROPERTY_IC "Build bytecode-owned property get/set inline caches" ON)

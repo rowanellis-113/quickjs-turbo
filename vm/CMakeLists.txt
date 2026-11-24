@@ -204,6 +204,13 @@ if(MSVC)
     xcheck_add_c_compiler_flag(/wd4996) # -Wdeprecated-declarations
     xcheck_add_c_compiler_flag(/wd5045
     )# Compiler will insert Spectre mitigation for memory load if /Qspectre switch specified
+    if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
+        add_compile_options(
+            "$<$<AND:$<COMPILE_LANGUAGE:C>,$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>>:/Ob3>"
+            "$<$<AND:$<COMPILE_LANGUAGE:C>,$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>>:/Oi>"
+            "$<$<AND:$<COMPILE_LANGUAGE:C>,$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>>:/Ot>"
+            "$<$<AND:$<COMPILE_LANGUAGE:C>,$<OR:$<CONFIG:Release>,$<CONFIG:RelWithDebInfo>>>:/Gw>")
+    endif()
 endif()
 
 # Set a 8MB default stack size on Windows.

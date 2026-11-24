@@ -185,7 +185,7 @@
       "format_check": true
     },
     "src/common/string/local-rope-append.inc": {
-      "sha256": "747b241cfcd3f2906ffdcf7cebfdf9b836997bc5d71e6461676225905c2a1ee2",
+      "sha256": "17d9554d4a919c922b3b4863ae65e3c6cbbe2ae801da80bfefa37918468b6925",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -304,7 +304,7 @@
       "format_check": true
     },
     "src/common/kernel/string-control.inc": {
-      "sha256": "56a4716d05c2f66a4715b68219962737af4ff6876db1d348a643aa5df1f998ad",
+      "sha256": "84ec5fea943107541a3130b2ab2be508872a7cfb2e531197554a6b2f937d3a06",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },

@@ -74,7 +74,6 @@ def apply_hybrid_gc_native(stream, handlers, layout):
         "jmp QWORD PTR [rdi+rax*8]",
         "interp_property_slow_drop_c:",
     ]
-    cold_code.append(".fill 48, 1, 0x90")
 
     # Pillar 4b: Borrowed Dense-Array DRC on interp_get_loc0_loc1 with 0-mod-64 dead-shadow NOP alignment
     loc01_idx = code.index("interp_get_loc0_loc1:")
@@ -119,7 +118,6 @@ def apply_hybrid_gc_native(stream, handlers, layout):
         "add r12, 2",
         "movzx eax, BYTE PTR [r12]",
         "jmp QWORD PTR [rdi+rax*8]",
-        ".fill 292, 1, 0x90",
     ]
 
     drop_str1_leaf = [
@@ -143,7 +141,6 @@ def apply_hybrid_gc_native(stream, handlers, layout):
         ".cfi_restore rdi",
         ".cfi_adjust_cfa_offset -8",
         "ret",
-        ".fill 864, 1, 0x90",
     ]
 
     return [
@@ -876,8 +873,8 @@ def main():
             "/* Generated real Linux ELF; development VM foundation. */",
             ".intel_syntax noprefix",
             '.section .text.qjs_linux_vm,"ax",@progbits',
-            ".p2align 6" if hybrid_blocks else ".p2align 4",
-            *([".fill 16, 1, 0x90"] if hybrid_blocks else []),
+            ".p2align 12" if (hybrid_blocks or publication) else ".p2align 4",
+            *([".fill 16, 1, 0x90"] if (hybrid_blocks or publication) else []),
             ".globl " + root,
             ".hidden " + root,
             ".type " + root + ",@function",
@@ -948,9 +945,23 @@ def main():
                     ".qjs_linux_stack" if name == "JS_LinuxStackInsert" else ".text.qjs_linux_cold"
                 )
             )
+            align_lines = [".p2align 4"]
+            if name == "JS_FrameLinuxPublishDirtyVM":
+                align_lines = [".p2align 12", ".fill 1040, 1, 0x90"]
+            elif name in (
+                "JS_FrameOwnBytecodeM1",
+                "JS_FrameOwnBytecodeM2",
+                "JS_FrameBorrowedField",
+                "dirty_JS_FrameOwnBytecodeM1",
+                "dirty_JS_FrameOwnBytecodeM2",
+                "dirty_JS_FrameBorrowedField",
+            ):
+                align_lines = [".p2align 6", ".fill 16, 1, 0x90"]
+            elif name in ("JS_FrameOwnBytecodeM3", "dirty_JS_FrameOwnBytecodeM3"):
+                align_lines = [".p2align 6"]
             lines += [
                 ".section " + section + ',"ax",@progbits',
-                ".p2align 4",
+                *align_lines,
                 ".hidden " + name,
                 ".type " + name + ",@function",
                 name + ":",
