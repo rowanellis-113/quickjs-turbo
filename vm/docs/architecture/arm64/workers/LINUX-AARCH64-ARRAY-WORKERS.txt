@@ -10,7 +10,7 @@ accepted array-copy/dense-growth and default-string radix,cached-comparator
 and prepared-comparator C algorithms. Original collection,conversion,species,
 property/exception ordering and commit owners remain the original functions.
 
-tools/elf/array_workers.py remains the common source factory;its existing
+tools/x86/linux/array_workers.py remains the common source factory;its existing
 x86 default output must remain byte-identical. AArch64 retains its already
 qualified dense-pop owner and excludes the unported native append gateway.
 The only source ISA adaptation in cached sort is the actual SP read;the full

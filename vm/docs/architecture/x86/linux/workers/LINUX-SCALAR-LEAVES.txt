@@ -2,13 +2,13 @@ Linux native scalar expression leaves
 =====================================
 
 This incremental optimization extends the accepted 7bb3293 Linux native child
-entry. It does not change the pinned QuickJS-NG 0.15.1 sources or public ABI.
+entry. It does not change the pinned QuickJS-NG 0.17.0 sources or public ABI.
 The original packaged 7bb3293 release remains an immutable historical delivery;
 its exact executable hashes must not be assigned to this newer implementation.
 
 Implementation and boundaries
 -----------------------------
-tools/elf/integer_expressions.py emits a bounded noncalling scalar worker into
+tools/x86/linux/integer_expressions.py emits a bounded noncalling scalar worker into
 the existing ELF entry assembly. It is reached only after the inherited normal
 function/native-child, realm, host coherence, argument, frame/stack quota and
 interrupt guards, and after the existing shared leaf alternatives have missed.
@@ -44,8 +44,7 @@ tests/test_linux_integer_expression.js compares36892 results and exceptions,
 including live/detached captured cells, TDZ, overflow, -0, coercion with GC,
 late bytecode misses, shifts and operand orders. Default and explicit0/1 disable
 modes pass independently. Two new complete Test262 runs, ON and OFF0, both
-match the accepted failure identities:65/81152 inherited errors,31fixed,
-0new/changed,4925excluded,5954skipped, pinned corpus de8e621.
+match the accepted failure identities:40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152),4925excluded,5954skipped, pinned corpus de8e621.
 
 The measured CLI, fully tested CLI and installed/relocated CLI have SHA256
 855bd6833fda9f29fc27b46c7ac161a8ff8bd79877139c4b382a486121b7facd.
@@ -66,7 +65,7 @@ No PGO, padding, fixed image base or favorable-address selection is used.
 
 Original calibrated lazy-collections repeats about10..13% less time; four
 paired processes per image average96.84ms accepted and85.64ms new. Current stock
-NG0.15.1 averages70.19ms, so this workload still has a22% gap to stock. A fresh
+NG0.17.0 averages70.19ms, so this workload still has a22% gap to stock. A fresh
 MinGW original-body comparison is about80.95ms; cross-OS means are descriptive,
 not proof of an isolated compiler/ABI cost. Full native generator execution is
 not implemented by this leaf and remains a larger separate feature decision.

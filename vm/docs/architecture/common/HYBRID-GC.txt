@@ -4,119 +4,47 @@ Hybrid Reference Counting and Generational Partial Cycle GC
 QuickJS-Turbo retains QuickJS's deterministic immediate reference counting
 while replacing whole-heap cycle scanning and recursive destruction hotspots
 with an integrated four-pillar memory reclamation pipeline. Upstream public
-headers and original struct field offsets remain unchanged.
+headers and struct field offsets remain unchanged.
 
 Architecture overview
 ---------------------
 1. Generational boundary-node partial trial-deletion:
-   A single sentinel node (JSRuntime.hybrid_gc_boundary_node) is inserted at
-   the tail of JSRuntime.gc_obj_list after every collection. Objects allocated
-   since the last collection sit after this boundary and are tagged with a
-   1-bit hybrid_young flag inside JSGCObjectHeader (reclaimed from padding
-   alongside gc_obj_type : 3 without growing JSGCObjectHeader or shifting any
-   public/private field offsets).
-   Minor collections traverse only O(|Young| + |OutEdges(Young)|) without
-   maintaining runtime write barriers:
-   - Outgoing edges from young objects to older objects stop at !hybrid_young.
-   - Because QuickJS stores complete reference counts on every object, any
-     old-to-young or stack/external reference naturally leaves the target
-     young object's trial ref_count > 0.
-   - Minor collection resets the boundary node cleanly and falls back to full
-     trial-deletion after 8 consecutive minor collections, when heap growth
-     exceeds 1.75x the post-full baseline, or near malloc_limit.
+   A single sentinel node (`JSRuntime.hybrid_gc_boundary_node`) is inserted at
+   the tail of `JSRuntime.gc_obj_list` after every collection. Young objects
+   allocated since the last collection sit after this boundary with a 1-bit
+   `hybrid_young` flag inside `JSGCObjectHeader` (zero struct growth).
+   Minor collections traverse only `O(|Young| + |OutEdges(Young)|)` without write
+   barriers and fall back to full trial-deletion every 8 minor collections, when
+   heap growth exceeds 1.75x post-full baseline, or near `malloc_limit`.
 
 2. Specialized inline GC graph walker:
-   JS_HYBRID_DEFINE_WALKER specializes decref, scan1, and scan2 walks inline
-   for ordinary JS_CLASS_OBJECT and JS_CLASS_ARRAY nodes (no weak refs),
-   folding normal properties, accessors, detached VarRefs, autoinit properties,
-   prototype shape links, and dense arrays without indirect mark_children
-   callbacks. Property IC weak prototype-shape edges are preserved cleanly
-   across minor collections (js_hybrid_ic_minor_propagate,
-   js_hybrid_ic_minor_restore, and js_property_ic_gc_prune).
+   `JS_HYBRID_DEFINE_WALKER` specializes decref/scan1/scan2 walks inline for
+   ordinary objects and dense arrays while keeping Property IC weak
+   prototype-shape edges sound (`js_hybrid_ic_minor_propagate`,
+   `js_hybrid_ic_minor_restore`, `js_property_ic_gc_prune`).
 
 3. Iterative O(1)-C-stack synchronous RC destruction:
-   JS_FreeValue and JS_FreeValueRT stay minimal frameless leaves on the hot
-   path. When a JS_TAG_OBJECT drops to ref_count == 0 outside cycle removal,
-   js_hybrid_free_object_root releases acyclic trees iteratively via an intrusive
-   LIFO stack over JSGCObjectHeader.link.next without growing the C call stack
-   or re-linking gc_zero_ref_count_list.
-   - Inline properties (ARM64 fast VM, QJS_HYBRID_INLINE_PROPERTIES) are
-     checked via !qjs_inline_property_current(obj) before freeing obj->prop.
-   - Pooled allocator blocks (is_frame_pool) read capacity directly from the
-     prefix header via js_hybrid_usable_size_nonnull without indirect mf calls.
+   `js_hybrid_free_object_root` releases acyclic trees iteratively via an
+   intrusive LIFO stack over `JSGCObjectHeader.link.next`, checking inline
+   properties (`!qjs_inline_property_current(obj)`) and FramePool header sizes.
 
 4. Native VM borrowed-copy & fast string/rope leaf drop:
-   - On Linux x86-64, interp_property_slow_drop handles ref_count > 1 inline
-     and dispatches ref_count == 1 JS_TAG_STRING / JS_TAG_STRING_ROPE drops
-     through a non-reloading helper (JS_LinuxHybridDropString1 ->
-     js_hybrid_drop_string1).
-   - JS_LinuxBorrowedLoc01ArrayGet performs borrowed dense-array indexed loads
-     when var_ref_count == 0 and drc_ok == 1, while preserving 64-byte
-     (0 mod 64) hot VM instruction phase alignment.
+   - Linux x86-64: `JS_LinuxHybridDropString1` and borrowed dense-array indexed
+     loads (`drc_ok == 1`) keep mod-64 opcode phase alignment.
+   - Windows x86-64 (`WIN_X86_64`): enabled natively via `win64-native-supplements.inc`.
 
-Backend selection & runtime controls
-------------------------------------
-Optimization                      ARM64 Linux   x86_64 Linux   Portable C   x86_64 Win64
-Generational partial cycle GC     ON            ON             ON           COFF-pinned core
-Iterative fast RC destruction     ON            ON             ON           COFF-pinned core
-Native VM drop & borrowed array   --            ON             --           COFF-pinned core
+Runtime & build controls
+------------------------
+- CMake option: `-DQJS_HYBRID_GC=ON` (enabled across `LINUX_X86_64`, `MACOS_X86_64`,
+  `WIN_X86_64`, `LINUX_AARCH64`, and `PORTABLE`; also configurable via `quickjs-turbo.h`).
+- Environment variables:
+  - `QJS_DISABLE_HYBRID_GC=1`: disable all Hybrid GC & Fast RC paths.
+  - `QJS_DISABLE_PARTIAL_CYCLE=1`: disable minor cycle collection & inline walker.
+  - `QJS_DISABLE_FAST_RC=1`: disable iterative tree free, pool-size fast path, and VM leaf drops.
+  - `QJS_HYBRID_GC_REPORT=1`: print JSON GC statistics to stderr at teardown.
 
-- Build-time CMake option: -DQJS_HYBRID_GC=ON (default ON on non-COFF source
-  builds; bypassed automatically when QJS_BACKPORT_NATIVE_MODULES=ON).
-- Runtime ablation / diagnostics environment variables (evaluated at runtime
-  creation via js_hybrid_gc_init):
-  - QJS_DISABLE_HYBRID_GC=1      Disable all Hybrid GC & Fast RC mechanisms.
-  - QJS_DISABLE_PARTIAL_CYCLE=1  Disable minor collection & inline full walker.
-  - QJS_DISABLE_FAST_RC=1        Disable fast object root free, pool size fast
-                                 path, and native drc_ok VM leaf paths.
-  - QJS_HYBRID_GC_REPORT=1       Print JSON GC counters to stderr on runtime
-                                 teardown.
-
-Verification & measured impact
-------------------------------
-Validated against vm/tests/common/test_hybrid_gc_ab.js across default,
-QJS_DISABLE_HYBRID_GC=1, QJS_DISABLE_PARTIAL_CYCLE=1, QJS_DISABLE_FAST_RC=1,
-and pooled-allocator modes, plus differential Test262 (42,497 tests, 0 diff),
-Linux x86-64 ELF/CET/DWARF unwind checks (958/958 CTests), Linux AArch64
-(QEMU, 1,261/1,261 native and 225/225 PORTABLE CTests), Windows MinGW AUTO
-Shared PORTABLE (160/160 CTests), and GCC ASan+UBSan (221/221 CTests).
-
-Key paired ABBA benchmarks on Linux x86-64 (Release, CPU2 serial, FramePool 512):
-
-hybrid_bench.js (elapsed ms, lower is better; RSS KiB):
-Workload               Baseline    Hybrid_OFF  Partial_Only  Fast_RC_Only  Full_V2    Delta vs Base
-resident_cycle_churn   314.47      312.43      213.39        306.31        208.91     -33.56% (1.50x)
-resident_acyclic_dto   455.62      478.66      479.67        442.39        436.51     -4.19%
-local_slot_loop        700.77      702.66      704.42        659.65        655.19     -6.50%
-deep_tree_free         502.20      503.15      502.52        470.47        465.19     -7.37%
-Peak RSS (KiB)         35,472      35,600      35,200        35,598        35,136     -336 KiB (-0.95%)
-
-Official V8-v7 (score, higher is better; full-heap scans cut by 85.8%):
-Case           Baseline    Hybrid_OFF  Full_V2     Delta vs Base
-Overall        2,020.28    2,001.20    2,031.21    +0.54% (85.5% of V8 --jitless 2,375)
-Richards       1,454.76    1,471.65    1,460.77    +0.41%
-DeltaBlue      1,334.88    1,332.28    1,345.45    +0.79%
-Crypto         1,550.47    1,552.36    1,560.59    +0.65%
-RayTrace       1,987.76    1,992.37    2,058.54    +3.56%
-EarleyBoyer    2,810.21    2,735.09    2,785.51    -0.88%
-RegExp         1,813.38    1,689.48    1,725.69    -4.84% (+2.14% vs Hybrid_OFF)
-Splay          3,373.73    3,333.72    3,529.11    +4.61%
-NavierStokes   2,704.01    2,754.86    2,723.59    +0.72%
-Peak RSS KiB   183,306     183,296     183,310     +4 KiB (+0.002%)
-
-JetStream 9-case confirmation (body ms, lower is better):
-Case                      Baseline   Full_V2    Delta      RSS delta (KiB)
-Babylon                   70.46      69.23      -1.75%     +28
-json-parse-inspector      37.41      36.77      -1.72%     +120
-Air                       49.60      48.82      -1.58%     +776
-delta-blue                98.29      97.04      -1.27%     0
-FlightPlanner             36.54      36.26      -0.75%     -2,436
-cdjs                      265.67     268.67     +1.13%     +772 (-3.90% vs Hybrid_OFF)
-json-stringify-inspector  21.63      21.95      +1.49%     +120
-lazy-collections          77.53      78.88      +1.74%     0
-richards                  113.44     121.36     +6.98%     +128 (Hybrid_OFF: 121.87)
-
-micro57 paired highlights (ns/op): string_slice1 70.990 -> 63.390 (-10.71%),
-string_slice2 124.125 -> 112.225 (-9.59%), string_slice3 64.530 -> 57.430 (-11.00%),
-string_concat1 80.630 -> 76.410 (-5.23%), weak_map_set 96.330 -> 79.250 (-17.73%),
-array_for 10.010 -> 8.945 (-10.64%), bigint64_arith 80.140 -> 72.930 (-9.00%).
+Measured impact (Reference Linux x86-64 host)
+---------------------------------------------
+- Full-heap trial-deletion scans on V8-v7 reduced 85.8% (600 -> 85).
+- `hybrid_bench.js`: `resident_cycle_churn` -33.56% (1.50x), `deep_tree_free` -7.37%,
+  `local_slot_loop` -6.50%, `resident_acyclic_dto` -4.19%, string slices 9.6–11.0% faster.

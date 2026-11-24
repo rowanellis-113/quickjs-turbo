@@ -1,7 +1,7 @@
 Native synchronous iteration on Linux x86_64
 ===========================================
 
-tools/elf/iterators.py derives the accepted GNU iterator opcode workers,
+tools/x86/linux/iterators.py derives the accepted GNU iterator opcode workers,
 JS-next checkpoint, dense-array next guard and done/value continuation from
 the original generators. No COFF object, Windows unwind record or guessed
 function ABI is copied. The actual Linux core types and helper identities

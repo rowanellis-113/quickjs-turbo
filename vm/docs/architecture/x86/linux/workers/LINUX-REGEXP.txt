@@ -9,14 +9,14 @@ not a speed claim.
 
 Shared algorithms and intrinsic identity
 ---------------------------------------
-tools/generate/regexp.py exposes its reviewed C semantic source separately from
+tools/x86/common/codegen/regexp.py exposes its reviewed C semantic source separately from
 Win64 COFF generation. The default Windows generation path retains its complete
 original body and routes. Linux uses the owned replace/match/matchAll/split/flags
 subset and keeps the existing shared js_regexp_exec/js_regexp_test definitions
 and their actual builtin identities. Unicode, wire, literal admission and the
 register regexp opcode remain owned by the previously integrated modules.
 
-tools/elf/regexp_workers.py validates the pinned core and all ten semantic owners,
+tools/x86/linux/regexp_workers.py validates the pinned core and all ten semantic owners,
 including the actual generated exec/test bodies. It routes five actual builtin
 table entries, emits ordinary C with the real complete core types and records
 the owners, routes and generated header. Normal CMake and standalone generation

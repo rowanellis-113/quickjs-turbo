@@ -7,13 +7,13 @@ they are not current whole-product scores.
 
 This supplements the native Linux register VM. It is not the accepted Windows
 product and does not close the full port gates in LINUX-PORT.txt. The reference
-for the mechanism is tools/generate/native-c-scope.py; Win64 incoming home space,
+for the mechanism is tools/x86/common/codegen/slow-direct.py; Win64 incoming home space,
 TLS offsets and aggregate conventions are not reused as Linux ABI contracts.
 
 Source ownership
 ----------------
 asm/x86/linux/c-invoke.inc owns the real SysV call and its ELF/CFI. The renderer
-tools/elf/c_invoke.py substitutes compiler-measured Linux fields. The small C
+tools/x86/linux/c_invoke.py substitutes compiler-measured Linux fields. The small C
 owner src/x86/linux/interpreter-c-invoke.inc checks the actual function types
 and fixed private frame/state layout, and obtains a compiler-managed TLS slot.
 No public struct, JS frame, register state or heap allocation is added.
@@ -64,8 +64,7 @@ GC/reentry, owning results, exceptions and stack-limit changes. GDB observes all
 720 actual native entries and their60 ABI variants, checks the live canonical
 anchor, real C unwind, and720 TLS restorations at VM exit. Five explicit old
 routes are observed separately. ELF/PIC/deep-VM checks cover33 FDE ranges.
-Full pinned Test262 for portable/r3/r3-OFF has the same65/81152 inherited errors,
-31 fixes, no new/changed errors and equal failure identities.
+Full pinned Test262 for portable/r3/r3-OFF has the same40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152), no new/changed errors and equal failure identities.
 
 Evidence is retained outside source under
 /home/eros/port-records/linux-x86_64/c-invoke-r3 and test262-c-invoke-r3.
@@ -77,7 +76,7 @@ Bounded performance decision
 ----------------------------
 Four rotated engine cohorts, each with reversed original calibration, give the
 following median milliseconds for five selected applications. Stock means
-unoptimized QuickJS-NG0.15.1 bf8988f built with the same Linux/GCC toolchain.
+unoptimized QuickJS-NG0.17.0 7b5f588e0f built with the same Linux/GCC toolchain.
 It never means Bellard QuickJS2026 or an earlier optimized/Windows image.
 
 case              stock       prior       r3          r3-OFF

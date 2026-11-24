@@ -6,7 +6,7 @@
     "msvc_receipts": 143,
     "mingw_receipts": 144,
     "union_receipt_units": 181,
-    "generator": "tools/elf/inventory-mechanisms.py",
+    "generator": "tools/x86/linux/inventory-mechanisms.py",
     "inputs": "Explicit accepted SDK and Linux build; optional audit only, never a product build dependency",
     "meaning": "Exact accepted status/enabled/site decisions with source-tool references; units are not optimization counts or Linux execution proof"
   },
@@ -18,12 +18,12 @@
       "evidence": "Native GDB single-activation deep stack, ELF/CFI/PIC proof, native quota/API fixtures",
       "entry_evidence": "native-entry:469 strict CTests,70 executable ABI checks,full ON/OFF TC exact portable identities,32 public-fixture/reference modes and11 native producer/publication/live-CFI observations",
       "vm_leaf_evidence": "vm-leaves-r1:525 current strict CTests;byte-identical fully ON/OFF-TC/ELF/consumer-qualified image;actual nine-family commits,original cleanup,poll counts and helper/VM CFI;20 public-API/OOM/reference processes with zero complete ledgers",
-      "constructor_evidence": "LINUX-CONSTRUCTORS.txt:565CTest,full native ON/OFF TC exact portable identities,actual four-mode root3/return/growth/CFI observations,24public-API/OOM/reference processes;native102 versusOFF101 grown-allocation failures and complete zero ledgers",
-      "publication_evidence": "LINUX-PUBLICATION.txt:full ON/OFF TC exact portable identities;actual borrowed/owned Dirty pushes,both return phases,coherent C boundaries,pure-helper Dirty calls and read-only ELF tables;public GC/realm/reentry/backtrace/interrupt/OOM controls and same-object stock/prior references",
-      "argument_evidence": "LINUX-ARGUMENTS.txt:complete source-owned GNU argument prefix/root/child/access/forward/constructor;actual native/control root0/1/2/3 proof,21public/API/reference processes,full ON/OFF TC exact portable identities;retained ordinary forwarding threshold and exact C-boundary quota",
-      "iterator_evidence": "LINUX-ITERATORS.txt:source-owned next/checkpoint/array/control-flow workers;real SysV/ELF and ordinary enter/return ownership;full current compatibility and public protocol proof",
-      "varargs_literal_evidence": "LINUX-VARARGS.txt:715 strict CTests;actual fusion/copy2/logical apply, native literal/type/predicate/truth commits, native-prototype public GC/reentry/OOM owners;final source-bound fullTC/ELF/SDK evidence external",
-      "property_evidence": "LINUX-PROPERTIES.txt carries GNU property/primitive/prototype supplements with existing frame128/state168 and publication ownership",
+      "constructor_evidence": "workers/LINUX-CONSTRUCTORS.txt:565CTest,full native ON/OFF TC exact portable identities,actual four-mode root3/return/growth/CFI observations,24public-API/OOM/reference processes;native102 versusOFF101 grown-allocation failures and complete zero ledgers",
+      "publication_evidence": "workers/LINUX-PUBLICATION.txt:full ON/OFF TC exact portable identities;actual borrowed/owned Dirty pushes,both return phases,coherent C boundaries,pure-helper Dirty calls and read-only ELF tables;public GC/realm/reentry/backtrace/interrupt/OOM controls and same-object stock/prior references",
+      "argument_evidence": "workers/LINUX-ARGUMENTS.txt:complete source-owned GNU argument prefix/root/child/access/forward/constructor;actual native/control root0/1/2/3 proof,21public/API/reference processes,full ON/OFF TC exact portable identities;retained ordinary forwarding threshold and exact C-boundary quota",
+      "iterator_evidence": "workers/LINUX-ITERATORS.txt:source-owned next/checkpoint/array/control-flow workers;real SysV/ELF and ordinary enter/return ownership;full current compatibility and public protocol proof",
+      "varargs_literal_evidence": "workers/LINUX-VARARGS.txt:715 strict CTests;actual fusion/copy2/logical apply, native literal/type/predicate/truth commits, native-prototype public GC/reentry/OOM owners;final source-bound fullTC/ELF/SDK evidence external",
+      "property_evidence": "workers/LINUX-PROPERTIES.txt carries GNU property/primitive/prototype supplements with existing frame128/state168 and publication ownership",
       "historical_stage_remaining": "Default-active GNU source/build/ABI/actual-route inventory;whole time/memory/configuration/current Windows/MSVC/source-package qualification",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -40,8 +40,8 @@
       "windows_reference": "tools/generate/publish-boundary.py and native-c-scope.py",
       "linux_route": "Source-derived Clean/Dirty dispatch and observing-helper tail proxies;immutable ELF RELRO tables;retained original OFF streams",
       "implemented": "Ordinary borrowed/owned child push and root0 pop defer runtime SF stores;shared two-phase known returns;coherent root3/forwarding cleanup;actual typed C bridges and pure compound exception;atomic process presence control;no frame/state/GC-root growth",
-      "evidence": "LINUX-PUBLICATION.txt;actual ON/0/1 observer and full native ON/OFF TC exact portable identities;public owner/GC/realm/reentry/stack/interrupt/OOM and same-object references",
-      "instanceof_evidence": "LINUX-INDEXED.txt extends the nonobserving helper set by the exact pure int(ctx,sp) proof;old return/call publication remains",
+      "evidence": "workers/LINUX-PUBLICATION.txt;actual ON/0/1 observer and full native ON/OFF TC exact portable identities;public owner/GC/realm/reentry/stack/interrupt/OOM and same-object references",
+      "instanceof_evidence": "workers/LINUX-INDEXED.txt extends the nonobserving helper set by the exact pure int(ctx,sp) proof;old return/call publication remains",
       "historical_stage_remaining": "Whole-image performance/memory,final current configuration/cross-platform/source-package release gates;future native helper groups must extend observing/nonobserving classification",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -51,13 +51,13 @@
       "linux_route": "Measured scalar metadata and owned/captured builders;shared .call normalizer/prepared constructor,nine native factories and common logical-parent helpers;actual SysV bridges with separate private scratch",
       "implemented": "Owned missing arguments,readonly captured borrowing,set_name plus full .call native leaf/owned/borrow/missing/deep prepared paths,64-wrapper normalization,80-byte logical parents and complete native/C close-pop-tail/exception cleanup;native public/root/child selectors and shared standalone/child leaf families now verified;full shared in-VM primitive/compound/character leaf kernels with actual-type pure C helper and finalizer-safe original cleanup;ordinary root3 constructor push,native immediate/heap return and complete slow catch/iterator/append/apply cleanup with typed coherent callbacks;source-owned direct/fused spread copy2 and intrinsic apply owning-prefix/root2 forwarding;all physical roots/children use activation-owned literal lifetimes and native scalar cohorts",
       "evidence": "forwarding-r2:441 distinct current CTests,current full TC ON/OFF exact portable identities,actual six-producer/control/prepublication/CFI observations,320GC/realm callbacks,7OOM modes with4/5faults and recovery,real overflow with86logical parents,stock/prior/current public-host parity;1418MinGW assembly rows/prepared-C body unchanged;fresh MinGW307CTest/144decisions",
-      "vm_leaf_evidence": "LINUX-VM-LEAVES.txt;call-env-default-audit-r3 proves actual MinGW default mode2 and explicit enable mode1 using the normal SDK link recipe",
-      "constructor_evidence": "LINUX-CONSTRUCTORS.txt:565CTest,full native ON/OFF TC exact portable identities,actual four-mode root3/return/growth/CFI observations,24public-API/OOM/reference processes;native102 versusOFF101 grown-allocation failures and complete zero ledgers",
-      "publication_evidence": "LINUX-PUBLICATION.txt:full ON/OFF TC exact portable identities;actual borrowed/owned Dirty pushes,both return phases,coherent C boundaries,pure-helper Dirty calls and read-only ELF tables;public GC/realm/reentry/backtrace/interrupt/OOM controls and same-object stock/prior references",
-      "argument_evidence": "LINUX-ARGUMENTS.txt:complete source-owned GNU argument prefix/root/child/access/forward/constructor;actual native/control root0/1/2/3 proof,21public/API/reference processes,full ON/OFF TC exact portable identities;retained ordinary forwarding threshold and exact C-boundary quota",
-      "iterator_evidence": "LINUX-ITERATORS.txt:source-owned next/checkpoint/array/control-flow workers;real SysV/ELF and ordinary enter/return ownership;full current compatibility and public protocol proof",
-      "varargs_literal_evidence": "LINUX-VARARGS.txt:715 strict CTests;actual fusion/copy2/logical apply, native literal/type/predicate/truth commits, native-prototype public GC/reentry/OOM owners;final source-bound fullTC/ELF/SDK evidence external",
-      "property_evidence": "LINUX-PROPERTIES.txt carries GNU property/primitive/prototype supplements with existing frame128/state168 and publication ownership",
+      "vm_leaf_evidence": "workers/LINUX-VM-LEAVES.txt;call-env-default-audit-r3 proves actual MinGW default mode2 and explicit enable mode1 using the normal SDK link recipe",
+      "constructor_evidence": "workers/LINUX-CONSTRUCTORS.txt:565CTest,full native ON/OFF TC exact portable identities,actual four-mode root3/return/growth/CFI observations,24public-API/OOM/reference processes;native102 versusOFF101 grown-allocation failures and complete zero ledgers",
+      "publication_evidence": "workers/LINUX-PUBLICATION.txt:full ON/OFF TC exact portable identities;actual borrowed/owned Dirty pushes,both return phases,coherent C boundaries,pure-helper Dirty calls and read-only ELF tables;public GC/realm/reentry/backtrace/interrupt/OOM controls and same-object stock/prior references",
+      "argument_evidence": "workers/LINUX-ARGUMENTS.txt:complete source-owned GNU argument prefix/root/child/access/forward/constructor;actual native/control root0/1/2/3 proof,21public/API/reference processes,full ON/OFF TC exact portable identities;retained ordinary forwarding threshold and exact C-boundary quota",
+      "iterator_evidence": "workers/LINUX-ITERATORS.txt:source-owned next/checkpoint/array/control-flow workers;real SysV/ELF and ordinary enter/return ownership;full current compatibility and public protocol proof",
+      "varargs_literal_evidence": "workers/LINUX-VARARGS.txt:715 strict CTests;actual fusion/copy2/logical apply, native literal/type/predicate/truth commits, native-prototype public GC/reentry/OOM owners;final source-bound fullTC/ELF/SDK evidence external",
+      "property_evidence": "workers/LINUX-PROPERTIES.txt carries GNU property/primitive/prototype supplements with existing frame128/state168 and publication ownership",
       "historical_stage_remaining": "Default-active GNU source/build/ABI/actual-route inventory;whole time/memory/configuration/current Windows/MSVC/source-package qualification",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -66,8 +66,8 @@
       "windows_reference": "iterator.py,iterator-fast.py,iterator-slow.py,iterator-checkpoint.py,varargs.py,iterator-literal.py",
       "linux_route": "Source-owned native eight opcode boundaries,JS-next checkpoint and dense-array workers;actual SysV/ELF and coherent C scopes",
       "implemented": "Same-activation ordinary JS-next push,done/value checkpoints,live dense-array guard and complete inherited close/exception ownership;paused roots survive C slow returns;complete accepted direct/fused spread owning snapshots,intrinsic apply owning-prefix/logical forwarding and activation-owned literal dependencies with actual Linux entries",
-      "evidence": "LINUX-ITERATORS.txt:642CTest,full ON/OFF TC exact portable identities,actual root/child/nested/array controls,public GC/realm/OOM and old-negative/new-positive C-return proof",
-      "varargs_literal_evidence": "LINUX-VARARGS.txt;current715 strict CTests and source-bound public/native-route qualification;not a whole-port/performance claim",
+      "evidence": "workers/LINUX-ITERATORS.txt:642CTest,full ON/OFF TC exact portable identities,actual root/child/nested/array controls,public GC/realm/OOM and old-negative/new-positive C-return proof",
+      "varargs_literal_evidence": "workers/LINUX-VARARGS.txt;current715 strict CTests and source-bound public/native-route qualification;not a whole-port/performance claim",
       "historical_stage_remaining": "Remaining source/ABI/actual-route inventory;whole-image performance and all six release gates",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -77,7 +77,7 @@
       "linux_route": "Common C scope/admission,exact extracted array loops and accepted sort scopes/comparison/collection bodies;actual Linux state/frame/segment aliases and compiler TLS",
       "implemented": "Readonly/owned callback capsules and14 array/TypedArray routes;complete cached/prepared Array sort comparator consumers,per-sort strong target and cached geometry,typed SysV root/capsule reuse",
       "evidence": "array-family-r8:322 strict CTests/ELF/installed consumer;byte-identical r7 full ON/OFF TC65/81152 inherited,31fixed,0new;2310 prepared sort hits,2298 frame reuses,44 GC/realm reentries;622 actual prepared or cached-only calls under component controls;grown-segment ON/OFF36/35 fault injections and zero complete ledgers",
-      "varargs_literal_evidence": "LINUX-VARARGS.txt carries the direct apply and literal lifetime dependencies without replacing original prepared-callback owners",
+      "varargs_literal_evidence": "workers/LINUX-VARARGS.txt carries the direct apply and literal lifetime dependencies without replacing original prepared-callback owners",
       "historical_stage_remaining": "Remaining cross-family supplements and whole-image performance/release gates;optional weak VM lifetime linking remains separate",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -86,8 +86,8 @@
       "linux_route": "Common bytecode IC lifetime/shape guards and native primary/secondary get, get-method and set/transition blocks",
       "evidence": "Actual M1/M2/M3 native hits, property/shape/GC/API regressions and measured Linux field offsets",
       "implemented": "Measured native M1/M2/M3 get/get-method/set/transition and cold global binding-cell blocks using actual BC136/runtime488/map56 fields;100 observed cell hits,zero with either disable value;complete GNU own-bytecode zeroed-tail producers/lifetime/monotonic OFF,borrowed local/argument/capture PIC,Number/native length,holder/persistent/direct/live-chain and Symbol conditional kernels",
-      "indexed_evidence": "LINUX-INDEXED.txt:source-owned native sparse integer-own get/get2/put and complete narrow indexed C steps;actual native/GC/control proof and current758 strict CTests",
-      "property_evidence": "LINUX-PROPERTIES.txt:793CTest/three fullTC cohorts exact portable identities,all actual native/control routes,both producer-tail OOM proofs,322 selected FDEs,independent SDK and standalone plus same-object prior/stock references",
+      "indexed_evidence": "workers/LINUX-INDEXED.txt:source-owned native sparse integer-own get/get2/put and complete narrow indexed C steps;actual native/GC/control proof and current758 strict CTests",
+      "property_evidence": "workers/LINUX-PROPERTIES.txt:793CTest/three fullTC cohorts exact portable identities,all actual native/control routes,both producer-tail OOM proofs,322 selected FDEs,independent SDK and standalone plus same-object prior/stock references",
       "historical_stage_remaining": "Other compiler/platform-specific supplements and whole-image performance/configuration/current Windows/source-package gates;extra method IC learning is MSVC-only,not a missing GNU component",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -97,7 +97,7 @@
       "linux_route": "Common rope equality plus complete shared concat/local-rope/add_loc and GNU small-character/index kernels; measured Linux native byte-append block; real core types and independent ELF policy bytes;accepted slice and decimal-number semantic bodies with actual SysV builtin views",
       "implemented": "Concat/local rope, in-capacity no-call native byte append, bounded16x256 strong character-atom cache and pre-GC cleanup, get_array_el/get_array_el2 index and Latin-1 localeCompare method;complete shared compound localeCompare helper and in-VM character-set/primitive leaf routing",
       "evidence": "string-family-r6:286 Werror CTests,ELF/installed consumer;byte-identical full ON/OFF Test26265/81152 inherited,31fixed,0new;observed59 native commits/64cache hits/2index hits with controls;18runtime saturation,two threads and257fault injections;c-entry-r4 separately proves native slice/number publication,window/stack/transient/geometry controls and current full Test262",
-      "vm_leaf_evidence": "LINUX-VM-LEAVES.txt:actual compound/character/native helper commits,live prototype/builtin/realm fallback,explicit OFF controls and poll/ownership/CFI proof",
+      "vm_leaf_evidence": "workers/LINUX-VM-LEAVES.txt:actual compound/character/native helper commits,live prototype/builtin/realm fallback,explicit OFF controls and poll/ownership/CFI proof",
       "historical_stage_remaining": "Remaining cross-family kernels and final whole-image performance/configuration/source-package qualification. Cold function metadata OOM fault2 remains inherited,not fixed by this batch.",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -112,7 +112,7 @@
     {
       "family": "RegExp and Unicode",
       "linux_route": "Shared engine/wire/exec/test identities plus source-owned complete owned builtin C with actual SysV selector and live guards",
-      "evidence": "LINUX-REGEXP.txt:823 strict CTests,three fullTC cohorts exact portable identities,actual Release stack/heap argv and seven-argument selector,flags8/1 debits and direct searches with controls;public GC/realm/error/memory/interrupt/OOM and same-object references",
+      "evidence": "workers/LINUX-REGEXP.txt:823 strict CTests,three fullTC cohorts exact portable identities,actual Release stack/heap argv and seven-argument selector,flags8/1 debits and direct searches with controls;public GC/realm/error/memory/interrupt/OOM and same-object references",
       "implemented": "Owned callback argv and original all-match/getter/coercion/exception ownership;match/matchAll/split;live flags leaf/eight-poll batch;identity-aware split/empty search;existing typed literal opcode and short/large admission",
       "historical_stage_remaining": "Whole-image time/RSS/layout cost,remaining default-active GNU inventory and final configuration/current Windows/source-package gates;no speed or whole-port claim",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
@@ -127,7 +127,7 @@
     },
     {
       "family": "Async generator capabilities",
-      "windows_reference": "src/promise/generator-capability.inc and tools/generate/generator-capability.py",
+      "windows_reference": "src/common/promise/generator-capability.inc and tools/x86/common/codegen/generator-capability.py",
       "linux_route": "Shared source extraction, complete same-TU settlement/recovery helper owner, actual GCC SysV C; original parent/next controls retained",
       "implemented": "Direct/fulfilled await, fresh CData recovery callbacks, private output Promise capability elision, original FIFO/context/polls/hook and pending/rejected fallback",
       "evidence": "Actual Release control observation:302 enqueue entries ON,0 OFF/clone;public host2757 versus5587 allocation attempts;ownership/GC/realm/late-hook/OOM tests;R6 native ON/OFF full Test262 matches the unchanged portable baseline;0 new/changed",
@@ -138,8 +138,8 @@
       "family": "Compiler, allocator and scalar changes",
       "linux_route": "Declared common C overlays, independent compiler-plan TU, value initialization, mixed numeric operators and pointer hash",
       "evidence": "Actual compiler inputs/receipts, compiler/API/ownership fixtures and shared register numeric handlers",
-      "native_scalar_evidence": "LINUX-VARARGS.txt:actual insert2,three typeof,primitive predicate and five truthiness commits with component OFF controls",
-      "instanceof_evidence": "LINUX-INDEXED.txt:source-owned nonobserving instanceof leaf with actual SysV int(ctx,sp),alias-two-release guard,original poll and typed complete C fallback",
+      "native_scalar_evidence": "workers/LINUX-VARARGS.txt:actual insert2,three typeof,primitive predicate and five truthiness commits with component OFF controls",
+      "instanceof_evidence": "workers/LINUX-INDEXED.txt:source-owned nonobserving instanceof leaf with actual SysV int(ctx,sp),alias-two-release guard,original poll and typed complete C fallback",
       "historical_stage_remaining": "Default-active GNU source/build/ABI/actual-route inventory;whole time/memory/configuration/current Windows/MSVC/source-package qualification",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -153,7 +153,7 @@
       "family": "Activation-owned literal shapes and native scalar cohorts",
       "linux_route": "Actual same-TU strong-shape owners;all physical SysV VM entries share one facade;source-owned native Clean kernels and existing Dirty publication factory",
       "implemented": "24-byte lazy/864-byte full physical owner,336-byte checkpoint prefix,bounded256-record/64-bucket cache,live COW/prototype/data/capacity guards,consumed-RHS publication and GC-safe strong-root cleanup;insert2/typeof/predicate/five truth kernels",
-      "evidence": "LINUX-VARARGS.txt;actual ordinary/full/lazy/nested/native transition and component-OFF observations;public cyclic native-prototype GC/reentry/OOM probes;715 normal strict CTests",
+      "evidence": "workers/LINUX-VARARGS.txt;actual ordinary/full/lazy/nested/native transition and component-OFF observations;public cyclic native-prototype GC/reentry/OOM probes;715 normal strict CTests",
       "historical_stage_remaining": "Whole-image time/RSS/layout cost and all final configuration/cross-platform/source-package gates;no speed or whole-port claim",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -161,7 +161,7 @@
       "family": "Native indexed/instanceof dependency portion",
       "linux_route": "Source-owned sparse kernels;actual-type C opcode workers with coherent entry/consumed-slot publication;checked SysV two-argument pure bridge and shared Dirty cloning",
       "implemented": "get/get2/put integer-own,no cache/length update/allocation/last release;complete dense/typed/generic narrow C semantics;pure bounded builtin instanceof proof with exact alias/poll rules",
-      "evidence": "LINUX-INDEXED.txt:758 strict CTests,actual native/control/GC observations,public same-object prior/stock/realm/OOM fixtures;final fullTC/ELF/consumer evidence external",
+      "evidence": "workers/LINUX-INDEXED.txt:758 strict CTests,actual native/control/GC observations,public same-object prior/stock/realm/OOM fixtures;final fullTC/ELF/consumer evidence external",
       "historical_stage_remaining": "Full property/primitive/prototype/cache supplement migration and all six release gates;no whole-port or speed claim",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -170,7 +170,7 @@
       "windows_reference": "mingw-loose.S,mingw-strict.S,common strict_body/reference/identity and retained_routes.operators",
       "linux_route": "Complete source-owned Clean kernels with exact source Dirty equivalence;actual publication clone and64-byte statistics banks;real SysV C identity/typed pure initialization bridges",
       "implemented": "Short flat/slice/indirect/wide/mixed strings,numeric/NaN/-0,mixed values,nonlast object/Symbol identity,null/undefined/HTMLDDA guard,coercion/last-owner fallback and original two core/two C-op strict callers",
-      "evidence": "LINUX-COMPARISONS.txt:864CTest/three fullTC exact portable IDs;actual default6274 Boolean/PC/SP commits,1570paired nonlast VM releases,SysV C leaf inputs/returns and component controls;public differential/finalizer/GC/interrupt/OOM/reference/SDK evidence",
+      "evidence": "workers/LINUX-COMPARISONS.txt:864CTest/three fullTC exact portable IDs;actual default6274 Boolean/PC/SP commits,1570paired nonlast VM releases,SysV C leaf inputs/returns and component controls;public differential/finalizer/GC/interrupt/OOM/reference/SDK evidence",
       "historical_stage_remaining": "Default-active GNU source/build/ABI/actual-route inventory;whole time/memory/configuration/current Windows/MSVC/source-package qualification",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -179,7 +179,7 @@
       "windows_reference": "free-boundary.py,add-local.py,string-to-number.c and common compiler-plan-shim.inc",
       "linux_route": "Actual SysV release leaf and local cold kernel,complete source-owned arithmetic/converter,independent actual-type FD projection",
       "implemented": "Native short local commit,owned heap local arithmetic,seven original release calls,retained allocator tails and complete converter guards/fallback;independent compiler projection with exact actual type input and same compile flags",
-      "evidence": "LINUX-NUMERIC.txt:890CTest,three fullTC cohorts and actual source/call/object/native control proof;SDK/source checkpoint records external qualification",
+      "evidence": "workers/LINUX-NUMERIC.txt:890CTest,three fullTC cohorts and actual source/call/object/native control proof;SDK/source checkpoint records external qualification",
       "historical_stage_remaining": "Complete default-active GNU inventory and independent slow-array review;whole-suite time/memory and final release gates",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
@@ -188,7 +188,7 @@
       "windows_reference": "global-binding.py,own-bytecode.py resolved-cell Symbol,reference-config.inc",
       "linux_route": "Shared Clean/Dirty getter,undefined,relink and Symbol continuations;actual measured BC/RT fields;pure typed SysV initializer and static RELRO",
       "implemented": "Existing16x32 activation own/lexical hints,alternating replacement,live guards/duplicate/commit,undefined arithmetic word and >4096-bytecode bypass;BC cells retain coherent C relink and Symbol condition;shared reference controls restored",
-      "evidence": "LINUX-GLOBAL-BINDINGS.txt:917 strict CTests,four fresh fullTC cohorts exact portable IDs,seven bounded read-only actual-route/control observations;compileOFF917 tests and three byte-identical b19cd6b images",
+      "evidence": "workers/LINUX-GLOBAL-BINDINGS.txt:917 strict CTests,four fresh fullTC cohorts exact portable IDs,seven bounded read-only actual-route/control observations;compileOFF917 tests and three byte-identical b19cd6b images",
       "frame_growth": 0,
       "state_growth": 0,
       "new_strong_roots": 0,
@@ -198,14 +198,14 @@
     {
       "family": "GNU native string integer receiver entries",
       "linux_route": "Complete accepted native guard/publication/C-step body;receiver miss only after integer guard;Linux Dirty derivation and actual SysV helper",
-      "evidence": "LINUX-STRING-ENTRY.txt;917CTest/96screen/three fullTC/current read-only native and slow-array cursor proof",
+      "evidence": "workers/LINUX-STRING-ENTRY.txt;917CTest/96screen/three fullTC/current read-only native and slow-array cursor proof",
       "historical_stage_remaining": "Full source/ABI/route reconciliation,whole-image time/memory and final release gates",
       "remaining": "Default-active GNU transfer coverage closed. Current qualification is in LINUX-RELEASE.txt;intentional exclusions remain explicit. Historical stage notes are not current release status."
     },
     {
       "family": "Core C ordinary numeric-array own-property leaf",
       "linux_route": "Complete common array_own.S with measured SysV tokens and untouched typed C fallback;all core/cloned consumers",
-      "evidence": "LINUX-CORE-ARRAY.txt;921CTest/100screen/three fullTC;positive duplication/output/fallback args,noalloc and OOM public fixture;26 inherited call sites",
+      "evidence": "workers/LINUX-CORE-ARRAY.txt;921CTest/100screen/three fullTC;positive duplication/output/fallback args,noalloc and OOM public fixture;26 inherited call sites",
       "frame_growth": 0,
       "state_growth": 0,
       "new_strong_roots": 0,
@@ -215,7 +215,7 @@
     {
       "family": "GNU native null-prototype admission and warm allocation",
       "linux_route": "Complete inherited validator and inline-header allocator,actual SysV aggregate,coherent typed VM opcode",
-      "evidence": "LINUX-NULL-PROTO.txt;927CTest/six public modes/three fullTC;actual realm/PC/SP/results,OFF,GC/reentry and cold/warm fault recovery;complete source identity",
+      "evidence": "workers/LINUX-NULL-PROTO.txt;927CTest/six public modes/three fullTC;actual realm/PC/SP/results,OFF,GC/reentry and cold/warm fault recovery;complete source identity",
       "frame_growth": 0,
       "state_growth": 0,
       "new_strong_roots": 0,
@@ -234,8 +234,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/varargs_native.py",
-        "docs/architecture/x86/linux/LINUX-VARARGS.txt"
+        "tools/x86/linux/varargs_native.py",
+        "docs/architecture/x86/linux/workers/LINUX-VARARGS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -249,8 +249,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/arguments.py",
-        "docs/architecture/x86/linux/LINUX-ARGUMENTS.txt"
+        "tools/x86/linux/arguments.py",
+        "docs/architecture/x86/linux/workers/LINUX-ARGUMENTS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -264,8 +264,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/arguments.py",
-        "docs/architecture/x86/linux/LINUX-ARGUMENTS.txt"
+        "tools/x86/linux/arguments.py",
+        "docs/architecture/x86/linux/workers/LINUX-ARGUMENTS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -279,8 +279,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/arguments.py",
-        "docs/architecture/x86/linux/LINUX-ARGUMENTS.txt"
+        "tools/x86/linux/arguments.py",
+        "docs/architecture/x86/linux/workers/LINUX-ARGUMENTS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -294,8 +294,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/arguments.py",
-        "docs/architecture/x86/linux/LINUX-ARGUMENTS.txt"
+        "tools/x86/linux/arguments.py",
+        "docs/architecture/x86/linux/workers/LINUX-ARGUMENTS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -309,8 +309,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/arguments.py",
-        "docs/architecture/x86/linux/LINUX-ARGUMENTS.txt"
+        "tools/x86/linux/arguments.py",
+        "docs/architecture/x86/linux/workers/LINUX-ARGUMENTS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -325,11 +325,11 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/indexed_ops.py:array_own_rows/render_native/generate",
+        "tools/x86/linux/indexed_ops.py:array_own_rows/render_native/generate",
         "JS_LinuxFastArrayOwnGet/JS_LinuxFastArrayOwnFallback",
         "VM indexed-own kernels are a separate tier"
       ],
-      "evidence": "LINUX-CORE-ARRAY.txt;26 actual inherited caller multiplicities and public C native proof",
+      "evidence": "workers/LINUX-CORE-ARRAY.txt;26 actual inherited caller multiplicities and public C native proof",
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
     {
@@ -344,9 +344,9 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/c_invoke.py",
-        "tools/elf/builtin_vm.py",
-        "docs/architecture/x86/linux/LINUX-C-ENTRY.txt"
+        "tools/x86/linux/c_invoke.py",
+        "tools/x86/linux/builtin_vm.py",
+        "docs/architecture/x86/linux/workers/LINUX-C-ENTRY.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -406,8 +406,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/comparisons.py",
-        "docs/architecture/x86/linux/LINUX-COMPARISONS.txt"
+        "tools/x86/linux/comparisons.py",
+        "docs/architecture/x86/linux/workers/LINUX-COMPARISONS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -423,8 +423,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/comparisons.py",
-        "docs/architecture/x86/linux/LINUX-COMPARISONS.txt"
+        "tools/x86/linux/comparisons.py",
+        "docs/architecture/x86/linux/workers/LINUX-COMPARISONS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -458,8 +458,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/literal_shapes.py",
-        "docs/architecture/x86/linux/LINUX-VARARGS.txt"
+        "tools/x86/linux/literal_shapes.py",
+        "docs/architecture/x86/linux/workers/LINUX-VARARGS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -473,8 +473,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/literal_shapes.py",
-        "docs/architecture/x86/linux/LINUX-VARARGS.txt"
+        "tools/x86/linux/literal_shapes.py",
+        "docs/architecture/x86/linux/workers/LINUX-VARARGS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -488,8 +488,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/publication.py",
-        "docs/architecture/x86/linux/LINUX-PUBLICATION.txt"
+        "tools/x86/linux/publication.py",
+        "docs/architecture/x86/linux/workers/LINUX-PUBLICATION.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -525,8 +525,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/regexp_workers.py",
-        "docs/architecture/x86/linux/LINUX-REGEXP.txt"
+        "tools/x86/linux/regexp_workers.py",
+        "docs/architecture/x86/linux/workers/LINUX-REGEXP.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -542,8 +542,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/admission.py",
-        "docs/architecture/x86/linux/LINUX-REGEXP.txt"
+        "tools/x86/linux/admission.py",
+        "docs/architecture/x86/linux/workers/LINUX-REGEXP.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -557,8 +557,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/string_workers.py",
-        "docs/architecture/x86/linux/LINUX-STRINGS.txt"
+        "tools/x86/linux/string_workers.py",
+        "docs/architecture/x86/linux/workers/LINUX-STRINGS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -574,8 +574,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/comparisons.py",
-        "docs/architecture/x86/linux/LINUX-COMPARISONS.txt"
+        "tools/x86/linux/comparisons.py",
+        "docs/architecture/x86/linux/workers/LINUX-COMPARISONS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -589,8 +589,8 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/string_workers.py",
-        "docs/architecture/x86/linux/LINUX-STRINGS.txt"
+        "tools/x86/linux/string_workers.py",
+        "docs/architecture/x86/linux/workers/LINUX-STRINGS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
@@ -604,10 +604,10 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/string_vm.py",
+        "tools/x86/linux/string_vm.py",
         "source-and-actual-route-qualification-pending"
       ],
-      "evidence": "LINUX-STRING-ENTRY.txt",
+      "evidence": "workers/LINUX-STRING-ENTRY.txt",
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     },
     {
@@ -651,9 +651,9 @@
       ],
       "linux_status": "default-active-source-ABI-and-current-execution-covered",
       "linux_candidate_mapping": [
-        "tools/elf/c_workers.py",
+        "tools/x86/linux/c_workers.py",
         "src/wire/wire.c",
-        "docs/architecture/x86/linux/LINUX-C-WORKERS.txt"
+        "docs/architecture/x86/linux/workers/LINUX-C-WORKERS.txt"
       ],
       "coverage_document": "LINUX-MECHANISM-COVERAGE.txt"
     }
@@ -672,7 +672,7 @@
     "ctest": 927,
     "documentation": "LINUX-MECHANISM-COVERAGE.txt",
     "performance_review_complete": true,
-    "performance_document": "LINUX-PERFORMANCE.txt",
+    "performance_document": "LINUX-FINAL-REVIEW.txt",
     "implementation_commit": "90e3bf34b62220de3029d812b39bc89a085e56ec",
     "implementation_qualified": true,
     "complete_images_byte_identical_to_qualified_and_measured": true,
@@ -699,5 +699,12 @@
     "commit": "0e467233718df2ccd85d810091b39cda4ae706a1",
     "cases": 37,
     "scope": "Real GNU tool path/version and unsupported-profile configuration selection;unavailable Clang identity is simulated,not a Clang build qualification"
+  },
+  "rebased_upstream": {
+    "version": "0.17.0",
+    "commit": "7b5f588e0f9b643e2996f291bfc861abeaceddc2",
+    "test262_cases": 82220,
+    "test262_inherited_failures": 40,
+    "worker_docs_dir": "docs/architecture/x86/linux/workers"
   }
 }

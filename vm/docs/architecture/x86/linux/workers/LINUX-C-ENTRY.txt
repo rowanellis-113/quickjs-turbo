@@ -73,8 +73,7 @@ Qualification and limits
 ------------------------
 Werror CMake,358 CTests, ELF/CFI/PIC/CET and independent installed consumer pass.
 Later fixture extensions change only linux-c-entry; qjs,run-test262,libqjs.a
-remain byte-identical. Full current Test262 ON/OFF:65/81152 inherited failures,
-31 fixed,0 new/changed; exact portable failure/fix identities are rechecked.
+remain byte-identical. Full current Test262 ON/OFF:40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152); exact portable failure/fix identities are rechecked.
 Public fixtures cover numeric primitive/coercing/missing/throwing inputs,
 signed zero, INT32 bounds, NaN/infinity/subnormals, realm/GC/reentry, quota
 changes, deep lifetime and interrupt/recovery inside coercion. ON/OFF each

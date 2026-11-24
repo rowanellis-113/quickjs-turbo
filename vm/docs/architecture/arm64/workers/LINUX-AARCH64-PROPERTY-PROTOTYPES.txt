@@ -66,7 +66,7 @@ instrumented-only passive TLS adds16words/128bytes. ELF alignment and code
 size are separately reviewed. These are not physical RSS measurements.
 
 Whole qualification is separate from focused checks:freeze source,fresh
-release/instrumented/noGit builds,same81152Test262 corpus and known errors,
+release/instrumented/noGit builds,same82220Test262 corpus and known errors,
 installed SDK/qjsc/wire exchange,pins,release observer absence and old platform
 checks. QEMU proves functional behavior,not physical ARM speed or weak-memory
 hardware stress. Final P5 and the full22family migration remain open.

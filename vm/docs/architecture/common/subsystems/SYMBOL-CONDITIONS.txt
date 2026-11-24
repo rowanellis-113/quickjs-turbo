@@ -1,6 +1,6 @@
 Resolved Symbol conditions
 
-Win64 GNU and MSVC native release builds with property ICs fold an already resolved
+Windows WIN_X86_64 and Linux native release builds with property ICs fold an already resolved
 global or lexical Symbol read followed by strict equality and a conditional
 branch. The existing binding cell supplies the current value. The worker
 consumes the left operand only when another reference remains. No allocation,
@@ -26,9 +26,9 @@ Diagnostic and property-IC-OFF configurations keep their original routes and
 large-code policy. Portable builds use the original C interpreter.
 Unsupported compiler/platform profiles retain the existing backend fallback.
 
-The 19 pinned QuickJS-NG0.15.1 upstream inputs remain byte-identical. Changes
-live in tools/generate/own-bytecode.py, tools/generate/varargs.py and
-tools/coff/retained_routes.py. The generated GNU248-byte worker and two MSVC
+The 19 pinned QuickJS-NG0.17.0 upstream inputs remain byte-identical. Changes
+live in tools/x86/common/codegen/own-bytecode.py, tools/x86/common/codegen/varargs.py and
+tools/x86/win64/prepare_win64_native.py. The generated GNU248-byte worker and two MSVC
 291-byte workers use the existing VM register contract and chained unwind
 record. The MSVC route changes four validated local transfers; failed guards
 return to the exact original opcode ready label. Core JS_CallInternal is intact.

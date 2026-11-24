@@ -1,0 +1,63 @@
+Windows x86-64 native ASM VM (WIN_X86_64)
+=========================================
+Release: v0.17.0-turbo.1 (2026-11-24, pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
+
+Overview
+--------
+`WIN_X86_64` is the unified source-level native register-frame assembly VM for
+64-bit Windows across MSVC (`cl` + `ml64`), LLVM `clang-cl`, and MinGW-w64 GCC.
+`QJS_FRAME_BACKEND=AUTO` selects `WIN_X86_64` automatically without GNU binutils
+on MSVC/`clang-cl` and replaces the retired legacy COFF-adapted `WIN64` backend.
+
+Build and verification
+----------------------
+  cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=AUTO -DQJS_PROPERTY_IC=ON
+  cmake --build build/win-x86_64 --parallel
+  ctest --test-dir build/win-x86_64 --output-on-failure
+
+- ABI & Unwind: Full Win64 calling convention compliance (32-byte shadow space,
+  nonvolatile GPR/XMM discipline, complete SEH `.pdata`/`.xdata` unwind metadata).
+- Static CRT (`/MT`): Pass `-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded` on MSVC;
+  `verify_pe_imports.py` verifies `qjs.exe` and `qjsc.exe` import `KERNEL32.dll` only.
+- Toolchains qualified: MSVC 14.50 (`cl` + `ml64`), `clang-cl`, and MinGW GCC 13.1.
+- Pre-generated offline builds: `-DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<dir>/win_x86_64`
+  (zero Python invocation at build time).
+
+0.17.0 performance & compatibility (d0bf4c4, 2026-11-24)
+------------------------------------------------------
+- `win64-native-supplements.inc` adds native array length writes, `for..of` /
+  array value iterators, fast number-to-string coercion, and Hybrid RC + Partial
+  Cycle GC support on `WIN_X86_64`.
+- CTest qualification: MSVC `222/222` (`31.01 s`), MinGW `222/222` (`20.52 s`).
+- Full Test262 (`5ef1e5723be9`, `82,220` cases): both MSVC and MinGW record
+  `40/82,220` inherited failures (failure identities 100% identical to stock
+  QuickJS-NG 0.17.0, `0` new, `0` changed).
+
+1. Official V8-v7 (5-engine cohort, 2 reversed ABBA blocks on CPU2, higher is better):
+   Case          NG MinGW  NG MSVC  Bellard 26.06  Turbo MinGW  Turbo MSVC  Tm/NGm  Tv/NGv  Tm/Bel  Tv/Bel
+   Richards         653.2    586.6        1,042.9      1,374.2     1,414.9   2.10x   2.41x   1.32x   1.36x
+   DeltaBlue        640.1    657.9          924.3      1,225.5     1,251.7   1.91x   1.90x   1.33x   1.35x
+   Crypto           864.9    572.9        1,160.0      1,614.4     1,619.7   1.87x   2.83x   1.39x   1.40x
+   RayTrace       1,405.9  1,243.4        1,787.0      2,492.3     2,413.1   1.77x   1.94x   1.39x   1.35x
+   EarleyBoyer    1,807.9  1,603.9        2,319.4      2,368.9     2,152.7   1.31x   1.34x   1.02x   0.93x
+   RegExp           348.5    304.9          428.0      1,471.4     1,304.5   4.22x   4.28x   3.44x   3.05x
+   Splay          2,886.1  2,577.9        3,462.1      3,337.8     3,193.0   1.16x   1.24x   0.96x   0.92x
+   NavierStokes   1,942.9  1,147.3        2,580.2      2,866.2     2,752.9   1.48x   2.40x   1.11x   1.07x
+   Overall       1,075.95   891.12       1,432.38     1,969.04    1,901.42   1.83x   2.13x   1.37x   1.33x
+   ex-RegExp     1,263.95 1,038.67       1,702.15     2,052.72    2,006.57   1.62x   1.93x   1.21x   1.18x
+   (Both Turbo MinGW and Turbo MSVC sweep 8/8 subtests vs same-compiler Stock NG 0.17.0;
+    vs Bellard 2026-06-04: MinGW wins 7/8, MSVC wins 6/8.)
+
+2. Unified micro57 (57 cases, 2 reversed ABBA blocks on CPU2, ns/op geomean, lower is better):
+   - Stock NG 0.17.0 (MinGW): 66.540 ns  |  Stock NG 0.17.0 (MSVC): 85.865 ns  |  Bellard 2026: 61.922 ns
+   - Turbo MinGW `WIN_X86_64`: 46.044 ns (1.45x vs Stock MinGW [54/57 wins] · 1.34x vs Bellard [43/57 wins])
+   - Turbo MSVC  `WIN_X86_64`: 48.763 ns (1.76x vs Stock MSVC [55/57 wins] · 1.27x vs Bellard [33/57 wins])
+   Top hotspots vs same-compiler Stock NG 0.17.0:
+   - MSVC:  `empty_loop` 5.00x (26.26 -> 5.25), `typed_array_write` 4.43x (21.14 -> 4.77),
+     `typed_array_read` 4.26x (22.32 -> 5.24), `array_write` 4.05x (17.76 -> 4.39), `prop_read` 3.96x (25.81 -> 6.52).
+   - MinGW: `typed_array_write` 3.44x (16.45 -> 4.78), `array_read` 3.14x (17.00 -> 5.42),
+     `typed_array_read` 3.07x (16.02 -> 5.22), `global_write` 2.95x (9.88 -> 3.35),
+     `empty_loop` 2.90x (15.23 -> 5.25), `prop_read` 2.84x (18.51 -> 6.52).
+   Remaining slower cases vs same-compiler Stock NG 0.17.0:
+   - MinGW (3/57): `string_build2` (120.90 -> 133.66 ns), `string_slice1` (87.13 -> 91.32 ns), `sort_bench` (1.67 -> 1.74).
+   - MSVC  (2/57): `object_null` (68.36 -> 70.40 ns), `local_destruct` (62.71 -> 62.82 ns).

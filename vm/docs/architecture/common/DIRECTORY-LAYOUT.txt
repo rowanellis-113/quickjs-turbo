@@ -1,43 +1,40 @@
 Product directory layout (under vm/)
 =====================================
-Upstream QuickJS-NG remains unmodified at the repository root (`../`); all
-product modifications live under `vm/`.
-Hierarchy rule inside `vm/`: common/ | arm64/ | x86/ across src/, asm/, tools/, cmake/, tests/.
+Upstream QuickJS-NG 0.17.0 (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`) remains
+byte-for-byte unmodified at the repository root (`../`); all product work lives
+under `vm/`.
 
-Shared C & common optimization owners:
-- src/common/{abi,array,bytecode,call,function,internal,io,json,kernel,linux,
-  memory,promise,property,regexp,string,value,wire}
-  (includes extracted Release C fast-path files: property/inline-properties.h,
-  property/inline-closure-properties.inc, property/inline-property-ic-storage.inc,
-  property/fast-transition-resize.inc, property/fast-get-field.inc,
-  value/instanceof-fast.inc, value/bigint-divrem-fast.inc, call/compound-leaf.inc,
-  call/fast-for-of-next.inc, kernel/fast-construct.inc,
-  kernel/fast-array-from.inc, linux/virtual-arguments-fast.inc,
-  memory/hybrid-gc.h, memory/hybrid-gc.inc).
+Hierarchy rule inside `vm/`: `common/ | arm64/ | x86/` across `src/`, `asm/`,
+`tools/`, `cmake/`, `tests/`, and `docs/architecture/`.
 
-Architecture-specific code & assembly:
-- ARM64: src/arm64/linux/ (including abi/fast-vm.json and *-fast.inc Release
-  owners), asm/arm64/{common,linux}/.
-- x86: src/x86/{common,linux,win64/{common,internal,abi,msvc,mingw64}}/,
-  asm/x86/{linux,win64/{common,mingw64,msvc}}/.
+Owned sources (`vm/src/` & `vm/asm/`)
+-------------------------------------
+- Common C overlays: `src/common/{abi,array,bytecode,call,function,internal,io,
+  json,kernel,linux,memory,promise,property,regexp,string,value,wire}/`
+  (includes `property/inline-*.{h,inc}`, `property/fast-*.inc`,
+  `value/{instanceof-fast,bigint-divrem-fast}.inc`, `call/{compound-leaf,fast-for-of-next}.inc`,
+  `kernel/{fast-construct,fast-array-from}.inc`, `linux/virtual-arguments-fast.inc`,
+  and `memory/hybrid-gc.{h,inc}`).
+- ARM64: `src/arm64/{common,linux/abi}/` and `asm/arm64/{common,linux}/`.
+- x86: `src/x86/{common,linux/abi,win64/{abi,common,internal,mingw64}}/` and
+  `asm/x86/{linux,win64/{common,mingw64}}/`.
 
-Tools & build orchestration:
-- tools/common/{abi,backports,bench,c_extract,elf,format,paths.py,modules.json}
-- tools/arm64/{build,verify,vm,workers,paths_arm64.py}
-  (tools/arm64/fast_vm/ is retired; VM specialization passes live under
-  tools/arm64/vm/ and tools/arm64/workers/).
-- tools/x86/{common/{abi,codegen,paths_x86.py},linux,win64/{build,codegen,coff}}.
+Tools & build orchestration (`vm/tools/`)
+---------------------------------------
+- Common: `tools/common/{abi,backports,bench,c_extract,elf,format,paths.py,modules.json,export-pregen.py}`
+- ARM64: `tools/arm64/{build,verify,vm,workers,paths_arm64.py}`
+- x86: `tools/x86/{common/{abi,codegen,coff_probe.py,build_tools.py,paths_x86.py},
+  linux/{build,...},macos/{build,...},win64/{codegen,measure_layout_win64.py,prepare_win64_native.py}}`
 
-CMake, tests, docs, CI, registries:
-- cmake/{common,arm64,x86}/
-- tests/{common,arm64,x86}/ (upstream QuickJS tests stay untouched at ../tests/)
-- docs/architecture/{common,arm64,x86}/
-- VERSION, ci/{install_win64_mingw.py,release_version.py,verify_pe_imports.py,verify_test262.py,test_ci_helpers.py} (GitHub Actions workflows live at ../.github/workflows/)
-- Source, module, and native input registries: src/sources.json,
-  tools/common/modules.json, tools/x86/win64/build/native-inputs.json.
+CMake, tests, docs, CI (`vm/`)
+------------------------------
+- CMake: `cmake/{common,arm64,x86/{linux,macos,win64}}/` & `cmake/QuickJSUpstreamPin.cmake`
+- Tests: `tests/{common,arm64,x86/{common,linux,macos}}/` (upstream tests stay untouched at `../tests/`)
+- Docs: `docs/architecture/{common,common/subsystems,arm64,arm64/workers,x86/{linux,linux/workers,macos,win64}}/`
+- Metadata & CI helpers: `VERSION`, `quickjs-turbo.h`, `src/sources.json`,
+  `ci/{install_win64_mingw.py,release_version.py,test_ci_helpers.py,verify_pe_imports.py,verify_test262.py}`
+  (GitHub Actions workflows live at `../.github/workflows/`).
 
-Generated C/ELF/COFF artifacts belong to ../build/generated/ (under the chosen
-build directory), never the source checkout. build/, out/, and vm/node_modules/
-(optional formatter tooling) are not required in a source distribution.
-../test262/ is an optional pinned submodule. Normal builds use committed ../gen/
-snapshots and require neither Node.js nor a prior qjs executable.
+Build artifacts belong under `../build/` and `../out/`, never inside tracked
+source. `../test262/` is an optional pinned submodule. Normal builds use committed
+`../gen/` snapshots and require neither Node.js nor a prior `qjs` binary.

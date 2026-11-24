@@ -11,9 +11,13 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_X86_64")
             VERBATIM)
     endif()
     if(QJS_ENABLE_INSTALL)
-        file(GLOB qjs_linux_install_docs CONFIGURE_DEPENDS
-             "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/x86/linux/LINUX-*.txt"
-             "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/x86/linux/LINUX-*.json")
+        file(
+            GLOB
+            qjs_linux_install_docs
+            CONFIGURE_DEPENDS
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/x86/linux/LINUX-*.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/x86/linux/LINUX-*.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/x86/linux/workers/LINUX-*.txt")
         set(qjs_linux_install_files "${CMAKE_CURRENT_BINARY_DIR}/interpreter-backend.json"
                                     ${qjs_linux_install_docs})
         if(TARGET qjs_exe)

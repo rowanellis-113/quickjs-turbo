@@ -9,8 +9,8 @@ QJS_INTERP_FRAME_VARARGS currently requires the argument, forwarding,
 constructor and iterator owners. Disabling a dependency omits these workers
 and retains the complete original semantics. AUTO still selects PORTABLE.
 
-The implementation reuses tools/elf/varargs_native.py and the original
-tools/generate/varargs.py factories without changing their x86 defaults.
+The implementation reuses tools/x86/linux/varargs_native.py and the original
+tools/x86/common/codegen/varargs.py factories without changing their x86 defaults.
 The intrinsic apply guard checks the original function identity, C prototype,
 magic and length. Its complete C owner retains the dense-list and normal-length
 checks, same-realm restriction, owned snapshot, interrupt polls, quota, cached

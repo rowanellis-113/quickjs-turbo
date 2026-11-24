@@ -6,17 +6,17 @@
 [![Benchmarks](https://img.shields.io/badge/benchmarks-perf--site-f59e0b)](https://rowanellis-113.github.io/quickjs-turbo/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Near-V8 `--jitless` speed in a QuickJS-sized binary. Zero JIT. 100% `quickjs.h` drop-in.**
+**Near-V8 `--jitless` speed in a QuickJS-sized binary. Zero JIT. 100% `quickjs.h` drop-in (`txiki.js v26.11.0` aligned).**
 
-QuickJS-Turbo supercharges [QuickJS-NG](https://github.com/quickjs-ng/quickjs) with native register-frame virtual machines, adaptive inline caches, and specialized builtins — delivering **~2× the throughput** without runtime code generation or `RWX` memory.
+QuickJS-Turbo supercharges [QuickJS-NG](https://github.com/quickjs-ng/quickjs) `0.17.0` with native register-frame virtual machines, adaptive inline caches, Hybrid RC + Partial Cycle GC, and specialized builtins — delivering **`1.72×–2.13×` the V8-v7 throughput of QuickJS-NG `0.17.0`** (**`1.33×–1.49×` vs Bellard 2026**) without runtime code generation or `RWX` memory.
 
 ```text
-V8-v7 Throughput (Reference Linux x86-64 host, single-core, no JIT)
+V8-v7 Throughput (Reference Linux x86-64 host, single-core, zero JIT)
 
-V8 --jitless (Node 24)   ████████████████████████  2,436  (458 MiB Peak RSS)
-QuickJS-Turbo            █████████████████████     2,101  (2.09x vs QuickJS-NG · 1.42x vs Bellard · 86% of V8 --jitless · 172 MiB RSS)
-Bellard QuickJS 2026     ███████████████           1,481  (147 MiB Peak RSS)
-QuickJS-NG 0.15.1        ██████████                1,007  (159 MiB Peak RSS)
+V8 --jitless (Node 24)   ████████████████████████  2,401  (465 MiB Peak RSS)
+QuickJS-Turbo (0.17.0)   █████████████████████     2,077  (1.72x vs NG 0.17.0 · 1.39x vs Bellard · 86.5% of V8 --jitless · 157 MiB RSS)
+Bellard QuickJS 2026     ███████████████           1,496  (147 MiB Peak RSS)
+QuickJS-NG 0.17.0        ████████████              1,208  (155 MiB Peak RSS)
 ```
 
 ---
@@ -46,17 +46,30 @@ export default {
 
 ## Why QuickJS-Turbo?
 
-- **Zero-JIT, `W^X` Safe**: No runtime codegen or `RWX` pages; full DWARF CFI and Win64 SEH unwind for iOS, consoles, locked-down containers, and edge workers.
-- **~2× Throughput vs QuickJS-NG (1.42× vs Bellard 2026)**: Delivers **`1.55×`** `micro57` geomean (`50/57` wins vs NG; **`1.22×`** vs Bellard `2026-06-04`) and up to **`7.32×`** typed-array writes, **`6.93×`** RegExp, **`6.02×`** `JSON.stringify`, **`5.81×`** array writes, **`3.25×`** property reads, **`2.37×`** ordinary `async`/`Promise.resolve`, and **`2.08×`** `BigInt` modular reduction over stock QuickJS-NG `0.15.1` — beating `V8 --jitless` on typed/dense array ops (**`2.36–2.59×`**), property reads (**`1.53×`**), and `NavierStokes` (**`1.56×`**) at **`2.67×` lower Peak RSS**.
-- **Hybrid RC + Partial Cycle GC**: Keeps deterministic reference counting while cutting full-heap cycle scans by **~86%** (**`1.50×`** faster cyclic churn, **`~10–11%`** faster string slices, **`-4.09%`** V8-v7 Peak RSS).
-- **High-Density & Drop-In Embedding**: Unmodified `quickjs.h` ABI (**`81,152`** Test262 cases, `0` regressions, `31` upstream fixes) plus `quickjs-turbo.h` & `quickjs-turbo::qjs` for PIC-only mode + lazy IC warmup (**`-49.3%`** cold-worker heap [`779.3 → 394.9 KiB`, `0` cold IC slabs] at **`99.7%`** V8-v7 / **`98.2%`** `micro57` parity), `JS_PurgePropertyIC`, host-safe LTO, and Python-free `QJS_USE_PREGEN_ASM` builds.
+- **Zero JIT, `W^X` Safe**: Ahead-of-time assembly VMs use zero `RWX` memory and include full DWARF CFI and Win64 SEH stack unwinding for iOS, consoles, containers, and edge workers.
+- **Register VM & Inline Caches**: Replaces the C interpreter loop with register-pinned assembly dispatch, adaptive Property ICs, and fast builtins — up to **`5.17×`** faster RegExp, **`3.40×`** property reads, and **`2.88×`** TypedArray reads.
+- **Deterministic RC + Fewer GC Pauses**: Keeps QuickJS's immediate reference counting while generational partial cycle GC cuts full-heap cycle scans by **`86%`** (**`1.50×`** faster cyclic object churn).
+- **100% `quickjs.h` Drop-In**: Zero header or ABI changes (`82,220` Test262 cases with `0` regressions; `txiki.js v26.11.0` compatible), plus optional `quickjs-turbo.h` controls that cut cold-worker heap by **`33.8%`**.
+
+### Benchmarks Across Platforms
+
+| Same-Host Cohort | Turbo V8-v7 | vs QuickJS-NG `0.17.0` | vs Bellard `2026-06-04` |
+| :--- | ---: | :--- | :--- |
+| **Linux `x86-64`** *(Ryzen 3 3300X, GCC 13)* | **2,077** | **1.72×** V8-v7 · **1.42×** micro | **1.39×** V8-v7 · **1.35×** micro |
+| **Linux `ARM64`** *(AWS Graviton2, GCC 13)* | **1,260** | **1.76×** V8-v7 · **1.42×** micro | **1.49×** V8-v7 · **1.37×** micro |
+| **Windows `x86-64`** *(MinGW / MSVC)* | **1,969 / 1,901** | **1.83× / 2.13×** V8-v7 · **1.45× / 1.76×** micro | **1.37× / 1.33×** V8-v7 · **1.34× / 1.27×** micro |
+| **macOS `x86-64`** *(Intel i5, Clang 15)* | **1,742** | **1.47×** vs `PORTABLE` | **1.45×** V8-v7 · **1.34×** JetStream |
+
+> On Linux `x86-64`, QuickJS-Turbo reaches **86.5%** of Node 24 `V8 --jitless` V8-v7 throughput (**93.0%** on microbenchmarks, beating V8 `--jitless` on TypedArrays, dense arrays, `NavierStokes`, and `Crypto`) at **2.96× lower Peak RSS** (`157 MiB` vs `465 MiB`). Explore interactive subtest & release charts on **[`perf-site` →](https://rowanellis-113.github.io/quickjs-turbo/)**.
+
+### Supported Targets
 
 | Platform | Backend | Toolchains | Notes |
 | :--- | :--- | :--- | :--- |
 | **Linux `x86-64`** | `LINUX_X86_64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, inline object props, PIE + DWARF CFI |
 | **macOS `x86-64`** | `MACOS_X86_64` | Apple Clang 15+ | Native Mach-O ASM VM, PIE + DWARF CFI, `AUTO`-selected |
-| **Windows `x86-64`** | `WIN_X86_64` / `WIN64` | MSVC / `clang-cl` / MinGW | Source-level `WIN_X86_64` (zero GNU binutils) + SEH unwind |
-| **Linux `ARM64`** | `LINUX_AARCH64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, 64B-aligned entry, `AUTO`-selected |
+| **Windows `x86-64`** | `WIN_X86_64` | MSVC / `clang-cl` / MinGW | Unified native ASM VM (zero GNU binutils on MSVC) + SEH unwind |
+| **Linux `ARM64`** | `LINUX_AARCH64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, 64B-aligned entry, `JSArena` string append |
 | **macOS `ARM64` & Sanitizers** | `PORTABLE` | Clang / GCC / MSVC | Automatic `AUTO` fallback + ASan / UBSan / TSan / MSan / Fuzz |
 
 ---
@@ -86,12 +99,13 @@ cmake -S vm -B build/portable -G Ninja -DCMAKE_BUILD_TYPE=Release && cmake --bui
 ```
 
 ```powershell
-# Windows x86-64 (MSVC / clang-cl native ASM VM, zero GNU binutils required)
+# Windows x86-64 (MSVC / clang-cl / MinGW — AUTO selects WIN_X86_64)
 cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release -DQJS_FRAME_BACKEND=AUTO -DQJS_PROPERTY_IC=ON
 cmake --build build/win-x86_64 --parallel
 
-# Or legacy COFF-adapted Win64 product wrapper (MSVC or MinGW)
-./vm/tools/x86/win64/build/build-baseline.ps1 -Toolchain msvc -Backend WIN64 -Test
+# Static CRT (/MT, KERNEL32.dll-only imports)
+cmake -S vm -B build/win-msvc-mt -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+cmake --build build/win-msvc-mt --parallel
 ```
 
 ### 3. Embed via CMake & Configure via `quickjs-turbo.h`
@@ -124,10 +138,10 @@ For offline or cross-compilation builds without Python at build time, export a S
 
 ## Architecture & Docs
 
-All QuickJS-Turbo optimizations live cleanly inside [`vm/`](vm/), keeping upstream QuickJS-NG `0.15.1` byte-for-byte pristine at the repository root for effortless upstream tracking and side-by-side A/B benchmarking.
+All QuickJS-Turbo optimizations live cleanly inside [`vm/`](vm/), keeping upstream QuickJS-NG `0.17.0` byte-for-byte pristine at the repository root for effortless upstream tracking and side-by-side A/B benchmarking.
 
-- **[Build, Static CRT & Embedding Guide](vm/docs/architecture/common/BUILDING.txt)**
-- **[Benchmark Suites & Methodology](vm/docs/architecture/common/PRODUCT-BASELINE.txt)** · **[x86-64 Report](vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt)** · **[ARM64 Report](vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt)**
+- **[Documentation Index](vm/docs/architecture/common/README.txt)** · **[Build, Static CRT & Embedding Guide](vm/docs/architecture/common/BUILDING.txt)**
+- **[Benchmark Baselines](vm/docs/architecture/common/PRODUCT-BASELINE.txt)** · **[Linux x86-64](vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt)** · **[Windows x86-64](vm/docs/architecture/x86/win64/WIN-X86-64.txt)** · **[macOS x86-64](vm/docs/architecture/x86/macos/MACOS-X86-64.txt)** · **[Linux ARM64](vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt)**
 - **[Optimization Deep Dive](vm/docs/architecture/common/OPTIMIZATIONS.txt)** · **[Hybrid RC & Cycle GC](vm/docs/architecture/common/HYBRID-GC.txt)** · **[Contributor & Measurement Policy](vm/AGENTS.md)**
 
 ---

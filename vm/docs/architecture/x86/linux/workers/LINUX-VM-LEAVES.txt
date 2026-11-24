@@ -1,7 +1,7 @@
 Linux in-VM primitive, compound and character leaves (development)
 =================================================================
 
-This group reuses the complete accepted tools/generate/leaf-entry.py kernels
+This group reuses the complete accepted tools/x86/common/codegen/leaf-entry.py kernels
 inside the existing Linux register VM. It does not substitute a C entry or a
 benchmark-specific implementation. The accepted Windows product is unchanged.
 Constructor/root3, deferred publication and the remaining mechanism families
@@ -58,8 +58,7 @@ Qualification and limits
 -------------------------
 The current Werror build passes525 CTests and the installed public consumer.
 Its qjs, Test262 runner and archive are byte-identical to the fully qualified
-499-test image: full native ON/OFF Test262 has65/81152 inherited failures,
-31 fixes and0 new/changed, with exact portable failure/fix identities.
+499-test image: full native ON/OFF Test262 has40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152), with exact portable failure/fix identities.
 
 The compact admitted observer fixture proves all seven primitive classes,
 compound and character success routes; master/individual/frame OFF controls
@@ -73,7 +72,7 @@ interrupt abort/recoveries, and fresh-runtime allocation-fault recovery.
 Ten host modes and six OOM modes pass; each sweep injects six failures with
 complete zero allocation/resource ledgers. The same compiled object also
 passes host/OOM against stock and the preceding native-entry archive.
-Stock means unoptimized QuickJS-NG0.15.1 on the same Linux/GCC, not Bellard2026.
+Stock means unoptimized QuickJS-NG0.17.0 on the same Linux/GCC, not Bellard2026.
 
 Static linked cost versus native-entry-r4 is4560 added executable bytes,
 6040 file bytes and0 allocated-writable bytes. Legacy CallInternal keeps the

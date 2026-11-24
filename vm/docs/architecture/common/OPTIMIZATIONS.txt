@@ -1,63 +1,44 @@
 Integrated product components
 =============================
 
-Use BUILDING.txt to select the product configuration on the pinned QuickJS-NG
-0.15.1 public API. Ordinary upstream defaults differ. Sources are grouped by
-function/platform under common/ | arm64/ | x86/, not by historical experiment or
-benchmark name.
+Use `BUILDING.txt` to build the product configuration on the pinned QuickJS-NG
+`0.17.0` (`7b5f588e0f`) public API. Sources are organized strictly under
+`vm/{src,asm,tools,cmake,tests}/common | arm64 | x86`.
 
-Component                         Main owner / further documentation
-Call frames and dispatch           src/common/call, src/x86/win64, tools/x86/{linux,macos}, asm/x86/win64, asm/arm64
-Property get/set and method caches src/common/property (decoupled PIC-only mode, tagged warmup, JS_PurgePropertyIC)
+Component                          Main owner / documentation
+-----------------------------------------------------------------------------
+Call frames and dispatch           src/common/call, src/x86/win64, tools/x86/{linux,macos,win64}, asm/{x86,arm64}
+Property get/set and method caches src/common/property (PIC-only mode, tagged warmup, JS_PurgePropertyIC)
 Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
-Win64 source-level native ASM VM   tools/x86/win64/{measure_layout_win64,prepare_win64_native}.py, cmake/x86/win64/NativeWin64.cmake
+Win64 source-level native ASM VM   tools/x86/win64/, src/x86/win64/internal/win64-native-supplements.inc; x86/win64/WIN-X86-64.txt
+macOS Mach-O native ASM VM         tools/x86/macos/{adapt_macho,macho64,prepare-native}.py; x86/macos/MACOS-X86-64.txt
 Pre-generated assembly bundles     tools/common/export-pregen.py, cmake/common/Pregen.cmake
-Strings and concatenation          src/common/string
+Strings & JSArena fast append      src/common/string, asm/arm64/common/register-string-append.inc
 JSON parse/stringify               src/common/json
-RegExp and Unicode                 src/common/regexp, src/common/wire; REGEXP.txt
-Arrays and sort                    src/common/array; ARRAY-SORT.txt
-Async generator & async output     src/common/promise; ASYNC-GENERATORS.txt
-Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c; LINUX-AARCH64-LITERALS.txt
+RegExp and Unicode                 src/common/regexp, src/common/wire; subsystems/REGEXP.txt
+Arrays and sort                    src/common/array; subsystems/ARRAY-SORT.txt
+Async generator & async output     src/common/promise; subsystems/ASYNC-GENERATORS.txt
+Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c; arm64/workers/LINUX-AARCH64-LITERALS.txt
 Map/Set string-key fast paths      src/common/value/map-string-keys.inc, tools/common/backports/keyed_async.py
-Coroutine native segments          COROUTINES.txt (MSVC; GNU keeps its C path)
-Compiler lexical planning          src/common/bytecode; COMPILER-PLAN.txt
-Resolved Symbol conditions         SYMBOL-CONDITIONS.txt (GNU and MSVC)
-Long-function regexp admission     tools/x86/common/codegen/varargs.py; AGENTS.md
-Memory and scalar backports        src/common/memory, src/common/value, tools/x86/common/codegen; HYBRID-GC.txt
+Coroutine native segments          subsystems/COROUTINES.txt (MSVC WIN_X86_64; GNU keeps its C path)
+Compiler lexical planning          src/common/bytecode; subsystems/COMPILER-PLAN.txt
+Resolved Symbol conditions         subsystems/SYMBOL-CONDITIONS.txt
+Memory, Hybrid RC + Cycle GC       src/common/memory, HYBRID-GC.txt
 
-Cross-architecture fast-path unification:
+Cross-architecture fast-path matrix:
 Optimization                       ARM64 Linux     x86_64 Linux    x86_64 Win64
-Hybrid RC & partial cycle GC       src/common/memory/hybrid-gc.{h,inc} (ARM64/x86_64/Portable; Win64 retains COFF-pinned core)
-Float32Array / Float64Array VM     tools/arm64     eq_code cold-split (shared)
-Rel cmp (<,<=,>,>=) + branch fuse  vm/branch_fusion retired after x86 ablation
-Flat Latin-1 relational compare    vm/branch_fusion eq_code cold-split (shared)
-inc_loc/dec_loc for-loop backedge  vm/branch_fusion retired after x86 ablation
-Epoch IC instanceof leaf           src/common/value/instanceof-fast.inc (shared)
-Native C for_of_next + if_false8   src/common/call/fast-for-of-next.inc (shared)
-OP_array_from dense leaf           src/common/kernel/fast-array-from.inc (shared)
-Inline property storage            src/common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
-Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW mirror)
-Map/Set string-key hash & flatten  src/common/value/map-string-keys.inc (shared across all native & PORTABLE targets)
-Capability-free async & Promise    src/common/promise/async-output.inc (shared across all native & PORTABLE targets)
-BigInt stack/PM mod & construct    src/common/value/bigint-divrem-fast.inc (all targets); kernel/fast-construct.inc (ARM64)
+--------------------------------------------------------------------------------
+Hybrid RC & partial cycle GC       common/memory   common/memory   common/memory (native supplements)
+Float32Array / Float64Array VM     tools/arm64     tools/x86/linux eq_code cold-split
+Flat Latin-1 relational compare    eq_code split   eq_code split   shared C
+Epoch IC instanceof leaf           common/value/instanceof-fast.inc (all targets)
+Native C for_of_next + if_false8   common/call/fast-for-of-next.inc + Win64 native
+OP_array_from dense leaf           common/kernel/fast-array-from.inc (all targets)
+Inline property storage            common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
+Ordinary literal capacity reserve  common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW/MSVC)
+Map/Set string-key hash & flatten  common/value/map-string-keys.inc (all native & PORTABLE targets)
+Capability-free async & Promise    common/promise/async-output.inc (all native & PORTABLE targets)
+BigInt stack/PM mod & construct    common/value/bigint-divrem-fast.inc (all targets); ARM64 add_loc/short loop
 
-Remaining x86 -> ARM64 VM shell, entry, and cache micro-candidates were evaluated via
-Graviton2 orthogonal ablation (A0-A3) and retired because ARM64 R89 already saturated
-effective fast paths while extra shell/cache changes were neutral or layout-sensitive.
-
-Long-function admission composes the existing regexp opcode and large-code
-validator; short validation, frame ABI and bounds are retained. The environment
-switch QJS_DISABLE_FRAME_LONG_REGEXP disables it on first classification, even
-with value 0. Use a fresh process for comparison. It is targeted coverage, not
-a new regexp algorithm or a broad suite-speed claim.
-
-Component controls and fallback paths support diagnosis, embedding and compiler
-upgrades. Removing them solely to reduce file/option counts would remove useful
-compatibility guarantees. No JIT, PGO profile, fixed image base or external
-profiler is required at runtime. Portable builds retain their declared C path;
-they do not imply that Win64 native optimizations execute on another platform.
-
-Research candidates and measurement data are not product dependencies. Further
-performance work needs a reproduced application problem and a bounded plan.
-Correctness, build portability, API compatibility and upstream maintenance
-continue after open-ended performance exploration is closed.
+Component controls (`QJS_DISABLE_*`, `quickjs-turbo.h`) and automatic `PORTABLE`
+fallbacks support diagnostics, sanitizers, and high-density multi-tenant hosts.

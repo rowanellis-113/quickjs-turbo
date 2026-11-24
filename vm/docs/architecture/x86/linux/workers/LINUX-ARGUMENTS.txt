@@ -1,7 +1,7 @@
 Argument-object calls on Linux x86_64
 ====================================
 
-tools/elf/arguments.py compiles the complete accepted GNU arguments and
+tools/x86/linux/arguments.py compiles the complete accepted GNU arguments and
 argument-constructor algorithms with the actual Linux core types. The source
 owners are mingw-arguments.c and mingw-argument-constructor.c;their reviewed
 hashes live in src/x86/linux/abi/arguments.json. No COFF object,Win64 C
@@ -73,7 +73,7 @@ interrupts per host. Every ordinary14 and grown249 native constructor allocation
 point is swept,versus248grownOFF and298stock,with recovery and zero ledgers.
 
 Full argument ON/OFF Test262 uses the unchanged corpus/configuration/errors:
-65/81152 inherited failures,31fixed,0new/changed and exact portable failure/fix
+40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152) and exact portable failure/fix
 identities. Reuse that qualification only with byte-identical current qjs,
 runner and archive. Keep original Win64 argument owners unchanged;final
 current Windows/MSVC/fullTC/literal-source-package acceptance remains a gate.

@@ -3,14 +3,14 @@ Linux string kernels and native append
 
 Scope and normal build
 ----------------------
-tools/elf/string_workers.py owns the accepted concat/local-rope, add_loc,
+tools/x86/linux/string_workers.py owns the accepted concat/local-rope, add_loc,
 single-character cache/index and Latin-1 localeCompare C algorithms in the
-actual generated Linux core TU. tools/elf/string_vm.py connects the register
+actual generated Linux core TU. tools/x86/linux/string_vm.py connects the register
 VM and the no-call byte-append lane. Normal CMake generation binds the typed
 header, measured layout, VM assembly and STRING-WORKERS.json in PREPARE/BUILD.
 The pinned upstream files and public API are unchanged.
 
-  bash tools/build/product-linux.sh build/linux-native out/sdk-linux-native
+  bash tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
   ctest --test-dir build/linux-native --output-on-failure -R 'string|locale|rope'
 
 The original string-family checkpoint below is historical. Later native-entry
@@ -70,8 +70,7 @@ The current GCC13.3 Release/Werror source passes286 CTests, ELF/CFI/PIC/CET
 verification and an installed independent public-API consumer. Current qjs,
 Test262 runner, string header and VM source are byte-identical to tested r5.
 Revalidated corpus/config/errors and exact portable failure/fix identities
-support reuse of the full ON/OFF Test262 evidence:65/81152 inherited failures,
-31 fixed and0 new/changed. This reuse is explicit, not a claim of another run.
+support reuse of the full ON/OFF Test262 evidence:40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152). This reuse is explicit, not a claim of another run.
 
 The bounded linked-image fixture observes59 actual native append commits,
 64 character-cache hits and2 indexed-string hits. Component controls remove
@@ -97,7 +96,7 @@ Retained inherited negative
 ---------------------------
 The optional command below intentionally fails: a cold function's allocation
 fault2 can leave subsequent recovery with TypeError:not a function. It was
-independently reproduced on stock NG0.15.1, the prior JSON build, current and
+independently reproduced on stock NG0.17.0, the prior JSON build, current and
 cache-OFF. It is not counted as a passing fault test or attributed to the cache.
 The frozen pre-warm reproducer and logs remain in the external evidence.
   build/linux-native/linux-string-ownership cold 2

@@ -1,129 +1,42 @@
-Current qualification update,2026-11-11
-Fresh canonical archive builds on Linux/MinGW/MSVC and movedSDK checks pass.
-The bounded source-platform review and feature-work exit are recorded in
-LINUX-FINAL-REVIEW.txt. Earlier next-step instructions below are historical;
-explicit optional/architectural boundaries remain in force.
+Default-active GNU mechanism coverage (Linux x86-64)
+====================================================
+Current release & Test262 qualification: `LINUX-RELEASE.txt`.
+Current 5-engine benchmark cohort & hotspots: `LINUX-FINAL-REVIEW.txt`.
+Per-worker ABI and bring-up notes: `workers/LINUX-*.txt`.
 
-Default-active GNU mechanism coverage
-=====================================
+Summary
+-------
+On pinned QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`),
+the default `LINUX_X86_64` product profile carries all active GNU interpreter,
+inline-cache, property, array, string, JSON, RegExp, compiler-planning, and
+Hybrid RC/GC mechanisms in native SysV ELF/ABI modules:
 
-The historical MinGW input/source/ABI/execution ledger below records runtime
-4d8363a and its independent implementation90e3bf3. Current Linux/MinGW
-performance parity remains OPEN: carried semantics do not establish equal
-native hot-path efficiency. See LINUX-SLOW-ROUTING.txt and
-LINUX-STACK-INSERT.txt for qualified development increments and remaining
-measurement boundaries. LINUX-RELEASE.txt preserves the earlier delivery.
-
-Scope and evidence
-------------------
-The actual reference build has77 direct Ninja commands,25 nested archive
-operations,10 additional commands hidden in the generated private-header
-batch,37 distinct tool roots and78 archive members. The21 retained providers
-and13 retained roots contain211 actual route changes toward92 target roles.
-All are explicitly classified by source algorithm,platform ABI and build role.
-Counts enumerate the reviewed input set;they are not completion percentages.
-
-Current default observations use58 existing native fixtures,10 common
-generator/property/pool/closure/wire fixtures,real SysV root/child entries and
-a public supplemental source program for slow arithmetic and control flow.
-No engine memory/register writes manufacture a path. Clean/Dirty clones can
-represent one shared Win target;actual tokens and the source publication
-factory establish that relationship. The complete prior ABI/ownership/GC/OOM
-module qualifications and current927CTest/three fullTC are retained.
-
-Covered mechanism families
---------------------------
-core-common: Identical pinned core and selected common source overlays;actual Linux types and ordinary GCC objects
-  Linux: tools/generate/backport-core.py, src/value, src/function, src/property, src/memory
-regexp-core: Shared optimized regexp bytecode engine,Unicode and legacy0151 compatibility;no JIT/Win ABI dependency
-  Linux: src/regexp, tools/generate/backport-core.py
-allocator-environment: Common allocator and process/runtime controls;normal Linux malloc/TLS implementation,not Windows objects
-  Linux: src/memory, src/internal/interpreter-env.c
-core-PIC-lifetime: Win cold separate TU is the same platform-neutral body included in Linux core;adaptive ways,owner protection and detach-before-release retained
-  Linux: src/property/property-ic.inc, src/property/property-ic-lifetime.inc
-instanceof: Same guarded pure leaf and original observing fallback,with actual SysV signature
-  Linux: src/value/instanceof.c, tools/elf/vm_leaves.py
-native-entry-VM: Measured real SysV public/root/child aggregate entries,shared register dispatch and owned JS frames;original flags,quotas,GC,captures,tail/return/exception lifetimes
-  Linux: tools/elf/build-foundation.py, tools/elf/generate-vm.py, tools/elf/native_entries.py, tools/elf/js_calls.py, src/x86/linux/interpreter-entry.inc
-C-scope-builtin: Clean/Dirty publication,two-phase returns,activation-owned compiler-managed TLS anchor,generic/magic/numeric calls and complete slice/number borrowed window/transient/stack alternatives
-  Linux: tools/elf/publication.py, tools/elf/c_invoke.py, tools/elf/builtin_vm.py, asm/x86/linux/c-invoke.inc, src/x86/linux/interpreter-builtin.inc
-null-prototype: Complete original null admission and warm allocator;actual SysV aggregate and coherent roots,with original allocation/GC/failure ownership
-  Linux: tools/elf/null_proto.py, src/x86/linux/interpreter-null-proto.inc
-numeric-local: Source-owned short decimal,BigInt/local arithmetic/release and complete local string/rope boundary;measured native leaf references
-  Linux: tools/elf/numeric.py, tools/elf/string_workers.py, tools/elf/string_vm.py, src/call/quickjs-interpreter-bigint.inc
-property-supplements: Owned bytecode/borrowed/Number/length/PIC and live-prototype direct/persistent guards;pure fill sees coherent VM state without requiring an observing SF boundary
-  Linux: tools/elf/property_family.py, tools/generate/property_ic_native.py, src/property
-iterator-literal: Complete array-fast/custom-next/checkpoint/exception protocol and activation-owned ordinary literal/shape/truth/type kernels,including physical/logical parent ownership
-  Linux: tools/elf/iterators.py, tools/elf/literal_shapes.py, tools/elf/varargs_native.py
-global-bindings: Own/lexical weak activation hints,current guards/replacement,undefined arithmetic,large global bypass,Symbol and bytecode relink;no retained JS values
-  Linux: tools/elf/global_bindings.py
-array-callback-sort: Whole common default/cached/prepared sort,Array/TypedArray callbacks and copy/dense-pop/append;real argument windows and original slow cases
-  Linux: tools/elf/array_workers.py, tools/elf/c_workers.py, src/x86/linux/interpreter-sort.inc, src/x86/linux/interpreter-prepared-callback.inc
-JSON: Complete parser/serializer/writer,replacer/reviver/source records and coherent callback/GC/realm ownership;component controls preserved
-  Linux: tools/elf/json_workers.py, src/json
-async-generator: Same request-owned public output Promise and all settlement/recovery/FIFO/context hooks;ordinary async elision remains intentionally absent as on GNU baseline
-  Linux: tools/elf/c_workers.py, src/promise/generator-capability.inc
-regexp-builtins: Full shared exec/test/match/matchAll/replace/split/flags and native short/large literal admission,with original intrinsic identities and owned argv
-  Linux: tools/elf/regexp_workers.py, tools/elf/admission.py, src/regexp
-strings: Complete common concat/rope/append/cache/Latin1/slice/number/character/locale and receiver-index Clean/Dirty entry,with original fallback
-  Linux: tools/elf/string_workers.py, tools/elf/string_vm.py
-arguments-varargs: Whole unmapped/mapped arguments,borrow/forward/construct and direct/fused spread/intrinsic apply,with unchanged fallback and argument lifetimes
-  Linux: tools/elf/arguments.py, tools/elf/varargs_native.py, tools/elf/forwarding.py
-comparisons: Complete accepted loose/strict primitive,object identity,truth and fallback cohorts with actual measured fields
-  Linux: tools/elf/comparisons.py
-core-array-own: Separate core numeric own-data leaf and VM indexed tier;all inherited core/clone consumers and original typed fallback retained
-  Linux: tools/elf/indexed_ops.py
-compiler-plan: Complete common bounded first64 FD/TDZ planning and independent compiler-generated projection;no bytecode format/frame metadata extension
-  Linux: tools/elf/compiler_projection.py, src/bytecode/compiler-plan.c
-wire: Source-identical checked wire codec and original producer/free/IC relink lifetime,with actual original public serialization ABI
-  Linux: src/wire/wire.c, tools/elf/build-foundation.py, tools/elf/property_family.py
-optional-weak-call-links: Explicit optional weak VM cache is defaultOFF in the accepted current MinGW SDK;not ported and outside default-active parity,not confused with active native builtin dispatch
-  Linux: src/x86/win64/mingw64/mingw-call_policy.c
+- `core-common`: `tools/common/backports/backport-core.py`, `src/common/{value,function,property,memory}`
+- `regexp-core` & `regexp-builtins`: `src/common/regexp`, `tools/x86/linux/{regexp_workers,admission}.py`
+- `allocator-environment`: `src/common/memory`, `src/common/internal/interpreter-env.c`
+- `core-PIC-lifetime`: `src/common/property/{property-ic,property-ic-lifetime}.inc`
+- `instanceof`: `src/common/value/instanceof-fast.inc`, `tools/x86/linux/vm_leaves.py`
+- `native-entry-VM`: `tools/x86/linux/{build-foundation,generate-vm,native_entries,js_calls}.py`
+- `C-scope-builtin`: `tools/x86/linux/{publication,c_invoke,builtin_vm}.py`, `asm/x86/linux/`
+- `null-prototype`: `tools/x86/linux/null_proto.py`, `src/x86/linux/`
+- `numeric-local`: `tools/x86/linux/{numeric,string_workers,string_vm}.py`, `src/common/call/`
+- `property-supplements` & `literal-reserve`: `tools/x86/linux/{property_family,literal_shapes}.py`, `src/common/kernel/ordinary-literal.c`
+- `iterator-literal`: `tools/x86/linux/{iterators,varargs_native}.py`
+- `global-bindings`: `tools/x86/linux/global_bindings.py`
+- `array-callback-sort`: `tools/x86/linux/{array_workers,c_workers}.py`
+- `JSON`: `tools/x86/linux/json_workers.py`, `src/common/json`
+- `async-generator` & `async-output`: `tools/x86/linux/c_workers.py`, `src/common/promise/{async-output,generator-capability}.inc`
+- `strings`: `tools/x86/linux/{string_workers,string_vm}.py`, `src/common/string`
+- `arguments-varargs`: `tools/x86/linux/{arguments,varargs_native,forwarding}.py`
+- `comparisons` & `core-array-own`: `tools/x86/linux/{comparisons,indexed_ops}.py`
+- `compiler-plan`: `tools/x86/linux/compiler_projection.py`, `src/common/bytecode/compiler-plan.c`
+- `wire`: `src/common/wire/wire.c`, `tools/x86/linux/{build-foundation,property_family}.py`
 
 Explicit boundaries
 -------------------
-The accepted current MinGW SDK is freshly checked:weak VM call links default
-OFF,explicit opt-in enables them,and either disable control wins. They remain
-unported optional functionality. Active native builtin C dispatch is carried.
-MSVC-only coroutine native segments and additional method learning are outside
-GNU parity. Ordinary async output-capability elision was absent in the GNU
-baseline and remains absent;complete async-generator capability ownership is
-carried and observed.
-
-check_object is a retained compatibility wrapper. In the pinned compiler its
-four producers are yield-star/async-generator paths,rejected by the inherited
-normal-function native admission. Ordinary custom iterator result checks run
-in the carried checked C next/value owner. No ordinary active fast path is
-replaced by fallback to justify this boundary.
-
-Shared generator changes are reviewed:linux_borrowed_field and
-linux_stack_insert and linux_reference_stores defaultFalse;source_owned defaultsFalse;RegExp semantic-source extraction retains
-the exact accepted default Win body/routes. BigInt,shared-host and wire frozen
-bodies pass regeneration checks. Fresh final current-source Windows builds
-and literal-LF source packaging remain distinct release gates.
-
-Native stack insertion: the complete accepted insert3 kernel is selected by
-the qualified Linux instruction-stream adapter in an independent ELF code
-section; original text positions/bytes remain intact. Existing insert2 is
-separately carried. Their inherited disable control is shared,not a pure
-single-new-kernel ablation. See LINUX-STACK-INSERT.txt.
-
-Reference slot replacement: the complete accepted shared native put/set
-local/argument/closure family is now carried through measured SysV adapters.
-Final release retains the original typed C quota/publication boundary and
-commits incoming ownership before finalizers. Paired profiles,component
-controls,whole original suites and explicit layout costs are retained.
-See LINUX-REFERENCE-SLOTS.txt;this does not imply all per-case parity.
-
-Ordinary literal reserve (shared across Linux x86-64, Win64 MinGW and
-Linux AArch64 via ordinary-literal.c): a cold, empty cache site may reserve
-4/8/16 slots for a bounded prefix of simple value/define_field pairs, reusing
-any existing empty reserved shape for the same prototype/tier. The reserve
-sizes use distinct shape hash seeds, including for subsequent transitions;
-ordinary object construction and its initial capacity are unchanged. No new
-opcode, frame state or public ABI is involved. The existing ordinary-literal,
-transition and spare disable controls also bypass this hint.
-
-Continue original reversed micro57/JetStream17/V8-v7 comparisons against
-prior/stock Linux AND the actual MinGW image. Confirm material costs,then
-profile the real remaining routes before changing another mechanism.
+- Optional default-OFF weak VM call links and MSVC-only native coroutine resume
+  segments (`COROUTINES.txt`) remain outside GNU ELF parity; all active builtin C
+  dispatch, capability-free ordinary async output Promises, and async-generator
+  capability ownership are active on Linux.
+- All 22 mechanism families pass Linux x86-64 `LINUX_X86_64` (`963/963` CTest)
+  and full `82,220`-case Test262 (`40` stock-matched failures, `0` new).

@@ -67,7 +67,7 @@ release requires both bank and getter absent. Original7observing and2pure
 helper families remain exactly the same. All14default x86 generator files
 and actual core preprocessed/object bytes remain equal to the frozen parent.
 
-Freeze and fresh release/instrumented/noGit builds,full same81152Test262,
+Freeze and fresh release/instrumented/noGit builds,full same82220Test262,
 installed SDK/qjsc/wire,pins,linked memory and final old-platform checks still
 qualify this supplement separately. Global binding/Symbol,indexed and other
 remaining22family mechanisms stay open. AUTO remains PORTABLE until P5 closes.

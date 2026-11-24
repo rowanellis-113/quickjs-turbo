@@ -3,15 +3,15 @@ Qualified Linux native reference-slot replacement
 
 This development increment carries the accepted shared Win reference-slot
 factory to measured Linux ELF/SysV. It does not change the pinned
-QuickJS-NG0.15.1 bf8988f core,bytecode,public ABI,frame or root layout.
+QuickJS-NG0.17.0 7b5f588e0f core,bytecode,public ABI,frame or root layout.
 Windows factory defaults remain byte-identical;no fresh Windows compiler
 build is claimed by this Linux qualification. Whole performance review
 retains all original launch modes and per-case costs.
 
 Source and ownership
 --------------------
-tools/elf/slot_store.py adapts tools/generate/slot-store.py with the measured
-layout and a reviewed owner hash;tools/elf/generate-vm.py emits its normal
+tools/x86/linux/slot_store.py adapts tools/x86/common/codegen/slot-store.py with the measured
+layout and a reviewed owner hash;tools/x86/linux/generate-vm.py emits its normal
 and Dirty continuations. The shared generate-register.py opt-in defaults
 False and is selected only for the complete native Linux stream.
 Both put/set local,argument and closure slots retain incoming alias,dup
@@ -49,7 +49,7 @@ No PGO,fixed base,padding search or core interpreter rewrite was used.
 
 Qualification and performance
 -----------------------------
-934/934CTest;two full81152Test262 runs(default and familyOFF0):each65
+934/934CTest;two full82220Test262 runs(default and familyOFF0):each65
 unchanged known failures,31fixed,zero new/changed failure identities.
 Installed/relocated SDK and independent public consumers exercise GC,
 reentry,capture,realm,deep constructs,generators and finalization in
@@ -68,7 +68,7 @@ Linux-prior17f87a2: 1870.6499, 1909.7355
 Linux-slot-candidate: 1935.4373, 1941.2504
 Linux-stock-NG0151: 987.8068, 987.4303
 All V8 subcases,Jet17 and micro57 rows and exact receipts are in the
-external audit directory below. Original refers to NG0.15.1,not Bellard2026.
+external audit directory below. Original refers to NG0.17.0,not Bellard2026.
 Concat0/1 costs remain explicitly priced against both prior and stock.
 micro prop_delete and regexp_ascii show different original adaptive N
 and large sample modes;bad samples are not discarded or replaced by a

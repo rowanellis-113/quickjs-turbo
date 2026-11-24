@@ -1,6 +1,6 @@
 Guarded RegExp flags batching
 ============================
-The Win64 builtin worker proves each live canonical RegExp receiver and its
+The WIN_X86_64 builtin worker proves each live canonical RegExp receiver and its
 immediate ordinary prototype, then checks all eight flag getters by property
 name, string-atom type, descriptor kind, native ABI, function identity and
 magic. It reads the bytecode flags once and constructs the same flags string.
@@ -40,4 +40,4 @@ eight-poll accounting before updating guards. Keep the prototype/Symbol, poll
 boundary/abort, realm, GC, OOM and same-image disabled-path tests. Both native
 compilers and the portable fallback must still build and qualify. The two
 implementation paths are src/x86/win64/common/quickjs-regexp-flags.inc and
-tools/generate/regexp.py; the original 19 upstream inputs are untouched.
+tools/x86/common/codegen/regexp.py; the original 19 upstream inputs are untouched.

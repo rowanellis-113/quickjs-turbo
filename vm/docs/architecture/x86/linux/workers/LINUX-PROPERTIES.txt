@@ -54,12 +54,11 @@ and large-global configuration writes are not own-tail dependencies;they are
 not silently treated as migrated Linux mechanisms by this integration.
 
 Current qualification is external and source-bound:linux-gcc-properties-r7
-passes793 strict CTests and three full pinned Test262 cohorts,each65/81152
-inherited failures,31fixed,0new/changed,with exact portable identities. All19
+passes793 strict CTests and three full pinned Test262 cohorts,each40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152),with exact portable identities. All19
 upstream pins remain byte-exact. ELF/PIE/CET/CFI checks cover322 selected FDEs.
 An independent installed find_package consumer and standalone archive pass the
 new producer/reader/realm/GC protocol and reader allocation sweep;the same public
-object also passes against prior9431921 and stock NG0.15.1 archives. Existing
+object also passes against prior9431921 and stock NG0.17.0 archives. Existing
 indexed direct/coercion public hosts and OOM controls continue to pass the SDK.
 
 Read-only observers verify actual own-slot hits,borrowed PIC,Number/String/

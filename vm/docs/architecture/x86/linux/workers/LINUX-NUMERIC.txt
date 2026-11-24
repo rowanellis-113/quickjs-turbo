@@ -29,7 +29,7 @@ Both existing TDZ controls still apply at compilation,including presence0.
 Development qualification:890 strict CTests,including26 numeric cases and
 nine existing compiler bytecode/ownership cases;three full pinned Test262
 cohorts(default,BigInt local/release OFF,TDZ both OFF) retain exact portable
-65/81152 inherited failures,31fixed,0new/changed. Independent actual compiled
+40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152). Independent actual compiled
 objects use identical core/projection/converter flags;the projection and
 converter have zero allocated writable bytes. Decoding proves exactly seven
 release calls in the three source-owned arithmetic boundaries.

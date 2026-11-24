@@ -1,49 +1,38 @@
 Product documentation
 =====================
-BUILDING.txt: configuration, build, tests and format checks.
-PRODUCT-BASELINE.txt: accepted cross-platform runtime,allocator configuration,scores and promotion scope.
-FORMAT.txt: formatter setup, checks and documented source exceptions.
-DIRECTORY-LAYOUT.txt: owned sources, generators and platform backends.
-REGEXP.txt: search and builtin fast paths, guards and upgrade obligations.
-STATUS.txt: current version and support boundaries.
-OPTIMIZATIONS.txt: integrated components, controls and maintenance scope.
-HYBRID-GC.txt: hybrid reference counting, generational partial cycle GC, fast synchronous RC and controls.
-ARRAY-SORT.txt: array sort implementation and observable semantics.
-ASYNC-GENERATORS.txt: async generator capability ownership and controls.
-COMPILER-PLAN.txt: guarded compiler planning and upgrade contracts.
-COROUTINES.txt: coroutine dispatch, platform coverage and ownership.
-SYMBOL-CONDITIONS.txt: resolved Symbol condition handling and controls.
-LINUX-PORT.txt: native Linux port scope, build command and six completion gates.
-LINUX-RELEASE.txt: qualified implementation,toolchains,exact images and delivery bindings.
-LINUX-MECHANISMS.json: explicit mechanism routes, evidence and qualification scope.
-LINUX-MECHANISM-COVERAGE.txt: complete default-active GNU source/ABI/execution closure.
-LINUX-FINAL-REVIEW.txt: current original57/17/8 scores,memory,costs and stop decision.
-LINUX-PERFORMANCE.txt: original suite scores, memory, known costs and bounded decisions.
-LINUX-C-INVOKE.txt: measured SysV C invocation and coherent boundary protocol.
-LINUX-C-ENTRY.txt: numeric/dense leaves and builtin window lifetime/publication.
-LINUX-JS-CALLS.txt: owned/captured native calls, naming dependency and view alias repair.
-LINUX-FORWARDING.txt: shared .call normalization, native producers and logical-parent cleanup.
-LINUX-ENTRIES.txt: actual SysV public/root/child entries and shared frame-free native leaves.
-LINUX-VM-LEAVES.txt: complete shared in-VM primitive/compound/character kernels and ownership.
-LINUX-CONSTRUCTORS.txt: root3 construction, native return and complete slow/callback cleanup.
-LINUX-PUBLICATION.txt: Clean/Dirty dispatch, shared return phases and read-only ELF tables.
-LINUX-ARGUMENTS.txt: mapped/unmapped frames, native access/forwarding and argument constructors.
-LINUX-ITERATORS.txt: native JS-next checkpoints, live array guards and coherent iterator boundaries.
-LINUX-C-WORKERS.txt: shared C workers, prepared callbacks and qualification limits.
-LINUX-JSON.txt: source-owned JSON family, controls, ownership and qualification.
-LINUX-STRINGS.txt: string/rope/cache/index kernels, native append and remaining entries.
-LINUX-ARRAYS.txt: dense copy/append/pop, cached/prepared/default sort and remaining entries.
-Historical validation records are retained in the separate audit archive.
 
-LINUX-AARCH64-RELEASE.txt: current native/portable ARM64 build,complete functional qualification and hardware boundaries.
-LINUX-AARCH64-NATIVE-RETURN.txt: qualified register-only return cleanup,full correctness and measured gains/costs.
-LINUX-AARCH64-REGISTER.txt: actual AAPCS64 VM,ownership,publication and source-derived ABI.
-LINUX-AARCH64-MECHANISMS.json: current original22 GNU families,source owners and positive test map.
+1. Core guides, baselines & formatting
+-------------------------------------
+BUILDING.txt: configuration, native/portable builds, Test262, installation, and embedding.
+DIRECTORY-LAYOUT.txt: owned sources, generators, backends, and test directories under vm/.
+FORMAT.txt: pinned formatters (clang-format, Ruff, cmakelang, Prettier, shfmt, PSScriptAnalyzer, Meson) and frozen input rules.
+PRODUCT-BASELINE.txt: current v0.17.0-turbo.1 cross-platform baseline, verified scores, heap footprint, and v0.15.1 history.
+OPTIMIZATIONS.txt: integrated cross-architecture optimization components, controls, and boundaries.
+HYBRID-GC.txt: Hybrid Reference Counting, generational partial cycle GC, synchronous Fast RC, and ablation controls.
 
-LINUX-AARCH64-FORWARDING.txt: ARM64 owned/readonly/missing native .call constructors and component controls.
+2. Shared subsystem notes (`common/subsystems/`)
+------------------------------------------------
+ARRAY-SORT.txt: default primitive-string MSD radix sorter and bounds.
+ASYNC-GENERATORS.txt: async-generator output-Promise capability elision and controls.
+COMPILER-PLAN.txt: bounded lexical TDZ planning and private projection.
+COROUTINES.txt: persistent coroutine resume segments on MSVC WIN_X86_64.
+REGEXP.txt: guarded RegExp flags batching and upgrade checklist.
+SYMBOL-CONDITIONS.txt: resolved Symbol condition folding and controls.
 
-LINUX-AARCH64-ARRAY-WORKERS.txt: complete shared copy/sort owners,actual ABI,controls and native append/indexed dependencies.
+3. x86-64 backends (`x86/`)
+---------------------------
+x86/win64/WIN-X86-64.txt: unified Windows x86-64 native VM (`MSVC` / `clang-cl` / `MinGW`), SEH unwind, `/MT`, and benchmarks.
+x86/macos/MACOS-X86-64.txt: macOS x86-64 native Mach-O ASM VM (`MACOS_X86_64`), Mach-O verification, and hardware cohort.
+x86/linux/LINUX-PORT.txt: Linux x86-64 native port scope, build command, and six completion gates.
+x86/linux/LINUX-RELEASE.txt: Linux x86-64 current qualification, toolchains, and Test262/CTest bindings.
+x86/linux/LINUX-FINAL-REVIEW.txt: Linux x86-64 v0.17.0-turbo.1 5-engine benchmark cohort, hotspots, and historical deltas.
+x86/linux/LINUX-MECHANISMS.json & LINUX-MECHANISM-COVERAGE.txt: mechanism route inventory and GNU coverage boundaries.
+x86/linux/workers/LINUX-*.txt: 29 per-worker Linux x86-64 bring-up and ABI notes.
 
-LINUX-AARCH64-NULL-PROTO.txt: original null-only admission and warm allocator,actual AAPCS64 and complete typed C fallback.
-
-LINUX-AARCH64-ARGUMENTS.txt: complete shared argument C owners,native Ready,source-measured16-byte record and native access/forwarding.
+4. ARM64 backend (`arm64/`)
+---------------------------
+arm64/LINUX-AARCH64.txt: Linux AArch64 portable C cross/native build and ABI foundation checks.
+arm64/LINUX-AARCH64-RELEASE.txt: Linux AArch64 native register VM qualification, QEMU CTest/Test262, and toolchain boundaries.
+arm64/LINUX-AARCH64-HARDWARE.txt: AWS Graviton2 (Neoverse-N1) hardware benchmarks (v0.17.0-turbo.1) and historical costs.
+arm64/LINUX-AARCH64-MECHANISMS.json: AArch64 GNU mechanism inventory and test mapping.
+arm64/workers/LINUX-AARCH64-*.txt: 27 per-worker AArch64 ABI and codegen notes.

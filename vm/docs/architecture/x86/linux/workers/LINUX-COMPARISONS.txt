@@ -7,7 +7,7 @@ gates in LINUX-PORT.txt remain required. No speed baseline is established here.
 
 Shared source and actual ABI
 ----------------------------
-tools/elf/comparisons.py extracts the complete accepted GNU loose/strict kernels
+tools/x86/linux/comparisons.py extracts the complete accepted GNU loose/strict kernels
 and common strict body/reference/identity fragments. It verifies all eight
 semantic-owner hashes,the pinned core,the actual retained strict C fallback and
 the measured string bit layout. Actual C assertions cover JSValue16/tag8,

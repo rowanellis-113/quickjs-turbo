@@ -76,7 +76,7 @@ host observation instead of requiring201eliminated C global reads.
 
 The source ABI, generated family receipt and complete original algorithm
 receipt are installed beside this document. Full fresh release/instrumented,
-same81152Test262, noGit SDK, qjsc and wire gates qualify the frozen supplement
+same82220Test262, noGit SDK, qjsc and wire gates qualify the frozen supplement
 separately. Remaining original22-family mechanisms and final P5 stay open.
 AUTO remains PORTABLE. QEMU results prove functional behavior only; physical
 ARM performance and RSS are not qualified by emulated execution.

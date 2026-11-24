@@ -52,7 +52,7 @@ Qualification
 ---------------
 The normal Werror build passes469 CTests, ELF/CFI/PIC/CET checks and an installed
 independent public consumer. Full current entry ON/OFF Test262 matches the
-qualified portable product at65/81152 inherited failures,31fixed,0new/changed,
+qualified portable product at40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152),
 with exact failure/fix identities. The fixture-only test promotion preserves
 byte-identical qjs,Test262 runner and archive, so that full evidence stays bound.
 
@@ -61,7 +61,7 @@ GC, cycles, proxy/prototype/getter fallbacks, native callbacks and interrupt
 abort/recovery. Nineteen component modes and nine allocation-fault modes pass;
 all three injected allocation failures recover with complete zero ledgers.
 The same compiled object also passes against stock/prior archives. Stock here
-is unoptimized QuickJS-NG0.15.1 with the same Linux/GCC,not Bellard2026.
+is unoptimized QuickJS-NG0.17.0 with the same Linux/GCC,not Bellard2026.
 
 Read-only native observations prove all four admitted entry constructors and
 all five successful leaf families, initialized fields, runtime SF/TLS, charge

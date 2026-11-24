@@ -1,7 +1,7 @@
 <!-- UTF-8. PowerShell: Get-Content -LiteralPath AGENTS.md -Encoding UTF8 -->
 # QuickJS-NG engineering guide
 
-Upstream QuickJS-NG 0.15.1 at the revision in
+Upstream QuickJS-NG 0.17.0 at the revision in
 `vm/cmake/QuickJSUpstreamPin.cmake` remains untouched outside `vm/`. Keep those
 upstream files byte-for-byte unmodified at the repository root. Preserve
 existing notices and consolidate all product changes inside `vm/`.
@@ -101,8 +101,8 @@ a three-second delay and a bounded seven-second window fully inside the real
 workload. Verify PID, UID, mapped image/hash, CPU, window and lost samples.
 Hardware PMU events may be unavailable under WSL; do not invent hardware data.
 Separate profiles that repeat the original body from original calibrated scores.
-Use tools/bench/linux-selected.py with explicit immutable external corpora and
-tools/elf/screen.py --all for the exact upstream micro list. Report original
+Use tools/common/bench/linux-selected.py with explicit immutable external corpora and
+tools/x86/linux/screen.py --all for the exact upstream micro list. Report original
 V8-v7 scores, JetStream body milliseconds and micro ns/op, with actual engine
 peak RSS. Keep adaptive calibration N and multimodal samples when they matter.
 
@@ -128,8 +128,8 @@ proving the input core bytes remain unchanged. Keep pinned-source review gates.
 
 ## Correctness and review
 
-The optional async-generator worker lives in `src/promise/generator-capability.inc`
-and `tools/generate/generator-capability.py`, with its reviewed compiler contract
+The optional async-generator worker lives in `src/common/promise/generator-capability.inc`
+and `tools/x86/common/codegen/generator-capability.py`, with its reviewed compiler contract
 in `src/x86/win64/abi/generator-capability.json`. A private generator request
 can own its public output Promise directly: two undefined `resolving_funcs`
 slots identify this case, while `request.promise` retains its original GC and
@@ -191,7 +191,7 @@ function and shift the VM. Append new assembly workers after inherited entries;
 compare actual VM bytes/addresses, table positions and constructor deltas before
 crediting a mechanism. Address preservation is evidence, not a speed guarantee.
 Retain observing/overflow/TDZ/-0 fallback and test live captured cells under GC.
-For native scalar child leaves, see docs/architecture/x86/linux/LINUX-SCALAR-LEAVES.txt.
+For native scalar child leaves, see docs/architecture/x86/linux/workers/LINUX-SCALAR-LEAVES.txt.
 
 Retain microbench clock source, adaptive N and every mode. On this pinned Linux
 host os.cputime counts user CPU, whereas os.now measures elapsed time; a separate
@@ -207,7 +207,7 @@ modes and ranges; never use a favorable component/launch to declare parity.
 Mechanism inventory alone does not prove the hot route is equally efficient.
 Profile repeated classification and actual default decisions before assuming
 an architectural ceiling. See docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt for the bounded source-platform review,
-remaining per-case gaps and feature-work exit. docs/architecture/x86/linux/LINUX-SLOW-ROUTING.txt
+remaining per-case gaps and feature-work exit. docs/architecture/x86/linux/workers/LINUX-SLOW-ROUTING.txt
 retains the historical routing increment.
 
 For an independent noncalling ELF continuation, prefer an executable input
@@ -218,7 +218,7 @@ borrowed VM CFA explicitly and test an actual unwind through the new section.
 Compare linked text, tables, segments and memory as well as paired timings;
 preserved code alone does not prove unchanged performance. Audit every reader
 of an inherited disable control before calling its result a pure ablation.
-See docs/architecture/x86/linux/LINUX-STACK-INSERT.txt for the qualified example and shared switch.
+See docs/architecture/x86/linux/workers/LINUX-STACK-INSERT.txt for the qualified example and shared switch.
 
 
 Reference-slot replacement must preserve the complete incoming alias/dup or
@@ -229,10 +229,10 @@ release implementation justifies its cost. A family disable includes both
 nonlast decrement and last dispatch; it is not a decrement-only ablation.
 Check actual unused runtime padding and scratch leases against the measured
 ABI. Keep normal and Dirty observing boundaries and real CFI. See
-docs/architecture/x86/linux/LINUX-REFERENCE-SLOTS.txt for the qualified Linux example and its explicit
+docs/architecture/x86/linux/workers/LINUX-REFERENCE-SLOTS.txt for the qualified Linux example and its explicit
 old continuation move; fixed main entries do not prove whole-image identity.
 
-Keep independent new-path policy out of inherited inline initializers. A few getenv calls can change compiler inlining and move unrelated VM code; restore the old policy body and measure the actual ON/OFF image rather than choosing addresses. See docs/architecture/x86/linux/LINUX-VIRTUAL-ARGUMENTS.txt.
+Keep independent new-path policy out of inherited inline initializers. A few getenv calls can change compiler inlining and move unrelated VM code; restore the old policy body and measure the actual ON/OFF image rather than choosing addresses. See docs/architecture/x86/linux/workers/LINUX-VIRTUAL-ARGUMENTS.txt.
 
 On the pinned Linux host, short user-CPU minima can be multimodal even for an immutable accepted image. Preserve the original full list/calibration/all modes, then use a separately labeled elapsed-clock diagnostic for a confirmed concern. Bind the exact one-line clock change and never mix the two timing panels or rename diagnostics as upstream scores.
 
@@ -252,4 +252,4 @@ permit;clear uncommitted window scratch first. Test readonly and original owned
 metadata/path expectations under both proof disable values,including zero
 arity,captured recursion,GC/reentry and escaping closure detachment. Keep the
 generic C FRAME_READONLY_ARGS rule unchanged and prove compiledOFF core/VM
-identity. See docs/architecture/arm64/LINUX-AARCH64-FORWARDING.txt.
+identity. See docs/architecture/arm64/workers/LINUX-AARCH64-FORWARDING.txt.

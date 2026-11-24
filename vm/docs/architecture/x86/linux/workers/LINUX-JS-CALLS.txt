@@ -10,9 +10,9 @@ Shared constructor and actual SysV route
 ---------------------------------------
 The shared register stream already prepares scalar call metadata: cached frame
 bytes, formal/local counts and the inherited initialization bit. This was not
-a missing default mechanism. tools/generate/js-owned-missing.py now exposes
+a missing default mechanism. tools/x86/common/codegen/js-owned-missing.py now exposes
 the existing constructor as a pure factory over the supplied actual layout.
-Its126 accepted MinGW instruction rows remain identical. tools/elf/js_calls.py
+Its126 accepted MinGW instruction rows remain identical. tools/x86/linux/js_calls.py
 uses that factory with compiler-measured Linux types and inline refcount0.
 
 Four direct-only native blocks add guarded owned missing arguments, the wide
@@ -73,7 +73,7 @@ Qualification and cost boundaries
 ---------------------------------
 A fresh Release/Werror build passes384 CTests, ELF/CFI/PIC/CET checks and an
 independent installed consumer. Full pinned Test262 ON/OFF each reports
-65/81152 inherited failures,31fixed,0new/changed, with exact portable failure
+40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152), with exact portable failure
 and fix identities. Corpus/configuration/known-error bytes are bound.
 
 The public host performs477 matched calls with GC, cross-realm reentry and

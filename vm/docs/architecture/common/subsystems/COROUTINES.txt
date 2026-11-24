@@ -1,6 +1,6 @@
-Persistent coroutine execution on MSVC Win64
+Persistent coroutine execution on MSVC WIN_X86_64
 ============================================
-The MSVC Win64 Release backend resumes real suspended generator, async-function
+The Windows WIN_X86_64 MSVC/MinGW native backend resumes real suspended generator, async-function
 and async-generator frames through a private generated entry. Arguments,
 locals, captures and PC/SP remain in their existing storage. The full inherited
 C opcode loop, exception walker and suspension cleanup remain available.
@@ -13,7 +13,7 @@ compiler-object identity is not a claim of identical timing or linked layout.
 
 Contiguous supported operations run through 108 precompiled scalar handlers,
 with direct successor dispatch and no runtime machine-code generation. The
-native leaf uses volatile Win64 registers, no native stack, ordinary readonly
+native leaf uses volatile WIN_X86_64 registers, no native stack, ordinary readonly
 dispatch targets with complete ASLR fixups and standard unwind metadata.
 Its temporary 48-byte view borrows the real persistent slots. No public API,
 JSValue, object, context, runtime or suspended-frame layout changes are made.
@@ -45,7 +45,7 @@ REPORT.txt and ACCEPTANCE.json in that SDK bind source, tools, binaries,
 complete measurements, retained costs, memory observations and real-PC audits.
 
 GNU/MSVC/portable CTest: 269/254/182; all 705 passed. All three Test262 runs use
-the accepted corpus/configuration: 65 pre-existing errors out of 81152, the same
+the accepted corpus/configuration: 40 inherited stock failures out of 82,220 (rebased from 0.15.1's 65/81,152), the same
 31 fixed identities, no new failures. Installed public consumers pass 96 tests.
 Additional JS/C coroutine consumers pass 96 processes across three packages and
 eight modes. The JS fixture checks 2269 conditions; public C hosts cover wide

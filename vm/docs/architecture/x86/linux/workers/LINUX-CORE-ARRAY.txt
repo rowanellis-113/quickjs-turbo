@@ -11,7 +11,7 @@ all original class/fast-array/index/hash/atom/descriptor guards.
 
 ABI and fallback
 ----------------
-tools/elf/indexed_ops.py reuses the complete accepted ASM instruction body.
+tools/x86/linux/indexed_ops.py reuses the complete accepted ASM instruction body.
 Only argument-register tokens,local labels,ELF/CFI and the original fallback
 name change. SysV arguments are ctx=RDI,object=RSI,uint32 index=EDX,out=RCX;
 RAX/R10/R11 are scratch. Every miss preserves all four arguments and tail
@@ -34,7 +34,7 @@ Qualification
 -------------
 Fresh strict core build and921 CTests pass;the selected mechanism screen has
 100 cases. Three fresh full Test262 cohorts(default,frameOFF,propertyIC OFF)
-retain exact portable65/81152 inherited failures,31fixed,0new/changed.
+retain exact portable40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152).
 The new public regression covers every primitive/heap value category,current
 owning result lifetime,getter GC/cross-realm nested reads,dense/TypedArray/
 mapped-arguments/object/proxy fallback,128 reads without allocation,and fresh

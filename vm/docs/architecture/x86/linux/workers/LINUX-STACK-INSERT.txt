@@ -28,7 +28,7 @@ the literal family. ON/OFF therefore is not a pure new-insert3 ablation.
 Credit only the actual old/new default comparison and attributed code routes.
 
 Qualification:934/934CTest;two new complete Test262 runs(default/component
-off0),each65/81152 inherited failures,31fixed,no new/changed exact identities,
+off0),each40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152),no new/changed exact identities,
 4925excluded/5954skipped. Installed then relocated SDK public C host tests cover
 GC,reentry,capture,realm,deep construction/generator cleanup and original stack
 owner/finalizer cases. Readonly debugger observation sees32 natural native
@@ -44,7 +44,7 @@ is-0.520%;concat0+5.53%(added4.20stock percentage points) remains a priced cost.
 These are bounded screens,not stable statistical claims or erased regressions.
 
 Fresh V8 totals:MinGW[1923.0626,1922.1143],candidate[1863.1442,1996.4456],
-prior[1803.4032,1847.2204],stock NG0.15.1[976.4347,967.7206]. Candidate RayTrace
+prior[1803.4032,1847.2204],stock NG0.17.0[976.4347,967.7206]. Candidate RayTrace
 has a favorable high mode;do not claim stable whole parity from its mean or
 best process. This increment does not seal the Linux performance baseline.
 

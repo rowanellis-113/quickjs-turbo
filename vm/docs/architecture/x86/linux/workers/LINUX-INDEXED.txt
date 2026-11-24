@@ -1,7 +1,7 @@
 Native indexed access and instanceof on Linux x86_64
 ==================================================
 
-tools/elf/indexed_ops.py derives all three accepted indexed-own assembly
+tools/x86/linux/indexed_ops.py derives all three accepted indexed-own assembly
 kernels from indexed_own_native.py and the complete indexed/instanceof narrow
 C workers plus pure leaf from slow-direct.py and publish-boundary.py. Actual
 Linux core types and compiler-produced SysV bridges replace PE imports. No
@@ -59,7 +59,7 @@ Current default/coercion fault sweeps cover16/24 points versus15/23 frame-OFF
 and17/27 stock. Native observations separately prove get/get2/put commits,
 instanceof/alias/poll behavior and consumed-key/RHS publication during GC.
 Current full Test262 native-on,indexed-own-off and narrow/leaf-off each test
-81152 cases:65 inherited failures,31fixed,0new/changed,with exact portable
+82220 cases: 40 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152),with exact portable
 failure/fix identities. ELF/SDK/standalone reports bind the same final image.
 Counters/debugger observations are correctness evidence, not speed or suite rates.
 

@@ -22,6 +22,6 @@ The stable original async-fs body improves15.48% MSVC/21.61% GNU throughput. The
 n128 harness allocates2757 objects versus5587 accepted, with identical live usage and
 zero teardown allocations. These counts are not application-suite dynamic counts.
 
-Overall suites are nearly flat and retain priced micro regressions. See STATUS.txt and
+Overall suites are nearly flat and retain priced micro regressions. See PRODUCT-BASELINE.txt and
 external SDK REPORT.txt, DECISION-final2.json, REGRESSION-REVIEW-final2.json, original
 profile and all preset image-copy records. Do not infer a universal Promise speedup.

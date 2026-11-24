@@ -49,7 +49,7 @@ bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk
 # Linux ARM64 (glibc / musl native ELF ASM VM)
 bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk
 
-# Windows x86-64 (MSVC / clang-cl native WIN_X86_64, zero GNU binutils)
+# Windows x86-64 (MSVC / clang-cl / MinGW — AUTO selects WIN_X86_64)
 cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release \\
   -DQJS_FRAME_BACKEND=AUTO -DQJS_PROPERTY_IC=ON
 cmake --build build/win-x86_64 --parallel`,
@@ -172,6 +172,11 @@ function renderHistory() {
     })
     .join("");
 
+  const stockPoints = items.map((d, i) => [xAt(i), yAt(d.baselineV8Score || baseline.v8Score)]);
+  const stockPath = stockPoints
+    .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
+    .join(" ");
+
   const points = items.map((d, i) => [xAt(i), yAt(d.v8Score)]);
   const linePath = points
     .map(([x, y], i) => `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`)
@@ -220,6 +225,8 @@ function renderHistory() {
       </defs>
       ${gridSvg}
       <path d="${areaPath}" fill="url(#turboArea)" />
+      <path d="${stockPath}" fill="none" stroke="var(--chart-base-dot)" stroke-width="1.5" stroke-dasharray="4 4" />
+      <text x="${W - padR}" y="${(stockPoints[stockPoints.length - 1][1] - 6).toFixed(1)}" text-anchor="end" fill="var(--chart-base-dot)" font-size="10" font-family="JetBrains Mono, monospace">Stock NG (0.15.1 -> 0.17.0)</text>
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" />
       ${nodesSvg}
     </svg>
@@ -249,11 +256,12 @@ function renderHistory() {
     });
   });
 
+  const baseVer = current.baselineVersion || "0.15.1";
   const baseV8Score = current.baselineV8Score || baseline.v8Score;
   const pctGain = (((current.v8Score - baseV8Score) / baseV8Score) * 100).toFixed(1);
   document.getElementById("history-gain-badge").textContent = current.isBaseline
-    ? "Baseline (1.00×)"
-    : `+${pctGain}% vs Stock NG`;
+    ? `Baseline (NG ${baseVer})`
+    : `+${pctGain}% vs Stock NG ${baseVer}`;
 
   const rssLine = current.peakRssKiB ? `${(current.peakRssKiB / 1024).toFixed(1)} MiB` : "—";
 
@@ -263,7 +271,7 @@ function renderHistory() {
         <h3 class="panel-title mono">${current.version}</h3>
         <p class="panel-subtitle">${current.date} · ${current.pool}</p>
       </div>
-      <span class="badge ${current.isBaseline ? "" : "badge-green"}">${current.ratioVsNg.toFixed(2)}× NG</span>
+      <span class="badge ${current.isBaseline ? "" : "badge-green"}">${current.ratioVsNg.toFixed(2)}× NG ${baseVer}</span>
     </div>
     <p style="margin: 0 0 12px; font-size: 13.5px; color: var(--text-muted)">${current.summary}</p>
     <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 12px;">
@@ -287,6 +295,8 @@ function renderHistory() {
 
   document.getElementById("subtest-title").textContent =
     `V8-v7 Subtest Breakdown — ${current.version}`;
+  document.getElementById("subtest-subtitle").textContent =
+    `Each subtest ratio is computed against same-session Stock QuickJS-NG ${baseVer} on the Reference Linux x86-64 host`;
   document.getElementById("subtest-version-badge").textContent = current.version;
 
   const baseSubtests = current.baselineSubtests || baseline.subtests;
@@ -299,7 +309,7 @@ function renderHistory() {
         <div class="subtest-tile">
           <div class="subtest-name">${name}</div>
           <div class="subtest-val">${Math.round(val).toLocaleString("en-US")}</div>
-          <div class="subtest-delta">${ratio}× vs NG (${Math.round(baseVal)})</div>
+          <div class="subtest-delta">${ratio}× vs NG ${baseVer} (${Math.round(baseVal)})</div>
         </div>
       `;
     })

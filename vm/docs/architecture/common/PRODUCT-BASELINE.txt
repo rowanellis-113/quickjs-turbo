@@ -1,264 +1,66 @@
-Current release & high-density verification, 2026-11-23 (v0.15.1-turbo.8)
-=========================================================================
-Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
-all 19 upstream source pins are unchanged. Releases v0.15.1-turbo.6 through
-v0.15.1-turbo.8 harden cross-platform portability on top of the v0.15.1-turbo.5
-high-density/embedding milestone without altering the runtime fast-path budget:
-- v0.15.1-turbo.6 (dd0f645 / ebcd330): Apple Clang 15 static _Atomic function
-  pointer zero-initialization fix in turbo-config.c.
-- v0.15.1-turbo.7 (014b93c / 2c1c49b): Forced Python UTF-8 mode (-X utf8) in
-  NativeWin64.cmake and explicit UTF-8 encoding in abi_layout.py for non-UTF-8
-  Windows locales (e.g. cp1252).
-- v0.15.1-turbo.8 (8fcb475 / 2b38b43): Linux musl target triple detection, GCC 14+
-  ARM64 probe declaration fix (c_return.py), and native objdump support across both
-  x86-64 and ARM64 toolchains.
+QuickJS-Turbo Product Baseline, 2026-11-24 (v0.17.0-turbo.1)
+===============================================================
+Release version: `v0.17.0-turbo.1` (`vm/VERSION`: `0.17.0-turbo.1`, commit `d0bf4c4`).
+Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`; all 19 source pins verified).
+Host runtime alignment: verified drop-in on unmodified `txiki.js v26.11.0` (`5133e8a`, `BC_VERSION 29`).
 
-Reference Host 4-engine Linux x86-64 verification (v0.15.1-turbo.8, commit 2b38b43,
-AMD Ryzen 3 3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR, 2026-11-23):
-1. Official V8-v7 (2 reversed interleaved blocks, FramePool 512 on Turbo):
-   - Node v24.13.0 --jitless:                  2,436.03 (RSS 468,760 KiB / 457.8 MiB)
-   - Turbo v0.15.1-turbo.8 Default (pool512):  2,101.40 (2.09x vs NG, 1.42x vs Bellard, 86.3% of Node; RSS 175,700 KiB / 171.6 MiB)
-   - Turbo v0.15.1-turbo.8 Density (noTail/w16): 2,094.06 (99.65% vs Default, 2.08x vs NG, 1.41x vs Bellard; RSS 175,848 KiB / 171.7 MiB)
-   - Bellard QuickJS 2026-06-04 (default -O2): 1,480.70 (RSS 150,438 KiB / 146.9 MiB)
-   - QuickJS-NG 0.15.1 (Stock):                1,007.04 (RSS 162,936 KiB / 159.1 MiB)
-2. Unified wall-clock micro57 (57 cases, 2 reversed ABBA blocks, CPU2, monotonic us):
-   - Turbo.8 Default vs Stock NG 0.15.1:       1.5503x geomean (50/57 wins)
-   - Turbo.8 Default vs Bellard 2026-06-04:    1.2223x geomean (35/57 wins)
-   - Turbo.8 Default vs Node v24.13 --jitless: 0.8305x geomean (20/57 wins)
-   - Turbo.8 Density (tail=OFF, w=16):         0.9823x vs Default (98.23% micro57 parity; 99.65% V8-v7 parity)
-3. Targeted workloads (4 interleaved blocks, median ms):
-   asyncPrim 2.37x vs NG (1.98x vs Bellard); bigintMod 2.08x vs NG (1.31x vs Bellard, 1.76x vs Node);
-   mapFlat 1.48x vs NG (1.32x vs Bellard); intToStr 1.37x vs NG (1.05x vs Bellard);
-   lit5 1.35x vs NG (0.94x vs Bellard); mapRope 1.03x vs NG (0.89x vs Bellard, 1.39x vs Node);
-   strAppend 1.01x vs NG (0.81x vs Bellard).
-   Note: Hardware-cohort separation is strictly preserved; the historical Linux
-   x86-64 anchor (Stock NG = 993.7, Turbo.4 = 2,071.65, Bellard = 1,465.7, Node =
-   2,374.9) and the fresh 2026-11-23 4-engine rerun on the same Ryzen 3 3300X host
-   (Stock NG = 1,007.04, Turbo.8 = 2,101.40, Bellard = 1,480.70, Node = 2,436.03)
-   both confirm ~2.08x-2.09x vs NG, ~1.41x-1.42x vs Bellard, and ~86%-87% of Node --jitless.
-4. High-Density Worker Heap Footprint (500 cold startup fns, deterministic 64-bit allocation):
-   Default (tail=ON, w=0) 779.3 KiB (500 IC slabs / 261.7 KiB) | PIC-only (tail=OFF, w=0) 660.5 KiB | Density (tail=OFF, w=16) 394.9 KiB (-49.3%, 0 cold IC slabs); JS_PurgePropertyIC reclaims 262.8 KiB (100% of IC slabs).
+Key 0.17.0-turbo.1 Capabilities
+-------------------------------
+- Native register-frame assembly VMs across all four tier-1 desktop/server targets:
+  `LINUX_X86_64`, `MACOS_X86_64`, `WIN_X86_64` (MSVC / `clang-cl` / MinGW), and `LINUX_AARCH64` (`glibc` & `musl`).
+- `PORTABLE` C fallback auto-selected on macOS ARM64, shared libs, Sanitizers, and `FORCE_GC_AT_MALLOC`.
+- `quickjs-turbo.h` + `quickjs-turbo::qjs` CMake target: PIC-only mode (`own_bytecode_tail = QJS_TURBO_OFF`),
+  low-bit tagged `property_ic_warmup`, `JS_PurgePropertyIC(rt)`, host LTO isolation, and `QJS_USE_PREGEN_ASM`.
+- Native 0.17.0 fast paths: `JSArena` string append, ARM64 `add_loc` & short loop latch,
+  and Win64 native array length write / iterator / number-to-string / Hybrid GC supplements.
 
-Current embedder, density & cross-platform baseline, 2026-11-22 (v0.15.1-turbo.5)
-=================================================================================
-Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
-all 19 upstream source pins are unchanged. Release v0.15.1-turbo.5 resolves the
-high-density memory vs native performance trade-off and promotes QuickJS-Turbo
-to a first-class embeddable C/CMake library across Linux, macOS, and Windows:
-1. Decoupled PIC-only (no-tail) mode (mode == 4): own_bytecode tail copies can
-   be disabled via QJS_DISABLE_OWN_BYTECODE_TAIL=1 or explicit C API
-   (own_bytecode_tail = QJS_TURBO_OFF) while keeping native assembly Property
-   ICs (JS_FrameOwnBytecodeM1/M2/M3) fully active via reserved[3] (+5).
-2. Low-bit tagged property_ic warmup + JS_PurgePropertyIC(rt): reuses odd low
-   bits (3..4095, max warmup 2047) on JSFunctionBytecode.property_ic (+0 bytes
-   struct growth, -1 hot branch on x86-64, +0 instructions on ARM64; default
-   warmup=0 preserves upstream CLI behavior) plus runtime slab reclamation via
-   rt->property_ic_list.
-3. Explicit C configuration & diagnostic API (vm/quickjs-turbo.h):
-   QJS_SetTurboDefaults, QJS_GetTurboDefaults, JS_SetRuntimeTurboOptions,
-   JS_PurgePropertyIC, and structured read-only QJS_GetTurboInfo(rt, &info)
-   replacing getenv() + constructor-priority workarounds.
-4. First-class CMake embedding (quickjs-turbo::qjs): local LTO isolation
-   (-fno-lto / /GL- on qjs/qjs-core only), automatic AUTO fallback to PORTABLE
-   under ASan/UBSan/TSan/MSan/Fuzz, add_subdirectory() support with automatic
-   top-level compile_commands.json/CMakeCache.txt resolution, and Linux ARM64
-   AUTO selection with both glibc and musl support.
-5. Source-level Windows x86-64 native ASM VM (WIN_X86_64): MSVC (cl + ml64) and
-   clang-cl support without GNU binutils, full Win64 ABI (32-byte shadow space,
-   callee-saved GPR/XMM invariants, SEH .pdata/.xdata unwind), native Property
-   IC, and MSVC unsigned 3-bit JSGCObjectHeader.gc_obj_type bitfield fix in
-   hybrid_gc.py.
-6. Optional pre-generated assembly bundles: deterministic export via
-   vm/tools/common/export-pregen.py and pure-CMake SHA256-verified offline
-   builds via -DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<dir>.
+1. Linux x86-64 5-Engine Cohort (Ryzen 3 3300X, GCC 13.3, CPU2, FramePool 512, 2026-11-24)
+------------------------------------------------------------------------------------------
+Official V8-v7 (2 reversed ABBA blocks, higher is better):
+- Node v24.13.0 `--jitless`:               2,400.99  (RSS 476,266 KiB / 465.1 MiB)
+- Turbo v0.17.0-turbo.1 Default:           2,076.98  (1.72x vs NG · 1.39x vs Bellard · 86.5% of Node; RSS 160,964 KiB / 157.2 MiB, 2.96x lower RSS)
+- Turbo v0.17.0-turbo.1 Density (noTail/w16): 2,033.35  (97.9% vs Default · 1.68x vs NG · 1.36x vs Bellard; RSS 160,946 KiB / 157.2 MiB)
+- Bellard QuickJS 2026-06-04 (-O2):        1,496.46  (RSS 150,418 KiB / 146.9 MiB)
+- Stock QuickJS-NG 0.17.0:                 1,208.46  (RSS 159,170 KiB / 155.4 MiB)
 
-Verification summary (v0.15.1-turbo.5):
-- Contracts & receipts: test_arch_boundaries.py PASS, validate_layout.py PASS,
-  contracts.py 573/573 receipts clean, test_vm_build.py 22/22 PASS, all ABI &
-  ELF/Mach-O policy tests PASS.
-- Linux x86-64 (GCC 13.3): LINUX_X86_64 native build + test_turbo_api +
-  property-ic (including pic-only) + SDK consumer (quickjs-turbo::qjs C &
-  C++11) + host -flto=auto add_subdirectory() isolation + Clang ASan+UBSan
-  AUTO fallback + QJS_USE_PREGEN_ASM=ON offline build all PASS.
-- Windows x86-64 (MSVC 19.50 cl + ml64, zero GNU binutils): WIN_X86_64 AUTO
-  and explicit builds + api-test + test_turbo_api + property-ic +
-  add_subdirectory() quickjs-turbo::qjs consumer + QJS_USE_PREGEN_ASM=ON
-  offline build all PASS.
+Unified micro57 (57 cases, 2 reversed ABBA blocks, CPU2, ns/op geomean):
+- Turbo Default:  39.491 ns  (1.42x vs Stock NG 56.179 ns [53/57 wins] · 1.35x vs Bellard 53.434 ns [44/57 wins] · 93.0% vs Node --jitless 36.705 ns [22/57 wins])
+- Turbo Density:  39.375 ns  (100.3% parity vs Default)
+- Hotspots vs Stock NG 0.17.0: `prop_read` 3.40x, `typed_array_read` 2.88x, `typed_array_write` 2.51x,
+  `string_build1` 2.48x, `empty_loop` 2.39x, `sort_bench` 2.38x, `array_read` 2.21x, `prop_write` 2.16x;
+  vs V8 `--jitless`: `NavierStokes` 1.60x, `Crypto` 1.31x, `typed_array_read` 2.58x, `typed_array_write` 2.45x,
+  `array_read` 2.44x, `array_write` 2.40x, `float_arith` 2.14x, `prop_read` 1.51x.
 
-Current cross-platform runtime baseline, 2026-11-21 (commit e276d21)
-====================================================================
-Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
-all 19 upstream source pins are unchanged. Commit e276d21 extends the
-v0.15.1-turbo.3 Hybrid GC baseline with four unified cross-platform runtime
-optimizations:
-1. Shared ordinary literal capacity reserve (4/8/16 slots, hash-isolated
-   reserved empty shapes, rt->shape_hash reuse via js_dup_shape) in
-   vm/src/common/kernel/ordinary-literal.c (and Win64 MinGW mirror) covering
-   Linux x86-64, Win64 MinGW, and Linux ARM64.
-2. Unified Map/Set string-key hashing + short-rope flattening (<=4096 CU, with
-   leaf->hash invalidation on in-place rope append) via backport-core.py across
-   all 5 targets (Linux x86-64, Linux ARM64, Win64 MinGW, Win64 MSVC, PORTABLE).
-3. Capability-free ordinary async output Promise + intrinsic Promise.resolve
-   primitive fast path across all 5 targets.
-4. Ordinary object inline-property co-allocation on Linux x86-64 (sharing
-   inline-properties.h and Hybrid GC guards with ARM64) plus 64-byte alignment
-   for ARM64 JS_FrameInterp with elf64 verifier enforcement.
+500-Cold-Called-Function Worker Heap (`JS_ComputeMemoryUsage` + `JS_PurgePropertyIC`):
+- Default (`tail=ON, w=0`):   485.3 KiB (500 IC slabs / 72,000 B; `JS_PurgePropertyIC` -> 407.2 KiB)
+- PIC-only (`tail=OFF, w=0`): 399.4 KiB (500 IC slabs / 72,000 B; `JS_PurgePropertyIC` -> 321.3 KiB)
+- Density (`tail=OFF, w=16`): 321.3 KiB (-33.8%, 0 cold IC slabs)
 
-Current cross-platform CTest qualification (commit e276d21):
-- Linux x86-64 LINUX_X86_64: 963/963 (9-field literal allocs 73 -> 34, -53.4%)
-- Linux ARM64 LINUX_AARCH64 (QEMU): 1,266/1,266; real AWS Neoverse-N1 5/5 new tests
-- Portable ASan+UBSan: 222/222 (0 errors/leaks)
-- Windows x86-64: MinGW WIN64 315/315, MSVC WIN64 296/296, plus
-  test_vm_core_routes 21/21 and test_vm_build 22/22
+2. Cross-Platform Real Hardware Benchmarks (Same-Host Cohorts, 2026-11-24)
+--------------------------------------------------------------------------
+- Windows x86-64 `WIN_X86_64` (Ryzen 3 3300X, CPU2, 5-engine cohort):
+  - Stock NG `0.17.0` MinGW `1,076.0` / `66.54 ns` · Stock NG MSVC `891.1` / `85.87 ns` · Bellard `2026-06-04` `1,432.4` / `61.92 ns`.
+  - MinGW GCC 13.1: V8-v7 `1,969.0` (`1.83x` vs NG `8/8`, `1.37x` vs Bellard `7/8`); `micro57` `46.04 ns` (`1.45x` NG `54/57`, `1.34x` Bellard `43/57`).
+  - MSVC 19.50:     V8-v7 `1,901.4` (`2.13x` vs NG `8/8`, `1.33x` vs Bellard `6/8`); `micro57` `48.76 ns` (`1.76x` NG `55/57`, `1.27x` Bellard `33/57`).
+- Linux ARM64 `LINUX_AARCH64` (AWS Graviton2 Neoverse-N1, GCC 13.4, CPU1, 4 blocks):
+  - V8-v7 `1,260.1` (`1.76x` vs Stock `0.17.0` `717.4` [`8/8` wins], `1.49x` vs Bellard `848.0` [`8/8` wins]).
+  - `micro57` `65.51 ns` (`1.42x` vs Stock `92.75 ns` [`43/57` wins], `1.37x` vs Bellard `89.94 ns` [`37/57` wins]).
+- macOS x86-64 `MACOS_X86_64` (`v0.15.1-turbo.6–.8` i5-7360U hardware cohort):
+  - V8-v7 `1,741.5` (`1.45x` vs Bellard `-O3` `1,202.0`, `1.47x` vs `PORTABLE` `1,185.0`); JetStream `1.34x` (`13/17`); `microbench.js` `1.17x` (`39/72`).
 
-Updated All-Linux V8-v7 scores (CPU2 / serial / normal ASLR, Ubuntu 24.04 / WSL2):
-  NG 0.15.1 993.7; Bellard 2026-06-04 default O2 1465.7;
-  JSCOnly 2b27eb4 LLInt/JIT OFF 1596.1; Node 24.13.0 jitless 2374.9;
-  Turbo e276d21 native (FramePool 512) 2071.65 (2.08x vs QuickJS-NG, 1.41x vs
-  Bellard 2026, 87.2% of V8 --jitless; peak RSS 175,756 KiB, -4.09% vs fb7a53b).
+3. Verification & Contract Qualification (Commit `d0bf4c4`)
+-----------------------------------------------------------
+- Full Test262 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% matching `stock.json`) across Linux x86-64 (`28.67s`), Windows MSVC (`67.01s`), and Windows MinGW (`69.11s`).
+- CTests: Linux x86-64 Release `963/963` (`22.26s`), Linux `ASan+UBSan` (`PORTABLE`) `218/218` (`157.41s`), Windows MSVC `222/222` (`31.01s`), Windows MinGW `222/222` (`20.52s`), ARM64 QEMU Release `1,267/1,267` (`215.37s`) & Instrumented `1,826/1,826` (`246.86s`, `23/23` native string paths).
+- Static CRT & Bundles: MSVC `/MT` `qjs.exe`/`qjsc.exe` import `KERNEL32.dll` only; `linux_aarch64` pregen (`137` files + `42` smoke); `adapt_macho.py` offline pass (`35` C/H, `27` includes, `3` ASM); all 13 CI contract/ABI/ELF/Mach-O/release scripts + `format/run.py --check` (`511` receipts, `0` stale) pass.
+- `txiki.js v26.11.0` (`5133e8a`): `AUTO` (`LINUX_X86_64`) `467/468` (`test-lookup.js` WSL2 DNS `EAI_AGAIN`), `tests/advanced/` `4/4`, `tjsc -m` `BC_VERSION 29` round-trip, `BUILD_WITH_GC_STRESS=ON` (`466/468` batch + standalone `test-tls-gc-pending-write.js` pass).
 
-Cross-platform paired ABBA summary (e276d21 vs fb7a53b, lower ms / higher V8):
-  Metric / Workload   Linux x86-64 (CPU2/512)      Win64 MinGW (CPU2/256)       AWS ARM64 N1 (CPU1/256)
-  lit5 (5-field obj)  631.0 -> 181.0 ms (3.49x)    582.0 -> 169.0 ms (3.44x)    524.5 -> 176.0 ms (2.98x)
-  mapFlat (flat key)  573.0 -> 176.0 ms (3.26x)    560.0 -> 159.0 ms (3.52x)    567.0 -> 267.5 ms (2.12x)
-  mapRope (rope key)  289.5 -> 119.0 ms (2.43x)    289.5 -> 115.0 ms (2.52x)    344.0 -> 218.0 ms (1.58x)
-  asyncPrim (async)   404.5 -> 285.5 ms (1.42x)    446.0 -> 320.0 ms (1.39x)    382.0 -> 259.0 ms (1.47x)
-  obj6 (6-prop obj)   470.5 -> 449.0 ms (1.05x)    n/a (Win64 COFF layout)      already inline on ARM64
-  V8-v7 Overall       2023.39 -> 2071.65 (+2.38%)  1921.39 -> 1923.77 (+0.12%)  1236.79 -> 1232.42 (-0.35%)
-  V8-v7 Peak RSS      183,246 -> 175,756 (-4.09%)  n/a                          n/a
-  micro57 geomean     +0.92% (1.0092x)             -0.98% (0.9902x)             +1.41% (1.0141x)
-Note: ARM64 baseline uses fb7a53b with the same 64-byte JS_FrameInterp alignment
-to isolate runtime gains from entry-alignment noise. Per-case breakdowns:
-LINUX-FINAL-REVIEW.txt and LINUX-AARCH64-HARDWARE.txt.
-
-Current product baseline, 2026-11-20 (v0.15.1-turbo.3)
-======================================================
-Pinned upstream remains QuickJS-NG 0.15.1 (bf8988fc401e737f9946cd10a3463b48aab0fd7e);
-all 19 upstream source pins are unchanged. Release v0.15.1-turbo.3 integrates
-Hybrid Reference Counting + Generational Partial Cycle GC + Synchronous Fast
-RC (HYBRID-GC.txt) across LINUX_X86_64, LINUX_AARCH64, and PORTABLE builds
-(QJS_HYBRID_GC=ON by default; WIN64 COFF-patched builds retain their pinned
-machine-code core).
-
-Current cross-platform CTest qualification:
-- Linux x86-64 LINUX_X86_64: 958/958 (plus 2/2 SDK consumer & -DQJS_HYBRID_GC=OFF checks)
-- Linux ARM64 LINUX_AARCH64 (QEMU): 1,261/1,261; ARM64 PORTABLE (QEMU): 225/225
-- Portable ASan+UBSan: 221/221
-- Windows x86-64: MinGW WIN64 310/310, MSVC WIN64 295/295, MinGW AUTO Shared PORTABLE 160/160
-
-Updated All-Linux V8-v7 scores (CPU2 / serial / normal ASLR, Ubuntu 24.04 / WSL2):
-  NG 0.15.1 993.7; Bellard 2026-06-04 default O2 1465.7;
-  JSCOnly 2b27eb4 LLInt/JIT OFF 1596.1; Node 24.13.0 jitless 2374.9;
-  Turbo v0.15.1-turbo.3 native 2031.21 (2.04x vs QuickJS-NG, 85.5% of V8 --jitless;
-  peak RSS 183,310 KiB).
-
-Paired ABBA Hybrid GC gains (Linux x86-64, CPU2 serial, FramePool 512):
-  resident_cycle_churn: 314.47 -> 208.91 ms (-33.56%, 1.50x)
-  resident_acyclic_dto: 455.62 -> 436.51 ms (-4.19%)
-  local_slot_loop:      700.77 -> 655.19 ms (-6.50%)
-  deep_tree_free:       502.20 -> 465.19 ms (-7.37%, RSS 35,472 -> 35,136 KiB)
-Full per-case ABBA metrics and ablation details: HYBRID-GC.txt and
-LINUX-FINAL-REVIEW.txt.
-
-Current product source and Linux native module baseline,2026-11-12
-=================================================================
-Pinned upstream remains QuickJS-NG0.15.1;all19 source pins are unchanged.
-Linux native uses the independent forwarding C worker. Its exact artifact
-hashes,current performance tradeoffs and fresh946/211CTest plus fullON/OFF
-Test262 qualification are in LINUX-VIRTUAL-ARGUMENTS.txt. The release manifest
-binds the current source/archive and per-SDK runtime revisions.
-The other four SDKs retain their exact qualified bytes and8c runtime provenance.
-Build commands,public APIs and PORTABLE/AUTO behavior remain unchanged.
-This is a measured tradeoff baseline;the structural merge is not advertised
-as a new overall speed increment. Research/profile/build data stay outside
-the product and are not required for a clean local build.
-
-The older cross-platform closeout below is retained as explicitly dated history.
-
-Cross-platform qualification history,2026-11-11
-=========================================
-
-Runtime:8c1b9ce9fab9a298249a6aeb4d13ce6f337ce8bd.
-Pinned QuickJS-NG:0.15.1,bf8988fc401e737f9946cd10a3463b48aab0fd7e.
-All19 upstream source pins remain unchanged. The canonical product branch is
-product/turbo. It includes the accepted Windows implementation and complete
-default-active Linux port. Upstream master remains an upgrade reference.
-
-Configuration and local builds
-------------------------------
-Windows x86-64:MSVC or MinGW native WIN64 backend.
-Linux x86-64:GCC13+ native backend. PORTABLE remains the supported fallback;
-AUTO keeps the documented unsupported-platform/toolchain behavior.
-Follow BUILDING.txt or the root README for normal builds and CMake SDK use.
-No comparison engine,Node,profiler,old object or research directory is required.
-
-The measured allocator setting is explicit QJS_EXPERIMENT_ALLOCATOR=256.
-For example,on Linux after the documented product build:
-  QJS_EXPERIMENT_ALLOCATOR=256 out/sdk-linux-native/bin/qjs -e 'print(42)'
-For a Windows PowerShell session:
-  $env:QJS_EXPERIMENT_ALLOCATOR='256'
-  ./tools/run-baseline.ps1 -Toolchain mingw -Arguments @('-e','print(42)')
-Unset/off retains the original allocator factory behavior;public custom
-allocators are not silently replaced. The setting is not a public ABI change.
-
-Accepted implementation and qualification
------------------------------------------
-The runtime contains the prior accepted call/frame,propertyIC,string,JSON,
-regexp,array,closure,async-generator and compiler improvements,plus the Linux
-SysV register VM,ownership/publication,stack insertion and reference slots.
-LINUX-MECHANISM-COVERAGE.txt records exact routes and optional/platform limits.
-DefaultOFF weak call links,MSVC-only coroutine segments and ordinary async
-output elision retain their documented boundaries;counts are not completion
-percentages or a requirement to reproduce every LLInt design.
-
-Qualified canonical runtime archive builds:Linux native934CTest,PORTABLE211;
-Windows MinGW native307,MSVC native292,PORTABLE211. Relocated SDK consumers,
-native unwind and fallback checks passed. Test262 provenance and inherited
-failures are in LINUX-RELEASE.txt;promotion does not relabel prior Linux records
-as new full runs. This baseline adds no new runtime algorithm or ABI change.
-
-The product release reuses those exact qualified SDK bytes. Its new source
-archive additionally carries the product baseline documentation. SDK producer
-receipts keep the original build source identities;no fresh rebuild of a later
-documentation commit or new performance increment is claimed.
-
-Performance records and scope
------------------------------
-All-Linux same-cohort V8-v7 original scores,CPU2/serial/normalASLR,two reversed
-blocks,Ubuntu24.04/WSL2,native LinuxELF images:
-  NG0.15.1 993.7;Bellard2026-06-04 defaultO2 1465.7;
-  JSCOnly2b27eb4 LLInt/JITOFF 1596.1;Node24.13.0 jitless2374.9;
-  Turbo native+pool256 1942.7.
-JetStream selected17 geometric relative elapsed index,stockNG=100:
-  NG100;Bellard74.8;LLInt69.6;Nodejitless46.2;Turbo59.9.
-This index is not an official JetStream total. Each case/body/calibration and
-all observed modes remain in the release's reports;two blocks are not CI bounds.
-
-A separate final same-image allocator comparison observed original wholeV8:
-  Windows off1506.3/header1536.5/pool256 1917.2;
-  Linux off1766.3/header1732.1/pool256 1922.3.
-Those are different-cohort observations of the same accepted bytes,not a code
-regression or a substitute column in the five-engine comparison. Per-case
-platform gaps remain;whole scores do not establish identical native path cost.
-
-Bounded optimization exit
---------------------------
-The last investigation decided two candidate slots using quick original
-RayTrace/EarleyBoyer/RegExp/Splay screens before expensive confirmation:
-  pool512:about+0.69%Windows/+0.68%Linux diagnostic score;parked,not promoted;
-  mimalloc:about-13.7%Windows/-2.4%Linux diagnostic score;not accepted.
-The mimalloc control used the public allocator API and the exact acceptedSDK
-archive. Its memory reduction did not establish a speed benefit;pool-specific
-safe fastpaths are part of the intervention. No mimalloc dependency is added.
-
-The entry/acceptance target was stable wholeV8>=+1%,or a target>=+5% with
-nonnegative full application result,stock-priced costs,memory and correctness.
-Neither candidate established this evidence. The small512 tendency is retained;
-it is not described as a proven zero full-suite effect. No candidate full-suite
-or newJet17 stable result is claimed. The performance round is closed after
-those two decisions;ABI/GC/core-layout redesign requires a separate measured
-application budget and bounded proposal. This is not an architecture ceiling.
-
-Profiles and experiments remain outside the product repository. The release
-contains compact decisions/results and qualification receipts,not process
-captures or optional research code required by normal builds.
+4. Prior 0.15.1 Milestone Trajectory (Linux x86-64 Reference Host, Historical)
+------------------------------------------------------------------------------
+Version             Date        V8-v7     vs Stock 0.15.1   Highlights
+------------------------------------------------------------------------------------------------
+Stock NG 0.15.1     Baseline      993.7   1.00x             Pinned 0.15.1 C interpreter baseline
+v0.15.1-turbo.1     2026-11-11  1,942.7   1.96x             Native Linux SysV ASM VM, Property ICs, RegExp/JSON
+v0.15.1-turbo.2     2026-11-19  2,020.3   2.03x             Expanded fast paths, FramePool 512, broke 2,000 V8-v7
+v0.15.1-turbo.3     2026-11-20  2,031.2   2.04x             Hybrid RC + Generational Partial Cycle GC (-85.8% scans)
+v0.15.1-turbo.4-.8  2026-11-23  2,101.4   2.09x (NG 1,007)  Cross-platform fast paths, quickjs-turbo.h, WIN_X86_64, musl/GCC14

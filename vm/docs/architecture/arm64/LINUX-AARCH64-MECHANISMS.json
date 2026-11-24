@@ -19,9 +19,8 @@
       "win-mingw": 309
     },
     "Test262": {
-      "tested": 81152,
-      "inherited_failures": 65,
-      "fixed": 31,
+      "tested": 82220,
+      "inherited_failures": 40,
       "new_or_changed": 0,
       "default_vs_register_off": {
         "tested": true,
@@ -143,9 +142,9 @@
       "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
       "implemented": "Complete fourteen callback routes, readonly/owned capsules and cached/prepared comparator lifetimes",
       "source_sha256": {
-        "tools/elf/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
+        "tools/x86/linux/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
         "tools/arm64/array_workers.py": "809c7467b47a29250732d4b6eb87649477e580f4bd492a597b8b0c94d42d575a",
-        "tools/elf/array_workers.py": "c3a19e58dee3c4a78eb7e952c35da76c28ff41de16ad66e2551b43ad52087f17",
+        "tools/x86/linux/array_workers.py": "c3a19e58dee3c4a78eb7e952c35da76c28ff41de16ad66e2551b43ad52087f17",
         "src/arm64/linux/abi/prepared-callbacks.json": "933ba13bc3d67bb1345af1f3f2589b5214540486367e2d171112cb372016c247"
       },
       "proof_test_examples": [
@@ -185,7 +184,7 @@
       "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
       "implemented": "Complete original string/rope/cache/concat/local append and compound call owners",
       "source_sha256": {
-        "tools/elf/string_workers.py": "6fc246db2fc39319f3c577887047dbfdb5c8eae63f3128ee079fd9eed7eee8fd",
+        "tools/x86/linux/string_workers.py": "6fc246db2fc39319f3c577887047dbfdb5c8eae63f3128ee079fd9eed7eee8fd",
         "tools/arm64/strings.py": "15f2fb3820957f12f676480615fcb6d15ab51248d5dc54a4d88c0b1b6e25c094",
         "asm/arm64/common/register-string-append.inc": "0ee58d06b71674f3e0a373760b331a1be1848eae5b1b78a291d84225b296c049",
         "tools/arm64/call_leaves.py": "d028164725ca75340e50f98ee55529ab3a155a719bf0d3cde98bf3f485a5fe0c"
@@ -223,7 +222,7 @@
       "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
       "implemented": "Shared regexp/Unicode engine and full builtin workers, short/large native literal admission and typed opcode",
       "source_sha256": {
-        "tools/elf/regexp_workers.py": "bf10ea779ba2111bbbaed1566e35d7267439ed844b18e0d5063f52463964d7ba",
+        "tools/x86/linux/regexp_workers.py": "bf10ea779ba2111bbbaed1566e35d7267439ed844b18e0d5063f52463964d7ba",
         "tools/arm64/admission.py": "3b865ad9064c0c038e0d5660d1002285073f8fa19bfc40c8cc4a58f69ad6e3a7",
         "asm/arm64/common/register-regexp.inc": "44c0517fcb2e46cc6287575c20ecf25bb5760aa9593aaa057218e3b5309ce882"
       },
@@ -261,8 +260,8 @@
       "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
       "implemented": "Same-TU request-owned Promise, complete settlement/recovery/FIFO/hooks; ordinary async elision absent in GNU reference",
       "source_sha256": {
-        "src/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
-        "tools/elf/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
+        "src/common/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
+        "tools/x86/linux/c_workers.py": "aa47d38ba931b857bc910d25ed6f3ba699f18ce2a40d7a82c4b16c9ad8814330",
         "src/arm64/linux/abi/async-generator.json": "7bdbdef8e93e56180a5a057f93bc1c300315cc97000871f3cff86c2701b592aa"
       },
       "proof_test_examples": [
@@ -280,7 +279,7 @@
       "arm_status": "qualified-current-source-natural-route-and-whole-corpus",
       "implemented": "Pinned common overlays, bounded compiler plan/projector, allocator and full native scalar base",
       "source_sha256": {
-        "tools/generate/backport-core.py": "50e3576497ff33da4c176a64ea05183d9f81787c66ab038756fc292e10789bf4",
+        "tools/common/backports/backport-core.py": "50e3576497ff33da4c176a64ea05183d9f81787c66ab038756fc292e10789bf4",
         "src/bytecode/compiler-plan.c": "be2cd9a61f18e9168f1c8445c86034c3eb3a4410096225e6c42832990aa91fea",
         "tools/arm64/numeric_workers.py": "b1115c19799f2a8f65a02966833cecfaa1d6b7a2adcc1a79f78d8f9e46937bb5",
         "asm/arm64/common/register-scalar-ops.inc": "4e1e2ddb1058e8b1b64e7ac17c512fed601eb7b3c643b67edacb6913cb3f544e"
@@ -300,7 +299,7 @@
       "arm_status": "reviewed-GNU-reference-boundary",
       "implemented": "Reviewed GNU boundary: original computed-goto/suspended-generator owner; no MSVC-only native coroutine/extra-method machinery",
       "source_sha256": {
-        "src/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
+        "src/common/promise/generator-capability.inc": "ee423f7aa6398eae5c2e665db4d53490a8569764ac22f6e5e4f429a6677f1318",
         "docs/architecture/x86/linux/LINUX-PORT.txt": "3175a6852e236caaff36c26ac78db15e1f714b1d22229c4b0cd3b5270c5eef59"
       },
       "proof_test_examples": [
@@ -486,7 +485,7 @@
         "JSON parser, writer, reviver and source records"
       ],
       "source_owners": [
-        "tools/elf/prepared_callbacks.py",
+        "tools/x86/linux/prepared_callbacks.py",
         "tools/arm64/json_worker.py"
       ],
       "difference": "Prepared capsule preferred rather than x86 noncalling ChildLeaf exclusion",
@@ -495,7 +494,14 @@
     }
   ],
   "hardware_followup": {
-    "report": "docs/architecture/arm64/LINUX-AARCH64-HARDWARE.json",
+    "report": "docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
     "scope": "Original source/functional bindings above remain historical. Current source hashes, actual hardware execution and performance are bound by the follow-up report and external final acceptance manifest."
+  },
+  "rebased_upstream": {
+    "version": "0.17.0",
+    "commit": "7b5f588e0f9b643e2996f291bfc861abeaceddc2",
+    "test262_cases": 82220,
+    "test262_inherited_failures": 40,
+    "worker_docs_dir": "docs/architecture/arm64/workers"
   }
 }

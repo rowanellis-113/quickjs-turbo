@@ -17,38 +17,38 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64" AND QJS_ENABLE_INSTALL)
         FILES
             "${qjs_arm_vm_dir}/VM.json"
             "${qjs_arm_vm_dir}/LITERALS.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-LITERALS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-LITERALS.txt"
             "${qjs_arm_vm_dir}/INDEXED.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-INDEXED.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-INDEXED.txt"
             "${qjs_arm_vm_dir}/VARARGS.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-VARARGS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-VARARGS.txt"
             "${qjs_arm_vm_dir}/ARGUMENTS.json"
             "${qjs_arm_vm_dir}/VIRTUAL-ARGUMENTS.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-ARGUMENTS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-ARGUMENTS.txt"
             "${qjs_arm_vm_dir}/FORWARDING.json"
             "${qjs_arm_vm_dir}/NULL-PROTO.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-NULL-PROTO.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-NULL-PROTO.txt"
             "${qjs_arm_vm_dir}/ARRAY-WORKERS.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-ARRAY-WORKERS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-ARRAY-WORKERS.txt"
             "${CMAKE_CURRENT_BINARY_DIR}/interpreter-backend.json"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-REGISTER.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-PUBLICATION.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-C-ENTRY.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-C-RETURN.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-PROPERTIES.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-PROPERTY-PRIMITIVES.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-PROPERTY-HINTS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-PROPERTY-PROTOTYPES.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-REFERENCE-STORES.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-GLOBAL-BINDINGS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-COMPARISONS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-CONSTRUCTORS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-ITERATORS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-NUMERIC-WORKERS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-STRINGS.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-STACK-INSERT.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-ARRAY-OWN.txt"
-            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-FORWARDING.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-REGISTER.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-PUBLICATION.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-C-ENTRY.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-C-RETURN.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-PROPERTIES.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-PROPERTY-PRIMITIVES.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-PROPERTY-HINTS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-PROPERTY-PROTOTYPES.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-REFERENCE-STORES.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-GLOBAL-BINDINGS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-COMPARISONS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-CONSTRUCTORS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-ITERATORS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-NUMERIC-WORKERS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-STRINGS.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-STACK-INSERT.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-ARRAY-OWN.txt"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-FORWARDING.txt"
             "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-MECHANISMS.json"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}")
     install(
@@ -58,12 +58,15 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64" AND QJS_ENABLE_INSTALL)
     install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-RELEASE.txt"
                   "${CMAKE_CURRENT_SOURCE_DIR}/tools/arm64/build/product-linux-aarch64.sh"
             DESTINATION "${CMAKE_INSTALL_DOCDIR}")
-    install(FILES "${qjs_arm_vm_dir}/SCALAR-OPS.json"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-SCALAR-OPS.txt"
-            DESTINATION "${CMAKE_INSTALL_DOCDIR}")
     install(
-        FILES "${qjs_arm_vm_dir}/CALL-LEAVES.json"
-              "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-CALL-LEAVES.txt"
+        FILES
+            "${qjs_arm_vm_dir}/SCALAR-OPS.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-SCALAR-OPS.txt"
+        DESTINATION "${CMAKE_INSTALL_DOCDIR}")
+    install(
+        FILES
+            "${qjs_arm_vm_dir}/CALL-LEAVES.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-CALL-LEAVES.txt"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}")
     install(FILES "${qjs_arm_vm_dir}/STACK-INSERT.json" DESTINATION "${CMAKE_INSTALL_DOCDIR}")
     install(
@@ -76,9 +79,11 @@ if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64" AND QJS_ENABLE_INSTALL)
         DESTINATION "${CMAKE_INSTALL_DOCDIR}"
         RENAME "AARCH64-STRINGS.json")
     install(FILES "${qjs_arm_vm_dir}/NUMERIC-WORKERS.json" DESTINATION "${CMAKE_INSTALL_DOCDIR}")
-    install(FILES "${qjs_arm_vm_dir}/NUMBER-DATAFLOW.json"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/LINUX-AARCH64-VALUE-FLOW.txt"
-            DESTINATION "${CMAKE_INSTALL_DOCDIR}")
+    install(
+        FILES
+            "${qjs_arm_vm_dir}/NUMBER-DATAFLOW.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/docs/architecture/arm64/workers/LINUX-AARCH64-VALUE-FLOW.txt"
+        DESTINATION "${CMAKE_INSTALL_DOCDIR}")
     install(
         FILES "${CMAKE_CURRENT_SOURCE_DIR}/src/arm64/linux/abi/number-dataflow.json"
         DESTINATION "${CMAKE_INSTALL_DOCDIR}"

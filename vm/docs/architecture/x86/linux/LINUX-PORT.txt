@@ -1,142 +1,51 @@
-Linux x86_64 native port: qualification and completion gates
+Linux x86-64 native port: qualification and completion gates
 ==========================================================
+Current release: `v0.17.0-turbo.1` (pinned `QuickJS-NG 0.17.0 @ 7b5f588e0f9b643e2996f291bfc861abeaceddc2`).
+Build wrapper:
+  bash vm/tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
+  QJS_EXPERIMENT_ALLOCATOR=512 ./out/sdk-linux-native/bin/qjs -e 'print(1 + 2)'
 
-MinGW whole-suite performance parity is OPEN. The qualified development slow
-routing increment, measured gains and retained costs are in LINUX-SLOW-ROUTING.txt.
-Build/compatibility gates below describe their bound historical delivery.
+Qualification status & boundaries
+---------------------------------
+- Current release qualification, CTest (`963/963`), ASan+UBSan (`218/218`), `txiki.js v26.11.0`
+  host checks, and full `82,220`-case Test262 (`40` stock-matched failures, `0` new) are recorded
+  in `LINUX-RELEASE.txt`.
+- Benchmark methodology & 5-engine V8-v7 / `micro57` data live in `LINUX-FINAL-REVIEW.txt`.
+- Detailed mechanism inventory and explicit GNU exclusions (optional default-OFF weak VM call
+  links and MSVC-only native coroutine segments) live in `LINUX-MECHANISM-COVERAGE.txt` and
+  `LINUX-MECHANISMS.json`; per-worker ABI notes live in `workers/LINUX-*.txt`.
+- Strict `LINUX_X86_64` rejects missing GNU binutils or unsupported build flags; `AUTO` and
+  `PORTABLE` fall back safely to C execution. No PGO, fixed base, or runtime codegen is used.
 
-For the later scalar-child incremental optimization, its new qualification and
-explicit performance costs, see LINUX-SCALAR-LEAVES.txt. The historical full
-delivery and original six-gate contract below remain separately identifiable.
+Six Release Completion Gates (Release Audit Contract)
+-----------------------------------------------------
+1. Build and packaging:
+   A documented Linux product command builds the real native backend with GCC, binutils, Python,
+   CMake, and Ninja. CMake reports `LINUX_X86_64` only when that backend is actually linked.
+   Runtime/generated inputs carry source-bound catalogues and receipts; PIE/ASLR stays enabled.
 
-Implementation90e3bf3 is qualified from independent canonical LF source archives,
-without Git metadata or previous objects. Native927CTest,PORTABLE211CTest,real
-unsupported-AUTO fallback,installed SDK and public consumers pass on GCC13.3.
-Native and PORTABLE CLI,Test262 runner and static archive bytes each equal the
-qualified/measured runtime4d8363a images. Earlier full Test262/ELF/CFI and whole
-suite results bind by exact image equality;they are not claimed as new reruns.
+2. Actual native execution:
+   Public entry and return obey SysV ABI, including the 16-byte `JSValue` aggregate. The measured
+   private VM register convention supports JS-to-JS calls, returns, tail calls, and C helpers
+   without per-call C recursion. Frame ownership, quotas, interrupts, GC publication, exceptions,
+   and reentry remain tested (`JS_FrameInterp` + ELF CFI).
 
-The same source passes Windows MinGW307,MSVC292,PORTABLE211CTest and installed
-public/native-unwind consumers. Three new complete Windows Test262 runs match
-Linux product failure identities:65/81152 inherited,31fixed,0new/changed;stock
-NG has96/81152. The full default-active GNU mechanism ledger and bounded Linux
-performance review are complete. All19 upstream source pins remain unchanged.
+3. Mechanism coverage:
+   Every active call, property/IC, compiler, string/JSON, RegExp, array, closure, and async
+   component has an explicit Linux route (`LINUX-MECHANISMS.json`) or a documented architectural
+   boundary. Platform ABI, ELF, CFI, and relocation handling remain under `src/x86/linux`,
+   `asm/x86/linux`, and `tools/x86/linux`.
 
-LINUX-RELEASE.txt records toolchains,image hashes and explicit scope. The release
-package manifest and six-gate audit identify its final source/SDK delivery;
-qualification does not approve arbitrary compilers or builds. All six original
-gates below remain intact. Source/build/ABI/execution details are retained in
-LINUX-MECHANISM-COVERAGE.txt and LINUX-MECHANISMS.json.
+4. Correctness and compatibility:
+   Native regression, API/ABI, GC/OOM/interrupt/realm, and relocated SDK consumer tests pass.
+   Full Test262 matches pinned stock QuickJS-NG `0.17.0` failure identities (`40/82,220`, `0` new).
+   ELF checks verify PIE/PIC, `PT_GNU_STACK` NX, no TEXTREL, no engine `JUMP_SLOT`, and FDE unwinds.
 
-Base:Windows accepted product70638ed/92a48f8,QuickJS-NG0.15.1 bf8988f.
-Stock comparisons mean that unmodified NG revision,not Bellard QuickJS2026.
-Optional defaultOFF weak VM links remain unported;MSVC-only native coroutine
-segments/extra method learning are outside GNU parity. Ordinary GNU async
-elision was not present in the baseline. Actual generator workers are carried.
+5. Performance verification:
+   Measure Stock QuickJS-NG `0.17.0`, Bellard `2026-06-04`, Node `--jitless`, and Turbo on CPU 2
+   with reversed ABBA blocks (`micro57`, V8-v7, actual child Peak RSS). Record gains and costs
+   honestly without PGO, padding hacks, or fixed image bases.
 
-Build and run
--------------
-Use Linux x86_64,GCC/binutils,Python3,CMake and Ninja. The qualified toolchain is
-GCC13.3/binutils2.42 on Ubuntu24.04. A fresh build needs no prior Windows object,
-archive,executable,profiler or benchmark corpus. From this checkout:
-
-  bash tools/build/product-linux.sh build/linux-native out/sdk-linux-native
-  QJS_EXPERIMENT_ALLOCATOR=256 out/sdk-linux-native/bin/qjs -e 'print(1+2)'
-
-The wrapper builds the complete product profile,runs CTest serially and installs
-an SDK. The global-binding default is ON in QuickJSLinuxInterpreterOptions.
-Use fresh build directories after compiler or native generator changes.
-Strict LINUX_X86_64 requests require a supported real native backend;AUTO and
-PORTABLE retain their documented safe fallback. The configuration policy now verifies existing GNU readelf/objdump executables
-and their bounded version probes before adding native edges. Invalid tools use
-PORTABLE under AUTO and fail at configuration under strict LINUX_X86_64.
-Current source/SDK delivery bindings are recorded in LINUX-RELEASE.txt and the bundled release manifest.
-
-The native VM has actual SysV public aggregates and an explicit measured private
-register convention,not an entry thunk into the old interpreter. Source-owned
-common algorithms are reused;ELF/CFI/platform ABI code stays in tools/elf,
-src/x86/linux and asm/x86/linux. Frame128/state168,ownership,captured cells,
-quotas,interrupts,GC roots,exceptions,reentry and process controls remain tested.
-No PGO,padding,fixed base,address search or Windows compiler-profile substitution
-is used. WSL hardware PMU availability does not determine backend correctness;
-bounded software sampling has been validated and used on actual weak workloads.
-
-Completion requires evidence for ALL of the following gates:
-
-1. Build and packaging
-   A documented Linux product command builds the real native backend with GCC,
-   binutils, Python, CMake and Ninja. CMake reports LINUX_X86_64 only when that
-   backend is actually linked. Strict requests fail on unsupported targets;
-   AUTO/PORTABLE retain a tested safe fallback. Runtime/generated inputs have
-   source-bound catalogues and receipts. Ordinary PIE/ASLR remains enabled.
-   No Windows COFF object, compiler fingerprint or private offset is silently
-   treated as a Linux ELF/SysV contract.
-
-2. Actual native execution
-   Public entry and return obey SysV, including the 16-byte JSValue aggregate.
-   A measured private VM register convention supports JS-to-JS calls, returns,
-   tail calls and C helpers without per-JS-call C recursion. Frame ownership,
-   argument windows, captured cells, stack quotas, interrupts, GC publication,
-   exceptions and reentry are tested. An entry thunk into the old interpreter
-   or a C-only explicit frame prototype does not satisfy this gate.
-
-3. Existing mechanism coverage
-   Inventory the active Win64 call, property/cache, compiler, string/JSON,
-   RegExp, array, closure and async-generator components. Every item has an
-   explicit Linux route and execution evidence, or a documented, measured
-   architectural/cost decision. Missing major mechanisms cannot be hidden by
-   passing tests through fallback. Do not port dead/rejected experiments.
-   Common logic stays common; platform ABI, ELF, CFI and relocation handling
-   belongs in src/x86/linux, asm/x86/linux and tools/elf as appropriate.
-
-4. Correctness and compatibility
-   Native-specific regression/API/ABI tests, GC/OOM/interrupt/realm/callback
-   behavior and independent installed consumers pass. Full Test262 uses the
-   pinned corpus and failure identities; compare Linux native against stock
-   and the Linux portable baseline, reporting inherited/fixed/new separately.
-   Public API and serialization compatibility remain intact. Inspect ELF
-   symbol bindings, relocation bounds, PIE/PIC, nonexecutable stack and CFI.
-   Exercise native disable controls and unsupported compiler/platform fallback.
-
-5. Performance and Linux opportunities
-   Measure stock NG, product PORTABLE and native on the same Linux machine:
-   micro57, the established JetStream17 subset and all eight V8-v7 cases.
-   Use quick reversed paired screens first, confirm promising/concerning
-   results with the original calibration, and retain memory/negative results.
-   Price regressions against prior and stock per AGENTS.md; individual historical
-   bests are not mandatory. No PGO, fixed image base, padding or address search.
-   Profile actual weak workloads and consider Linux-specific opportunities,
-   initially SysV aggregate returns/helper preservation and hidden/local ELF
-   calls/PIE relocation cost. Record accepted, rejected or deferred decisions
-   with evidence; do not add an unbounded micro-optimization campaign.
-
-6. Reviewable delivery
-   Produce coherent commits, a clean source tree, installable SDK and runnable
-   public consumer, build/run documentation and a final mechanism/test/score
-   report. Generated build products and captures stay outside tracked source.
-   Verify the full checklist from current artifacts before declaring complete.
-
-Measurement and delivery order
-------------------------------
-1. Freeze the current source,all three image hashes,toolchain and immutable
-   workloads. Use stock NG0.15.1,product PORTABLE and Linux native on CPU2,
-   serial reversed quick pairs with normal PIE/ASLR and original calibration.
-2. Report micro ns/op,JetStream body milliseconds and original V8-v7 scores.
-   Keep peak memory:micro actual GNU time child peak,JetStream VmHWM before
-   supplemental checks,and V8 actual child GNU time peak including its complete
-   original suite. Exclude launcher RSS and retain all negative samples.
-3. Confirm only material promising/concerning cases,price costs against prior
-   and stock per AGENTS.md,then profile actual loaded images and original work.
-   Consider bounded SysV helper preservation/aggregate returns and ELF local/
-   hidden-call or relocation costs;record accepted,rejected or deferred choices.
-4. Qualify final current-source GCC modes,MinGW/MSVC/portable,full Test262,
-   installed consumers,clean literal-LF archive and reviewable release commits.
-   Audit all six gates before declaring the port complete.
-
-Manual foundation/ablation tools remain under tools/elf. They do not replace
-the product build command. The external comparison corpora are explicit inputs
-to tools/bench/linux-selected.py;ordinary users do not need them to build/run.
-Individual module documents describe ABI/algorithm boundaries and historical
-development qualification. Their stage-local remaining lists are superseded by
-the integrated coverage, performance report and current release gates here. Raw profiles,build outputs and historical experiments stay
-outside tracked product source.
+6. Reviewable delivery:
+   Clean LF source tree, installable SDK with runnable C/C++ consumers, `QJS_USE_PREGEN_ASM`
+   offline bundle support, and passing `format:check` / `test_arch_boundaries.py` / `validate_layout.py`.

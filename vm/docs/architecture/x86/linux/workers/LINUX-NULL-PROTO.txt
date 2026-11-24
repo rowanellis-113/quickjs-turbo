@@ -9,14 +9,14 @@ typed SysV worker, with complete original allocation/failure semantics.
 
 Shared algorithm and ABI
 ------------------------
-tools/generate/null-proto.py owns the null-only extension of the inherited
+tools/x86/common/codegen/null-proto.py owns the null-only extension of the inherited
 validator. The Linux body is identical after function/section names, symbolic
 null kind, opcode-count expression and its already-present captured-readonly
 proof are normalized. Keep all original argument/local/constant/branch/stack
 bounds, require a real null opcode and retain metadata bit32. Per-runtime
 QJS_DISABLE_NATIVE_NULL_PROTO is tested by presence, including value0.
 
-tools/generate/null-arena.py supplies the complete applicable inline-header
+tools/x86/common/codegen/null-arena.py supplies the complete applicable inline-header
 allocator. Linux changes only the exported name, same-TU shape-release alias
 and actual-type assertion. Keep warm empty-null-shape lookup, class/prototype/
 GC-phase guards, shape ownership before GC/allocator reentry, exact ordinary
@@ -49,7 +49,7 @@ cyclic live values, cross-realm calls, GC/reentry, every cold/warm allocation
 fault position, recovery and complete zero allocation ledgers. Both disable
 values, eager publication, disabled frames and disabled register VM are tested.
 Three fresh full pinned Test262 cohorts(default/component-OFF/publication-OFF)
-retain the exact portable65/81152 inherited failures,31fixed and0new/changed.
+retain the exact portable40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152).
 
 Read-only normal Release observations prove actual SysV inputs, realm/current
 SF/PC/SP roots before allocation, owning aggregate results, nested return order,

@@ -10,8 +10,8 @@ retained or dereferenced; each activation hint checks the current live binding.
 
 Ownership and platform boundary
 -------------------------------
-tools/elf/global_bindings.py selects the existing invariant/algorithm factory
-from tools/generate/global-binding.py. All268 getter and25 undefined-link rows
+tools/x86/linux/global_bindings.py selects the existing invariant/algorithm factory
+from tools/x86/common/codegen/global-binding.py. All268 getter and25 undefined-link rows
 are retained after measured cell/continuation adaptation. The common generator,
 own-bytecode Symbol algorithm and reference-config owner retain canonical text
 identical to the accepted Windows product. The prior Linux measured_tail
@@ -57,8 +57,7 @@ Current normal strict build and917 CTests pass. New lifecycle,collision,
 TDZ/getter/GC/reentry,realm,interrupt,simultaneous independent-runtime first-use
 and warmed allocator-fault fixtures include complete zero allocation ledgers.
 Four fresh complete Test262 cohorts(default/globalOFF/propertyIC OFF/
-undefined+largeOFF) retain exact portable65/81152 inherited failures,31fixed,
-0new/changed. Source-owned CFI/ELF,independent installed SDK/public consumers,
+undefined+largeOFF) retain exact portable40/82220 inherited stock failures, 0 new/changed (rebased from 0.15.1 port gate: 65/81152). Source-owned CFI/ELF,independent installed SDK/public consumers,
 same-public-object prior/stock references and standalone archive qualification
 must bind these images before the module is sealed.
 

@@ -80,7 +80,7 @@ opcode steps. Whole targeted results:563ON,559compiled-comparison-OFF,
 at zero. Default14x86 generated payloads and actual core .i/.o remain exact.
 
 Installed source ABI, family and original-algorithm receipts accompany this
-document. Fresh frozen full release/instrumented, same81152Test262, noGit SDK,
+document. Fresh frozen full release/instrumented, same82220Test262, noGit SDK,
 qjsc/wire and final P5 gates remain required. Remaining original22families are
 still open. AUTO stays PORTABLE. QEMU qualifies functionality; these records
 do not claim physical ARM speed, peak RSS or a new performance baseline.

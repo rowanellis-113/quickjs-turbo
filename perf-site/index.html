@@ -26,7 +26,7 @@
         <a href="#top" class="brand">
           <span class="brand-mark">⚡</span>
           <span>QuickJS-Turbo</span>
-          <span class="brand-ver" id="header-version">v0.15.1-turbo.8</span>
+          <span class="brand-ver" id="header-version">v0.17.0-turbo.1</span>
         </a>
         <nav class="nav-links" aria-label="Primary">
           <a href="#why">Why Turbo</a>
@@ -67,9 +67,10 @@
                 <span class="accent">QuickJS-sized</span> binary.
               </h1>
               <p class="hero-lead">
-                QuickJS-Turbo supercharges QuickJS-NG with native register-frame assembly VMs,
-                adaptive inline caches, and Hybrid RC + Partial Cycle GC — delivering ~2×
-                throughput without runtime codegen or RWX memory.
+                QuickJS-Turbo supercharges QuickJS-NG 0.17.0 (txiki.js v26.11.0 aligned) with native
+                register-frame assembly VMs, adaptive inline caches, and Hybrid RC + Partial Cycle GC
+                — delivering 1.72×–2.13× V8-v7 throughput over NG 0.17.0 without runtime codegen or
+                RWX memory.
               </p>
               <div class="hero-cta">
                 <a class="btn btn-primary" href="#quickstart">Quick Start &amp; Embed</a>
@@ -97,7 +98,7 @@
               </div>
               <div class="bar-list" id="hero-bars"></div>
               <div class="bar-footnote">
-                <span>Same-host Linux x86-64 cohort · QuickJS-NG 0.15.1 pinned upstream</span>
+                <span>Same-host Linux x86-64 cohort · QuickJS-NG 0.17.0 pinned upstream</span>
                 <a
                   href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/vm/docs/architecture/common/PRODUCT-BASELINE.txt"
                   target="_blank"
@@ -111,20 +112,20 @@
 
           <div class="kpi-strip">
             <div class="kpi-card">
-              <div class="kpi-value accent">2.09×</div>
-              <div class="kpi-label">V8-v7 vs QuickJS-NG · 1.42× vs Bellard 2026</div>
+              <div class="kpi-value accent">1.72×</div>
+              <div class="kpi-label">V8-v7 vs NG 0.17.0 · 1.39× vs Bellard 2026</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-value">86.3%</div>
-              <div class="kpi-label">of V8 --jitless · 2.67× lower Peak RSS</div>
+              <div class="kpi-value">86.5%</div>
+              <div class="kpi-label">of V8 --jitless · 2.96× lower Peak RSS</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">0 RWX</div>
               <div class="kpi-label">Strict W^X · DWARF CFI &amp; Win64 SEH</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-value">81,152</div>
-              <div class="kpi-label">Test262 cases · 0 regressions · 31 fixes</div>
+              <div class="kpi-value">82,220</div>
+              <div class="kpi-label">Test262 cases · 0 regressions · txiki.js v26.11</div>
             </div>
           </div>
         </div>
@@ -138,7 +139,7 @@
             <h2>Why QuickJS-Turbo?</h2>
             <p>
               Built for production hosts that want QuickJS's tiny footprint, instant cold start, and
-              strict security invariants — without leaving 2×–6× execution speed on the table.
+              strict security invariants — without leaving 1.7×–5.2× execution speed on the table.
             </p>
           </div>
 
@@ -162,8 +163,8 @@
                 monomorphic/polymorphic Property ICs, and co-allocated inline object properties.
               </p>
               <div class="feature-metric">
-                typed_array_write 7.32× · RegExp 6.93× · JSON.stringify 6.02× · array_write 5.81×
-                (vs NG)
+                RegExp 5.17× · prop_read 3.40× · typed_array_read 2.88× · typed_array_write 2.51×
+                (vs NG 0.17.0)
               </div>
             </article>
 
@@ -171,13 +172,12 @@
               <span class="feature-tag">03 · RUNTIME FAST PATHS</span>
               <h3>Objects, Collections &amp; Async</h3>
               <p>
-                Shared literal capacity reservation, unified Map/Set string hashing with short-rope
-                flattening, and capability-free async / Promise.resolve fast paths across all
-                targets.
+                Shared literal capacity reservation, JSArena linear string-append, unified Map/Set
+                string hashing with short-rope flattening, and capability-free async /
+                Promise.resolve fast paths across all targets.
               </p>
               <div class="feature-metric">
-                async 2.37× &amp; BigInt mod 2.08× vs NG · up to 3.49× lit5 &amp; 3.52× mapFlat vs
-                turbo.3
+                micro57 1.42× vs NG 0.17.0 (53/57) · 1.35× vs Bellard (44/57) · string_build 2.48×
               </div>
             </article>
 
@@ -189,7 +189,7 @@
                 partial cycle collection and iterative O(1)-C-stack object reclamation.
               </p>
               <div class="feature-metric">
-                Cycle scans -85.8% · cyclic churn 1.50× · RSS -4.09%
+                Cycle scans -85.8% · cyclic churn 1.50× · GC slices +10%
               </div>
             </article>
 
@@ -202,7 +202,7 @@
                 slabs on demand.
               </p>
               <div class="feature-metric">
-                QJS_SetTurboDefaults · property_ic_warmup · JS_PurgePropertyIC
+                500-fn worker heap -33.8% (0 IC slabs) · JS_PurgePropertyIC
               </div>
             </article>
 
@@ -210,12 +210,12 @@
               <span class="feature-tag">06 · DROP-IN EMBEDDING</span>
               <h3>100% quickjs.h &amp; CMake Ready</h3>
               <p>
-                Upstream QuickJS-NG 0.15.1 remains byte-for-byte pristine at repo root.
-                quickjs-turbo::qjs isolates host LTO, auto-falls back under Sanitizers, and supports
-                Python-free pregen builds.
+                Upstream QuickJS-NG 0.17.0 remains byte-for-byte pristine at repo root. Drop-in
+                compatible with txiki.js v26.11.0 (BC_VERSION 29); quickjs-turbo::qjs isolates host
+                LTO, auto-falls back under Sanitizers, and supports Python-free pregen builds.
               </p>
               <div class="feature-metric">
-                Unmodified quickjs.h · add_subdirectory() · QJS_USE_PREGEN_ASM
+                Unmodified quickjs.h · txiki.js v26.11 · QJS_USE_PREGEN_ASM
               </div>
             </article>
           </div>
@@ -245,15 +245,18 @@
                 </tr>
                 <tr>
                   <td><strong>Windows x86-64</strong></td>
-                  <td class="mono">WIN_X86_64 / WIN64</td>
+                  <td class="mono">WIN_X86_64</td>
                   <td>MSVC / clang-cl / MinGW</td>
-                  <td>Source-level WIN_X86_64 (zero GNU binutils) + full Win64 SEH unwind</td>
+                  <td>Unified native ASM VM (zero GNU binutils on MSVC) + full Win64 SEH unwind</td>
                 </tr>
                 <tr>
                   <td><strong>Linux ARM64</strong></td>
                   <td class="mono">LINUX_AARCH64</td>
                   <td>GCC 13/14+ (glibc &amp; musl)</td>
-                  <td>Native ELF ASM VM, 64B-aligned VM entry, AUTO-selected on Linux AArch64</td>
+                  <td>
+                    Native ELF ASM VM, 64B-aligned VM entry, JSArena string append, AUTO-selected on
+                    Linux AArch64
+                  </td>
                 </tr>
                 <tr>
                   <td><strong>macOS ARM64 &amp; Sanitizers</strong></td>
@@ -276,11 +279,12 @@
             <div class="section-kicker">Architecture Milestones</div>
             <h2>Performance Milestones Across Releases</h2>
             <p>
-              All 5 milestone points are measured on the same Reference Linux x86-64 host (AMD Ryzen
-              3 3300X, CPU2 serial, normal ASLR; historical Stock NG = 993.7, simultaneous v0.15.1-turbo.8
-              4-engine rerun Stock NG = 1,007.0). Patch and portability releases holding the same
-              plateau are grouped into the active range, while macOS, Windows, and ARM64 cohorts are
-              shown in their dedicated platform tabs below.
+              All 6 milestone points are measured on the same Reference Linux x86-64 host (AMD Ryzen
+              3 3300X, CPU2 serial, normal ASLR), tracking both QuickJS-Turbo and the underlying
+              Stock QuickJS-NG baseline as upstream stepped from 0.15.1 (993.7 / 1,007.0) to 0.17.0
+              (1,208.5). Patch releases holding the same plateau are grouped into their active
+              range, while macOS, Windows, and ARM64 cohorts are shown in their dedicated platform
+              tabs below.
             </p>
           </div>
 
@@ -293,7 +297,7 @@
                     Click any point or version pill below to inspect per-subtest breakdown
                   </p>
                 </div>
-                <span class="badge badge-green" id="history-gain-badge">+108.7% vs Stock NG</span>
+                <span class="badge badge-green" id="history-gain-badge">+71.9% vs Stock NG 0.17.0</span>
               </div>
               <div id="history-chart"></div>
               <div class="version-pills" id="version-pills" role="tablist"></div>
@@ -306,12 +310,12 @@
             <div class="panel-header">
               <div>
                 <h3 class="panel-title" id="subtest-title">V8-v7 Subtest Breakdown</h3>
-                <p class="panel-subtitle">
-                  Each subtest ratio is computed against same-session Stock QuickJS-NG 0.15.1 on the
+                <p class="panel-subtitle" id="subtest-subtitle">
+                  Each subtest ratio is computed against same-session Stock QuickJS-NG 0.17.0 on the
                   Reference Linux x86-64 host
                 </p>
               </div>
-              <span class="badge" id="subtest-version-badge">v0.15.1-turbo.4 → .8</span>
+              <span class="badge" id="subtest-version-badge">v0.17.0-turbo.1</span>
             </div>
             <div class="subtest-grid" id="subtest-grid"></div>
           </div>
@@ -396,7 +400,7 @@
     <footer class="site-footer">
       <div class="container footer-inner">
         <div>
-          <strong>QuickJS-Turbo</strong> · MIT License · Built on QuickJS-NG 0.15.1 by Fabrice
+          <strong>QuickJS-Turbo</strong> · MIT License · Built on QuickJS-NG 0.17.0 by Fabrice
           Bellard, Charlie Gordon &amp; QuickJS-NG maintainers.
         </div>
         <div class="footer-links">

@@ -2,9 +2,9 @@ Linux/glibc AArch64 register backend
 ====================================
 Build and release scope:LINUX-AARCH64-RELEASE.txt.
 Physical-hardware qualification and measured costs:LINUX-AARCH64-HARDWARE.txt.
-Build with tools/build/product-linux-aarch64.sh. Native backend selection is
+Build with tools/arm64/build/product-linux-aarch64.sh. Native backend selection is
 explicit;AUTO remains PORTABLE. The common C fallback has its own unchanged
-product-linux-aarch64-portable.sh wrapper. Pinned QuickJS-NG is0.15.1,with all19
+product-linux-aarch64-portable.sh wrapper. Pinned QuickJS-NG is0.17.0,with all19
 recorded upstream inputs unchanged. No performance result from QEMU is an ARM
 hardware result.
 
