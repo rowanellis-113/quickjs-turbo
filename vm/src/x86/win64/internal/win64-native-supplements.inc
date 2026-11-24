@@ -78,8 +78,9 @@ typedef struct Win64FastCtorMeta {
 
 static WIN64_THREAD_LOCAL Win64FastCtorMeta win64_fast_ctor_cache[64];
 
-static SHARED_INLINE bool win64_ctor_parse_val(JSFunctionBytecode *b, const uint8_t *buf, uint32_t len,
-                                              uint32_t *pk, uint8_t *kind, int32_t *imm)
+static SHARED_INLINE bool win64_ctor_parse_val(JSFunctionBytecode *b, const uint8_t *buf,
+                                               uint32_t len, uint32_t *pk, uint8_t *kind,
+                                               int32_t *imm)
 {
     uint32_t k = *pk;
     if (k >= len)
@@ -214,9 +215,10 @@ static SHARED_INLINE int win64_ctor_to_bool(JSValueConst v)
     }
 }
 
-static bool win64_ctor_eval_init(JSFunctionBytecode *ib, uint16_t incoming_argc, const JSValue *argv,
-                                 JSObject *proto_obj, Win64FastCtorMeta *m, JSAtom *out_atoms,
-                                 JSValue *out_vals, uint8_t *out_n, bool *hit_unsupported_op)
+static bool win64_ctor_eval_init(JSFunctionBytecode *ib, uint16_t incoming_argc,
+                                 const JSValue *argv, JSObject *proto_obj, Win64FastCtorMeta *m,
+                                 JSAtom *out_atoms, JSValue *out_vals, uint8_t *out_n,
+                                 bool *hit_unsupported_op)
 {
     const uint8_t *ibuf = ib->byte_code_buf;
     uint32_t len = ib->byte_code_len;
@@ -559,8 +561,7 @@ static bool win64_ctor_eval_init(JSFunctionBytecode *ib, uint16_t incoming_argc,
 /* Borrowed shape lookup: verifies cached shape inside rt->shape_hash without holding
  * an owned refcount in TLS so runtime destruction never leaks shapes or atoms. */
 static JSShape *win64_ctor_ensure_shape(JSContext *ctx, JSRuntime *rt, Win64FastCtorMeta *m,
-                                        JSObject *proto_obj, uint8_t n_fields,
-                                        const JSAtom *atoms)
+                                        JSObject *proto_obj, uint8_t n_fields, const JSAtom *atoms)
 {
     if (m->rt_id == (uintptr_t)rt && m->shape_id != 0) {
         uint32_t h = get_shape_hash(m->shape_hash, rt->shape_hash_bits);
@@ -656,11 +657,10 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
     if (!FRAME_KIND(b) && !js_frame_validate(b))
         FRAME_KIND(b) = 2;
     bool is_kind1 = FRAME_SUPPORTED(b) != 0;
-    bool is_va_wrapper = !is_kind1 && FRAME_KIND(b) == 2 && !rt->interrupt_handler &&
-                         ctx->interrupt_counter > 4 && b->byte_code_len == 21 &&
-                         b->arg_count == 0 && b->var_count == 2 && b->var_ref_count == 0 &&
-                         b->closure_var_count == 0 && b->stack_size == 4 &&
-                         b->byte_code_buf[0] == OP_push_this;
+    bool is_va_wrapper =
+        !is_kind1 && FRAME_KIND(b) == 2 && !rt->interrupt_handler && ctx->interrupt_counter > 4 &&
+        b->byte_code_len == 21 && b->arg_count == 0 && b->var_count == 2 && b->var_ref_count == 0 &&
+        b->closure_var_count == 0 && b->stack_size == 4 && b->byte_code_buf[0] == OP_push_this;
     if (!is_kind1 && !is_va_wrapper)
         return -1;
 
