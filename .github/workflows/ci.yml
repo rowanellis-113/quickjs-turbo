@@ -358,8 +358,8 @@ jobs:
           - label: Linux ASan+UBSan
             os: ubuntu-24.04
             mode: asan-ubsan
-          - label: macOS AUTO Portable
-            os: macos-15
+          - label: macOS Portable (+ ARM64 cross)
+            os: macos-15-intel
             mode: macos
     steps:
       - uses: actions/checkout@v7
@@ -393,7 +393,7 @@ jobs:
           cmake --build build/asan --parallel 4
           ctest --test-dir build/asan --output-on-failure --parallel 4
 
-      - name: Build, CTest & Consumer macOS AUTO Portable
+      - name: Build, CTest & Consumer macOS Portable (+ ARM64 cross-compile)
         if: matrix.mode == 'macos'
         shell: bash
         run: |
@@ -401,7 +401,7 @@ jobs:
           command -v ninja >/dev/null 2>&1 || brew install ninja
           cmake -S vm -B build/macos-portable -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
-            -DQJS_FRAME_BACKEND=AUTO \
+            -DQJS_FRAME_BACKEND=PORTABLE \
             -DQJS_FRAME_BUILD_TESTS=ON \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
@@ -421,6 +421,35 @@ jobs:
             -DCMAKE_PREFIX_PATH="$PWD/out/sdk-macos"
           cmake --build build/consumer-macos --parallel 4
           ctest --test-dir build/consumer-macos --output-on-failure
+
+          # Cross-compile & verify Apple Silicon (arm64) Mach-O PORTABLE SDK + consumer link
+          cmake -S vm -B build/macos-arm64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
+            -DQJS_FRAME_BACKEND=PORTABLE \
+            -DQJS_FRAME_BUILD_TESTS=OFF \
+            -DQJS_BACKPORT_CONTEXT_OOM=ON \
+            -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
+            -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
+            -DQJS_BACKPORT_VALUE64_INIT=ON \
+            -DQJS_BACKPORT_MIXED_NUMBERS=ON \
+            -DQJS_BACKPORT_MAP_POINTER_HASH=ON \
+            -DQJS_PROPERTY_IC=ON \
+            -DQJS_BACKPORT_PORTABLE_REGEXP=ON \
+            -DCMAKE_INSTALL_PREFIX="$PWD/out/sdk-macos-arm64"
+          cmake --build build/macos-arm64 --parallel 4
+          cmake --install build/macos-arm64
+          for artifact in out/sdk-macos-arm64/bin/qjs out/sdk-macos-arm64/bin/qjsc out/sdk-macos-arm64/lib/libqjs.a; do
+            archs="$(lipo -archs "${artifact}")"
+            test "${archs}" = "arm64" || { echo "Expected arm64 for ${artifact}, got ${archs}" >&2; exit 1; }
+          done
+          cmake -S vm/tests/common/consumer -B build/consumer-macos-arm64 -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
+            -DCMAKE_PREFIX_PATH="$PWD/out/sdk-macos-arm64"
+          cmake --build build/consumer-macos-arm64 --parallel 4
 
   macos-x86_64:
     name: macOS x86-64 (MACOS_X86_64 + SDK)

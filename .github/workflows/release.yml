@@ -270,11 +270,11 @@ jobs:
   macos-arm64:
     name: SDK macOS ARM64 (PORTABLE)
     needs: meta
-    runs-on: macos-15
+    runs-on: macos-15-intel
     steps:
       - uses: actions/checkout@v7
 
-      - name: Build, CTest & package SDK
+      - name: Build, verify arm64 slices & package SDK
         shell: bash
         run: |
           set -euo pipefail
@@ -283,8 +283,10 @@ jobs:
           SDK_NAME="quickjs-turbo-${TAG}-macos-arm64-portable-sdk"
           cmake -S vm -B build/macos-arm64 -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
             -DQJS_FRAME_BACKEND=PORTABLE \
-            -DQJS_FRAME_BUILD_TESTS=ON \
+            -DQJS_FRAME_BUILD_TESTS=OFF \
             -DQJS_BACKPORT_CONTEXT_OOM=ON \
             -DQJS_FRAME_EXPERIMENTAL_COMPARE=ON \
             -DQJS_BACKPORT_COMPUTED_ASSIGN=ON \
@@ -295,13 +297,17 @@ jobs:
             -DQJS_BACKPORT_PORTABLE_REGEXP=ON \
             -DCMAKE_INSTALL_PREFIX="$PWD/dist/${SDK_NAME}"
           cmake --build build/macos-arm64 --parallel 4
-          ctest --test-dir build/macos-arm64 --output-on-failure --parallel 4
           cmake --install build/macos-arm64
+          for artifact in "dist/${SDK_NAME}/bin/qjs" "dist/${SDK_NAME}/bin/qjsc" "dist/${SDK_NAME}/lib/libqjs.a"; do
+            archs="$(lipo -archs "${artifact}")"
+            test "${archs}" = "arm64" || { echo "Expected arm64 for ${artifact}, got ${archs}" >&2; exit 1; }
+          done
           cmake -S vm/tests/common/consumer -B build/consumer-macos -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.0 \
             -DCMAKE_PREFIX_PATH="$PWD/dist/${SDK_NAME}"
           cmake --build build/consumer-macos --parallel 4
-          ctest --test-dir build/consumer-macos --output-on-failure
           python3 -B vm/ci/release_version.py \
             --write-sdk-metadata "dist/${SDK_NAME}" \
             --platform macos-arm64-portable \
