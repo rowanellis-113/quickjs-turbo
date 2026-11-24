@@ -457,20 +457,12 @@ def _specialize_compare_branch_and_loops(text):
     add x15, x15, #3
     add x15, x20, x15
     ldrb w16, [x15]
-    cmp w14, #3
-    b.hi .Lfast_loop_chk_loc8
+    // A non-short index must clear Z even if the opcode arithmetic matches.
     add w17, w14, #ARM_OP_get_loc0
-    cmp w16, w17
+    cmp w14, #3
+    ccmp w16, w17, #0, ls
     b.ne .Lfast_loop_chk_loc8
     add x16, x15, #1
-    b .Lfast_loop_read_bound
-.Lfast_loop_chk_loc8:
-    cmp w16, #ARM_OP_get_loc8
-    b.ne .Lfast_inc_loop_goto_only
-    ldrb w17, [x15, #1]
-    cmp w17, w14
-    b.ne .Lfast_inc_loop_goto_only
-    add x16, x15, #2
 .Lfast_loop_read_bound:
     ldrb w12, [x16]
     sub w17, w12, #ARM_OP_get_arg0
@@ -479,7 +471,16 @@ def _specialize_compare_branch_and_loops(text):
     add x14, x24, w17, uxtw #4
     ldp x13, x14, [x14]
     add x17, x16, #1
-    b .Lfast_loop_chk_tag
+    cbz x14, .Lfast_loop_int_cmp
+    b .Lfast_loop_chk_nonint_tag
+.Lfast_loop_chk_loc8:
+    cmp w16, #ARM_OP_get_loc8
+    b.ne .Lfast_inc_loop_goto_only
+    ldrb w17, [x15, #1]
+    cmp w17, w14
+    b.ne .Lfast_inc_loop_goto_only
+    add x16, x15, #2
+    b .Lfast_loop_read_bound
 .Lfast_loop_bnd_loc:
     sub w17, w12, #ARM_OP_get_loc0
     cmp w17, #3
@@ -530,6 +531,7 @@ def _specialize_compare_branch_and_loops(text):
     b .Lfast_loop_int_cmp
 .Lfast_loop_chk_tag:
     cbz x14, .Lfast_loop_int_cmp
+.Lfast_loop_chk_nonint_tag:
     cmp x14, #ARM_CONST_JS_TAG_FLOAT64
     b.ne .Lfast_inc_loop_goto_only
     ldrb w14, [x17]

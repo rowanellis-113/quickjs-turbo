@@ -684,9 +684,7 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
     measured["HAS_SCALAR_OPS"] = int(scalar_enabled)
     measured["HAS_STACK_INSERT"] = int(stack_insert_enabled)
     measured["HAS_STRING_WORKERS"] = int(strings_enabled)
-    measured["HAS_NATIVE_STRING_APPEND"] = int(
-        strings_enabled and "-DQJS_AARCH64_STRING_POOL" in flags
-    )
+    measured["HAS_NATIVE_STRING_APPEND"] = int(strings_enabled)
     if strings_enabled:
         for name, key, off in [
             ("len", "STRING_LEN_MASK", layout["bits"]["JSString.len"][0][0]),

@@ -85,7 +85,7 @@ unsigned char JS_FrameLocalRopeModeGet(void)
             mode |= 16;
         /* GNU-only native lane: retain the original legacy policy/code path.
            Presence, including value 0, disables only the new native lane. */
-#if !defined(_MSC_VER) && defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)
+#if !defined(_MSC_VER)
         if ((mode & 3) == 1 && getenv("QJS_DISABLE_FRAME_NATIVE_ROPE_APPEND"))
             mode |= 32;
 #endif

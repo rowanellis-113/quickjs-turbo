@@ -45,6 +45,84 @@ def generate(
         + local[end:]
     )
     local = local.replace("LOCAL_STRING_CODE", "LINUX_STRING_CODE")
+    old_concat = "    result=JS_ConcatString(ctx,js_dup(*pv),sp[-1]);"
+    new_concat = """    if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING && JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {
+        JSString *p1 = JS_VALUE_GET_STRING(*pv);
+        JSString *p2 = JS_VALUE_GET_STRING(sp[-1]);
+        if (p2->len == 0) {
+            JS_FreeValue(ctx, sp[-1]);
+            js_frame_finish_c(state);
+            return 2;
+        }
+        if (JS_REF_COUNT(p1) == 1 && !p1->atom_type && p1->kind == JS_STRING_KIND_NORMAL &&
+            p1->is_wide_char == p2->is_wide_char &&
+            js_malloc_usable_size(ctx, p1) >=
+                sizeof(*p1) + (((size_t)p1->len + (size_t)p2->len) << p1->is_wide_char) + 1 -
+                    p1->is_wide_char) {
+            if (p1->is_wide_char) {
+                memcpy(str16(p1) + p1->len, str16(p2), (size_t)p2->len << 1);
+                p1->len += p2->len;
+            } else {
+                memcpy(str8(p1) + p1->len, str8(p2), p2->len);
+                p1->len += p2->len;
+                str8(p1)[p1->len] = '\\0';
+            }
+            if (unlikely(p1->hash))
+                p1->hash = 0;
+            JS_FreeValue(ctx, sp[-1]);
+            js_frame_finish_c(state);
+            return 2;
+        }
+    } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING_ROPE &&
+               JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {
+        JSStringRope *rope = JS_VALUE_GET_STRING_ROPE(*pv);
+        JSString *part = JS_VALUE_GET_STRING(sp[-1]);
+        uint32_t added = part->len;
+        if (!added) {
+            JS_FreeValue(ctx, sp[-1]);
+            js_frame_finish_c(state);
+            return 2;
+        }
+        if (JS_REF_COUNT(rope) == 1 && JS_VALUE_GET_TAG(rope->right) == JS_TAG_STRING &&
+            added <= JS_STRING_ROPE_SHORT_LEN && rope->len <= JS_STRING_LEN_MAX - added &&
+            JS_VALUE_GET_STRING(rope->right)->len <= JS_STRING_ROPE_SHORT_LEN) {
+            JSString *tail = JS_VALUE_GET_STRING(rope->right);
+            unsigned wide = part->is_wide_char;
+            size_t length = (size_t)tail->len + added;
+            if (JS_REF_COUNT(tail) == 1 && !tail->atom_type && tail->kind == JS_STRING_KIND_NORMAL &&
+                tail->is_wide_char == wide &&
+                js_malloc_usable_size(ctx, tail) >= sizeof(*tail) + (length << wide) + !wide) {
+                if (wide) {
+                    memcpy(str16(tail) + tail->len, str16(part), (size_t)added << 1);
+                } else {
+                    memcpy(str8(tail) + tail->len, str8(part), added);
+                    str8(tail)[length] = 0;
+                }
+                tail->len = (uint32_t)length;
+                if (unlikely(tail->hash))
+                    tail->hash = 0;
+                rope->len += added;
+                rope->is_wide_char |= wide;
+                JS_FreeValue(ctx, sp[-1]);
+                js_frame_finish_c(state);
+                return 2;
+            }
+            JSValue joined = JS_ConcatString2(ctx, js_dup(rope->right), sp[-1]);
+            if (JS_IsException(joined)) {
+                sp[-1] = JS_UNDEFINED;
+                state->exception_pending = true;
+                js_frame_finish_c(state);
+                return JS_FrameInterpSlow(state);
+            }
+            set_value(ctx, &rope->right, joined);
+            rope->len += added;
+            rope->is_wide_char |= wide;
+            js_frame_finish_c(state);
+            return 2;
+        }
+    }
+    result=JS_ConcatString(ctx,js_dup(*pv),sp[-1]);"""
+    local = replace_one(local, old_concat, new_concat, "in-place add_loc string append")
     control = source_text(source, "string-concat-control.inc")
     control = control.replace(".qjsem$strings", ".bss.qjs_strings")
     control = control.replace(

@@ -112,6 +112,7 @@ file(
     WRITE "${CMAKE_CURRENT_BINARY_DIR}/interpreter-backend.json"
     "{\"schema\":1,\"requested\":\"${frame_requested}\",\"effective\":\"${QJS_FRAME_BACKEND_EFFECTIVE}\",\"fallback_reason\":\"${frame_unavailable}\",\"qualification\":\"build receipt only; source-bound acceptance in docs/architecture/arm64/LINUX-AARCH64-RELEASE.txt\"}\n"
 )
+set(QJS_BACKPORT_PORTABLE_REGEXP_REQUIRED ON)
 
 option(QJS_INTERP_FRAME_ARRAY_SORT
        "Complete array copy and default/cached/prepared sort C owners (experimental)" ON)

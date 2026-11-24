@@ -19,13 +19,6 @@
     ldrb w4, [x4, :lo12:qjs_linux_string_add_mode]
     cmp w4, #1
     b.ne .Lstring_binary_c
-    ldr x4, [x19, #ARM_OFF_JSFrameRegisterState_rt]
-    ldr x4, [x4, #(ARM_OFF_JSRuntime_mf+ARM_OFF_JSMallocFunctions_js_malloc_usable_size)]
-    adrp x16, FramePoolFunctions
-    add x16, x16, :lo12:FramePoolFunctions
-    ldr x16, [x16, #ARM_OFF_JSMallocFunctions_js_malloc_usable_size]
-    cmp x4, x16
-    b.ne .Lstring_binary_c
     ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #2
     b.ne .Lstring_binary_c
@@ -52,8 +45,30 @@
     cmp w3, #512
     b.hi .Lstring_binary_c
     add w4, w3, #(ARM_SIZE_JSString+2)
-    ldur x12, [x2, #(ARM_OFF_FramePoolHeader_capacity-ARM_SIZE_FramePoolHeader)]
-    cmp x12, x4
+    ldurh w12, [x2, #(ARM_OFF_JSMallocBlockHeader_u_block_idx-ARM_SIZE_JSMallocBlockHeader)]
+    mov w16, #0xffff
+    cmp w12, w16
+    b.eq .Lstring_binary_c
+    ldurb w12, [x2, #(ARM_OFF_JSMallocBlockHeader_block_size_idx-ARM_SIZE_JSMallocBlockHeader)]
+    cmp w12, #14
+    b.hi .Lstring_append_cap1
+    add w12, w12, #2
+    lsl w12, w12, #3
+    b .Lstring_append_cap_done
+.Lstring_append_cap1:
+    cmp w12, #22
+    b.hi .Lstring_append_cap2
+    sub w12, w12, #6
+    lsl w12, w12, #4
+    b .Lstring_append_cap_done
+.Lstring_append_cap2:
+    cmp w12, #30
+    b.hi .Lstring_binary_c
+    sub w12, w12, #14
+    lsl w12, w12, #5
+.Lstring_append_cap_done:
+    sub w12, w12, #ARM_SIZE_JSMallocBlockHeader
+    cmp w12, w4
     b.lo .Lstring_binary_c
     ldr x6, [x22, #ARM_OFF_JSFrame_bytecode]
     ldr x7, [x6, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
@@ -135,6 +150,7 @@
     strb wzr, [x15, #(ARM_SIZE_JSString+1)]
     add w3, w3, #1
     str w3, [x2, #ARM_BIT_JSString_len_BYTE]
+    str wzr, [x2, #ARM_STRING_FLAGS_OFFSET]
     add w5, w5, #1
     str w5, [x0, #ARM_OFF_JSStringRope_len]
     strb w11, [x0, #ARM_OFF_JSStringRope_depth]

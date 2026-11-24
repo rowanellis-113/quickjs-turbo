@@ -304,7 +304,7 @@
       "format_check": true
     },
     "src/common/kernel/string-control.inc": {
-      "sha256": "84ec5fea943107541a3130b2ab2be508872a7cfb2e531197554a6b2f937d3a06",
+      "sha256": "bfa25ca4d3f8e0a1ab50c5eae32fe0b5e588737deeae04e8f47577ce2c997491",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },

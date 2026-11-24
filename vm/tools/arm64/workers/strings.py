@@ -12,6 +12,8 @@ def sha(p):
 def probe_types(source, text, names):
     names += [
         ("STRING_FLAGS_OFFSET", "offsetof(JSString,hash_next)-sizeof(uint32_t)"),
+        ("OFF_JSMallocBlockHeader_u_block_idx", "offsetof(JSMallocBlockHeader,u.block_idx)"),
+        ("OFF_JSMallocBlockHeader_block_size_idx", "offsetof(JSMallocBlockHeader,block_size_idx)"),
     ]
     text += '\n#pragma GCC diagnostic push\n#pragma GCC diagnostic ignored "-Woverflow"\n'
     for name, init in [
@@ -71,11 +73,6 @@ def generate(source, output, core, layout, enabled):
             )
         t += '_Static_assert(__builtin_types_compatible_p(__typeof__(&JS_FrameSharedConcatRope),JSValue (*)(JSContext*,JSValue,JSValue)),"actual target string aggregate ABI");\n'
         t += "#undef LINUX_STRING_CODE\n"
-        t = (
-            '#pragma push_macro("QJS_FRAME_EXPERIMENTAL_ALLOCATOR")\n#if defined(QJS_AARCH64_STRING_POOL) && !defined(QJS_FRAME_EXPERIMENTAL_ALLOCATOR)\n#define QJS_FRAME_EXPERIMENTAL_ALLOCATOR\n#endif\n'
-            + t
-            + '\n#pragma pop_macro("QJS_FRAME_EXPERIMENTAL_ALLOCATOR")\n'
-        )
         p.write_text(t)
         record.update(
             enabled=True, generated_sha256=sha(p), frame_growth=0, state_growth=0, runtime_growth=0

@@ -28,7 +28,7 @@
     "asm/arm64/common/register-scalar-ops.inc": "d8766d548c4c6b343d9924e301a0548e6b59e402e4c6a014c022490aace71d37",
     "asm/arm64/common/register-slots.inc": "17ff18c9959ddddccd8fec030f8ab29c4066141d612db2d7e0c44a706c9f1cc0",
     "asm/arm64/common/register-stack-insert.inc": "5984c6a3ee35d21d8fa86a1d58cb02333ea6e48cdc0e4981f523365ff8975f50",
-    "asm/arm64/common/register-string-append.inc": "6d101255ac9a17fe251b91315465b117f8ac4e952dcfcd2583e991aae686072a",
+    "asm/arm64/common/register-string-append.inc": "aa4b8748c6cf28656441ce06ca790ad639efae9a7240ce69b1947371b8e24239",
     "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
     "asm/arm64/common/register-varargs.inc": "5f57f79164c20f2940fc29923c4d8bf161a991d3676f45cf6178ae78f4945264",
     "asm/arm64/linux/interpreter.S": "caf2819f1081525458669f6eed9b4f09ef174e58bd3709d81d3e851cb43823c0",

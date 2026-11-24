@@ -2,7 +2,7 @@
   "schema": 1,
   "target": "Linux AArch64 GCC/glibc",
   "source_owners": {
-    "tools/common/elf/string_workers.py": "ce7536a6bea0b5642fb7a8b402d7ba6309b3228ead3d3b5a6ec8e7e3e50d89e8",
+    "tools/common/elf/string_workers.py": "0ef7010c1d7b064a11928ad996305a4eeaa971dd6bb2bf45bf0eb9a755f5264c",
     "tools/common/c_extract/local_string_c.py": "6dc46ff734ed8d4fc97d527060ff7c764aa770fe03caac436ee71b451a9645d7",
     "src/common/string/concat-rope.inc": "a24af910ddcd08b49e5a6541c4793a8de7f3564b49401bddc5b145ab4d8c0ce3",
     "src/common/string/local-rope-append.inc": "17d9554d4a919c922b3b4863ae65e3c6cbbe2ae801da80bfefa37918468b6925",
@@ -13,8 +13,8 @@
     "asm/arm64/common/register-strings.inc": "1e3036eeedc72c380df9514ae26d349ed6d1490e970707af98ea403de7ace2bc",
     "asm/arm64/common/register-indexed.inc": "23f9c322ab756c82873eaea40d1658fc077a3306953aea5b4786c48dd91dd37e",
     "asm/arm64/common/register-bigint.inc": "242561658c31c2494ef4bd0bb9f488456ca297b6d473baaa41a6dfd7c0fc5c1f",
-    "asm/arm64/common/register-string-append.inc": "6d101255ac9a17fe251b91315465b117f8ac4e952dcfcd2583e991aae686072a",
-    "src/common/kernel/string-control.inc": "84ec5fea943107541a3130b2ab2be508872a7cfb2e531197554a6b2f937d3a06"
+    "asm/arm64/common/register-string-append.inc": "aa4b8748c6cf28656441ce06ca790ad639efae9a7240ce69b1947371b8e24239",
+    "src/common/kernel/string-control.inc": "bfa25ca4d3f8e0a1ab50c5eae32fe0b5e588737deeae04e8f47577ce2c997491"
   },
   "whole_qualification": false,
   "native_byte_append_implementation_complete": true
