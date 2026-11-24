@@ -359,7 +359,7 @@ jobs:
             os: ubuntu-24.04
             mode: asan-ubsan
           - label: macOS AUTO Portable
-            os: macos-latest
+            os: macos-15
             mode: macos
     steps:
       - uses: actions/checkout@v7
