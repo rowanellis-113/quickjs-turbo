@@ -26,17 +26,12 @@ def writable_array_append(block):
     readonly length must instead enter the complete original property setter.
     Keep the physical line count for source-bound creator/call proofs.
     """
-    block = replace_once(
-        block,
-        "if (likely(new_len <= p->u.array.u1.size)) {",
-        "if (likely(new_len <= p->u.array.u1.size)) { if (unlikely(new_len > array_len && !(get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE))) goto bellard_array_append_slow;",
-        "array append readonly length",
-    )
     return replace_once(
         block,
-        "                sf->cur_pc = pc;",
-        "                bellard_array_append_slow: sf->cur_pc = pc;",
-        "array append complete setter",
+        "if (likely(new_len <= p->u.array.u1.size)) {",
+        "if (likely(new_len <= p->u.array.u1.size) && "
+        "(new_len <= array_len || (get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE))) {",
+        "array append readonly length",
     )
 
 

@@ -256,11 +256,9 @@
     ldrb w12, [x7, #ARM_STRICT_BYTE]
     and w12, w12, #ARM_STRICT_MASK
     lsr w12, w12, #ARM_STRICT_SHIFT
-    strb w12, [x10, #ARM_OFF_JSStackFrame_is_strict_mode]
-    strb wzr, [x10, #ARM_FRAME_ROOT_OFFSET]
-    strb wzr, [x10, #ARM_FRAME_FLAGS_OFFSET]
+    str w12, [x10, #ARM_OFF_JSStackFrame_is_strict_mode]
     str xzr, [x10, #ARM_OFF_JSStackFrame_cur_pc]
-    str xzr, [x10, #ARM_OFF_JSStackFrame_cur_sp]
+    stp xzr, xzr, [x10, #ARM_OFF_JSStackFrame_cur_sp]
     str x7, [x10, #ARM_OFF_JSFrame_bytecode]
     mov x5, #0
     mov x6, #ARM_CONST_JS_TAG_UNDEFINED
@@ -283,9 +281,9 @@
 .Lcall_copy_owned:
     ldp x5, x6, [x14], #16
     tbz x6, #63, .Lcall_copy_store
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
 .Lcall_copy_store:
     stp x5, x6, [x12], #16
     subs w15, w15, #1
@@ -479,7 +477,7 @@
     b.eq .Lreturn_guard_range_done
     ldp x11, x12, [x9], #16
     tbz x12, #63, .Lreturn_guard
-    ldr w13, [x11, #ARM_REF_COUNT_OFFSET]
+    ldur w13, [x11, #ARM_REF_COUNT_OFFSET]
     cmp w13, w8
     b.gt .Lreturn_guard
 // Only low-RC references need distinctness. Equal pointers have the same
@@ -511,9 +509,9 @@
     b.eq .Lreturn_release_range_done
     ldp x11, x12, [x9], #16
     tbz x12, #63, .Lreturn_release
-    ldr w13, [x11, #ARM_REF_COUNT_OFFSET]
+    ldur w13, [x11, #ARM_REF_COUNT_OFFSET]
     sub w13, w13, #1
-    str w13, [x11, #ARM_REF_COUNT_OFFSET]
+    stur w13, [x11, #ARM_REF_COUNT_OFFSET]
     b .Lreturn_release
 .Lreturn_release_range_done:
     cbnz w16, .Lreturn_pop

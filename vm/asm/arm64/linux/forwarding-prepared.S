@@ -343,9 +343,9 @@ JS_AArch64CallPrepareExecute:
     mov w9, #-9
     cmp w7, w9
     b.lo .Lprepare_no_dup
-    ldr w9, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x6, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x6, #ARM_REF_COUNT_OFFSET]
 .Lprepare_no_dup:
     add x9, x0, #ARM_OFF_JSFrameRegisterState_result
     stp x6, x7, [x9]
@@ -518,9 +518,9 @@ JS_AArch64CallPrepareOwned:
     mov w14, #-9
     cmp w13, w14
     b.lo .Lprepare_owned_no_dup
-    ldr w14, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x12, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x12, #ARM_REF_COUNT_OFFSET]
 .Lprepare_owned_no_dup:
     subs w16, w16, #1
     b.ne .Lprepare_owned_copy_args

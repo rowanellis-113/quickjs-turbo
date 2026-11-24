@@ -17,7 +17,7 @@ def prepare(source, output, layout, actual, enabled, reference_controls=False):
             raise ValueError("Review complete global semantic owner: " + name)
     model = dict(
         layout,
-        reference_count_model="inline-header",
+        reference_count_model="allocator-prefix",
         property_ic=actual.receipt["property_ic"],
         compiler_input=str(actual.core),
         platform="linux-aarch64-aapcs64",

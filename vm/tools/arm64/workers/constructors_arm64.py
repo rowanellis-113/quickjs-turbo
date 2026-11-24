@@ -12,7 +12,7 @@ def _specialize_constructors_and_host(text):
     b.eq .L{p}construct_release_begin
     ldp x10, x11, [x9], #16
     tbz x11, #63, .L{p}construct_guard
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w12, w8
     b.le .L{p}return_fallback
     b .L{p}construct_guard"""
@@ -23,7 +23,7 @@ def _specialize_constructors_and_host(text):
     b.eq .L{p}construct_release_begin
     ldp x10, x11, [x9], #16
     tbz x11, #63, .L{p}construct_guard
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w12, w8
     b.gt .L{p}construct_guard
     cmp w12, #1
@@ -296,13 +296,13 @@ def _specialize_constructors_and_host(text):
     ldarb w14, [x14]
     cmp w14, #1
     b.ne .Lrel_fast_host_fallback
-    ldr w14, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x3, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .Lrel_fast_host_fallback
     ldp x9, x10, [x2, #-32]
     cmn x10, #1
     b.ne .Lrel_fast_host_fallback
-    ldr w15, [x9, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x9, #ARM_REF_COUNT_OFFSET]
     cmp w15, #1
     b.le .Lrel_fast_host_fallback
     ldrh w10, [x9, #ARM_OFF_JSObject_class_id]
@@ -315,10 +315,13 @@ def _specialize_constructors_and_host(text):
     tst w10, #ARM_BIT_JSObject_extensible_MASK
     b.eq .Lrel_fast_host_fallback
     ldr x10, [x9, #ARM_OFF_JSObject_shape]
-    ldr w11, [x10, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w11, [x10, #ARM_OFF_JSShape_prop_hash_mask]
+    add x10, x10, w11, uxtw #2
+    add x10, x10, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w11, [x10, #ARM_OFF_JSShapeProperty_atom]
     cmp w11, #ARM_CONST_JS_ATOM_length
     b.ne .Lrel_fast_host_fallback
-    ldr w11, [x10, #ARM_OFF_JSShape_prop]
+    ldr w11, [x10]
     lsr w11, w11, #26
     cmp w11, #10
     b.ne .Lrel_fast_host_fallback
@@ -349,9 +352,9 @@ def _specialize_constructors_and_host(text):
     mov x6, #ARM_CONST_JS_TAG_UNDEFINED
 .Lrel_fast_pop_commit:
     sub w14, w14, #1
-    str w14, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x3, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x9, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x9, #ARM_REF_COUNT_OFFSET]
     stp x5, x6, [x2, #-32]
     sub x21, x2, #16
     mov x20, x1
@@ -372,13 +375,13 @@ def _specialize_constructors_and_host(text):
     ldr x12, [x3, #ARM_OFF_JSObject_u_cfunc_realm]
     cmp x12, x11
     b.ne .Lrel_fast_host_fallback
-    ldr w14, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x3, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .Lrel_fast_host_fallback
     ldp x9, x10, [x2, #-32]
     cmn x10, #1
     b.ne .Lrel_fast_host_fallback
-    ldr w15, [x9, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x9, #ARM_REF_COUNT_OFFSET]
     cmp w15, #1
     b.le .Lrel_fast_host_fallback
     ldrh w10, [x9, #ARM_OFF_JSObject_class_id]
@@ -401,10 +404,13 @@ def _specialize_constructors_and_host(text):
     b.ne .Lrel_fast_host_fallback
     cmp x12, x13
     b.ne .Lrel_fast_host_fallback
-    ldr w12, [x10, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w12, [x10, #ARM_OFF_JSShape_prop_hash_mask]
+    add x10, x10, w12, uxtw #2
+    add x10, x10, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w12, [x10, #ARM_OFF_JSShapeProperty_atom]
     cmp w12, #ARM_CONST_JS_ATOM_length
     b.ne .Lrel_fast_host_fallback
-    ldr w12, [x10, #ARM_OFF_JSShape_prop]
+    ldr w12, [x10]
     tst w12, #ARM_PROPERTY_DESC_TMASK
     b.ne .Lrel_fast_host_fallback
     tst w12, #ARM_PROPERTY_DESC_WRITABLE
@@ -433,9 +439,9 @@ def _specialize_constructors_and_host(text):
     str w8, [x9, #ARM_OFF_JSObject_u_array_count]
     str x8, [x10]
     sub w14, w14, #1
-    str w14, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x3, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x9, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x9, #ARM_REF_COUNT_OFFSET]
     stp x8, xzr, [x2, #-32]
     sub x21, x2, #16
     mov x20, x1
@@ -456,13 +462,13 @@ def _specialize_constructors_and_host(text):
     ldr x12, [x3, #ARM_OFF_JSObject_u_cfunc_realm]
     cmp x12, x11
     b.ne .Lrel_fast_host_fallback
-    ldr w14, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x3, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .Lrel_fast_host_fallback
     ldp x9, x10, [x2, #-32]
     cmn x10, #7
     b.ne .Lrel_fast_host_fallback
-    ldr w15, [x9, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x9, #ARM_REF_COUNT_OFFSET]
     cmp w15, #1
     b.le .Lrel_fast_host_fallback
     ldr x12, [x3, #ARM_OFF_JSObject_u_cfunc_c_function]
@@ -533,9 +539,9 @@ def _specialize_constructors_and_host(text):
     sub w16, w16, #1
     str w16, [x11, #ARM_OFF_JSContext_interrupt_counter]
     sub w14, w14, #1
-    str w14, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x3, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x9, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x9, #ARM_REF_COUNT_OFFSET]
     stp x5, x6, [x2, #-32]
     sub x21, x2, #16
     mov x20, x1
@@ -562,15 +568,15 @@ def _specialize_constructors_and_host(text):
     sub w16, w16, #1
     str w16, [x11, #ARM_OFF_JSContext_interrupt_counter]
     sub w14, w14, #1
-    str w14, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x3, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #2
-    str w15, [x9, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x9, #ARM_REF_COUNT_OFFSET]
     stp xzr, xzr, [x2, #-32]
     sub x21, x2, #16
     mov x20, x1
     ARM_DISPATCH_NEXT 1
 .Lrel_fast_lc_distinct:
-    ldr w6, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w6, [x12, #ARM_REF_COUNT_OFFSET]
     cmp w6, #1
     b.le .Lrel_fast_host_fallback
     ldr w7, [x9, #ARM_BIT_JSString_hash_BYTE]
@@ -634,11 +640,11 @@ def _specialize_constructors_and_host(text):
     sub w16, w16, #1
     str w16, [x11, #ARM_OFF_JSContext_interrupt_counter]
     sub w14, w14, #1
-    str w14, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x3, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x9, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x9, #ARM_REF_COUNT_OFFSET]
     sub w6, w6, #1
-    str w6, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w6, [x12, #ARM_REF_COUNT_OFFSET]
     stp x0, xzr, [x2, #-32]
     sub x21, x2, #16
     mov x20, x1

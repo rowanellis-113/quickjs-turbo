@@ -304,9 +304,9 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_decline
     mov w13, #5
     tbz x6, #63, .L{p}fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .L{p}fast_leaf_commit
 .L{p}fast_leaf_len2_nonarg:
     cmp w10, #ARM_OP_undefined
@@ -347,9 +347,9 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_decline
     mov w13, #5
     tbz x6, #63, .L{p}fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .L{p}fast_leaf_commit
 .L{p}fast_leaf_len4:
     ldrb w10, [x8, #3]
@@ -525,11 +525,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_getter9_loop:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -554,9 +562,9 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_decline
     mov w13, #3
     tbz x6, #63, .L{p}fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .L{p}fast_leaf_commit
 .L{p}fast_leaf_setter10:
     ldrh w10, [x7, #ARM_OFF_JSFunctionBytecode_arg_count]
@@ -598,11 +606,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #5]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_setter10_loop:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -625,7 +641,7 @@ def _specialize_call_leaves(text):
     add x11, x11, x14, lsl #4
     ldp x13, x14, [x11]
     tbz x14, #63, .L{p}fast_leaf_setter10_old_ok
-    ldr w5, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w5, [x13, #ARM_REF_COUNT_OFFSET]
     cmp w5, #1
     b.le .L{p}fast_leaf_decline
     cmp x13, x9
@@ -635,14 +651,14 @@ def _specialize_call_leaves(text):
 .L{p}fast_leaf_setter10_old_ok:
     ldp x5, x6, [x2]
     tbz x6, #63, .L{p}fast_leaf_setter10_new_ok
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_setter10_new_ok:
     tbz x14, #63, .L{p}fast_leaf_setter10_write
-    ldr w10, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x13, #ARM_REF_COUNT_OFFSET]
     sub w10, w10, #1
-    str w10, [x13, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x13, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_setter10_write:
     stp x5, x6, [x11]
     mov x5, #0
@@ -864,11 +880,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_size10_loop:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -945,11 +969,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_at11_loop:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -990,9 +1022,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .L{p}fast_leaf_decline
     tbz x6, #63, .L{p}fast_leaf_at11_ok
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_at11_ok:
     mov w13, #3
     b .L{p}fast_leaf_commit
@@ -1042,11 +1074,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #2]
     ldr x12, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x12, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x12, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x12, #ARM_OFF_JSShape_prop
+    add x11, x12, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x6, x10, x13
+    lsr x6, x6, #32
+    add x14, x14, #1
+    mul x6, x6, x14
+    lsr x6, x6, #32
+    sub x13, x11, x6, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_cmp14_loop0:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -1074,11 +1114,19 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_cmp14_got1
 .L{p}fast_leaf_cmp14_slow1:
     ldr w14, [x9, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w11, w14
-    neg x14, x14
-    add x14, x9, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x12, x9, #ARM_OFF_JSShape_prop
+    add x12, x9, w14, uxtw #2
+    add x12, x12, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x10, x11, x13
+    lsr x10, x10, #32
+    add x14, x14, #1
+    mul x10, x10, x14
+    lsr x10, x10, #32
+    sub x13, x12, x10, lsl #2
+    ldur w14, [x13, #-4]
 .L{p}fast_leaf_cmp14_loop1:
     cbz w14, .L{p}fast_leaf_decline
     sub w13, w14, #1
@@ -1163,7 +1211,7 @@ def _specialize_call_leaves(text):
     and w12, w12, #ARM_STRICT_MASK
     lsr w12, w12, #ARM_STRICT_SHIFT
     str w12, [x10, #60]
-    str xzr, [x10, #64]
+    stp xzr, xzr, [x10, #64]
     str x7, [x10, #80]
     mov x5, #0
     mov x6, #ARM_CONST_JS_TAG_UNDEFINED
@@ -1457,10 +1505,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #2]
     tbnz w10, #31, .L{p}fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .L{p}fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .L{p}fast_leaf_mark_nonleaf
@@ -1468,10 +1516,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #13]
     tbnz w10, #31, .L{p}fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .L{p}fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .L{p}fast_leaf_mark_nonleaf
@@ -1479,10 +1527,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #24]
     tbnz w10, #31, .L{p}fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .L{p}fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .L{p}fast_leaf_mark_nonleaf
@@ -1495,10 +1543,10 @@ def _specialize_call_leaves(text):
     ldp x9, x10, [x2]
     cmp x10, #ARM_CONST_JS_TAG_STRING
     b.ne .L{p}fast_leaf_decline
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .L{p}fast_leaf_decline
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     tst w10, #0x30
     b.ne .L{p}fast_leaf_decline
     ldrb w14, [x9, #ARM_SIZE_JSString]
@@ -1555,7 +1603,7 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_release_start
     ldp x10, x11, [x13], #16
     tbz x11, #63, .L{p}fast_leaf_guard_loop
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, w9
     b.le .L{p}fast_leaf_host_return
     b .L{p}fast_leaf_guard_loop
@@ -1566,9 +1614,9 @@ def _specialize_call_leaves(text):
     b.eq .L{p}fast_leaf_popped
     ldp x10, x11, [x13], #16
     tbz x11, #63, .L{p}fast_leaf_release_loop
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
     b .L{p}fast_leaf_release_loop
 .L{p}fast_leaf_popped:
     stp x5, x6, [x12]
@@ -1580,11 +1628,11 @@ def _specialize_call_leaves(text):
     sub x12, x21, #16
     ldp x10, x11, [x12]
     tbz x11, #63, .L{p}fast_leaf_pop1_done
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .L{p}fast_leaf_host_return
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_pop1_done:
     stp x5, x6, [x12]
     mov x20, x1
@@ -1594,23 +1642,23 @@ def _specialize_call_leaves(text):
     ldp x10, x11, [x12]
     ldp x13, x14, [x12, #16]
     tbz x11, #63, .L{p}fast_leaf_pop2_chk1
-    ldr w8, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w8, #2
     b.le .L{p}fast_leaf_host_return
 .L{p}fast_leaf_pop2_chk1:
     tbz x14, #63, .L{p}fast_leaf_pop2_rel0
-    ldr w15, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x13, #ARM_REF_COUNT_OFFSET]
     cmp w15, #2
     b.le .L{p}fast_leaf_host_return
 .L{p}fast_leaf_pop2_rel0:
     tbz x11, #63, .L{p}fast_leaf_pop2_rel1
     sub w8, w8, #1
-    str w8, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x10, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_pop2_rel1:
     tbz x14, #63, .L{p}fast_leaf_pop2_done
-    ldr w15, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x13, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x13, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x13, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_leaf_pop2_done:
     stp x5, x6, [x12]
     add x21, x12, #16
@@ -1771,9 +1819,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fcf_fallback
     tbz x6, #63, .Lrel_fcf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fcf_commit
 .Lrel_fcf_len2_nonarg:
     cmp w10, #ARM_OP_undefined
@@ -1890,11 +1938,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w12, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w12, w10, w12
-    neg x12, x12
-    add x12, x11, x12, lsl #2
-    ldur w12, [x12, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w12, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x14, x10, x13
+    lsr x14, x14, #32
+    add x12, x12, #1
+    mul x14, x14, x12
+    lsr x14, x14, #32
+    sub x13, x11, x14, lsl #2
+    ldur w12, [x13, #-4]
 .Lrel_fcf_prop_loop:
     cbz w12, .Lrel_fcf_fallback
     sub w13, w12, #1
@@ -1919,9 +1975,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fcf_fallback
     tbz x6, #63, .Lrel_fcf_commit
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fcf_commit
 .Lrel_fcf_len10_arr:
     cmn x6, #1
@@ -2014,7 +2070,7 @@ def _specialize_call_leaves(text):
     and w12, w12, #ARM_STRICT_MASK
     lsr w12, w12, #ARM_STRICT_SHIFT
     str w12, [x10, #60]
-    str xzr, [x10, #64]
+    stp xzr, xzr, [x10, #64]
     str x7, [x10, #80]
     mov x5, #0
     mov x6, #ARM_CONST_JS_TAG_UNDEFINED
@@ -2031,9 +2087,9 @@ def _specialize_call_leaves(text):
 .Lrel_fcr_copy_owned:
     ldp x5, x6, [x14], #16
     tbz x6, #63, .Lrel_fcr_copy_store
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
 .Lrel_fcr_copy_store:
     stp x5, x6, [x12], #16
     subs w16, w16, #1
@@ -2208,9 +2264,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_commit
 .Lrel_fast_leaf_len2_nonarg:
     cmp w10, #ARM_OP_undefined
@@ -2247,9 +2303,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_commit
 
 .Lrel_fast_leaf_len4:
@@ -2390,11 +2446,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #2]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_len7_loop:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -2418,9 +2482,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_commit
 .Lrel_fast_leaf_check_14:
     ldrb w10, [x8, #13]
@@ -2517,11 +2581,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_getter9_loop:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -2545,9 +2617,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_fast_leaf_commit
-    ldr w11, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x5, #ARM_REF_COUNT_OFFSET]
     add w11, w11, #1
-    str w11, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_commit
 
 .Lrel_fast_leaf_setter10:
@@ -2608,11 +2680,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #5]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_setter10_loop:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -2635,7 +2715,7 @@ def _specialize_call_leaves(text):
     add x11, x11, x14, lsl #4
     ldp x13, x14, [x11]
     tbz x14, #63, .Lrel_fast_leaf_setter10_old_ok
-    ldr w5, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w5, [x13, #ARM_REF_COUNT_OFFSET]
     cmp w5, #1
     b.le .Lrel_fast_leaf_decline
     cmp x13, x9
@@ -2645,14 +2725,14 @@ def _specialize_call_leaves(text):
 .Lrel_fast_leaf_setter10_old_ok:
     ldp x5, x6, [x2]
     tbz x6, #63, .Lrel_fast_leaf_setter10_new_ok
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
 .Lrel_fast_leaf_setter10_new_ok:
     tbz x14, #63, .Lrel_fast_leaf_setter10_write
-    ldr w10, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x13, #ARM_REF_COUNT_OFFSET]
     sub w10, w10, #1
-    str w10, [x13, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x13, #ARM_REF_COUNT_OFFSET]
 .Lrel_fast_leaf_setter10_write:
     stp x5, x6, [x11]
     mov x5, #0
@@ -2883,11 +2963,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_size10_loop:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -2982,11 +3070,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_at11_loop:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3027,9 +3123,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_fast_leaf_commit
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_commit
 
 .Lrel_fast_leaf_cmp14:
@@ -3096,11 +3192,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #2]
     ldr x12, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x12, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x12, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x12, #ARM_OFF_JSShape_prop
+    add x11, x12, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x6, x10, x13
+    lsr x6, x6, #32
+    add x14, x14, #1
+    mul x6, x6, x14
+    lsr x6, x6, #32
+    sub x13, x11, x6, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_cmp14_loop0:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3128,11 +3232,19 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_cmp14_got1
 .Lrel_fast_leaf_cmp14_slow1:
     ldr w14, [x9, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w11, w14
-    neg x14, x14
-    add x14, x9, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x12, x9, #ARM_OFF_JSShape_prop
+    add x12, x9, w14, uxtw #2
+    add x12, x12, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x10, x11, x13
+    lsr x10, x10, #32
+    add x14, x14, #1
+    mul x10, x10, x14
+    lsr x10, x10, #32
+    sub x13, x12, x10, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_fast_leaf_cmp14_loop1:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3489,11 +3601,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_rem16_l0:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3527,10 +3647,13 @@ def _specialize_call_leaves(text):
     ldr w10, [x11, #ARM_OFF_JSShape_prop_count]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_decline
-    ldr w10, [x11, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w10, [x11, #ARM_OFF_JSShape_prop_hash_mask]
+    add x13, x11, w10, uxtw #2
+    add x13, x13, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w10, [x13, #ARM_OFF_JSShapeProperty_atom]
     cmp w10, #ARM_CONST_JS_ATOM_length
     b.ne .Lrel_fast_leaf_decline
-    ldr w10, [x11, #ARM_OFF_JSShape_prop]
+    ldr w10, [x13]
     lsr w10, w10, #26
     cmp w10, #10
     b.ne .Lrel_fast_leaf_decline
@@ -3545,11 +3668,19 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_decline
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_rem16_l1:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3689,11 +3820,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_add18_l0:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3737,10 +3876,13 @@ def _specialize_call_leaves(text):
     ldr w10, [x11, #ARM_OFF_JSShape_prop_count]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_decline
-    ldr w10, [x11, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w10, [x11, #ARM_OFF_JSShape_prop_hash_mask]
+    add x11, x11, w10, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w10, [x11, #ARM_OFF_JSShapeProperty_atom]
     cmp w10, #ARM_CONST_JS_ATOM_length
     b.ne .Lrel_fast_leaf_decline
-    ldr w10, [x11, #ARM_OFF_JSShape_prop]
+    ldr w10, [x11]
     tst w10, #ARM_PROPERTY_DESC_TMASK
     b.ne .Lrel_fast_leaf_decline
     tst w10, #ARM_PROPERTY_DESC_WRITABLE
@@ -3751,11 +3893,19 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_decline
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_add18_l1:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3811,9 +3961,9 @@ def _specialize_call_leaves(text):
     cmp x6, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lrel_fast_leaf_decline
     tbz x6, #63, .Lrel_add18_store
-    ldr w9, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x5, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x5, #ARM_REF_COUNT_OFFSET]
 .Lrel_add18_store:
     ldr x11, [x4, #ARM_OFF_JSObject_u_array_u_values]
     add x11, x11, w12, uxtw #4
@@ -3921,11 +4071,19 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_decline
     ldr x11, [x9, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_c22_lm:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -3972,11 +4130,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #4]
     ldr x11, [x4, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x5, x10, x13
+    lsr x5, x5, #32
+    add x14, x14, #1
+    mul x5, x5, x14
+    lsr x5, x5, #32
+    sub x13, x11, x5, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_c22_la:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -4008,11 +4174,19 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #15]
     ldr x11, [x5, #ARM_OFF_JSObject_shape]
     ldr w14, [x11, #ARM_OFF_JSShape_prop_hash_mask]
-    and w14, w10, w14
-    neg x14, x14
-    add x14, x11, x14, lsl #2
-    ldur w14, [x14, #-4]
-    add x11, x11, #ARM_OFF_JSShape_prop
+    add x11, x11, w14, uxtw #2
+    add x11, x11, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x13, #0x83eb
+    movk x13, #0x80b5, lsl #16
+    movk x13, #0x8646, lsl #32
+    movk x13, #0x61c8, lsl #48
+    mul x6, x10, x13
+    lsr x6, x6, #32
+    add x14, x14, #1
+    mul x6, x6, x14
+    lsr x6, x6, #32
+    sub x13, x11, x6, lsl #2
+    ldur w14, [x13, #-4]
 .Lrel_c22_lb:
     cbz w14, .Lrel_fast_leaf_decline
     sub w13, w14, #1
@@ -4170,10 +4344,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #2]
     tbnz w10, #31, .Lrel_fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .Lrel_fast_leaf_mark_nonleaf
@@ -4181,10 +4355,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #13]
     tbnz w10, #31, .Lrel_fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .Lrel_fast_leaf_mark_nonleaf
@@ -4192,10 +4366,10 @@ def _specialize_call_leaves(text):
     ldur w10, [x8, #24]
     tbnz w10, #31, .Lrel_fast_leaf_mark_nonleaf
     ldr x9, [x11, w10, uxtw #3]
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_mark_nonleaf
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     and w10, w10, #0xf0
     cmp w10, #0x40
     b.ne .Lrel_fast_leaf_mark_nonleaf
@@ -4208,10 +4382,10 @@ def _specialize_call_leaves(text):
     ldp x9, x10, [x2]
     cmp x10, #ARM_CONST_JS_TAG_STRING
     b.ne .Lrel_fast_leaf_decline
-    ldr w10, [x9, #4]
+    ldr w10, [x9, #ARM_BIT_JSString_len_BYTE]
     cmp w10, #1
     b.ne .Lrel_fast_leaf_decline
-    ldrb w10, [x9, #11]
+    ldrb w10, [x9, #7]
     tst w10, #0x30
     b.ne .Lrel_fast_leaf_decline
     ldrb w14, [x9, #ARM_SIZE_JSString]
@@ -4253,7 +4427,7 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_release_start
     ldp x10, x11, [x13], #16
     tbz x11, #63, .Lrel_fast_leaf_guard_loop
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, w9
     b.le .Lrel_fast_leaf_host_return
     b .Lrel_fast_leaf_guard_loop
@@ -4264,9 +4438,9 @@ def _specialize_call_leaves(text):
     b.eq .Lrel_fast_leaf_popped
     ldp x10, x11, [x13], #16
     tbz x11, #63, .Lrel_fast_leaf_release_loop
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
     b .Lrel_fast_leaf_release_loop
 .Lrel_fast_leaf_popped:
     stp x5, x6, [x12]
@@ -4277,11 +4451,11 @@ def _specialize_call_leaves(text):
     sub x12, x21, #16
     ldp x10, x11, [x12]
     tbz x11, #63, .Lrel_fast_leaf_pop1_done
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .Lrel_fast_leaf_host_return
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .Lrel_fast_leaf_pop1_done:
     stp x5, x6, [x12]
     mov x20, x1
@@ -4291,23 +4465,23 @@ def _specialize_call_leaves(text):
     ldp x10, x11, [x12]
     ldp x13, x14, [x12, #16]
     tbz x11, #63, .Lrel_fast_leaf_pop2_chk1
-    ldr w8, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w8, #2
     b.le .Lrel_fast_leaf_host_return
 .Lrel_fast_leaf_pop2_chk1:
     tbz x14, #63, .Lrel_fast_leaf_pop2_rel0
-    ldr w15, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x13, #ARM_REF_COUNT_OFFSET]
     cmp w15, #2
     b.le .Lrel_fast_leaf_host_return
 .Lrel_fast_leaf_pop2_rel0:
     tbz x11, #63, .Lrel_fast_leaf_pop2_rel1
     sub w8, w8, #1
-    str w8, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x10, #ARM_REF_COUNT_OFFSET]
 .Lrel_fast_leaf_pop2_rel1:
     tbz x14, #63, .Lrel_fast_leaf_pop2_done
-    ldr w15, [x13, #ARM_REF_COUNT_OFFSET]
+    ldur w15, [x13, #ARM_REF_COUNT_OFFSET]
     sub w15, w15, #1
-    str w15, [x13, #ARM_REF_COUNT_OFFSET]
+    stur w15, [x13, #ARM_REF_COUNT_OFFSET]
 .Lrel_fast_leaf_pop2_done:
     stp x5, x6, [x12]
     add x21, x12, #16

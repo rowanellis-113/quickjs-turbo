@@ -104,17 +104,17 @@
     b.ne .Lliteral_cold
 // Both shapes are pinned by the actual activation owner. Retain the
 // successor before weakening the old shape;no observer follows commit.
-    ldr w8, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x5, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x5, #ARM_REF_COUNT_OFFSET]
     str x5, [x0, #ARM_OFF_JSObject_shape]
     ldr x5, [x0, #ARM_OFF_JSObject_prop]
     add x5, x5, w6, uxtw #4
     ldp x10, x11, [x21, #-16]
     stp x10, x11, [x5]
-    ldr w8, [x2, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x2, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x2, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x2, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #16
     mov x8, #ARM_CONST_JS_TAG_UNDEFINED
     stp xzr, x8, [x21]
@@ -171,9 +171,9 @@
     ldp x0, x1, [x21, #-16]
     ldp x2, x3, [x21, #-32]
     tbz x1, #63, .Lliteral_insert2_value
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     add w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_insert2_value:
     stp x0, x1, [x21]
     stp x2, x3, [x21, #-16]
@@ -203,11 +203,11 @@
     mov x4, #ARM_CONST_JS_TAG_BIG_INT
     cmp x1, x4
     b.lt .Lslow
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
     b .Lliteral_typeof_classified
 .Lliteral_typeof_immediate:
     cmp x1, #ARM_CONST_JS_TAG_UNDEFINED
@@ -273,9 +273,9 @@
     ldr x4, [x19, #ARM_OFF_JSFrameRegisterState_rt]
     ldr x4, [x4, #ARM_OFF_JSRuntime_atom_array]
     ldr x0, [x4, w5, uxtw #3]
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     add w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
     mov x1, #ARM_CONST_JS_TAG_STRING
     stp x0, x1, [x21, #-16]
     add x20, x20, #1
@@ -302,11 +302,11 @@
     mov x4, #ARM_CONST_JS_TAG_BIG_INT
     cmp x1, x4
     b.lt .Lslow
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
     b .Lliteral_typeof_is_function_classified
 .Lliteral_typeof_is_function_immediate:
     cmp x1, #ARM_CONST_JS_TAG_UNDEFINED
@@ -343,11 +343,11 @@
     mov x4, #ARM_CONST_JS_TAG_BIG_INT
     cmp x1, x4
     b.lt .Lslow
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
     b .Lliteral_typeof_is_undefined_classified
 .Lliteral_typeof_is_undefined_immediate:
     cmp x1, #ARM_CONST_JS_TAG_UNDEFINED
@@ -421,11 +421,11 @@
     tst w4, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     cset w6, eq
 .Lliteral_truth_lnot_release:
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_truth_lnot_commit:
     tbz w16, #2, .Lliteral_truth_lnot_counted
     adrp x12, JS_FrameOrdinaryLiteralStats
@@ -487,11 +487,11 @@
     tst w4, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     cset w6, eq
 .Lliteral_truth_if_true_release:
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_truth_if_true_commit:
     tbz w16, #2, .Lliteral_truth_if_true_counted
     adrp x12, JS_FrameOrdinaryLiteralStats
@@ -557,11 +557,11 @@
     tst w4, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     cset w6, eq
 .Lliteral_truth_if_false_release:
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_truth_if_false_commit:
     tbz w16, #2, .Lliteral_truth_if_false_counted
     adrp x12, JS_FrameOrdinaryLiteralStats
@@ -627,11 +627,11 @@
     tst w4, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     cset w6, eq
 .Lliteral_truth_if_true8_release:
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_truth_if_true8_commit:
     tbz w16, #2, .Lliteral_truth_if_true8_counted
     adrp x12, JS_FrameOrdinaryLiteralStats
@@ -697,11 +697,11 @@
     tst w4, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     cset w6, eq
 .Lliteral_truth_if_false8_release:
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     sub w4, w4, #1
-    str w4, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x0, #ARM_REF_COUNT_OFFSET]
 .Lliteral_truth_if_false8_commit:
     tbz w16, #2, .Lliteral_truth_if_false8_counted
     adrp x12, JS_FrameOrdinaryLiteralStats

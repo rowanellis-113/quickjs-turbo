@@ -920,8 +920,8 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         state->sp = new_sp;
         frame->saved_sp = new_sp;
         frame->sf.cur_pc = pc + 3;
-        if (callee->header.ref_count > 2) {
-            callee->header.ref_count -= 2;
+        if (JS_REF_COUNT(callee) > 2) {
+            JS_REF_COUNT(callee) -= 2;
         } else {
             JS_FreeValue(ctx, old_f0);
             JS_FreeValue(ctx, old_f1);
@@ -999,8 +999,8 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         state->sp = new_sp;
         frame->saved_sp = new_sp;
         frame->sf.cur_pc = pc + 3;
-        if (callee->header.ref_count > 2) {
-            callee->header.ref_count -= 2;
+        if (JS_REF_COUNT(callee) > 2) {
+            JS_REF_COUNT(callee) -= 2;
         } else {
             JS_FreeValue(ctx, old_f0);
             JS_FreeValue(ctx, old_f1);
@@ -1075,8 +1075,8 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         return JS_FrameInterpProperty_call_constructor(state);
     }
     ctx->interrupt_counter -= 2;
-    assert(callee->header.ref_count >= 2);
-    callee->header.ref_count--;
+    assert(JS_REF_COUNT(callee) >= 2);
+    JS_REF_COUNT(callee)--;
     argv[-2] = this_obj;
     JSFrame *child = (JSFrame *)(segment->data + segment->used);
     segment->used += frame_size;

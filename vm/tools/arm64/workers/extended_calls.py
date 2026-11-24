@@ -2,7 +2,7 @@
 
 import hashlib, json, re, shutil
 from pathlib import Path
-from c_workers import replace_one, module
+from c_workers import replace_one
 from constructors_c import generate as shared_generate
 
 
@@ -13,14 +13,6 @@ def sha(p):
 def prepare(source, output, constructor_record, iterator_record, *, forwarding=False):
     enabled = constructor_record["enabled"] or iterator_record["enabled"] or forwarding
     ops = (source / "src/common/call/quickjs-interpreter-ops.inc").read_text()
-    if enabled:
-        start = ops.index("        CASE(OP_put_array_el):")
-        end = ops.index("        CASE(OP_define_array_el):", start)
-        ops = (
-            ops[:start]
-            + module(source, "slow-direct-c").writable_array_append(ops[start:end])
-            + ops[end:]
-        )
     (output / "interpreter-aarch64-complete-ops.inc").write_text(ops)
     owners = dict(constructor_record["source_owners"])
     owners.update(iterator_record["source_owners"])

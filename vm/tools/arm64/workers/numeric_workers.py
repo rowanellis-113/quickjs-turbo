@@ -32,7 +32,10 @@ def probe_types(actual, text, names, numeric, projection):
     if numeric:
         names += [
             ("SIZE_JSBigInt", "sizeof(JSBigInt)"),
-            ("OFF_JSBigInt_header_ref_count", "offsetof(JSBigInt,header.ref_count)"),
+            (
+                "OFF_JSBigInt_header_ref_count",
+                "(uint64_t)((int64_t)offsetof(JSMallocBlockHeader,ref_count)-(int64_t)offsetof(JSMallocBlockHeader,user_data))",
+            ),
         ]
         names += [
             ("CONST_" + n, "(uint64_t)(int64_t)" + n)
@@ -76,7 +79,7 @@ def generate(source, output, core, layout, actual, numeric, projection, measured
             json.dumps(dict(generated_loop_sha256=sha(loop))) + "\n"
         )
         core = shared_numeric(
-            source, stage, core, dict(layout, reference_count_model="inline-header")
+            source, stage, core, dict(layout, reference_count_model="allocator-prefix")
         )
         text = (stage / "quickjs-linux-numeric.h").read_text()
         binding = "        QJS_CONTROL_SLOT_ADDR(flag, JS_FrameAddLocalDisable);"
@@ -88,7 +91,7 @@ def generate(source, output, core, layout, actual, numeric, projection, measured
         )
         text += '\n#include "interpreter-aarch64-values.h"\n'
         text += """
-_Static_assert(offsetof(JSBigInt,header.ref_count)==ARM_OFF_JSBigInt_header_ref_count,"actual target BigInt reference header");
+_Static_assert((int64_t)offsetof(JSMallocBlockHeader,ref_count)-(int64_t)offsetof(JSMallocBlockHeader,user_data)==ARM_OFF_JSBigInt_header_ref_count && offsetof(JSBigInt,tab)==ARM_OFF_JSBigInt_tab,"actual target BigInt reference header");
 _Static_assert(JS_SHORT_BIG_INT_MIN==INT32_MIN && JS_SHORT_BIG_INT_MAX==INT32_MAX,"actual target short BigInt range");
 _Static_assert(__builtin_types_compatible_p(__typeof__(&JS_FrameBigIntRelease),void (*)(JSContext*,JSValue)),"actual AAPCS64 value argument");
 #ifdef QJS_AARCH64_VM_INSTRUMENT

@@ -22,7 +22,8 @@ typedef struct JSLinuxCInvokeFrame {
     unsigned char active, reserved;
     uint16_t formal;
 } JSLinuxCInvokeFrame;
-_Static_assert(sizeof(JSLinuxCInvokeFrame) == 104 && offsetof(JSLinuxCInvokeFrame, dispatch) == 80 &&
+_Static_assert(sizeof(JSLinuxCInvokeFrame) == 104 &&
+                   offsetof(JSLinuxCInvokeFrame, dispatch) == 80 &&
                    offsetof(JSLinuxCInvokeFrame, caller_context) == 88 &&
                    offsetof(JSLinuxCInvokeFrame, argc) == 96 &&
                    offsetof(JSLinuxCInvokeFrame, active) == 100 &&

@@ -131,6 +131,26 @@ def dense_workers(source):
     slow = slow.replace("ITERATOR_KIND(b)|=8", "ITERATOR_KIND(b)|=16")
     slow = slow.replace("ITERATOR_KIND(b)&8", "ITERATOR_KIND(b)&16")
     slow = slow.replace("qjs_frame_iterator_legacy_next", "js_for_of_next")
+    fast = replace_one(
+        fast,
+        "FRAME_CODE int JS_FrameIteratorArrayNext(JSFrameRegisterState *state)",
+        "static bool js_linux_try_dense_next(JSFrameRegisterState *state)",
+        "reuse the guarded dense step before publishing a shared C anchor",
+    )
+    fast = replace_one(
+        fast,
+        "    return 0;\nslow:\n    return JS_FrameIteratorOp_for_of_next(state);",
+        "    return true;\nslow:\n    return false;",
+        "leave the iterator and operand stack untouched on a guard miss",
+    )
+    fast += """
+FRAME_CODE int JS_FrameIteratorArrayNext(JSFrameRegisterState *state)
+{
+    if (js_linux_try_dense_next(state))
+        return 0;
+    return JS_FrameIteratorOp_for_of_next(state);
+}
+"""
     return fast + "\n" + slow
 
 
@@ -338,6 +358,7 @@ FRAME_CODE int JS_FrameIteratorOp_for_of_next(JSFrameRegisterState *state)
                 '#include "src/common/call/fast-for-of-next.inc"\n'
                 + scoped_next
                 + """
+static bool js_linux_try_dense_next(JSFrameRegisterState *state);
 QJS_FRAME_SLOW_HOST_CODE int JS_LinuxIterator_for_of_next(JSFrameRegisterState *state)
 {
     if (!state->exception_pending && state->frame && !FRAME_CHECKPOINT(state->frame)) {
@@ -346,8 +367,12 @@ QJS_FRAME_SLOW_HOST_CODE int JS_LinuxIterator_for_of_next(JSFrameRegisterState *
         if (JS_IsObject(sp[offset]) && JS_IsObject(sp[offset + 1])) {
             JSObject *it = JS_VALUE_GET_OBJ(sp[offset]);
             JSObject *method = JS_VALUE_GET_OBJ(sp[offset + 1]);
-            if (it->class_id != JS_CLASS_ARRAY_ITERATOR &&
-                method->class_id == JS_CLASS_C_FUNCTION &&
+            if (it->class_id == JS_CLASS_ARRAY_ITERATOR) {
+                if (js_linux_try_dense_next(state)) {
+                    state->frame->sf.cur_sp = NULL;
+                    return 0;
+                }
+            } else if (method->class_id == JS_CLASS_C_FUNCTION &&
                 method->u.cfunc.cproto == JS_CFUNC_iterator_next) {
                 int r = js_fast_cfunc_for_of_next_impl(state);
                 return r == 2 ? 0 : r;

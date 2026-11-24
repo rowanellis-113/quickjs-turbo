@@ -4,9 +4,9 @@
   "source_owners": {
     "tools/common/elf/literal_shapes_c.py": "c7e214c20852670030532269888778a9911c56392e7479cbe8f4df5141ace7fc",
     "tools/common/c_extract/iterator_c.py": "0554c241dc5c6214a70ba221b6f30ae106bb125403b1b9891488e4bf400cd679",
-    "src/common/kernel/ordinary-literal.c": "7348ae7c0bfb03defde112d7ed848c1c84b1efdc09e508023d6c7b190de36248",
+    "src/common/kernel/ordinary-literal.c": "5693bea842806b8058df863a751a91dbef5b3b2757eb9f15d1213b96a6b33f4d",
     "src/arm64/linux/interpreter-literals.inc": "aa20dd8171c2a7b4585ac65295a4bd9f3c9157dc22f008b9dd91c6716d725d84",
-    "asm/arm64/common/register-literals.inc": "7bbbc26ee3369125f4b219cec6755f760d445a10fdb3a5bfefa2473a81af7a11",
+    "asm/arm64/common/register-literals.inc": "36130b209baca66867942ae1f09b803e1b14ce354ded902c21849484ed4564a0",
     "asm/arm64/common/register-branch.inc": "ff42cb1fce4c4136e40e3f5cd1d02a208567b89d2ae4b9d04857a1c6308d182f",
     "src/arm64/linux/interpreter-shared-supplements.inc": "713f9c0741e065ef37a7b190379ad8542bbbc3f458031ac7f5b8fe7ad4605dc9"
   },

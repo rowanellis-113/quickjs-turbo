@@ -41,9 +41,12 @@ def classifier(source, output, original):
 def generate(source, output, core, layout, enabled):
     path, data = check(source)
     if enabled:
-        if layout["offsets"]["JSGCObjectHeader.ref_count"] != 0:
-            raise ValueError("Review actual ARM inline reference-count header")
-        actual_layout = dict(layout, reference_count_model="inline-header")
+        if (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        ) != -4:
+            raise ValueError("Review actual ARM allocator-prefix reference-count header")
+        actual_layout = dict(layout, reference_count_model="allocator-prefix")
         core = shared_generate(
             source, output, core, actual_layout, admission_header="interpreter-aarch64-admission.h"
         )

@@ -15,6 +15,23 @@ function throwsType(action, constructor) {
   assert(caught, "expected " + constructor.name);
 }
 
+// Exercise add_loc while both flat leaves and rope roots have live aliases.
+for (const unit of ["x", "\u0416", "\ud83d\ude03"]) {
+  let text = unit.repeat(211);
+  const pieces = [text];
+  const keep = new Map();
+  for (let i = 0; i < 700; i++) {
+    if (i % 31 === 0) keep.set(text, pieces.join(""));
+    text += unit;
+    pieces.push(unit);
+  }
+  equal(text, pieces.join(""), "local rope append");
+  for (const [key, value] of keep) {
+    equal(key, value, "shared rope contents");
+    equal(keep.get(value), value, "shared rope hash");
+  }
+}
+
 // Long left/right/balanced trees, live aliases, rebalancing and flatten consumers.
 for (let wide of [false, true]) {
   let pieces = [],

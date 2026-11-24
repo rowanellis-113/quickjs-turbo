@@ -3,17 +3,21 @@
 _Static_assert(JS_CLASS_BYTECODE_FUNCTION == 13 && JS_CLASS_C_FUNCTION == 12 && JS_TAG_INT == 0 &&
                    JS_TAG_FIRST == -9 && JS_TAG_UNDEFINED == 3,
                "original forwarding function/value profile");
-_Static_assert(sizeof(JSFrame) == 128 && sizeof(JSStackFrame) == 72 && sizeof(JSValue) == 16 &&
-                   offsetof(JSFrame, sf) == 0 && offsetof(JSFrame, bytecode) == 80 &&
-                   offsetof(JSFrame, this_value) == 88 && offsetof(JSFrame, saved_sp) == 104 &&
-                   offsetof(JSFrame, segment) == 112 && offsetof(JSFrame, frame_bytes) == 120 &&
-                   offsetof(JSFrame, owned_args) == 124 && offsetof(JSFrame, pending) == 126 &&
+_Static_assert(sizeof(JSFrame) == 128 && sizeof(JSStackFrame) == 80 && sizeof(JSValue) == 16 &&
+                   offsetof(JSStackFrame, is_constructor) == 61 &&
+                   offsetof(JSStackFrame, cur_gc_obj) == 72 && offsetof(JSFrame, sf) == 0 &&
+                   offsetof(JSFrame, bytecode) == 80 && offsetof(JSFrame, this_value) == 88 &&
+                   offsetof(JSFrame, saved_sp) == 104 && offsetof(JSFrame, segment) == 112 &&
+                   offsetof(JSFrame, frame_bytes) == 120 && offsetof(JSFrame, owned_args) == 124 &&
+                   offsetof(JSFrame, pending) == 126 &&
                    offsetof(JSFrameRegisterState, used_bytes) == 32 &&
                    offsetof(JSFrameRegisterState, rt) == 56 &&
                    offsetof(JSFrameRegisterState, native_stack_limit) == 72 &&
                    offsetof(JSFrameSegment, capacity) == 8 &&
                    offsetof(JSFrameSegment, used) == 16 && offsetof(JSFrameSegment, data) == 24 &&
-                   offsetof(JSGCObjectHeader, ref_count) == 0,
+                   (int64_t)offsetof(JSMallocBlockHeader, user_data) -
+                           (int64_t)offsetof(JSMallocBlockHeader, ref_count) ==
+                       -QJS_ABI_REF_COUNT_OFFSET,
                "measured AAPCS64 frame/segment/quota and inline refcount");
 _Static_assert(__builtin_types_compatible_p(__typeof__(&js_function_call), JSCFunction *),
                "actual original generic builtin identity type");

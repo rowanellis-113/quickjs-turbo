@@ -21,21 +21,29 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def find_build_file(build, name):
+    for directory in (build, *build.parents):
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(f"{name} not found in {build} or parent build directories")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     for name in ("source", "build", "image", "readelf", "archive", "ar"):
         ap.add_argument("--" + name, type=Path, required=True)
     a = ap.parse_args()
     source, build, image = (p.resolve() for p in (a.source, a.build, a.image))
+    cache_text = find_build_file(build, "CMakeCache.txt").read_text()
+    compile_commands_path = find_build_file(build, "compile_commands.json")
     output = build / "generated/aarch64-vm"
     receipt = json.loads((output / "VM.json").read_text())
     number = receipt["number_dataflow"]
-    expected_number = (
-        "QJS_AARCH64_NUMBER_DATAFLOW:BOOL=ON" in (build / "CMakeCache.txt").read_text()
-    )
+    expected_number = "QJS_AARCH64_NUMBER_DATAFLOW:BOOL=ON" in cache_text
     if number["enabled"] != expected_number:
         raise ValueError("Number dataflow compile route changed")
-    commands = json.loads((build / "compile_commands.json").read_text())
+    commands = json.loads(compile_commands_path.read_text())
     selected_number = [
         c for c in commands if c["file"].endswith("/interpreter-aarch64-number-dataflow.S")
     ]
@@ -51,7 +59,7 @@ def main():
     if number["enabled"]:
         if sha(output / "interpreter-aarch64-number-dataflow.S") != number["generated_sha256"]:
             raise ValueError("Actual complete number dataflow stream changed")
-    expected_fast_vm = "QJS_AARCH64_FAST_VM:BOOL=ON" in (build / "CMakeCache.txt").read_text()
+    expected_fast_vm = "QJS_AARCH64_FAST_VM:BOOL=ON" in cache_text
     if expected_fast_vm != ("fast_vm" in receipt):
         raise ValueError("Fast VM compile route changed")
     if expected_fast_vm:
@@ -800,8 +808,7 @@ def main():
         "JS_FrameLongValidate",
         "js_frame_large_select",
     )
-    cache = (build / "CMakeCache.txt").read_text()
-    instrumented = "QJS_AARCH64_VM_INSTRUMENT:BOOL=ON" in cache
+    instrumented = "QJS_AARCH64_VM_INSTRUMENT:BOOL=ON" in cache_text
     if instrumented and scalar["enabled"]:
         names += ("qjs_aarch64_vm_scalar_counts",)
     if instrumented and call_leaves["enabled"]:
@@ -937,12 +944,12 @@ def main():
         "<14Q", elf.section_data(section), geometry["value"] - section["address"]
     )
     if values != (
-        96,
+        104,
         8,
+        136,
+        8,
+        104,
         128,
-        8,
-        96,
-        120,
         128,
         8,
         80,

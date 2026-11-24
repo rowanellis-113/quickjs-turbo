@@ -61,11 +61,11 @@ def _release(prefix, stem, phase, complete, call_target):
     mov x12, #ARM_CONST_JS_TAG_UNDEFINED
     stp xzr, x12, [x23], #16
     tbz x11, #63, {loop}
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w12, #1
     b.le {final}
     sub w12, w12, #1
-    str w12, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x10, #ARM_REF_COUNT_OFFSET]
     b {loop}
 {final}:
 // The cursor already names the next slot. The old cell is detached before

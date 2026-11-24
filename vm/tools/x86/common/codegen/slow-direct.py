@@ -139,11 +139,10 @@ def indexed_steps(source):
         original_start = core.index(marker) + len(marker)
         original = core[original_start : core.index("\n        CASE(", original_start)]
         if opcode == "put_array_el":
-            assert body.strip() == original.strip(), (
+            assert body.strip() == writable_array_append(original).strip(), (
                 "Indexed store differs from pinned core",
                 opcode,
             )
-            body = writable_array_append(body)
         else:
             tail = "                sf->cur_pc = pc;"
             assert body[body.index(tail) :].strip() == original[original.index(tail) :].strip(), (

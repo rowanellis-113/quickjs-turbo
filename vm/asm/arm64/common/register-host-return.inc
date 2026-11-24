@@ -39,11 +39,11 @@
     mov x12, #ARM_CONST_JS_TAG_UNDEFINED
     stp xzr, x12, [x23], #16
     tbz x11, #63, .Lhost_return_release
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w12, #1
     b.le .Lhost_return_final
     sub w12, w12, #1
-    str w12, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x10, #ARM_REF_COUNT_OFFSET]
     b .Lhost_return_release
 .Lhost_return_final:
 // The owning return survives legal finalizer/cross-runtime/realm reentry

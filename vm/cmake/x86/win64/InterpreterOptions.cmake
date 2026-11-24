@@ -24,9 +24,10 @@ function(qjs_win_x86_64_reason out_reason)
        OR NOT QJS_FRAME_COMPILER_X64)
         set(reason "WIN_X86_64 requires a Windows x86-64 compiler")
     elseif(
-        NOT (CMAKE_C_COMPILER_ID STREQUAL "MSVC"
-             OR (CMAKE_C_COMPILER_ID STREQUAL "Clang" AND MSVC)
-             OR (MINGW AND CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")))
+        NOT
+        (CMAKE_C_COMPILER_ID STREQUAL "MSVC"
+         OR (CMAKE_C_COMPILER_ID STREQUAL "Clang" AND MSVC)
+         OR (MINGW AND CMAKE_C_COMPILER_ID MATCHES "^(GNU|Clang)$")))
         set(reason "WIN_X86_64 supports MSVC (cl.exe), clang-cl, or MinGW (gcc/clang)")
     elseif(BUILD_SHARED_LIBS)
         set(reason "WIN_X86_64 shared library builds fall back to portable C")

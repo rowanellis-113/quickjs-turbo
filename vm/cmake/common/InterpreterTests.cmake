@@ -706,15 +706,18 @@ if(QJS_TURBO_COROUTINE_SEGMENTS)
         interpreter-coroutine-segments-c interpreter-coroutine-segments-host-c
         PROPERTIES
             ENVIRONMENT
-            "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1")
+            "QJS_DISABLE_INTERP_FRAME=1;QJS_DISABLE_INTERNAL_INTERP=1;QJS_DISABLE_REGISTER_INTERP=1"
+    )
     set_tests_properties(
         interpreter-coroutine-segments-register-c interpreter-coroutine-segments-host-register-c
         PROPERTIES ENVIRONMENT "QJS_DISABLE_REGISTER_INTERP=1")
-    set_tests_properties(interpreter-coroutine-segments-noic interpreter-coroutine-segments-host-noic
-                         PROPERTIES ENVIRONMENT "QJS_DISABLE_PROPERTY_IC=1")
+    set_tests_properties(
+        interpreter-coroutine-segments-noic interpreter-coroutine-segments-host-noic
+        PROPERTIES ENVIRONMENT "QJS_DISABLE_PROPERTY_IC=1")
     set_tests_properties(
         interpreter-coroutine-segments-closure-off interpreter-coroutine-segments-host-closure-off
-        PROPERTIES ENVIRONMENT "QJS_DISABLE_CLOSURE_INLINE_REFS=1;QJS_DISABLE_CLOSURE_SHAPE_TEMPLATE=1")
+        PROPERTIES ENVIRONMENT
+                   "QJS_DISABLE_CLOSURE_INLINE_REFS=1;QJS_DISABLE_CLOSURE_SHAPE_TEMPLATE=1")
 endif()
 foreach(internal_function_mode native disabled disabled-zero c)
     add_test(

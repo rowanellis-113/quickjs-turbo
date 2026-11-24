@@ -209,11 +209,14 @@ static size_t oom_case(size_t fault)
     assert(JS_SetPropertyStr(ctx, seed, "self", JS_DupValue(ctx, seed)) >= 0);
     JSValue args[2] = {JS_NewInt32(ctx, 64), seed};
     identity(ctx, JS_Call(ctx, run, JS_UNDEFINED, 2, args), seed, 1);
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &a, &drain);
     a.sequence = 0;
     a.fail_at = fault;
     JSValue result = JS_Call(ctx, run, JS_UNDEFINED, 2, args);
     size_t count = a.sequence;
     a.fail_at = 0;
+    oom_undrain_arenas(rt, &drain);
     if (JS_IsException(result))
         JS_FreeValue(ctx, JS_GetException(ctx));
     else

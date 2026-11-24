@@ -149,7 +149,7 @@ def append(masm, gas, diagnostics, source=None):
         ".globl JS_FrameSlotFreeDisable",
         "JS_FrameSlotFreeDisable:",
         '.asciz "QJS_DISABLE_BORROWED_SLOT_FREE"',
-        '.section .pdata$zzqjscold,"dr"',
+        '.section .pdata$zzqjsleaf,"dr"',
         ".p2align 2",
         ".rva " + name + ", " + name + "_end, JS_FrameInterpPropertyCold_unwind",
     ]

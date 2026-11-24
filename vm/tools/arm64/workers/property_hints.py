@@ -22,7 +22,9 @@ def prepare(source, output, layout, *, reference_controls=False):
         if re.match(r"(?:bl|blr|br|ret)\b", code) or re.search(r"\b(?:sp|x18|w18)\b", code):
             raise ValueError("Own/PIC hint must remain a noncalling fixed-CFA kernel: " + code)
     owner = module(source, "own-bytecode-c")
-    owner.load_layout = lambda _: dict(reference_count_model="inline-header", sizes=layout["sizes"])
+    owner.load_layout = lambda _: dict(
+        reference_count_model="allocator-prefix", sizes=layout["sizes"]
+    )
     inventory = owner.bytecode_source_contract(source)
     text = own_body(source, reference_controls=reference_controls)
     text = replace_one(text, '#include "qjs-own-sync.h"', "", "no foreign sync header")

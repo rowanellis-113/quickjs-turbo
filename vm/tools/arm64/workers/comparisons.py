@@ -14,7 +14,7 @@ def prepare(source, output, layout, enabled, global_enabled):
     for path, expected in data["source_owners"].items():
         if sha(source / path) != expected:
             raise ValueError("Review complete ARM comparison owner: " + path)
-    model = json.loads(json.dumps(dict(layout, reference_count_model="inline-header")))
+    model = json.loads(json.dumps(dict(layout, reference_count_model="allocator-prefix")))
     original = contract(source, model, contract_rel="src/arm64/linux/abi/comparisons.json")
     rows = [dict(name="loose_control", sha256=sha(source / "src/common/value/loose_control.inc"))]
     (output / "COMPARISONS-ORIGINAL-ALGORITHMS.json").write_text(json.dumps(rows, indent=2) + "\n")

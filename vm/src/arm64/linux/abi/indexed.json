@@ -3,12 +3,12 @@
   "target": "Linux AArch64 LE LP64 GCC",
   "source_owners": {
     "tools/common/elf/indexed_ops_c.py": "fe5c87b478a5747fea2e85aa0ab7d549c5b4713de51d0f0d79e75fa785da5f28",
-    "tools/common/c_extract/slow_direct_c.py": "3b8507cb929e082905605b5143047c6cdc641c14e060d3434117ffb514135e7d",
+    "tools/common/c_extract/slow_direct_c.py": "f0e59a9f9d758221a8ddf8aff3d35a06d474d2614ef7cf1851c41cabb8d8cf5e",
     "tools/common/c_extract/array_append_c.py": "fc2c4a2d8bc3b0a53aefc9bfae06b48fd9bae81fdc6270a86e78cf5a29cff5c8",
     "tools/common/c_extract/publish_boundary_c.py": "e1d8f1d7e91ae80ba8af1f34b4a92f69d5f1549b45c3c8d09e8683da69277fc9",
     "src/common/value/instanceof.c": "b6436a90383e0c799ce2621296ea5873f5173d7e90dff4f477ba95d219736b8b",
-    "src/common/call/quickjs-interpreter-ops.inc": "51f551fbbb7a2afc99221abcde7259d0dd31dff432a9e1f3b52fa81ac91330e6",
-    "asm/arm64/common/register-indexed.inc": "a52dc8eb25cba657c46de124da65ba00b6e1009823f02e60b3c737f07c8555a5",
+    "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
+    "asm/arm64/common/register-indexed.inc": "23f9c322ab756c82873eaea40d1658fc077a3306953aea5b4786c48dd91dd37e",
     "src/arm64/linux/interpreter-indexed.inc": "017c39a81204425f9afd13a8cd41623cd27802bce468281b5a59a7883c79c311"
   },
   "protocol": "Original dense/integer typed/sparse own leaves,capacity append,complete narrow C steps and pure instanceof proof;actual AAPCS64",

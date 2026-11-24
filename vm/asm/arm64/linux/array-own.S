@@ -31,12 +31,20 @@ JS_AArch64FastArrayOwnGet:
     tbnz w2, #31, .Larray_own_fallback
     ldr x4, [x1, #ARM_OFF_JSObject_shape]
     ldr w5, [x4, #ARM_OFF_JSShape_prop_hash_mask]
-    and w5, w2, w5
-    neg x5, x5
-    sub x6, x4, #4
-    ldr w5, [x6, x5, lsl #2]
-    add x4, x4, #ARM_OFF_JSShape_prop
+    add x4, x4, w5, uxtw #2
+    add x4, x4, #(ARM_OFF_JSShape_hash_table + 4)
     orr w6, w2, #0x80000000
+    movz x8, #0x83eb
+    movk x8, #0x80b5, lsl #16
+    movk x8, #0x8646, lsl #32
+    movk x8, #0x61c8, lsl #48
+    mul x7, x6, x8
+    lsr x7, x7, #32
+    add x9, x5, #1
+    mul x7, x7, x9
+    lsr x7, x7, #32
+    sub x8, x4, x7, lsl #2
+    ldur w5, [x8, #-4]
 .Larray_own_probe:
     cbz w5, .Larray_own_fallback
     add x7, x4, w5, uxtw #3
@@ -55,9 +63,9 @@ JS_AArch64FastArrayOwnGet:
     add x7, x7, w5, uxtw #4
     ldp x4, x5, [x7]
     tbz w5, #31, .Larray_own_value
-    ldr w6, [x4, #ARM_REF_COUNT_OFFSET]
+    ldur w6, [x4, #ARM_REF_COUNT_OFFSET]
     add w6, w6, #1
-    str w6, [x4, #ARM_REF_COUNT_OFFSET]
+    stur w6, [x4, #ARM_REF_COUNT_OFFSET]
 .Larray_own_value:
     stp x4, x5, [x3]
     ARRAY_OWN_COUNT 8

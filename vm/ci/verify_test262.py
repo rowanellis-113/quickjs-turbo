@@ -12,7 +12,7 @@ import subprocess
 import sys
 import time
 
-DEFAULT_CORPUS_REV = "de8e621cdba4f40cff3cf244e6cfb8cb48746b4a"
+DEFAULT_CORPUS_REV = "5ef1e5723be95296f36afb0386676fed0205869c"
 IDENTITY_RE = re.compile(r"(test262[/\\]test[/\\][^:]+):\d+: (.*)")
 SUMMARY_RE = re.compile(r"Result: ([^\r\n]+)")
 COUNTS_RE = re.compile(r"(\d+)/(\d+) errors?(.*)")
@@ -119,7 +119,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runner", type=Path, required=True, help="Path to run-test262 executable")
     parser.add_argument("--name", required=True, help="Logical target name for report logs")
     parser.add_argument("--threads", type=int, default=max(1, os.cpu_count() or 4))
-    parser.add_argument("--allocator", default="256", help="QJS_EXPERIMENT_ALLOCATOR value")
+    parser.add_argument("--allocator", help="Explicit QJS_EXPERIMENT_ALLOCATOR override")
     parser.add_argument("--extra-env", action="append", default=[], help="Extra KEY=VALUE env var")
     parser.add_argument("--expected-corpus", default=DEFAULT_CORPUS_REV)
     parser.add_argument("--skip-corpus-pin", action="store_true")

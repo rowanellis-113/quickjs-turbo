@@ -16,12 +16,17 @@ activate_arm64_tools()
 from elf64 import Elf64
 from arm64.vm.publication import expand_macros
 
+compile_commands = next(
+    (
+        d / "compile_commands.json"
+        for d in (build, *build.parents)
+        if (d / "compile_commands.json").is_file()
+    ),
+    build / "compile_commands.json",
+)
+compile_commands_rows = json.loads(compile_commands.read_text())
 wrapper = source / "asm/arm64/linux/interpreter.S"
-rows = [
-    row
-    for row in json.loads((build / "compile_commands.json").read_text())
-    if Path(row["file"]).resolve() == wrapper
-]
+rows = [row for row in compile_commands_rows if Path(row["file"]).resolve() == wrapper]
 flags_source = wrapper
 if not rows:
     generated = build / "generated/aarch64-vm/interpreter-aarch64-number-dataflow.S"
@@ -29,9 +34,7 @@ if not rows:
     assert metadata["enabled"] is True
     assert hashlib.sha256(generated.read_bytes()).hexdigest() == metadata["generated_sha256"]
     rows = [
-        row
-        for row in json.loads((build / "compile_commands.json").read_text())
-        if Path(row["file"]).resolve() == generated.resolve()
+        row for row in compile_commands_rows if Path(row["file"]).resolve() == generated.resolve()
     ]
     flags_source = generated
 assert len(rows) == 1

@@ -5,9 +5,9 @@
     "tools/common/c_extract/length_c.py": "8fef4330dd0dcd743713e06dd0bc2a7341a469cc6902b2bc856350f7fd642785",
     "src/common/kernel/number-property.inc": "3a47e0faba61174808ed458551a1f9bdc31e12de91337d1a3918ad4d7c0972ec",
     "src/common/kernel/proto-load.inc": "0a413d22e9a0dd9c8fb1a2609671d05b11d89d81cf73c57e3010ec2cb9c446aa",
-    "src/common/call/quickjs-interpreter-ops.inc": "51f551fbbb7a2afc99221abcde7259d0dd31dff432a9e1f3b52fa81ac91330e6",
-    "asm/arm64/common/register-property-primitives.inc": "fa3c1600226b8f54420d1634a2f6997cb75d297a2043a7c355416b02f23d5946",
-    "asm/arm64/common/register-property-ic.inc": "f7de1ecdf1d14fa072adf7d2123553416c8c22375eddab71f2d0d458fd86a2c4",
+    "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
+    "asm/arm64/common/register-property-primitives.inc": "07dc1654b796720574ceae0e7eaf4d54d0bc32b39b2ccda9013611781e36a5b7",
+    "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9",
     "tools/arm64/workers/property_primitives.py": "f1366bc9543a5637b08012ef8693ab0c011da2256c04753709c7071c2c97b8f2"
   },
   "native": "Flat-string/fast-array logical length;primitive String/Number live own-data methods;ordinary/Array legacy own/live prototype method walk",

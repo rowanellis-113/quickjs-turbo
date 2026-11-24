@@ -10,7 +10,7 @@
     "src/x86/win64/common/quickjs-interpreter-number-property.inc": "ebdacc6699d09761299be66726886a29f10469b2e192d8cb6b5e7801610352b9",
     "src/x86/win64/common/quickjs-interpreter-proto-load.inc": "119ac89dda95850091e6026fac3f3e2db6e2c4efcee8f3aca334dd03f94b5797",
     "src/x86/win64/common/quickjs-interpreter-proto-persistent.inc": "9781c26444bfa63b61d08686bee78762bdc620c3a6e30e5ea999905ebe9dcc5b",
-    "tools/x86/common/codegen/generate-register.py": "ab3d12338b106eb8b19c27dc7947ef3d51d25eae978154868d32b9c9cbf0e465"
+    "tools/x86/common/codegen/generate-register.py": "eea6e93323243b7903eaf4f9e6c38b5fd32832afddff71e51d72e9b15693257d"
   },
   "frame_growth": 0,
   "state_growth": 0,

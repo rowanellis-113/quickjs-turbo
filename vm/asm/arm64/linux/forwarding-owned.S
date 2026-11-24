@@ -160,9 +160,9 @@
     mov w14, #-9
     cmp w13, w14
     b.lo .Lff_no_dup_\@
-    ldr w14, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x12, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x12, #ARM_REF_COUNT_OFFSET]
 .Lff_no_dup_\@:
     subs w16, w16, #1
     b.ne .Lff_copy_args_\@

@@ -65,7 +65,7 @@ get_directory_property(qjs_parent_dir PARENT_DIRECTORY)
 set(qjs_parent_compile_defs "")
 if(qjs_parent_dir)
     get_directory_property(qjs_parent_compile_defs DIRECTORY "${qjs_parent_dir}"
-                           COMPILE_DEFINITIONS)
+                                                             COMPILE_DEFINITIONS)
 endif()
 if(QJS_ENABLE_GC_STRESS
    OR "${qjs_dir_compile_defs};${qjs_parent_compile_defs}" MATCHES "(^|;)FORCE_GC_AT_MALLOC(=|;|$)"

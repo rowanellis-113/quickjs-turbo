@@ -17,7 +17,7 @@ JS_LinuxStrictIdentityLeaf:
     cmp x4, #ARM_CONST_JS_TAG_OBJECT
     b.ne .Lidentity_fallback
 .Lidentity_reference:
-    ldr w4, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x3, #ARM_REF_COUNT_OFFSET]
     cmp x3, x5
     b.ne .Lidentity_distinct
     cmp w4, #2
@@ -27,16 +27,16 @@ JS_LinuxStrictIdentityLeaf:
 .Lidentity_distinct:
     cmp w4, #1
     b.le .Lidentity_fallback
-    ldr w6, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w6, [x5, #ARM_REF_COUNT_OFFSET]
     cmp w6, #1
     b.le .Lidentity_fallback
     mov w7, #0
 .Lidentity_release:
     sub w4, w4, #1
-    str w4, [x3, #ARM_REF_COUNT_OFFSET]
-    ldr w6, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w6, [x5, #ARM_REF_COUNT_OFFSET]
     sub w6, w6, #1
-    str w6, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w6, [x5, #ARM_REF_COUNT_OFFSET]
     and w2, w2, #1
     eor w7, w7, w2
     mov x6, #ARM_CONST_JS_TAG_BOOL

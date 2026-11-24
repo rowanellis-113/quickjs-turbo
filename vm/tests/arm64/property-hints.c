@@ -30,8 +30,8 @@ static int reject_reservation(State *s, size_t n)
         s->targeted = 1;
         s->original_request = a[2] - s->base_bytes;
         s->reservation_request = n;
-        assert(n ==
-               s->original_request + 6 + (s->original_request < 2048 ? s->original_request : 2048));
+        assert(n == ARM_SIZE_JSMallocBlockHeader + s->original_request + 6 +
+                        (s->original_request < 2048 ? s->original_request : 2048));
     }
     if (!s->targeted)
         return 0;
@@ -40,7 +40,7 @@ static int reject_reservation(State *s, size_t n)
         return 1;
     }
     if (!s->fallback_seen) {
-        assert(n == s->original_request);
+        assert(n == ARM_SIZE_JSMallocBlockHeader + s->original_request);
         s->fallback_seen = 1;
     }
     return s->fail_original;
@@ -400,7 +400,11 @@ static void allocation_failure(int fail_original)
     s.base_bytes = counts[2];
     s.fail_original = fail_original;
     s.armed = 1;
-    const char *text = "(function(o){return o.value})";
+    /* Both the bytecode and its optional hint tail must reach the backing allocator. */
+    char text[2048] = "(function(o){";
+    for (unsigned i = 0; i < 160; ++i)
+        strcat(text, "o.value;");
+    strcat(text, "return o.value})");
     JSValue f = JS_Eval(ctx, text, strlen(text), "arm-own-fault", JS_EVAL_TYPE_GLOBAL);
     s.armed = 0;
     assert(s.targeted && s.fallback_seen && s.reservation_rejects);

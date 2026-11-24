@@ -162,10 +162,10 @@ def _specialize_property_ic(text):
             )
 
         # Last-ref property_replace via JS_FrameInterpFree (eliminates 50k slow put_field in Splay)
-        old_rep = f"""    ldr w12, [x8, #ARM_REF_COUNT_OFFSET]
+        old_rep = f"""    ldur w12, [x8, #ARM_REF_COUNT_OFFSET]
     cmp w12, #1
     b.le .L{p}property_pic_slow"""
-        new_rep = f"""    ldr w12, [x8, #ARM_REF_COUNT_OFFSET]
+        new_rep = f"""    ldur w12, [x8, #ARM_REF_COUNT_OFFSET]
     cmp w12, #1
     b.le .L{p}fast_prop_replace_last"""
         text = _replace_exact(text, old_rep, new_rep, 1, f"{p}property_replace last")
@@ -190,7 +190,7 @@ def _specialize_property_ic(text):
     ldp x0, x1, [x21, #-32]
     cmp x1, #ARM_CONST_JS_TAG_OBJECT
     b.ne .L{p}slow
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .L{p}slow
     ldur w8, [x20, #1]
@@ -201,7 +201,7 @@ def _specialize_property_ic(text):
     ldp x0, x1, [x21, #-32]
     cmp x1, #ARM_CONST_JS_TAG_OBJECT
     b.ne .L{p}slow
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .L{p}slow
     ldur w8, [x20, #1]
@@ -267,9 +267,9 @@ def _specialize_property_ic(text):
     b.eq .L{p}property_pic_slow
     ldp x10, x11, [x21, #-16]
     stp x10, x11, [x7, #ARM_OFF_JSProperty_u_value]
-    ldr w12, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x0, #ARM_REF_COUNT_OFFSET]
     sub w12, w12, #1
-    str w12, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x0, #ARM_REF_COUNT_OFFSET]
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x14, tpidr_el0
     add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
@@ -335,10 +335,13 @@ def _specialize_property_ic(text):
     cbnz x11, .L{p}fast_set_array_len_slow
     tbnz w10, #31, .L{p}fast_set_array_len_slow
     ldr x2, [x0, #ARM_OFF_JSObject_shape]
-    ldr w4, [x2, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w4, [x2, #ARM_OFF_JSShape_prop_hash_mask]
+    add x2, x2, w4, uxtw #2
+    add x2, x2, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w4, [x2, #ARM_OFF_JSShapeProperty_atom]
     cmp w4, #ARM_CONST_JS_ATOM_length
     b.ne .L{p}fast_set_array_len_slow
-    ldr w4, [x2, #ARM_OFF_JSShape_prop]
+    ldr w4, [x2]
     tst w4, #ARM_PROPERTY_DESC_WRITABLE
     b.eq .L{p}fast_set_array_len_slow
     tst w4, #ARM_PROPERTY_DESC_TMASK
@@ -370,7 +373,7 @@ def _specialize_property_ic(text):
     mov w10, w10
     stp x10, xzr, [x7]
     sub w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #32
     add x20, x20, #5
     ARM_DISPATCH_NEXT 1
@@ -411,9 +414,9 @@ def _specialize_property_ic(text):
     b.lt .L{p}scalar_get_loc0_loc1_orig
     ldp x8, x9, [x23, #16]
     tbz x9, #63, .L{p}fast_pair_put_store
-    ldr w10, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x8, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x8, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_pair_put_store:
     stp x8, x9, [x7, #ARM_OFF_JSProperty_u_value]
 #ifdef QJS_AARCH64_VM_INSTRUMENT
@@ -486,7 +489,7 @@ def _specialize_property_ic(text):
     add x7, x7, x10, lsl #4
     ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
     tbz x16, #63, .L{p}property_get_commit
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]"""
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]"""
         new_load = (
             f""".L{p}property_load:
     ldr w10, [x5, #ARM_OFF_JSPropertyICWay_slot]
@@ -506,9 +509,9 @@ def _specialize_property_ic(text):
                 """#ifndef QJS_AARCH64_VM_INSTRUMENT
     cmp w9, #ARM_OP_get_field2
     b.ne .Lproperty_load_dup
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
     stp x8, x16, [x21], #16
     add x20, x20, #5
     mov x0, x8
@@ -550,7 +553,7 @@ def _specialize_property_ic(text):
     mov x1, x16
     b .L{p}property_receiver_ready
 .L{p}property_load_dup:
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]"""
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]"""
         )
         text = _replace_exact(text, old_load, new_load, 1, f"{p}property_load")
 
@@ -606,9 +609,9 @@ def _specialize_property_ic(text):
     b.eq .Lfast_borrow_gf_chain
     cmp w13, #ARM_OP_get_field2
     b.ne .Lfast_borrow_gf_chk_br
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
     stp x8, x16, [x21], #16
     mov x0, x8
     mov x1, x16
@@ -689,7 +692,8 @@ def _specialize_property_ic(text):
     b .Lfast_borrow_gf_br_eval
 .Lfast_borrow_gf_br_obj:
     ldrb w9, [x8, #ARM_BIT_JSObject_is_HTMLDDA_BYTE]
-    tbnz w9, #7, .Lfast_borrow_gf_commit
+    tst w9, #ARM_BIT_JSObject_is_HTMLDDA_MASK
+    b.ne .Lfast_borrow_gf_commit
     mov w15, #1
     b .Lfast_borrow_gf_br_eval
 .Lfast_borrow_gf_br_ib:
@@ -728,16 +732,17 @@ def _specialize_property_ic(text):
     cmp w11, #1
     b.hi .Lfast_borrow_gf_commit
     ldrb w9, [x8, #ARM_BIT_JSObject_is_HTMLDDA_BYTE]
-    tbnz w9, #7, .Lfast_borrow_gf_commit
+    tst w9, #ARM_BIT_JSObject_is_HTMLDDA_MASK
+    b.ne .Lfast_borrow_gf_commit
     b .Lfast_borrow_gf_null_false
 .Lfast_borrow_gf_chk_pf:
     cmp w13, #ARM_OP_put_field
     b.eq .Lfast_borrow_gf_put_field
 .Lfast_borrow_gf_commit:
     tbz x16, #63, .Lfast_borrow_gf_push
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
 .Lfast_borrow_gf_push:
     stp x8, x16, [x21], #16
     add x20, x20, #5
@@ -756,7 +761,7 @@ def _specialize_property_ic(text):
     ldp x2, x3, [x21, #-16]
     cmn x3, #1
     b.ne .Lfast_borrow_gf_commit
-    ldr w9, [x2, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x2, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lfast_borrow_gf_commit
     ldrb w9, [x2, #ARM_BIT_JSObject_is_exotic_BYTE]
@@ -778,7 +783,7 @@ def _specialize_property_ic(text):
     add x7, x7, x12, lsl #4
     ldp x14, x15, [x7, #ARM_OFF_JSProperty_u_value]
     tbz x15, #63, .Lfast_bgfpf_old_ok
-    ldr w11, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x14, #ARM_REF_COUNT_OFFSET]
     cmp w11, #1
     b.le .Lfast_borrow_gf_commit
     cmp x14, x2
@@ -787,18 +792,18 @@ def _specialize_property_ic(text):
     b.le .Lfast_borrow_gf_commit
 .Lfast_bgfpf_old_ok:
     tbz x16, #63, .Lfast_bgfpf_dec_old
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
 .Lfast_bgfpf_dec_old:
     tbz x15, #63, .Lfast_bgfpf_dec_recv
-    ldr w9, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x14, #ARM_REF_COUNT_OFFSET]
     sub w9, w9, #1
-    str w9, [x14, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x14, #ARM_REF_COUNT_OFFSET]
 .Lfast_bgfpf_dec_recv:
-    ldr w9, [x2, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x2, #ARM_REF_COUNT_OFFSET]
     sub w9, w9, #1
-    str w9, [x2, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x2, #ARM_REF_COUNT_OFFSET]
     stp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
     sub x21, x21, #16
     add x20, x20, #10
@@ -839,7 +844,9 @@ def _specialize_property_ic(text):
     ldr w9, [x4, #ARM_OFF_JSShape_prop_count]
     cmp w9, #1
     b.ne .Lproperty_method_legacy
-    ldr w9, [x4, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w9, [x4, #ARM_OFF_JSShape_prop_hash_mask]
+    add x10, x4, w9, uxtw #2
+    ldr w9, [x10, #(ARM_OFF_JSShape_hash_table + 4 + ARM_OFF_JSShapeProperty_atom)]
     cmp w9, #ARM_CONST_JS_ATOM_length
     b.ne .Lproperty_method_legacy
     ldur w8, [x20, #1]
@@ -868,7 +875,9 @@ def _specialize_property_ic(text):
     ldr w12, [x4, #ARM_OFF_JSShape_prop_count]
     cmp w10, w12
     b.hs .Lfast_arr_proto_miss
-    add x13, x4, #ARM_OFF_JSShape_prop
+    ldr w12, [x4, #ARM_OFF_JSShape_prop_hash_mask]
+    add x13, x4, w12, uxtw #2
+    add x13, x13, #(ARM_OFF_JSShape_hash_table + 4)
     add x13, x13, x10, lsl #3
     ldr w14, [x13, #ARM_OFF_JSShapeProperty_atom]
     cmp w14, w8
@@ -879,11 +888,19 @@ def _specialize_property_ic(text):
     b .Lfast_arr_proto_load
 .Lfast_arr_proto_miss:
     ldr w12, [x4, #ARM_OFF_JSShape_prop_hash_mask]
-    and w12, w8, w12
-    neg x12, x12
-    add x12, x4, x12, lsl #2
+    add x13, x4, w12, uxtw #2
+    add x13, x13, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x14, #0x83eb
+    movk x14, #0x80b5, lsl #16
+    movk x14, #0x8646, lsl #32
+    movk x14, #0x61c8, lsl #48
+    mul x15, x8, x14
+    lsr x15, x15, #32
+    add x12, x12, #1
+    mul x15, x15, x12
+    lsr x15, x15, #32
+    sub x12, x13, x15, lsl #2
     ldur w12, [x12, #-4]
-    add x13, x4, #ARM_OFF_JSShape_prop
 .Lfast_arr_proto_loop:
     cbz w12, .Lproperty_method_legacy
     sub w10, w12, #1
@@ -910,9 +927,9 @@ def _specialize_property_ic(text):
     cmp x16, #ARM_CONST_JS_TAG_EXCEPTION
     b.eq .Lproperty_method_legacy
     tbz x16, #63, .Lproperty_method_commit
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
     b .Lproperty_method_commit
 
 .Lfast_push_this_gf_chk:
@@ -934,9 +951,9 @@ def _specialize_property_ic(text):
     add w9, w15, #ARM_OP_get_loc0
     cmp w14, w9
     b.eq .Lfast_push_this_short_op
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x16]
     add x20, x20, #2
     ARM_DISPATCH_NEXT 2
@@ -965,9 +982,9 @@ def _specialize_property_ic(text):
     add x13, x20, #5
     b .Lfast_push_this_dispatch
 .Lfast_push_this_loc8_only:
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x16]
     add x20, x20, #3
     ARM_DISPATCH_NEXT 2
@@ -976,9 +993,9 @@ def _specialize_property_ic(text):
     b.eq .Lfast_push_this_gf1
     cmp w14, #ARM_OP_get_field2
     b.eq .Lfast_push_this_gf2
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #2
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x16]
     stp x10, x11, [x21], #16
     mov x20, x13
@@ -986,9 +1003,9 @@ def _specialize_property_ic(text):
 .Lfast_push_this_gf2:
     tst w12, #0x800
     b.eq .Lfast_push_this_orig
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #2
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x16]
     stp x10, x11, [x21], #16
     mov x0, x10
@@ -997,9 +1014,9 @@ def _specialize_property_ic(text):
     mov x20, x13
     b .Lproperty_receiver_ready
 .Lfast_push_this_gf1:
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x16]
     mov x0, x10
     mov x1, x11
@@ -1217,14 +1234,14 @@ def _specialize_property_ic(text):
     mov x5, #ARM_CONST_JS_TAG_BOOL
 .Lfast_mcf2_commit:
     tbz x1, #63, .Lfast_mcf2_inc1
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
 .Lfast_mcf2_inc1:
     tbz x5, #63, .Lfast_mcf2_store
-    ldr w9, [x4, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x4, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x4, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x4, #ARM_REF_COUNT_OFFSET]
 .Lfast_mcf2_store:
     stp x0, x1, [x21]
     stp x4, x5, [x21, #16]
@@ -1307,9 +1324,9 @@ def _specialize_property_ic(text):
     mov x6, #ARM_CONST_JS_TAG_BOOL
 .Lfast_mcf_arg1_push:
     tbz x6, #63, .Lfast_mcf_arg1_store
-    ldr w10, [x5, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x5, #ARM_REF_COUNT_OFFSET]
     add w10, w10, #1
-    str w10, [x5, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x5, #ARM_REF_COUNT_OFFSET]
 .Lfast_mcf_arg1_store:
     stp x5, x6, [x21], #16
     mov x20, x12

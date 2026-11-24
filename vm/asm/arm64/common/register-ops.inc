@@ -84,9 +84,9 @@
 #endif
 .Lcopy_value:
     tbz x11, #63, .Lcopy_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .Lcopy_commit:
     add x20, x20, x13
     b .Lpush_value
@@ -97,11 +97,11 @@
 .Ldrop:
     ldp x10, x11, [x21, #-16]
     tbz x11, #63, .Ldrop_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .Lslow
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .Ldrop_commit:
     sub x21, x21, #16
     add x20, x20, #1

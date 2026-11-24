@@ -43,7 +43,7 @@
     b.eq .Lconstruct_release_begin
     ldp x10, x11, [x9], #16
     tbz x11, #63, .Lconstruct_guard
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w12, w8
     b.le .Lreturn_fallback
     b .Lconstruct_guard
@@ -54,9 +54,9 @@
     b.eq .Lconstruct_pop
     ldp x10, x11, [x9], #16
     tbz x11, #63, .Lconstruct_release
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     sub w12, w12, #1
-    str w12, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x10, #ARM_REF_COUNT_OFFSET]
     b .Lconstruct_release
 .Lconstruct_pop:
     cbnz w28, .Lconstruct_counted

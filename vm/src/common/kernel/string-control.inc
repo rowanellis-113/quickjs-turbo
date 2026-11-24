@@ -16,10 +16,9 @@ __attribute__((section(".qjsem$strings"))) _Atomic(unsigned char) JS_FrameLocalR
 #endif
 
 #if QJS_ABI_HAS_PREFIX_RC
-_Static_assert(JS_TAG_STRING == -7 &&
-                   offsetof(JSMallocBlockHeader, user_data) -
-                           offsetof(JSMallocBlockHeader, ref_count) ==
-                       4,
+_Static_assert(JS_TAG_STRING == -7 && offsetof(JSMallocBlockHeader, user_data) -
+                                              offsetof(JSMallocBlockHeader, ref_count) ==
+                                          4,
                "review native flat-string selector after upstream change");
 _Static_assert(sizeof(JSValue) == 16 && offsetof(JSString, hash_next) == 8,
                "selector uses the pinned native value and string header");

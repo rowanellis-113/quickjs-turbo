@@ -179,9 +179,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -239,9 +239,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -352,9 +352,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
 .Lfast_ref_same_reg_gf:
     cmp w15, #ARM_OP_get_field
     b.ne .Lfast_borrow_miss_w1
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x21], #16
     mov x0, x10
     mov x1, x11
@@ -363,7 +363,8 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
 
 .Lfast_ref_is_null_w1:
     ldrb w15, [x10, #ARM_BIT_JSObject_is_HTMLDDA_BYTE]
-    tbnz w15, #7, .Lfast_borrow_miss_w1
+    tst w15, #ARM_BIT_JSObject_is_HTMLDDA_MASK
+    b.ne .Lfast_borrow_miss_w1
     ldrb w15, [x20, #2]
     cmp w15, #ARM_OP_if_false8
     b.eq .Lfast_ref_is_null_f8
@@ -507,19 +508,19 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x7, x7, x12, lsl #4
     ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
     tbz x16, #63, .Lfast_rpf_new_inc
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lfast_borrow_miss_w1
 .Lfast_rpf_new_inc:
     tbz x3, #63, .Lfast_rpf_old_dec
-    ldr w9, [x2, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x2, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x2, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x2, #ARM_REF_COUNT_OFFSET]
 .Lfast_rpf_old_dec:
     tbz x16, #63, .Lfast_rpf_store
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     sub w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
 .Lfast_rpf_store:
     stp x2, x3, [x7, #ARM_OFF_JSProperty_u_value]
     add x20, x20, x13
@@ -533,9 +534,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     ldr w12, [sp, #ARM_VM_POLICY_OFF]
     tst w12, #0x800
     b.eq .Lfast_borrow_miss_w{width}
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x21], #16
     mov x0, x10
     mov x1, x11
@@ -590,9 +591,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x5, x5, w2, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lfast_borrow_pinc_ok_w{width}
-    ldr w12, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x6, #ARM_REF_COUNT_OFFSET]
     add w12, w12, #1
-    str w12, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x6, #ARM_REF_COUNT_OFFSET]
 .Lfast_borrow_pinc_ok_w{width}:
     stp x6, x7, [x21], #16
     add x20, x20, #{width + 4}
@@ -656,9 +657,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x5, x5, w2, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lfast_borrow_arr_get_ok_w{width}
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lfast_borrow_arr_get_ok_w{width}:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x12, tpidr_el0
@@ -887,9 +888,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     ARM_DISPATCH_NEXT 4
 
 .Lfast_borrow_miss_w{width}:
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x21], #16
     add x20, x20, #{width}
     ARM_DISPATCH_NEXT 1
@@ -906,12 +907,20 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     tbnz w2, #31, .Lfast_borrow_miss_w{width}
     ldr x5, [x10, #ARM_OFF_JSObject_shape]
     ldr w12, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w12, w2, w12
-    neg x12, x12
-    sub x9, x5, #4
-    ldr w12, [x9, x12, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w12, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w9, w2, #0x80000000
+    movz x14, #0x83eb
+    movk x14, #0x80b5, lsl #16
+    movk x14, #0x8646, lsl #32
+    movk x14, #0x61c8, lsl #48
+    mul x13, x9, x14
+    lsr x13, x13, #32
+    add x12, x12, #1
+    mul x13, x13, x12
+    lsr x13, x13, #32
+    sub x14, x5, x13, lsl #2
+    ldur w12, [x14, #-4]
 .Lfast_borrow_own_pinc_probe_w{width}:
     cbz w12, .Lfast_borrow_miss_w{width}
     add x13, x5, w12, uxtw #3
@@ -932,9 +941,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     sxtw x8, w8
     str x8, [x15]
     tbz x7, #63, .Lfast_borrow_own_pinc_ok_w{width}
-    ldr w12, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x6, #ARM_REF_COUNT_OFFSET]
     add w12, w12, #1
-    str w12, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x6, #ARM_REF_COUNT_OFFSET]
 .Lfast_borrow_own_pinc_ok_w{width}:
     stp x6, x7, [x21], #16
     add x20, x20, #{width + 4}
@@ -952,12 +961,20 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     tbnz w2, #31, .Lfast_borrow_miss_w{width}
     ldr x5, [x10, #ARM_OFF_JSObject_shape]
     ldr w12, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w12, w2, w12
-    neg x12, x12
-    sub x14, x5, #4
-    ldr w12, [x14, x12, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w12, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w13, w2, #0x80000000
+    movz x15, #0x83eb
+    movk x15, #0x80b5, lsl #16
+    movk x15, #0x8646, lsl #32
+    movk x15, #0x61c8, lsl #48
+    mul x14, x13, x15
+    lsr x14, x14, #32
+    add x12, x12, #1
+    mul x14, x14, x12
+    lsr x14, x14, #32
+    sub x15, x5, x14, lsl #2
+    ldur w12, [x15, #-4]
 .Lfast_borrow_own_get_probe_w{width}:
     cbz w12, .Lfast_borrow_miss_w{width}
     add x15, x5, w12, uxtw #3
@@ -976,9 +993,9 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     add x5, x5, w12, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lfast_borrow_own_get_ok_w{width}
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lfast_borrow_own_get_ok_w{width}:
     stp x6, x7, [x21], #16
     add x20, x20, x9
@@ -996,12 +1013,20 @@ def _specialize_indexed_and_borrows(text, f32_id, f64_id):
     tbnz w2, #31, .Lfast_borrow_miss_w{width}
     ldr x5, [x10, #ARM_OFF_JSObject_shape]
     ldr w12, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w12, w2, w12
-    neg x12, x12
-    sub x14, x5, #4
-    ldr w12, [x14, x12, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w12, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w13, w2, #0x80000000
+    movz x15, #0x83eb
+    movk x15, #0x80b5, lsl #16
+    movk x15, #0x8646, lsl #32
+    movk x15, #0x61c8, lsl #48
+    mul x14, x13, x15
+    lsr x14, x14, #32
+    add x12, x12, #1
+    mul x14, x14, x12
+    lsr x14, x14, #32
+    sub x15, x5, x14, lsl #2
+    ldur w12, [x15, #-4]
 .Lfast_borrow_own_put_probe_w{width}:
     cbz w12, .Lfast_borrow_miss_w{width}
     add x15, x5, w12, uxtw #3
@@ -1083,13 +1108,13 @@ def _specialize_stack_and_globals(text, output, op_ids):
         old_drop = f""".L{p}drop:
     ldp x10, x11, [x21, #-16]
     tbz x11, #63, .L{p}drop_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .L{p}slow"""
         new_drop = f""".L{p}drop:
     ldp x10, x11, [x21, #-16]
     tbz x11, #63, .L{p}drop_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .L{p}fast_drop_last"""
         text = _replace_exact(text, old_drop, new_drop, 1, f"{p}drop")
@@ -1455,9 +1480,9 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldp x10, x11, [x21, #-32]
     ldp x12, x13, [x21, #-16]
     tbz x11, #63, .Lfast_dup1_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .Lfast_dup1_commit:
     stp x10, x11, [x21, #-16]
     stp x12, x13, [x21], #16
@@ -1468,14 +1493,14 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldp x10, x11, [x21, #-32]
     ldp x12, x13, [x21, #-16]
     tbz x11, #63, .Lfast_dup2_second
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .Lfast_dup2_second:
     tbz x13, #63, .Lfast_dup2_commit
-    ldr w14, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x12, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x12, #ARM_REF_COUNT_OFFSET]
 .Lfast_dup2_commit:
     stp x10, x11, [x21]
     stp x12, x13, [x21, #16]
@@ -1511,7 +1536,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     b.eq .Lslow
     tst w10, #0x20000000
     b.eq .Lslow
-    ldr w11, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w11, #1
     b.le .Lslow
     ldr x12, [x26, #ARM_OFF_JSFunctionBytecode_realm]
@@ -1540,7 +1565,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     sub w13, w13, #1
     str w13, [x12, #ARM_OFF_JSContext_interrupt_counter]
     sub w11, w11, #1
-    str w11, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w11, [x0, #ARM_REF_COUNT_OFFSET]
     ldr w2, [x0, #ARM_OFF_JSObject_u_array_count]
     sxtw x2, w2
     stp x2, xzr, [x21, #-16]
@@ -1555,7 +1580,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     bl JS_FastTypedArrayLenProve
     cbz w0, .Lslow
     ldr x0, [x21, #-16]
-    ldr w11, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w11, [x0, #ARM_REF_COUNT_OFFSET]
     ldr x4, [x0, #ARM_OFF_JSObject_shape]
     ldr x12, [x26, #ARM_OFF_JSFunctionBytecode_realm]
     ldr w13, [x12, #ARM_OFF_JSContext_interrupt_counter]
@@ -1635,9 +1660,9 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldr w10, [sp, #ARM_VM_POLICY_OFF]
     tst w10, #0x800
     b.eq .Lglobal_ready
-    ldr w9, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x12, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x12, #ARM_REF_COUNT_OFFSET]
     stp x12, x13, [x21], #16
     mov x0, x12
     mov x1, x13
@@ -1802,11 +1827,11 @@ def _specialize_stack_and_globals(text, output, op_ids):
 .L{p}fast_nip:
     ldp x10, x11, [x21, #-32]
     tbz x11, #63, .L{p}fast_nip_commit
-    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w14, #1
     b.le .L{p}fast_nip_last
     sub w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_nip_commit:
     ldp x12, x13, [x21, #-16]
     stp x12, x13, [x21, #-32]
@@ -1855,11 +1880,20 @@ def _specialize_stack_and_globals(text, output, op_ids):
     b.ne .L{p}slow
     ldr x3, [x1, #ARM_OFF_JSObject_shape]
     ldr w4, [x3, #ARM_OFF_JSShape_prop_hash_mask]
-    and w4, w8, w4
-    neg x4, x4
-    add x4, x3, x4, lsl #2
-    ldur w4, [x4, #-4]
-    add x5, x3, #ARM_OFF_JSShape_prop
+    add x5, x3, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x7, #0x83eb
+    movk x7, #0x80b5, lsl #16
+    movk x7, #0x8646, lsl #32
+    movk x7, #0x61c8, lsl #48
+    uxtw x6, w8
+    mul x6, x6, x7
+    lsr x6, x6, #32
+    add x4, x4, #1
+    mul x6, x6, x4
+    lsr x6, x6, #32
+    sub x7, x5, x6, lsl #2
+    ldur w4, [x7, #-4]
 .L{p}fast_put_var_lex_loop:
     cbz w4, .L{p}fast_put_var_global
     sub w6, w4, #1
@@ -1897,11 +1931,20 @@ def _specialize_stack_and_globals(text, output, op_ids):
     b.ne .L{p}slow
     ldr x3, [x1, #ARM_OFF_JSObject_shape]
     ldr w4, [x3, #ARM_OFF_JSShape_prop_hash_mask]
-    and w4, w8, w4
-    neg x4, x4
-    add x4, x3, x4, lsl #2
-    ldur w4, [x4, #-4]
-    add x5, x3, #ARM_OFF_JSShape_prop
+    add x5, x3, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x7, #0x83eb
+    movk x7, #0x80b5, lsl #16
+    movk x7, #0x8646, lsl #32
+    movk x7, #0x61c8, lsl #48
+    uxtw x6, w8
+    mul x6, x6, x7
+    lsr x6, x6, #32
+    add x4, x4, #1
+    mul x6, x6, x4
+    lsr x6, x6, #32
+    sub x7, x5, x6, lsl #2
+    ldur w4, [x7, #-4]
 .L{p}fast_put_var_glob_loop:
     cbz w4, .L{p}slow
     sub w6, w4, #1
@@ -1925,11 +1968,11 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldp x14, x15, [x2]
 .L{p}fast_put_var_store:
     tbz x15, #63, .L{p}fast_put_var_commit
-    ldr w9, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x14, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .L{p}fast_put_var_last
     sub w9, w9, #1
-    str w9, [x14, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x14, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_put_var_commit:
     ldp x10, x11, [x21, #-16]
     sub x21, x21, #16
@@ -1979,7 +2022,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     b.eq .L{p}ft_bigint
     cmp x1, #0
     b.ge .L{p}slow
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .L{p}slow
     cmn x1, #1
@@ -1995,7 +2038,8 @@ def _specialize_stack_and_globals(text, output, op_ids):
     b .L{p}slow
 .L{p}ft_obj:
     ldrb w3, [x0, #ARM_BIT_JSObject_is_HTMLDDA_BYTE]
-    tbnz w3, #7, .L{p}ft_undef
+    tst w3, #ARM_BIT_JSObject_is_HTMLDDA_MASK
+    b.ne .L{p}ft_undef
     ldrh w3, [x0, #ARM_OFF_JSObject_class_id]
     cbz w3, .L{p}slow
     sub w4, w3, #1
@@ -2028,18 +2072,18 @@ def _specialize_stack_and_globals(text, output, op_ids):
     mov w2, #78
     b .L{p}ft_commit
 .L{p}ft_bigint:
-    mov w2, #150
+    mov w2, #149
 .L{p}ft_commit:
     tbz x1, #63, .L{p}ft_push
     sub w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
 .L{p}ft_push:
     ldr x3, [x19, #ARM_OFF_JSFrameRegisterState_rt]
     ldr x3, [x3, #ARM_OFF_JSRuntime_atom_array]
     ldr x3, [x3, w2, uxtw #3]
-    ldr w4, [x3, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x3, #ARM_REF_COUNT_OFFSET]
     add w4, w4, #1
-    str w4, [x3, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x3, #ARM_REF_COUNT_OFFSET]
     mov x5, #ARM_CONST_JS_TAG_STRING
     stp x3, x5, [x21, #-16]
     add x20, x20, #1
@@ -2131,7 +2175,7 @@ def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
 .L{p}fast_for_of_next:
     ldrb w2, [x22, #ARM_FRAME_FLAGS_OFFSET]
     tbnz w2, #1, .L{p}iterator_for_of_next_c
-    ldrb w1, [x26, #116]
+    ldrb w1, [x26, #(ARM_OFF_JSFunctionBytecode_pc2line_len + 4)]
     tbz w1, #2, .L{p}iterator_for_of_next_c
     adrp x14, .Lfast_array_iter_fn
     ldr x14, [x14, :lo12:.Lfast_array_iter_fn]
@@ -2185,7 +2229,7 @@ def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
     ldrh w6, [x2, #ARM_OFF_JSObject_class_id]
     cmp w6, #{arr_iter_id}
     b.ne .Lfast_cfunc_for_of_next
-    ldrb w1, [x26, #116]
+    ldrb w1, [x26, #(ARM_OFF_JSFunctionBytecode_pc2line_len + 4)]
     tbz w1, #2, .L{p}iterator_for_of_next_c
     adrp x14, .Lfast_array_iter_fn
     ldr x14, [x14, :lo12:.Lfast_array_iter_fn]
@@ -2214,10 +2258,13 @@ def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
     ldr w6, [x5, #ARM_OFF_JSShape_prop_count]
     cmp w6, #0
     b.le .L{p}iterator_for_of_next_c
-    ldr w6, [x5, #(ARM_OFF_JSShape_prop + ARM_OFF_JSShapeProperty_atom)]
+    ldr w6, [x5, #ARM_OFF_JSShape_prop_hash_mask]
+    add x5, x5, w6, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    ldr w6, [x5, #ARM_OFF_JSShapeProperty_atom]
     cmp w6, #ARM_CONST_JS_ATOM_length
     b.ne .L{p}iterator_for_of_next_c
-    ldr w6, [x5, #ARM_OFF_JSShape_prop]
+    ldr w6, [x5]
     lsr w6, w6, #26
     and w6, w6, #0x38
     cmp w6, #8
@@ -2238,9 +2285,9 @@ def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
     add x8, x8, w6, uxtw #4
     ldp x10, x11, [x8]
     tbz x11, #63, .L{p}fast_for_of_val_ok
-    ldr w12, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x10, #ARM_REF_COUNT_OFFSET]
     add w12, w12, #1
-    str w12, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x10, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_for_of_val_ok:
     ldrb w12, [x20, #2]
     cmp w12, #ARM_OP_if_false8
@@ -2285,7 +2332,7 @@ def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
     sub x3, x2, x21
     cmp x3, #32
     b.ne .L{p}fast_for_of_reload
-    ldrb w3, [x26, #116]
+    ldrb w3, [x26, #(ARM_OFF_JSFunctionBytecode_pc2line_len + 4)]
     tbz w3, #2, .L{p}fast_for_of_reload
     ldrb w5, [x20, #1]
     mov w1, #-3

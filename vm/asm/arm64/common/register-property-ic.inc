@@ -24,7 +24,7 @@
     b.eq .Lproperty_receiver_ready
     cmp w17, #4
     b.eq .Lproperty_receiver_ready
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lproperty_pic_slow
 .Lproperty_receiver_ready:
@@ -106,9 +106,9 @@
     add x7, x7, x10, lsl #4
     ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
     tbz x16, #63, .Lproperty_get_commit
-    ldr w9, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x8, #ARM_REF_COUNT_OFFSET]
     b .Lproperty_get_commit
 .Lproperty_unset:
     mov x8, #0
@@ -136,9 +136,9 @@
     b.eq .Lproperty_method_commit
     cmp w17, #4
     b.eq .Lproperty_borrow_commit
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     sub w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
     stp x8, x16, [x21, #-16]
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x14, tpidr_el0
@@ -205,17 +205,17 @@
     bic w13, w13, #ARM_CONST_JS_IC_PROTO_WEAK
     strb w13, [x7, #ARM_OFF_JSShape_is_hashed]
     ldr x11, [x7, #ARM_OFF_JSShape_proto]
-    ldr w12, [x11, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x11, #ARM_REF_COUNT_OFFSET]
     add w12, w12, #1
-    str w12, [x11, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x11, #ARM_REF_COUNT_OFFSET]
 .Lproperty_successor_active:
-    ldr w12, [x7, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x7, #ARM_REF_COUNT_OFFSET]
     add w12, w12, #1
-    str w12, [x7, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x7, #ARM_REF_COUNT_OFFSET]
     str x7, [x0, #ARM_OFF_JSObject_shape]
-    ldr w12, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x6, #ARM_REF_COUNT_OFFSET]
     sub w12, w12, #1
-    str w12, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x6, #ARM_REF_COUNT_OFFSET]
     ldr w11, [x9, #ARM_OFF_JSRuntime_property_ic_gc_mode]
     tst w11, #ARM_CONST_JS_IC_RETAIN_ORPHANS
     b.ne .Lproperty_transition_committed
@@ -230,9 +230,9 @@
     strb w13, [x6, #ARM_OFF_JSShape_is_hashed]
 // The successor owns the same prototype before weakening the predecessor.
 // This decrement cannot release its last reference or execute a callback.
-    ldr w12, [x11, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x11, #ARM_REF_COUNT_OFFSET]
     sub w12, w12, #1
-    str w12, [x11, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x11, #ARM_REF_COUNT_OFFSET]
 .Lproperty_transition_committed:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x14, tpidr_el0
@@ -252,7 +252,7 @@
     add x7, x7, x10, lsl #4
     ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
     tbz x16, #63, .Lproperty_replace_safe
-    ldr w12, [x8, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x8, #ARM_REF_COUNT_OFFSET]
     cmp w12, #1
     b.le .Lproperty_pic_slow
     cmp x8, x0
@@ -261,7 +261,7 @@
     b.le .Lproperty_pic_slow
 .Lproperty_replace_nonlast:
     sub w12, w12, #1
-    str w12, [x8, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x8, #ARM_REF_COUNT_OFFSET]
 .Lproperty_replace_safe:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x14, tpidr_el0
@@ -274,9 +274,9 @@
 .Lproperty_store:
     ldp x8, x16, [x21, #-16]
     stp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
-    ldr w12, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w12, [x0, #ARM_REF_COUNT_OFFSET]
     sub w12, w12, #1
-    str w12, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w12, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #32
     cbz w2, .Lproperty_put_primary
 #ifdef QJS_AARCH64_VM_INSTRUMENT

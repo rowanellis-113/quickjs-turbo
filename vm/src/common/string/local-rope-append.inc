@@ -88,9 +88,9 @@ LOCAL_STRING_CODE int JS_FrameLocalRopeAppendStep(JSFrameRegisterState *state)
         uint64_t length = (uint64_t)root->len + suffix->len;
         /* The NORMAL leaf owns its payload. A slice or indirect string does
            not gain writable capacity from its descriptor allocation. */
-        if (JS_REF_COUNT(leaf) == 1 && !leaf->atom_type &&
-            leaf->kind == JS_STRING_KIND_NORMAL && leaf->is_wide_char == suffix->is_wide_char &&
-            length <= JS_STRING_LEN_MAX && depth <= JS_STRING_ROPE_MAX_DEPTH &&
+        if (JS_REF_COUNT(leaf) == 1 && !leaf->atom_type && leaf->kind == JS_STRING_KIND_NORMAL &&
+            leaf->is_wide_char == suffix->is_wide_char && length <= JS_STRING_LEN_MAX &&
+            depth <= JS_STRING_ROPE_MAX_DEPTH &&
             (nonlast || (!suffix->atom_type && suffix->kind == JS_STRING_KIND_NORMAL &&
                          ctx->rt->mf.js_free == FramePoolFunctions.js_free))) {
             unsigned wide = leaf->is_wide_char;

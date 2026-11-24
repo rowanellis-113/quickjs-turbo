@@ -19,10 +19,7 @@ def validate_measured_override(source, layout):
     valid_target = (
         platform == "linux-x86_64-sysv"
         and (linux_target or target.startswith("x86_64-apple-darwin"))
-    ) or (
-        platform == "win64-x86_64"
-        and target in ("x86_64-pc-windows-msvc", "x86_64-w64-mingw32")
-    )
+    ) or (platform == "win64-x86_64" and target in ("x86_64-pc-windows-msvc", "x86_64-w64-mingw32"))
     if not valid_target:
         raise ValueError("Unsupported measured native platform override")
     if (

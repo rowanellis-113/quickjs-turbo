@@ -108,17 +108,17 @@
     ldrb w9, [x0, #ARM_BIT_JSObject_is_HTMLDDA_BYTE]
     tst w9, #ARM_BIT_JSObject_is_HTMLDDA_MASK
     b.ne .Lcomparison_loose_miss
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lcomparison_loose_last
     ARM_COMPARE_STAT JS_FrameLooseEqStats, 7, 5
 .Lcomparison_null_release_guard:
-    ldr w2, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w2, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w2, #1
     b.le .Lcomparison_loose_last
     ARM_COMPARE_STAT JS_FrameLooseEqStats, 4, 5
     sub w2, w2, #1
-    str w2, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w2, [x0, #ARM_REF_COUNT_OFFSET]
     mov w10, #0
     ARM_COMPARE_EVENT 80
     b .Lcomparison_commit
@@ -154,7 +154,7 @@
     tbz w16, #0, .Lcomparison_strict_miss
     cmp x10, x12
     b.ne .Lcomparison_string_distinct
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w0, #2
     b.le .Lcomparison_strict_last
     ARM_COMPARE_STAT JS_FrameStrictEqStats, 0, 3
@@ -162,10 +162,10 @@
     ARM_COMPARE_EVENT 0
     b .Lcomparison_pair_release
 .Lcomparison_string_distinct:
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w0, #1
     b.le .Lcomparison_strict_last
-    ldr w0, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x12, #ARM_REF_COUNT_OFFSET]
     cmp w0, #1
     b.le .Lcomparison_strict_last
     ldr w2, [x10, #ARM_BIT_JSString_len_BYTE]
@@ -354,7 +354,7 @@
     cmp x11, #ARM_CONST_JS_TAG_OBJECT
     b.ne .Lcomparison_strict_reference_miss
 .Lcomparison_reference_tag:
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     cmp x10, x12
     b.ne .Lcomparison_reference_distinct
     cmp w0, #2
@@ -364,19 +364,19 @@
 .Lcomparison_reference_distinct:
     cmp w0, #1
     b.le .Lcomparison_strict_reference_miss
-    ldr w0, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x12, #ARM_REF_COUNT_OFFSET]
     cmp w0, #1
     b.le .Lcomparison_strict_reference_miss
     mov w0, #0
 .Lcomparison_reference_release:
     ARM_COMPARE_EVENT 64
 .Lcomparison_pair_release:
-    ldr w1, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w1, [x10, #ARM_REF_COUNT_OFFSET]
     sub w1, w1, #1
-    str w1, [x10, #ARM_REF_COUNT_OFFSET]
-    ldr w1, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w1, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w1, [x12, #ARM_REF_COUNT_OFFSET]
     sub w1, w1, #1
-    str w1, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w1, [x12, #ARM_REF_COUNT_OFFSET]
     mov w10, w0
 .Lcomparison_commit:
     eor w10, w10, w17

@@ -86,7 +86,8 @@ enum {
 _Static_assert(sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode &&
                    offsetof(JSFunctionBytecode, property_ic) ==
                        QJS_ABI_OFF_JSFunctionBytecode_property_ic &&
-                   sizeof(JSValue) == 16 && sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite &&
+                   sizeof(JSValue) == 16 &&
+                   sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite &&
                    sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay,
                "compound proof exact current private ABI");
 

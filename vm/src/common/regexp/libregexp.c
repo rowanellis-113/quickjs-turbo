@@ -1270,7 +1270,8 @@ static int re_emit_range(REParseState *s, const CharRange *cr)
     bool ignore_case = s->ignore_case;
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
     CharRange expanded;
-    if (s->expand_case) {
+    const bool expand = s->expand_case && ignore_case;
+    if (expand) {
         cr_init(&expanded, s->opaque, lre_realloc);
         if (qjs_frame_regexp_expand_ranges(&expanded, cr, s->is_unicode)) {
             cr_free(&expanded);
@@ -1284,7 +1285,7 @@ static int re_emit_range(REParseState *s, const CharRange *cr)
     len = (unsigned)cr->len / 2;
     if (len >= 65535) {
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-        if (s->expand_case)
+        if (expand)
             cr_free(&expanded);
 #endif
         return re_parse_error(s, "too many ranges");
@@ -1315,7 +1316,7 @@ static int re_emit_range(REParseState *s, const CharRange *cr)
         }
     }
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-    if (s->expand_case)
+    if (expand)
         cr_free(&expanded);
 #endif
     return 0;
@@ -1332,7 +1333,7 @@ static void re_emit_char(REParseState *s, int c)
 {
     bool ignore_case = s->ignore_case;
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-    if (s->expand_case) {
+    if (s->expand_case && ignore_case) {
         int count, i;
         const uint32_t *members = qjs_frame_regexp_fold_char(c, s->is_unicode, &count);
         if (members) {
@@ -2780,7 +2781,7 @@ uint8_t *lre_compile(int *plen, char *error_msg, int error_msg_size, const char 
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
     {
         const char *disabled = getenv("QJS_DISABLE_REGEXP_CASE_CLOSURE");
-        s->expand_case = s->ignore_case && (!disabled || !strcmp(disabled, "0"));
+        s->expand_case = !disabled || !strcmp(disabled, "0");
     }
 #endif
     s->multi_line = ((re_flags & LRE_FLAG_MULTILINE) != 0);

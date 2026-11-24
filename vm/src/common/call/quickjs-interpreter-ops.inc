@@ -870,6 +870,20 @@
                 obj = sp[-2];
                 if (likely(JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT)) {
                     p = JS_VALUE_GET_OBJ(obj);
+                    /* No element needs removal when the dense prefix fits, or when
+                       a sparse array has only its permanent length property left. */
+                    if (atom == JS_ATOM_length && p->class_id == JS_CLASS_ARRAY &&
+                        JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_INT &&
+                        JS_VALUE_GET_INT(sp[-1]) >= 0 &&
+                        (get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE) &&
+                        (p->fast_array
+                             ? (uint32_t)JS_VALUE_GET_INT(sp[-1]) >= p->u.array.count
+                             : p->shape->prop_count - p->shape->deleted_prop_count == 1)) {
+                        p->prop[0].u.value = sp[-1];
+                        JS_FreeValue(ctx, obj);
+                        sp -= 2;
+                        BREAK;
+                    }
                     prs = find_own_property(&pr, p, atom);
                     if (!prs)
                         goto put_field_slow_path;
@@ -1001,7 +1015,7 @@
                             if (likely(JS_VALUE_GET_TAG(p->prop[0].u.value) == JS_TAG_INT)) {
                                 uint32_t new_len = idx + 1;
                                 array_len = JS_VALUE_GET_INT(p->prop[0].u.value);
-                                if (likely(new_len <= p->u.array.u1.size)) {
+                                if (likely(new_len <= p->u.array.u1.size) && (new_len <= array_len || (get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE))) {
                                     p->u.array.u.values[idx] = val;
                                     p->u.array.count = new_len;
                                     if (new_len > array_len)
@@ -1067,6 +1081,21 @@
                 } else {
                 add_slow_case:
                     sf->cur_pc = pc;
+#ifdef QJS_FRAME_NUMBER_ADD_EMPTY_STRING
+                    if (JS_IsNumber(op1) && JS_VALUE_GET_TAG(op2) == JS_TAG_STRING &&
+                        JS_VALUE_GET_STRING(op2)->len == 0) {
+                        JSValue text = JS_ToString(ctx, op1);
+                        JS_FreeValue(ctx, op2);
+                        sp[-1] = JS_UNDEFINED;
+                        if (unlikely(JS_IsException(text))) {
+                            sp[-2] = JS_UNDEFINED;
+                            goto exception;
+                        }
+                        sp[-2] = text;
+                        sp--;
+                        BREAK;
+                    }
+#endif
                     if (js_add_slow(ctx, sp))
                         goto exception;
                     sp--;
@@ -1090,6 +1119,13 @@
                     else
                         *pv = js_int32(r);
                     sp--;
+#ifdef QJS_FRAME_LOCAL_ROPE_APPEND
+                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING_ROPE &&
+                           JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {
+                    sf->cur_pc = pc;
+                    if (js_frame_append_local_rope(ctx, pv, *--sp) < 0)
+                        goto exception;
+#endif
                 } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING) {
                     JSValue op1;
                     op1 = sp[-1];

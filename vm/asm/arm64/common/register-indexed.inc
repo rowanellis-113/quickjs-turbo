@@ -11,7 +11,7 @@
     ldp x2, x3, [x21, #-16]
     cmp x3, #ARM_CONST_JS_TAG_INT
     b.ne .Lindexed_get_array_el_fallback
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w8, #1
     b.le .Lindexed_get_array_el_fallback
     ldrh w4, [x0, #ARM_OFF_JSObject_class_id]
@@ -27,9 +27,9 @@
     add x5, x5, w2, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lindexed_get_array_el_dense
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lindexed_get_array_el_dense:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x12, tpidr_el0
@@ -39,9 +39,9 @@
     add x13, x13, #1
     str x13, [x12, #0]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -56,12 +56,20 @@
     tbnz w2, #31, .Lindexed_get_array_el_fallback
     ldr x5, [x0, #ARM_OFF_JSObject_shape]
     ldr w8, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w8, w2, w8
-    neg x8, x8
-    sub x9, x5, #4
-    ldr w8, [x9, x8, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w8, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w9, w2, #0x80000000
+    movz x11, #0x83eb
+    movk x11, #0x80b5, lsl #16
+    movk x11, #0x8646, lsl #32
+    movk x11, #0x61c8, lsl #48
+    mul x10, x9, x11
+    lsr x10, x10, #32
+    add x12, x8, #1
+    mul x10, x10, x12
+    lsr x10, x10, #32
+    sub x11, x5, x10, lsl #2
+    ldur w8, [x11, #-4]
 .Lindexed_get_array_el_probe:
     cbz w8, .Lindexed_get_array_el_fallback
     add x10, x5, w8, uxtw #3
@@ -80,9 +88,9 @@
     add x5, x5, w8, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lindexed_get_array_el_own_value
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lindexed_get_array_el_own_value:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x12, tpidr_el0
@@ -92,9 +100,9 @@
     add x13, x13, #1
     str x13, [x12, #24]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -130,9 +138,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -152,9 +160,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -179,9 +187,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -201,9 +209,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -223,9 +231,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -245,9 +253,9 @@
     add x13, x13, #1
     str x13, [x12, #48]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -282,9 +290,9 @@
     add x5, x5, w2, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lindexed_get_array_el2_dense
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lindexed_get_array_el2_dense:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x12, tpidr_el0
@@ -307,12 +315,20 @@
     tbnz w2, #31, .Lindexed_get_array_el2_fallback
     ldr x5, [x0, #ARM_OFF_JSObject_shape]
     ldr w8, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w8, w2, w8
-    neg x8, x8
-    sub x9, x5, #4
-    ldr w8, [x9, x8, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w8, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w9, w2, #0x80000000
+    movz x11, #0x83eb
+    movk x11, #0x80b5, lsl #16
+    movk x11, #0x8646, lsl #32
+    movk x11, #0x61c8, lsl #48
+    mul x10, x9, x11
+    lsr x10, x10, #32
+    add x12, x8, #1
+    mul x10, x10, x12
+    lsr x10, x10, #32
+    sub x11, x5, x10, lsl #2
+    ldur w8, [x11, #-4]
 .Lindexed_get_array_el2_probe:
     cbz w8, .Lindexed_get_array_el2_fallback
     add x10, x5, w8, uxtw #3
@@ -331,9 +347,9 @@
     add x5, x5, w8, uxtw #4
     ldp x6, x7, [x5]
     tbz x7, #63, .Lindexed_get_array_el2_own_value
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lindexed_get_array_el2_own_value:
 #ifdef QJS_AARCH64_VM_INSTRUMENT
     mrs x12, tpidr_el0
@@ -488,7 +504,7 @@
     ldp x2, x3, [x21, #-32]
     cmp x3, #ARM_CONST_JS_TAG_INT
     b.ne .Lindexed_put_array_el_fallback
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w8, #1
     b.le .Lindexed_put_array_el_fallback
     ldrh w4, [x0, #ARM_OFF_JSObject_class_id]
@@ -514,9 +530,9 @@
     add x13, x13, #1
     str x13, [x12, #16]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -530,12 +546,20 @@
     tbnz w2, #31, .Lindexed_put_array_el_fallback
     ldr x5, [x0, #ARM_OFF_JSObject_shape]
     ldr w8, [x5, #ARM_OFF_JSShape_prop_hash_mask]
-    and w8, w2, w8
-    neg x8, x8
-    sub x9, x5, #4
-    ldr w8, [x9, x8, lsl #2]
-    add x5, x5, #ARM_OFF_JSShape_prop
+    add x5, x5, w8, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     orr w9, w2, #0x80000000
+    movz x11, #0x83eb
+    movk x11, #0x80b5, lsl #16
+    movk x11, #0x8646, lsl #32
+    movk x11, #0x61c8, lsl #48
+    mul x10, x9, x11
+    lsr x10, x10, #32
+    add x12, x8, #1
+    mul x10, x10, x12
+    lsr x10, x10, #32
+    sub x11, x5, x10, lsl #2
+    ldur w8, [x11, #-4]
 .Lindexed_put_array_el_probe:
     cbz w8, .Lindexed_put_array_el_fallback
     add x10, x5, w8, uxtw #3
@@ -567,9 +591,9 @@
     add x13, x13, #1
     str x13, [x12, #40]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -610,9 +634,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -639,9 +663,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -668,9 +692,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -697,9 +721,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -726,9 +750,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -755,9 +779,9 @@
     add x13, x13, #1
     str x13, [x12, #56]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -804,7 +828,9 @@
     cmp w4, w6
     b.ls .Lindexed_append_allowed
     ldr x7, [x0, #ARM_OFF_JSObject_shape]
-    ldr w7, [x7, #ARM_OFF_JSShape_prop]
+    ldr w10, [x7, #ARM_OFF_JSShape_prop_hash_mask]
+    add x7, x7, w10, uxtw #2
+    ldr w7, [x7, #(ARM_OFF_JSShape_hash_table + 4)]
     tst w7, #ARM_PROPERTY_DESC_WRITABLE
     b.eq .Lput_array_el_fallback_indexed
 .Lindexed_append_allowed:
@@ -836,9 +862,9 @@
     add x13, x13, #1
     str x13, [x12, #64]
 #endif
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1

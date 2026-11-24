@@ -238,12 +238,15 @@ static size_t fault(size_t fail_at)
     memset(s.finalized, 0, sizeof(s.finalized));
     s.tracking = 0;
     s.host_returned = 0;
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(s.rt, &s.memory, &drain);
     s.memory.sequence = 0;
     s.memory.fail_at = fail_at;
     JSValue args[] = {s.make, s.host};
     JSValue value = JS_Call(s.a, actor, JS_UNDEFINED, 2, args);
     size_t count = s.memory.sequence;
     s.memory.fail_at = 0;
+    oom_undrain_arenas(s.rt, &drain);
     if (JS_IsException(value)) {
         JS_FreeValue(s.a, JS_GetException(s.a));
         JS_ResetUncatchableError(s.a);

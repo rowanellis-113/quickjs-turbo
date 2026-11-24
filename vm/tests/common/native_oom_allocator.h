@@ -99,9 +99,9 @@ typedef struct {
 } AllocatorArenaDrain;
 static inline void oom_drain_arenas(JSRuntime *rt, Allocator *a, AllocatorArenaDrain *d)
 {
-    static const uint16_t classes[31] = {
-        16,  24,  32,  40,  48,  56,  64,  72,  80,  88,  96,  104, 112, 120, 128, 144,
-        160, 176, 192, 208, 224, 240, 256, 288, 320, 352, 384, 416, 448, 480, 512};
+    static const uint16_t classes[31] = {16,  24,  32,  40,  48,  56,  64,  72,  80,  88,  96,
+                                         104, 112, 120, 128, 144, 160, 176, 192, 208, 224, 240,
+                                         256, 288, 320, 352, 384, 416, 448, 480, 512};
     size_t added = 0;
     d->blocks = NULL;
     d->count = 0;

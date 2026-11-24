@@ -83,7 +83,7 @@ def _verify_atoms(source):
         "string": 76,
         "object": 77,
         "symbol": 78,
-        "bigint": 150,
+        "bigint": 149,
     }
     for name, idx in expected_atoms.items():
         if atom_map.get(name) != idx:

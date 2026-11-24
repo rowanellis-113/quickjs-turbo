@@ -59,7 +59,7 @@ def main():
     revision = subprocess.check_output(
         ["git", "-C", corpus, "rev-parse", "HEAD"], text=True
     ).strip()
-    if revision != "de8e621cdba4f40cff3cf244e6cfb8cb48746b4a":
+    if revision != "5ef1e5723be95296f36afb0386676fed0205869c":
         raise ValueError("Wrong accepted corpus revision")
     if subprocess.check_output(["git", "-C", corpus, "status", "--porcelain"], text=True).strip():
         raise ValueError("Corpus must be unchanged")
@@ -86,7 +86,6 @@ def main():
         execution = target_identity(engine)
         digest = execution["binary_sha256"]
         env = {k: v for k, v in os.environ.items() if not k.startswith(("QJS_", "JSC_", "BENCH_"))}
-        env.update(QJS_EXPERIMENT_ALLOCATOR="256")
         env.update(engine.get("env", {}))
         args = [
             "taskset",

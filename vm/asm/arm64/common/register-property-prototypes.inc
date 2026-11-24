@@ -76,9 +76,10 @@
     ldr w9, [x4, #ARM_OFF_JSShape_prop_count]
     cmp w5, w9
     b.hs .Lproperty_proto_miss
-    mov w10, w5
-    add x9, x4, #ARM_OFF_JSShape_prop
-    add x9, x9, x10, lsl #3
+    ldr w9, [x4, #ARM_OFF_JSShape_prop_hash_mask]
+    add x9, x4, w9, uxtw #2
+    add x9, x9, #(ARM_OFF_JSShape_hash_table + 4)
+    add x9, x9, w5, uxtw #3
     ldr w10, [x9, #ARM_OFF_JSShapeProperty_atom]
     cmp w10, w8
     b.ne .Lproperty_proto_miss
@@ -204,9 +205,10 @@
     ldr w9, [x4, #ARM_OFF_JSShape_prop_count]
     cmp w5, w9
     b.hs .Lproperty_proto_fill
-    mov w10, w5
-    add x9, x4, #ARM_OFF_JSShape_prop
-    add x9, x9, x10, lsl #3
+    ldr w9, [x4, #ARM_OFF_JSShape_prop_hash_mask]
+    add x9, x4, w9, uxtw #2
+    add x9, x9, #(ARM_OFF_JSShape_hash_table + 4)
+    add x9, x9, w5, uxtw #3
     ldr w10, [x9, #ARM_OFF_JSShapeProperty_atom]
     cmp w10, w8
     b.ne .Lproperty_proto_fill
@@ -311,8 +313,8 @@
     cset w16, eq
     add w16, w16, #1
     tbz x11, #63, .Lproperty_proto_commit
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
 .Lproperty_proto_commit:
     b .Lproperty_live_commit

@@ -346,7 +346,9 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
     if len(values) != len(keys):
         raise ValueError("Core constant extent changed")
     contract = ["/* Actual target constants, generated; no foreign numeric import. */"]
-    layout = dict(sizes={}, offsets={}, constants={}, bits={})
+    layout = dict(
+        reference_count_model="allocator-prefix", sizes={}, offsets={}, constants={}, bits={}
+    )
     for (group, name), value in zip(keys, values):
         if group == "constants" and value >= 1 << 63:
             value -= 1 << 64
@@ -367,9 +369,10 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
             f"#define QJS_ABI_BIT_{name.replace('.', '_')}_MASK {mask}",
         ]
     contract += [
-        "#define QJS_ABI_HAS_CORO_OWNER 0",
-        "#define QJS_ABI_HAS_PREFIX_RC 0",
-        "#define QJS_ABI_REF_COUNT_OFFSET 0",
+        "#define QJS_ABI_HAS_CORO_OWNER 1",
+        "#define QJS_ABI_HAS_PREFIX_RC 1",
+        "#define QJS_ABI_REF_COUNT_OFFSET (-4)",
+        "#define QJS_ABI_INTERRUPT_TAKES_CTX 1",
     ]
     for (group, name), expression in zip(keys, expr):
         if group in ("sizes", "offsets"):
@@ -497,7 +500,10 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
         ("FRAME_KIND_OFFSET", "offsetof(JSFunctionBytecode,byte_code_buf)-1"),
         ("FRAME_ROOT_OFFSET", "FRAME_ROOT_OFFSET"),
         ("FRAME_FLAGS_OFFSET", "FRAME_FLAGS_OFFSET"),
-        ("REF_COUNT_OFFSET", "offsetof(JSRefCountHeader,ref_count)"),
+        (
+            "REF_COUNT_OFFSET",
+            "(uint64_t)((int64_t)offsetof(JSMallocBlockHeader,ref_count)-(int64_t)offsetof(JSMallocBlockHeader,user_data))",
+        ),
     ]
     names += [
         ("CONST_OP_SPECIAL_OBJECT_NULL_PROTO", "OP_SPECIAL_OBJECT_NULL_PROTO"),
@@ -651,6 +657,9 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
     for group, prefix in (("sizes", "SIZE_"), ("offsets", "OFF_"), ("constants", "CONST_")):
         measured.update((prefix + n.replace(".", "_"), v) for n, v in layout[group].items())
     measured.update(zip((n for n, _ in names), values))
+    for signed_key in ("REF_COUNT_OFFSET", "OFF_JSBigInt_header_ref_count"):
+        if signed_key in measured and measured[signed_key] >= 1 << 63:
+            measured[signed_key] -= 1 << 64
     strict_byte, strict_mask = layout["bits"]["JSFunctionBytecode.is_strict_mode"][0]
     measured.update(
         STRICT_BYTE=strict_byte,
@@ -836,6 +845,8 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
         """        host_frame.var_buf = NULL;
         host_frame.var_refs = NULL;
         host_frame.var_ref_count = 0;
+        host_frame.is_constructor = false;
+        host_frame.cur_gc_obj = NULL;
         host_frame.cur_pc = NULL;
         host_frame.cur_sp = NULL;
 """
@@ -1014,8 +1025,10 @@ size_t qjs_aarch64_vm_function_code(JSValueConst function,const uint8_t **code)
         public_abi="actual GCC AAPCS64 C",
         write_receipt=True,
     )
-    if measured["REF_COUNT_OFFSET"] != 0:
-        raise ValueError("JSON requires the actual reviewed inline reference-count header")
+    if measured["REF_COUNT_OFFSET"] != -4:
+        raise ValueError(
+            "JSON requires the actual reviewed allocator-prefix reference-count header"
+        )
     from json_workers import generate as generate_json
     from arm64.workers.json_worker import arch_adapt as adapt_arm_json
 
@@ -1025,7 +1038,8 @@ size_t qjs_aarch64_vm_function_code(JSValueConst function,const uint8_t **code)
         text,
         worker_module(source, "object-adapter-c"),
         dict(
-            reference_count_model="inline-header",
+            reference_count_model="allocator-prefix",
+            offsets=layout["offsets"],
             compiler_input=str(actual.core),
             property_ic=actual.receipt["property_ic"],
         ),
@@ -1037,7 +1051,11 @@ size_t qjs_aarch64_vm_function_code(JSValueConst function,const uint8_t **code)
         source,
         out,
         text,
-        dict(reference_count_model="inline-header", compiler_input=str(actual.core)),
+        dict(
+            reference_count_model="allocator-prefix",
+            offsets=layout["offsets"],
+            compiler_input=str(actual.core),
+        ),
     )
     from arm64.vm.c_entry import generate as generate_c_entry
 

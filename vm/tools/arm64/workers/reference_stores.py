@@ -9,7 +9,14 @@ def generate(source, output, layout, primitives, measured):
     for name, expected in data["source_owners"].items():
         if hashlib.sha256((source / name).read_bytes()).hexdigest() != expected:
             raise ValueError("Review complete reference/property store owner: " + name)
-    if layout["sizes"]["JSValue"] != 16 or layout["offsets"]["JSGCObjectHeader.ref_count"] != 0:
+    if (
+        layout["sizes"]["JSValue"] != 16
+        or (
+            layout["offsets"]["JSMallocBlockHeader.ref_count"]
+            - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        )
+        != -4
+    ):
         raise ValueError("Reference stores require actual inline-header values")
     assembly = (source / "asm/arm64/common/register-reference-stores.inc").read_text()
     calls = re.findall(r"^\s*bl (\w+)\s*$", assembly, re.M)

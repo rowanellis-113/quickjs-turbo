@@ -3,11 +3,11 @@
   "digest": "sha256 after CRLF to LF normalization",
   "files": {
     "quickjs.c": {
-      "sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+      "sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
       "reason": "pinned upstream source"
     },
     "quickjs.h": {
-      "sha256": "8011dd97fbeb1cc551020f90dde4b4f21f83a6145b6254b5e815f6d885ed3874",
+      "sha256": "50689b8d0ef5eedcbb8513a45d1a5fd56c81c124148b79af991abf394df3024a",
       "reason": "pinned upstream source"
     },
     "quickjs-opcode.h": {
@@ -15,7 +15,7 @@
       "reason": "pinned upstream source"
     },
     "quickjs-atom.h": {
-      "sha256": "66654ae6533d15073ea527979c453709d7ed83162142c656095a10dcef737a60",
+      "sha256": "8045b870825a43ecdb50692aac7ad21b43139b288df466ca5f7b780bde4ac13f",
       "reason": "pinned upstream source"
     },
     "quickjs-c-atomics.h": {
@@ -23,7 +23,7 @@
       "reason": "pinned upstream source"
     },
     "cutils.h": {
-      "sha256": "b93331edd1bf86e1c0b516657d0b16b95bba5f24d799d9824df16f903173b5c2",
+      "sha256": "dffec8bea17f08108da5a91c1178804754698bbbb6202dc100268e78e8c5b770",
       "reason": "pinned upstream source"
     },
     "list.h": {
@@ -39,31 +39,31 @@
       "reason": "pinned upstream source"
     },
     "libregexp.c": {
-      "sha256": "d1e7c4280e1948a25310aaa80aedc273b6fe12322964965f9025ba1800f2c14d",
+      "sha256": "af13e996abb1767fe0cdfda123c45b811d53688d403a2ac47142e97bf79f1fae",
       "reason": "pinned upstream source"
     },
     "libregexp.h": {
-      "sha256": "991adcaedb0e0ab653811f7f6e1244a23a7454dff6ce647b518df9a22201c122",
+      "sha256": "53ff95a038f7001b752c455d195d998e2955f0ae4ed62a002c13eca798db3ceb",
       "reason": "pinned upstream source"
     },
     "libregexp-opcode.h": {
-      "sha256": "c5ee518885eb6e720537b6df5565ddc2bcaadbda512f3fc072adc96fb24a7648",
+      "sha256": "2a98d646089f3a72f25480116297c5fdb5b28fd9f815447273951f4ade4a115e",
       "reason": "pinned upstream source"
     },
     "libunicode.c": {
-      "sha256": "62bfe07a00c297d62cf89d2a147f1d0cd0e90ae7c8058e0fabb66e896950a702",
+      "sha256": "c4724e77ec5f122373d2635b6d481cfb5d96024a38453a54a0830007c4b5f3c9",
       "reason": "pinned upstream source"
     },
     "libunicode.h": {
-      "sha256": "70f9f38b1cd10186d22e30d5f604465f4747662701f3310e089e5749060f4d4f",
+      "sha256": "ad13f66aaea3fab1616e84b9c048f2a315e1bdbab628b966617a7a3e55bcba2b",
       "reason": "pinned upstream source"
     },
     "libunicode-table.h": {
-      "sha256": "391d664bacefef239c4349d338c59bf6aa70128f23b105bb5c052db48a14c439",
+      "sha256": "5840a921ac11664b505ee37b1219f518fff2a04972fe848b4bdf1e85c5a0bd83",
       "reason": "pinned upstream source"
     },
     "quickjs-libc.c": {
-      "sha256": "827118a0ad4272559e03cd2d6b84fe810bf8c522dd55ceef8120add6f5abaa70",
+      "sha256": "60b8af33a1404a842f00de2ccf70d97ebc9a789bdcbe075a6c01b4df47c081a6",
       "reason": "pinned upstream source"
     },
     "quickjs-libc.h": {
@@ -71,7 +71,7 @@
       "reason": "pinned upstream source"
     },
     "qjs.c": {
-      "sha256": "86e68b2868bedbca894155b2ca8ac27359e4f545f14c6bed3d0f2cb7908f93df",
+      "sha256": "ed4ad1b1cff7411f73c98855bddf383bf040bcf79dc950b32b17c1a8edda3a7c",
       "reason": "pinned upstream source"
     },
     "qjsc.c": {
@@ -91,7 +91,7 @@
       "reason": "source-text generator input; formatting changes exact extraction contracts"
     },
     "src/common/call/quickjs-interpreter-ops.inc": {
-      "sha256": "51f551fbbb7a2afc99221abcde7259d0dd31dff432a9e1f3b52fa81ac91330e6",
+      "sha256": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
       "reason": "source-text generator input; formatting changes exact extraction contracts"
     },
     "src/common/call/quickjs-interpreter-shared-host.inc": {
@@ -99,15 +99,15 @@
       "reason": "source-text generator input; formatting changes exact extraction contracts"
     },
     "src/common/wire/wire.c": {
-      "sha256": "947242d21c6b7c8e90c826496f58ffa20a4de4a6b6aa6b4509da9705f440d29f",
+      "sha256": "f147d6f5b85dea7803034b8ffaba15987adb00eb305bd755762462e9f2de1536",
       "reason": "source-text generator input; formatting changes exact extraction contracts"
     },
     "src/common/regexp/unicode/regexp-casefold-data.h": {
-      "sha256": "d4de467e46bc9293cf3135829bef1ece8323c8c6238f6377a5b0027ce0b1d8a0",
+      "sha256": "d4a5c932cdeac28b03bd8da4a2bd66c4f3f122d4570f8abd94e3157535cd8283",
       "reason": "generator output or extracted source"
     },
     "src/common/regexp/unicode/libunicode.c": {
-      "sha256": "d755606498ff707dc3a93826713c749f77b9222d8a6b066621d72a308460bf2d",
+      "sha256": "c4724e77ec5f122373d2635b6d481cfb5d96024a38453a54a0830007c4b5f3c9",
       "reason": "pinned private upstream Unicode snapshot"
     },
     "src/common/regexp/unicode/libunicode.h": {
@@ -119,48 +119,48 @@
       "reason": "pinned private upstream Unicode snapshot"
     },
     "gen/function_source.c": {
-      "sha256": "1e642cb71fcfa2181054fa8b9d76c63e2785b83eeba455dc15ba5cd27ba6960f",
+      "sha256": "43d8b5887f1d28a4dfd0fe33bc82d29094e3c467c5b36942664b05d36f771767",
       "reason": "compiled JavaScript snapshot"
     },
     "gen/hello.c": {
-      "sha256": "d0da30a2a19f1122821a80f4fb05108fb5c7c7153846c53bfc75ba5e4e0cfe5c",
+      "sha256": "3a2b4477964a562cb4981729b3d83383cd0b8280912862dcaa3e787405402a88",
       "reason": "compiled JavaScript snapshot"
     },
     "gen/hello_module.c": {
-      "sha256": "e56c4f48c10c991f21ca5b1e86be71438cf5925d9b433128d706b1c941b3054b",
+      "sha256": "27c77ac77401ea2f28f01047b7b802c24747de643e92fb80480106cf32a0d1ca",
       "reason": "compiled JavaScript snapshot"
     },
     "gen/repl.c": {
-      "sha256": "b892f1916256dd378a97bb090f4fc6a28fc02a1bfe19c4d5f87b3a6c140d389a",
+      "sha256": "1ce1428e5505d976fbdefebed75a6d7b708bef9d75a5df30abe25afea13358f7",
       "reason": "compiled JavaScript snapshot"
     },
     "gen/standalone.c": {
-      "sha256": "657a656b255bbd07f535e0888e3ee1783c8560be59ae67f5a0a667d2487b176d",
+      "sha256": "7f7fda0b1d075ea8e0ae228cfd272d7a7e3fc7a60d4f0467c1303e7793ea8023",
       "reason": "compiled JavaScript snapshot"
     },
     "gen/test_fib.c": {
-      "sha256": "d63257339383092c4fd3a0d2c2808f1b5b50ea2987b1c610119fc8db1c52f0a8",
+      "sha256": "1fb11d159f63ceac9c54beecbc7e8fcb49861d35ed6a78323520af89ad3f8b1b",
       "reason": "compiled JavaScript snapshot"
     },
     "builtin-array-fromasync.h": {
-      "sha256": "15f09db08ed753b453344344cfcb83c375aa72022d8ba1ef0260b78c22197c51",
+      "sha256": "d313ac1e47eaa08f39b2cb0929a512d88e492906c400f650e141d00b79faa905",
       "reason": "compiled JavaScript snapshot"
     },
     "builtin-iterator-zip-keyed.h": {
-      "sha256": "6b8ef36145ca4a748aacff7a832d967fb9a1f56728c5a31c71cbe52cbdf8b5ec",
+      "sha256": "5b015a8063088987f0fb19357c9da5ec44a7197493fdbb23740fde8f470049a4",
       "reason": "compiled JavaScript snapshot"
     },
     "builtin-iterator-zip.h": {
-      "sha256": "f818521cee10517ec639ec753aed795d3230b0d868be2be35a8a81f3732f12c4",
+      "sha256": "54834b615ddc59541515a7aa6d2c66fbfbf3213608f52e463d2469d63d395465",
       "reason": "compiled JavaScript snapshot"
     },
     "src/common/array/copy-grow.inc": {
-      "sha256": "88be84694ca3497e60f5916a65b2755e236719f9fe019a85d373552c339cd7b7",
+      "sha256": "640f712e1b17382ed18ca441e1d785f86a8b60c96d5b0c9bceb04bed55c6359b",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
     "src/common/array/length.inc": {
-      "sha256": "5a840370789ba1697862bca885305081c3216caa1f05ab1185f0db5174f22e32",
+      "sha256": "759d02a98a708673edea5859357194c04da28d41ecddfd6bb4fe72e5fefb6382",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -180,12 +180,12 @@
       "format_check": true
     },
     "src/common/string/concat-rope.inc": {
-      "sha256": "58d358aa635c8630ce0fce49a4f94ed947ec9d24bafff80976645fa5cbc16d37",
+      "sha256": "a24af910ddcd08b49e5a6541c4793a8de7f3564b49401bddc5b145ab4d8c0ce3",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
     "src/common/string/local-rope-append.inc": {
-      "sha256": "15dc42e03e22acb6a2d720cf1fb6f40e0e88d2ba9c511033c9fa36fecab1a3a2",
+      "sha256": "747b241cfcd3f2906ffdcf7cebfdf9b836997bc5d71e6461676225905c2a1ee2",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -240,7 +240,7 @@
       "format_check": true
     },
     "src/x86/win64/common/quickjs-regexp-flags.inc": {
-      "sha256": "4f0fd0ddeec490a6ed857eab58b95cb8ea09902f2b014002a9f62abce3571ff5",
+      "sha256": "55f1def67125d1be9ff1303e976a26983b71dd5be2fff3de694be2bea276a28f",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -289,7 +289,7 @@
       "format_check": true
     },
     "src/common/kernel/regexp-flags.inc": {
-      "sha256": "4f0fd0ddeec490a6ed857eab58b95cb8ea09902f2b014002a9f62abce3571ff5",
+      "sha256": "55f1def67125d1be9ff1303e976a26983b71dd5be2fff3de694be2bea276a28f",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },
@@ -304,7 +304,7 @@
       "format_check": true
     },
     "src/common/kernel/string-control.inc": {
-      "sha256": "945882bed648f87f86332262401f80b71c283a98708eb79e6e421f85df9879fd",
+      "sha256": "56a4716d05c2f66a4715b68219962737af4ff6876db1d348a643aa5df1f998ad",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },

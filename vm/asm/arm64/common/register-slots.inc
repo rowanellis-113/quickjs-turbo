@@ -38,7 +38,7 @@
     tbz w16, #0, .Lslow
 .Lslot_policy_ready:
     tbz x15, #63, .Lslot_old_ready
-    ldr w16, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]
     cmp w16, #1
     b.le .Lslot_last
 #ifdef QJS_AARCH64_VM_INSTRUMENT
@@ -52,15 +52,15 @@
 .Lslot_old_ready:
     cbz w17, .Lslot_new_ready
     tbz x11, #63, .Lslot_new_ready
-    ldr w16, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x10, #ARM_REF_COUNT_OFFSET]
     add w16, w16, #1
-    str w16, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w16, [x10, #ARM_REF_COUNT_OFFSET]
 .Lslot_new_ready:
     tbz x15, #63, .Lslot_release_ready
 // Reload after Dup: old/new may be the same heap object.
-    ldr w16, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]
     sub w16, w16, #1
-    str w16, [x14, #ARM_REF_COUNT_OFFSET]
+    stur w16, [x14, #ARM_REF_COUNT_OFFSET]
 .Lslot_release_ready:
     stp x10, x11, [x12]
     cbnz w17, .Lslot_keep

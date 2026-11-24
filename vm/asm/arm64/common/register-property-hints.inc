@@ -16,7 +16,7 @@
     b.ne .Lproperty_method_legacy_fallback
     cmp w17, #2
     b.eq .Lproperty_hint_receiver
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lslow
 .Lproperty_hint_receiver:
@@ -35,7 +35,9 @@
     ldr w5, [x2, #ARM_OFF_JSShape_prop_count]
     cmp w4, w5
     b.hs .Lproperty_hint_hash
-    add x5, x2, #ARM_OFF_JSShape_prop
+    ldr w5, [x2, #ARM_OFF_JSShape_prop_hash_mask]
+    add x5, x2, w5, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     add x5, x5, x4, lsl #3
     ldr w6, [x5, #ARM_OFF_JSShapeProperty_atom]
     cmp w6, w8
@@ -62,7 +64,7 @@
     b.ne .Lproperty_method_legacy_fallback
     cmp w17, #2
     b.eq .Lproperty_own_original_receiver
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w9, #1
     b.le .Lslow
 .Lproperty_own_original_receiver:
@@ -79,11 +81,20 @@
     str x13, [x12, #24]
 #endif
     ldr w4, [x2, #ARM_OFF_JSShape_prop_hash_mask]
-    and w4, w8, w4
-    neg x4, x4
-    add x4, x2, x4, lsl #2
-    ldur w4, [x4, #-4]
-    add x5, x2, #ARM_OFF_JSShape_prop
+    add x5, x2, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    movz x10, #0x83eb
+    movk x10, #0x80b5, lsl #16
+    movk x10, #0x8646, lsl #32
+    movk x10, #0x61c8, lsl #48
+    uxtw x9, w8
+    mul x9, x9, x10
+    lsr x9, x9, #32
+    add x11, x4, #1
+    mul x9, x9, x11
+    lsr x9, x9, #32
+    sub x10, x5, x9, lsl #2
+    ldur w4, [x10, #-4]
 .Lproperty_hint_bucket:
     cbz w4, .Lproperty_hint_absent
     sub w6, w4, #1
@@ -131,15 +142,15 @@
     add x2, x2, x4, lsl #4
     ldp x10, x11, [x2, #ARM_OFF_JSProperty_u_value]
     tbz x11, #63, .Lproperty_hint_commit
-    ldr w9, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x10, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x10, #ARM_REF_COUNT_OFFSET]
 .Lproperty_hint_commit:
     cmp w17, #2
     b.eq .Lproperty_hint_method
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     sub w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
     stp x10, x11, [x21, #-16]
     add x20, x20, #5
     ARM_DISPATCH_NEXT 1
@@ -160,9 +171,9 @@
     add x13, x13, #1
     str x13, [x12, #40]
 #endif
-    ldr w9, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x0, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x0, #ARM_REF_COUNT_OFFSET]
     mov x1, #ARM_CONST_JS_TAG_OBJECT
     stp x0, x1, [x21], #16
     b .Lget_field

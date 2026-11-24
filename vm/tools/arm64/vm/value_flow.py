@@ -85,9 +85,9 @@ def _read_reference(prefix, name, width, commit, borrow):
 """
     return (
         text
-        + f"""    ldr w14, [x10, #ARM_REF_COUNT_OFFSET]
+        + f"""    ldur w14, [x10, #ARM_REF_COUNT_OFFSET]
     add w14, w14, #1
-    str w14, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w14, [x10, #ARM_REF_COUNT_OFFSET]
     b {commit}
 """
     )
@@ -102,7 +102,7 @@ def _store_reference(prefix, name, width, keep, commit):
 {stem}_policy_ready:
     tbz x15, #63, {stem}_old_ready
     ldr x14, [x12]
-    ldr w16, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]
     cmp w16, #1
     b.le {stem}_last
 #ifdef QJS_AARCH64_VM_INSTRUMENT
@@ -117,18 +117,18 @@ def _store_reference(prefix, name, width, keep, commit):
 """
     if keep:
         text += f"""    tbz x11, #63, {stem}_new_ready
-    ldr w16, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x10, #ARM_REF_COUNT_OFFSET]
     add w16, w16, #1
-    str w16, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w16, [x10, #ARM_REF_COUNT_OFFSET]
 {stem}_new_ready:
 """
     return (
         text
         + f"""    tbz x15, #63, {stem}_release_ready
 // Reload after Dup because old and incoming can alias.
-    ldr w16, [x14, #ARM_REF_COUNT_OFFSET]
+    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]
     sub w16, w16, #1
-    str w16, [x14, #ARM_REF_COUNT_OFFSET]
+    stur w16, [x14, #ARM_REF_COUNT_OFFSET]
 {stem}_release_ready:
     b {commit}
 {stem}_last:

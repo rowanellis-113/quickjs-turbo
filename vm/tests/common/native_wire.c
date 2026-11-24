@@ -106,8 +106,7 @@ int main(void)
               "[\"BARbaz\",\"baz\"]", 29);
     roundtrip(rt, ctx, "/a(b+)/g", "JSON.stringify(wire_input.exec('abbb'))", "[\"abbb\",\"bbb\"]",
               29);
-    roundtrip(rt, ctx, "/\\p{Script=Unknown}/u.test(String.fromCharCode(0x378))", NULL, "true",
-              29);
+    roundtrip(rt, ctx, "/\\p{Script=Unknown}/u.test(String.fromCharCode(0x378))", NULL, "true", 29);
     roundtrip(rt, ctx, "new RegExp('(:?'.repeat(18)+'(?:a|)+'+'|)+'.repeat(18))",
               "String(wire_input.source === '(:?'.repeat(18)+'(?:a|)+'+'|)+'.repeat(18))", "true",
               29);

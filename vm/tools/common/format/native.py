@@ -135,7 +135,7 @@ def main():
             still_missing.append(relative)
             continue
         counts["frozen"] += 1
-        actual_sha = hashlib.sha256(upstream_path.read_bytes()).hexdigest()
+        actual_sha = digest(upstream_path.read_bytes())
         if actual_sha != frozen[relative]["sha256"]:
             failures.append(f"Upstream frozen file modified: ../{relative}")
     if still_missing:

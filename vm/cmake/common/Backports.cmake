@@ -1,7 +1,6 @@
 # Explicit source overlays for the pinned upstream. Never edit checked-in core
 # inputs or weaken their hash checks. Receipts accompany the compiler input.
-option(QJS_ENABLE_TURBO_CORE_OVERLAY
-       "Apply declared QuickJS-Turbo core source overlay" ON)
+option(QJS_ENABLE_TURBO_CORE_OVERLAY "Apply declared QuickJS-Turbo core source overlay" ON)
 if(DEFINED QJS_BACKPORT_CONTEXT_OOM)
     set(QJS_ENABLE_TURBO_CORE_OVERLAY
         ${QJS_BACKPORT_CONTEXT_OOM}
@@ -12,9 +11,7 @@ option(QJS_FRAME_EXPERIMENTAL_ALLOCATOR
        "Retired no-op compatibility option; upstream JSArenaState replaced FramePool" OFF)
 set(QJS_DEFAULT_EXPERIMENT_ALLOCATOR
     ""
-    CACHE
-        STRING
-        "Retired no-op compatibility variable from FramePool experiment")
+    CACHE STRING "Retired no-op compatibility variable from FramePool experiment")
 option(QJS_FRAME_EXPERIMENTAL_COMPARE
        "Build mixed integer/double comparison ablation in native handlers" OFF)
 option(QJS_BACKPORT_COMPUTED_ASSIGN

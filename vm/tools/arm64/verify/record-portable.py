@@ -29,6 +29,14 @@ def machine(data):
     return struct.unpack_from("<H", data, 18)[0]
 
 
+def find_build_file(build, name):
+    for directory in (build, *build.parents):
+        candidate = directory / name
+        if candidate.is_file():
+            return candidate
+    raise FileNotFoundError(f"{name} not found in {build} or parent build directories")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     for name in ("source", "build", "prefix"):
@@ -36,7 +44,11 @@ def main():
     a = ap.parse_args()
     source, build, prefix = (p.resolve() for p in (a.source, a.build, a.prefix))
     cache = dict(
-        re.findall(r"^([^/#\n][^:\n]*):[^=\n]*=(.*)$", (build / "CMakeCache.txt").read_text(), re.M)
+        re.findall(
+            r"^([^/#\n][^:\n]*):[^=\n]*=(.*)$",
+            find_build_file(build, "CMakeCache.txt").read_text(),
+            re.M,
+        )
     )
     backend = json.loads((build / "interpreter-backend.json").read_text())
     if backend["effective"] != "PORTABLE":
@@ -131,7 +143,7 @@ def main():
         archive_members=members,
         source_inputs=dict(sorted(inputs.items())),
         generated_inputs=generated,
-        compile_commands_sha256=sha(build / "compile_commands.json"),
+        compile_commands_sha256=sha(find_build_file(build, "compile_commands.json")),
     )
     destination = prefix / "share/doc/quickjs"
     destination.mkdir(parents=True, exist_ok=True)

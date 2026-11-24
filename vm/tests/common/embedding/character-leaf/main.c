@@ -231,9 +231,8 @@ static JSValue character_probe(JSContext *ctx, JSValueConst self, int argc, JSVa
     Host *s = host(ctx);
     require(s->born - s->finalized == 1, "coercion owner alive before reentry");
     size_t moves = s->memory.moves;
-    run(ctx,
-        "for(let i=0;i<96;i++)characterBuffer.push(i);"
-        "if(characterMember('b')!==true)throw Error('character reentry');characterBuffer.length=0;");
+    run(ctx, "for(let i=0;i<96;i++)characterBuffer.push(i);"
+             "if(characterMember('b')!==true)throw Error('character reentry');characterBuffer=[];");
     JS_RunGC(JS_GetRuntime(ctx));
     require(s->born - s->finalized == 1, "coercion owner survives reentry and GC");
     if (s->moving)
@@ -349,10 +348,14 @@ static void exercise(int moving)
         "for(let i=0;i<16;i++){"
         "const makeCoerce=()=>Object.assign(makeOwner('coerce'),{[Symbol.toPrimitive](){characterProbe();return 'a';}});"
         "if(characterMember(makeCoerce())!==true||alive()!==0)throw Error('character fallback coercion');"
-        "}"
-        "let failed=false;try{characterMember(Object.assign(makeOwner('oom'),{[Symbol.toPrimitive]:oomString}));}catch(e){failed=true;}"
-        "if(!failed||alive()!==0)throw Error('character OOM cleanup');"
-        "if(characterMember('b')!==true)throw Error('character OOM recovery');})();");
+        "}})();");
+    /* 0.17 InternalError can bypass JS catch. Observe the fault at the host boundary. */
+    const char *fault =
+        "characterMember(Object.assign(makeOwner('oom'),{[Symbol.toPrimitive]:oomString}))";
+    JSValue failed = JS_Eval(ctx, fault, strlen(fault), "character_oom.js", JS_EVAL_TYPE_GLOBAL);
+    require(JS_IsException(failed) && s.oom == 1, "coercion OOM reached host");
+    JS_FreeValue(ctx, JS_GetException(ctx));
+    run(ctx, "if(alive()!==0||characterMember('b')!==true)throw Error('character OOM recovery');");
     require(s.callbacks == 16 && s.oom == 1 && s.born == s.finalized,
             "character semantic owner balance");
     character_wire(ctx);

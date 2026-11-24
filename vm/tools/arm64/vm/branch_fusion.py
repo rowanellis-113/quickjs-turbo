@@ -333,7 +333,7 @@ def _specialize_compare_branch_and_loops(text):
     b.ne .L{p}fast_rel_c_fallback
     cmn x13, #7
     b.ne .L{p}fast_rel_c_fallback
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     cmp x10, x12
     b.ne .L{p}fast_rel_distinct
     cmp w0, #2
@@ -343,7 +343,7 @@ def _specialize_compare_branch_and_loops(text):
 .L{p}fast_rel_distinct:
     cmp w0, #1
     b.le .L{p}fast_rel_c_fallback
-    ldr w1, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w1, [x12, #ARM_REF_COUNT_OFFSET]
     cmp w1, #1
     b.le .L{p}fast_rel_c_fallback
     ldr w2, [x10, #ARM_BIT_JSString_len_BYTE]
@@ -381,12 +381,12 @@ def _specialize_compare_branch_and_loops(text):
     csel w14, w14, w15, eq
     csel w6, w6, w14, lo
 .L{p}fast_rel_commit:
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     sub w0, w0, #1
-    str w0, [x10, #ARM_REF_COUNT_OFFSET]
-    ldr w1, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w1, [x12, #ARM_REF_COUNT_OFFSET]
     sub w1, w1, #1
-    str w1, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w1, [x12, #ARM_REF_COUNT_OFFSET]
     mov x11, #ARM_CONST_JS_TAG_BOOL
     stp x6, x11, [x21, #-32]
     sub x21, x21, #16
@@ -657,7 +657,7 @@ def _specialize_equality_comparisons(text):
     cmn x11, #8
     b.ne .L{p}comparison_strict_ref_orig
 .L{p}fast_strict_l_rc:
-    ldr w0, [x10, #ARM_REF_COUNT_OFFSET]
+    ldur w0, [x10, #ARM_REF_COUNT_OFFSET]
     cmp w0, #1
     b.le .L{p}comparison_strict_ref_orig
     b .L{p}fast_strict_chk_r
@@ -673,7 +673,7 @@ def _specialize_equality_comparisons(text):
     cmn x13, #8
     b.ne .L{p}comparison_strict_ref_orig
 .L{p}fast_strict_r_rc:
-    ldr w1, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w1, [x12, #ARM_REF_COUNT_OFFSET]
     cmp w1, #1
     b.le .L{p}comparison_strict_ref_orig
     b .L{p}fast_strict_diff_commit
@@ -683,11 +683,11 @@ def _specialize_equality_comparisons(text):
 .L{p}fast_strict_diff_commit:
     tbz x11, #63, .L{p}fast_strict_rel_r
     sub w0, w0, #1
-    str w0, [x10, #ARM_REF_COUNT_OFFSET]
+    stur w0, [x10, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_strict_rel_r:
     tbz x13, #63, .L{p}fast_strict_false
     sub w1, w1, #1
-    str w1, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w1, [x12, #ARM_REF_COUNT_OFFSET]
 .L{p}fast_strict_false:
     mov w10, #0
     b .L{p}comparison_commit
@@ -869,7 +869,7 @@ def _specialize_float_bitwise_and_neg(text):
 .Lfast_sbigint_mul_acc_big:
     cmn x6, #9
     b.ne .Lnumeric_binary_call
-    ldr w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
+    ldur w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
     cmp w15, #1
     b.ne .Lnumeric_binary_call
     mov x9, #3
@@ -916,7 +916,7 @@ def _specialize_float_bitwise_and_neg(text):
     b.ne .Lfast_sbigint_mul_only
     cmp x6, x8
     b.ne .Lfast_sbigint_mul_only
-    ldr w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
+    ldur w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
     cmp w15, #2
     b.ne .Lfast_sbigint_mul_only
     mov w8, #48
@@ -924,14 +924,14 @@ def _specialize_float_bitwise_and_neg(text):
     ldr w15, [x5, #ARM_OFF_JSBigInt_len]
     cmp w15, #2
     b.ne .Lfast_sbigint_mul_chk3
-    ldr x16, [x5, #ARM_OFF_JSBigInt_tab]
+    ldur x16, [x5, #ARM_OFF_JSBigInt_tab]
     adds x16, x16, x14
     b.vs .Lnumeric_binary_call
     cmp x16, w16, sxtw
     b.eq .Lnumeric_binary_call
     mov w15, #1
-    str w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
-    str x16, [x5, #ARM_OFF_JSBigInt_tab]
+    stur w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
+    stur x16, [x5, #ARM_OFF_JSBigInt_tab]
     sub x21, x21, x8
     add x20, x20, x9
     ARM_DISPATCH_NEXT 3
@@ -943,14 +943,14 @@ def _specialize_float_bitwise_and_neg(text):
     ldr w7, [x5, #(ARM_OFF_JSBigInt_tab + 8)]
     cmp w7, #0
     b.lt .Lnumeric_binary_call
-    ldr x16, [x5, #ARM_OFF_JSBigInt_tab]
+    ldur x16, [x5, #ARM_OFF_JSBigInt_tab]
     adds x16, x16, x14
     adc w7, w7, wzr
     cmp w7, #0
     b.lt .Lnumeric_binary_call
     mov w15, #1
-    str w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
-    str x16, [x5, #ARM_OFF_JSBigInt_tab]
+    stur w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
+    stur x16, [x5, #ARM_OFF_JSBigInt_tab]
     str w7, [x5, #(ARM_OFF_JSBigInt_tab + 8)]
     sub x21, x21, x8
     add x20, x20, x9
@@ -970,19 +970,19 @@ def _specialize_float_bitwise_and_neg(text):
     b.ne .Lnumeric_local_c
     cmp x8, #ARM_CONST_JS_TAG_SHORT_BIG_INT
     b.ne .Lnumeric_local_c
-    ldr w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
+    ldur w15, [x5, #ARM_OFF_JSBigInt_header_ref_count]
     cmp w15, #1
     b.ne .Lnumeric_local_c
     sxtw x14, w7
     ldr w15, [x5, #ARM_OFF_JSBigInt_len]
     cmp w15, #2
     b.ne .Lfast_local_bigint_chk3
-    ldr x16, [x5, #ARM_OFF_JSBigInt_tab]
+    ldur x16, [x5, #ARM_OFF_JSBigInt_tab]
     adds x16, x16, x14
     b.vs .Lnumeric_local_c
     cmp x16, w16, sxtw
     b.eq .Lnumeric_local_c
-    str x16, [x5, #ARM_OFF_JSBigInt_tab]
+    stur x16, [x5, #ARM_OFF_JSBigInt_tab]
     sub x21, x21, #16
     add x20, x20, #2
     ARM_DISPATCH_NEXT 1
@@ -995,12 +995,12 @@ def _specialize_float_bitwise_and_neg(text):
     ldr w12, [x5, #(ARM_OFF_JSBigInt_tab + 8)]
     cmp w12, #0
     b.lt .Lnumeric_local_c
-    ldr x16, [x5, #ARM_OFF_JSBigInt_tab]
+    ldur x16, [x5, #ARM_OFF_JSBigInt_tab]
     adds x16, x16, x14
     adc w12, w12, wzr
     cmp w12, #0
     b.lt .Lnumeric_local_c
-    str x16, [x5, #ARM_OFF_JSBigInt_tab]
+    stur x16, [x5, #ARM_OFF_JSBigInt_tab]
     str w12, [x5, #(ARM_OFF_JSBigInt_tab + 8)]
     sub x21, x21, #16
     add x20, x20, #2
@@ -1011,10 +1011,10 @@ def _specialize_float_bitwise_and_neg(text):
     ldr w12, [x16, w12, uxtw #2]
     cmp w12, #0
     b.lt .Lnumeric_local_c
-    ldr x16, [x5, #ARM_OFF_JSBigInt_tab]
+    ldur x16, [x5, #ARM_OFF_JSBigInt_tab]
     adds x16, x16, x14
     b.cs .Lnumeric_local_c
-    str x16, [x5, #ARM_OFF_JSBigInt_tab]
+    stur x16, [x5, #ARM_OFF_JSBigInt_tab]
     sub x21, x21, #16
     add x20, x20, #2
     ARM_DISPATCH_NEXT 1

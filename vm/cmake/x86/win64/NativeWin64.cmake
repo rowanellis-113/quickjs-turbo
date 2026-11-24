@@ -152,8 +152,8 @@ if(CMAKE_C_COMPILER_ID STREQUAL "MSVC")
 elseif(MINGW)
     add_custom_command(
         OUTPUT "${qjs_win64_vm_object}"
-        COMMAND "${CMAKE_C_COMPILER}" -c -x assembler-with-cpp -fno-lto "${qjs_win64_vm_gas}"
-                -o "${qjs_win64_vm_object}"
+        COMMAND "${CMAKE_C_COMPILER}" -c -x assembler-with-cpp -fno-lto "${qjs_win64_vm_gas}" -o
+                "${qjs_win64_vm_object}"
         DEPENDS "${qjs_win64_vm_gas}"
         COMMENT "Assemble Windows x86-64 native ASM VM (MinGW GAS)"
         VERBATIM)

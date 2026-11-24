@@ -49,6 +49,7 @@ def generate(
     linux_borrowed_field=False,
     linux_stack_insert=False,
     linux_reference_stores=False,
+    array_append_body=None,
 ):
     layout = layout_override if layout_override is not None else load_layout(root)
     out.mkdir(parents=True, exist_ok=True)
@@ -694,7 +695,7 @@ def generate(
         "jle interp_slow",
         "mov ecx, DWORD PTR [r13-32]",
         f"cmp ecx, DWORD PTR [r8+{obj_count}]",
-        "jae interp_slow",
+        "jae interp_put_array_append" if array_append_body else "jae interp_slow",
         "shl rcx, 4",
         f"mov r10, QWORD PTR [r8+{obj_values}]",
         "add r10, rcx",
@@ -708,6 +709,17 @@ def generate(
         "sub r13, 48",
     )
     next_()
+
+    if array_append_body:
+        saved_code, code = code, cold_stage3
+        label("interp_put_array_append")
+        emit("cmp ecx, 2147483647", "jae interp_slow")
+        emit(
+            *array_append_body(
+                "interp_put_array_append", "interp_slow", layout=layout, runtime_control=False
+            )
+        )
+        code = saved_code
 
     label("interp_put_array_el_typed")
     # An int already satisfies ToInt32, so it cannot coerce/reenter/detach.

@@ -2,7 +2,7 @@
   "schema": 1,
   "target": "Linux AArch64 LE LP64/glibc/GCC/AAPCS64",
   "source_owners": {
-    "quickjs.c": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+    "quickjs.c": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
     "quickjs-opcode.h": "0054b0c45fd091afa308c3fb93b5862e0b071235918d3d73e413d23fce388bbc",
     "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",

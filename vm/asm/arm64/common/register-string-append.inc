@@ -26,7 +26,7 @@
     ldr x16, [x16, #ARM_OFF_JSMallocFunctions_js_malloc_usable_size]
     cmp x4, x16
     b.ne .Lstring_binary_c
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #2
     b.ne .Lstring_binary_c
     ldr w4, [x1, #ARM_BIT_JSString_len_BYTE]
@@ -35,14 +35,14 @@
     ldr w4, [x1, #ARM_STRING_FLAGS_OFFSET]
     tst w4, #ARM_STRING_KIND_MASK
     b.ne .Lstring_binary_c
-    ldr w4, [x1, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x1, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lstring_binary_c
     ldr x4, [x0, #(ARM_OFF_JSStringRope_right+8)]
     cmp x4, x5
     b.ne .Lstring_binary_c
     ldr x2, [x0, #ARM_OFF_JSStringRope_right]
-    ldr w4, [x2, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x2, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.ne .Lstring_binary_c
     ldr w4, [x2, #ARM_STRING_FLAGS_OFFSET]
@@ -138,15 +138,15 @@
     add w5, w5, #1
     str w5, [x0, #ARM_OFF_JSStringRope_len]
     strb w11, [x0, #ARM_OFF_JSStringRope_depth]
-    ldr w4, [x1, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x1, #ARM_REF_COUNT_OFFSET]
     sub w4, w4, #1
-    str w4, [x1, #ARM_REF_COUNT_OFFSET]
+    stur w4, [x1, #ARM_REF_COUNT_OFFSET]
     mov x4, #ARM_CONST_JS_TAG_UNDEFINED
     stp xzr, x4, [x21, #-16]
     tbnz w8, #8, .Lstring_append_keep
-    ldr w5, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w5, [x0, #ARM_REF_COUNT_OFFSET]
     sub w5, w5, #1
-    str w5, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w5, [x0, #ARM_REF_COUNT_OFFSET]
     stp xzr, x4, [x21, #-32]
     sub x21, x21, #16
 .Lstring_append_keep:

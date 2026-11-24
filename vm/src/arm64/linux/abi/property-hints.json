@@ -4,12 +4,12 @@
   "source_owners": {
     "tools/common/c_extract/own_bytecode_c.py": "0cbd869eac69ed6bda37421c8af7cdf1659629add7c153213cc459bb5b2725b8",
     "tools/common/elf/property_family_c.py": "3dc608ee9b29fc4df3226a55e6f6d1caf3aeadd06e54217524ee63d0847fca19",
-    "tools/arm64/workers/property_hints.py": "bad1eb683cb762fcd7a47df0a3f92b1fdccf4d125ba8b076e1a784061210ed85",
-    "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7",
-    "asm/arm64/common/register-property-ic.inc": "f7de1ecdf1d14fa072adf7d2123553416c8c22375eddab71f2d0d458fd86a2c4",
-    "asm/arm64/common/register-ops.inc": "7aad6f2b49041f5bb8c924e7816ae544af650bff771d3216f5d7c3ea53c1ada4",
-    "src/common/property/property-ic.h": "7d331ba731b27516f46a90b7975f307026590b78001c5482dc4882d93dc5f5ba",
-    "src/common/property/property-ic.inc": "528e8ed1d8f7ce7b0155c371b0c83c03c872d2d6dc2e725111bc94bcbdc3dc0a"
+    "tools/arm64/workers/property_hints.py": "a2e1bcb769efb3fc7efb288293a3fe14168ee235b0d6215b8b6cda342cf38657",
+    "asm/arm64/common/register-property-hints.inc": "28a79ad79fa55ef14a8179c914471c50062cead87ea4c2b7a4270fe73d2f8d73",
+    "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9",
+    "asm/arm64/common/register-ops.inc": "90a544912a6fa446407980bc6d45494760f9cb74484c5b4b7fdeae7635eb9f72",
+    "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
+    "src/common/property/property-ic.inc": "807bc88c09686a5c9c6bb78a74b173fa51a2d1827fb895e430e5ff8866906905"
   },
   "lifetime": "Exact two original bytecode producer/free owners;bounded zeroed tail and monotonic optional-reservation failure",
   "native": "Current own descriptor slot validation;original no-hint hash when disabled or length>2048;original four-way borrowed live-slot PIC",

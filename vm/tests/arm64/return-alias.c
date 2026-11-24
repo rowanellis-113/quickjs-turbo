@@ -201,9 +201,12 @@ static int oom(void)
             eval(ctx, "(function(v){function f(a,b,c,d){let x=a,y=b,z=c;a=d;b=x;c=y;return z}"
                       "let result;for(let i=0;i<32;i++)result=f(v,v,v,v);return result})");
         JSValue seed = checked(ctx, JS_NewObject(ctx));
+        AllocatorArenaDrain drain = {0};
+        oom_drain_arenas(s.rt, &s.memory, &drain);
         s.memory.fail_at = s.memory.sequence + step;
         JSValue result = JS_Call(ctx, driver, JS_UNDEFINED, 1, &seed);
         s.memory.fail_at = 0;
+        oom_undrain_arenas(s.rt, &drain);
         if (JS_IsException(result)) {
             ++failures;
             JS_FreeValue(ctx, JS_GetException(ctx));

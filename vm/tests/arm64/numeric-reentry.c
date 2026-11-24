@@ -33,7 +33,8 @@ static JSValue eval(JSContext *ctx, const char *text)
 static void observed_free(void *opaque, void *ptr)
 {
     State *s = opaque;
-    if (ptr && ptr == s->target) {
+    /* The public allocator receives the allocation base, including the arena prefix. */
+    if (ptr && s->target && (uintptr_t)s->target - (uintptr_t)ptr < usable(ptr)) {
         s->target = NULL;
         uintptr_t sp;
         __asm__ volatile("mov %0, sp" : "=r"(sp));
@@ -80,10 +81,11 @@ int main(void)
     assert(qjs_aarch64_test_numeric_saved(s.ctx, warm) == 0);
     assert(qjs_aarch64_test_numeric_saved(s.ctx, JS_NewString(s.ctx, "generic fallback")) == 0);
     assert(qjs_aarch64_test_numeric_saved(s.ctx, JS_NewInt32(s.ctx, 42)) == 0);
-    /* Ordinary source compilation selects its own captured local route. */
-    s.expected = "1099511627780";
+    /* A fresh large BigInt reaches the public allocator on its last release.
+     * A small BigInt can share an arena with other live values. */
+    s.expected = "3";
     JSValue result =
-        eval(s.ctx, "(function(){let v=1099511627777n;arm(v,()=>v);v+=3n;return v})()");
+        eval(s.ctx, "(function(bits){let v=1n<<bits;arm(v,()=>v&255n);v+=3n;return v})(8192n)");
     assert(!s.target && s.reentries == 1);
     JS_FreeValue(s.ctx, result);
     JS_FreeValue(s.ctx, s.reader);
@@ -92,7 +94,7 @@ int main(void)
 #ifndef QJS_TEST_LOCAL_ONLY
     s.expected = "42";
     s.reader = eval(s.ctx, "(()=>42)");
-    JSValue value = JS_NewBigInt64(s.ctx, INT64_C(1099511627777));
+    JSValue value = eval(s.ctx, "1n << 8192n");
     s.target = JS_VALUE_GET_PTR(value);
     assert(qjs_aarch64_test_numeric_saved(s.ctx, value) == 0);
     assert(!s.target && s.reentries == 2);

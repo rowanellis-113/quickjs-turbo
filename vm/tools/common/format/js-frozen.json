@@ -43,7 +43,7 @@
       "reason": "checked-in compiled JavaScript snapshot"
     },
     "builtin-array-fromasync.js": {
-      "sha256": "a2c203fec5f0f2dce57abba4285bd61a94e27b05d66e6de08625930a640b6eaa",
+      "sha256": "7226d957cf5c320ea89ca8c79ba2c6bcf477ca1f8743b25e569138477bb433bc",
       "reason": "checked-in compiled JavaScript snapshot"
     },
     "builtin-iterator-zip.js": {

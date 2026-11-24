@@ -10,9 +10,9 @@
     "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
     "src/common/call/quickjs-interpreter-shared.inc": "c153ad8947da20f3547652f142d34ba7ddf8cfda128241e2451ecd1c8eac7a83",
     "tools/arm64/workers/property_prototypes.py": "3a179efc97cf1c755ef2444271369ca5f3b5a2419bfe92eb516d39c41e24aa27",
-    "asm/arm64/common/register-property-prototypes.inc": "03c941170d31327cd0729baea089ddf5ac661660edf17f1f640d5bd5665f7b46",
-    "asm/arm64/common/register-property-primitives.inc": "fa3c1600226b8f54420d1634a2f6997cb75d297a2043a7c355416b02f23d5946",
-    "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7"
+    "asm/arm64/common/register-property-prototypes.inc": "f5a7cbdbc46b115e653ee66a1734a7f847bbd7e6af0db34447d5819d147b75c1",
+    "asm/arm64/common/register-property-primitives.inc": "07dc1654b796720574ceae0e7eaf4d54d0bc32b39b2ccda9013611781e36a5b7",
+    "asm/arm64/common/register-property-hints.inc": "28a79ad79fa55ef14a8179c914471c50062cead87ea4c2b7a4270fe73d2f8d73"
   },
   "scope": "Complete original activation two-way,atomic weak persistent two-way,promotion/full-bucket direct snapshot and original fill/deep/live fallbacks",
   "lifetime": "Existing typed activation16x32table plus8replacement bytes,global weak128x32+64;no cached pointer dereference or roots",

@@ -25,11 +25,11 @@ JS_FrameBigIntRelease:
     mov x10, #ARM_CONST_JS_TAG_BIG_INT
     cmp x2, x10
     b.ne .Lbig_release_generic
-    ldr w10, [x1, #ARM_REF_COUNT_OFFSET]
+    ldur w10, [x1, #ARM_REF_COUNT_OFFSET]
     cmp w10, #0
     b.le .Lbig_release_generic
     sub w10, w10, #1
-    str w10, [x1, #ARM_REF_COUNT_OFFSET]
+    stur w10, [x1, #ARM_REF_COUNT_OFFSET]
     cbnz w10, .Lbig_release_return
     ARM_BIG_RELEASE_COUNT 8
     ldr x0, [x0, #ARM_OFF_JSContext_rt]

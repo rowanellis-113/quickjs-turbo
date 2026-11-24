@@ -171,7 +171,7 @@ static JSValue probe(JSContext *ctx, JSValueConst self, int argc, JSValueConst *
     require(s->born - s->finalized == 1, "original receiver alive at fallback getter");
     size_t moves = s->memory.moves;
     run(ctx, "for(let i=0;i<96;i++)tailBuffer.push(i);"
-             "if(reenter()!==-1)throw Error('reentrant result');tailBuffer.length=0;");
+             "if(reenter()!==-1)throw Error('reentrant result');tailBuffer=[];");
     JS_RunGC(JS_GetRuntime(ctx));
     require(s->born - s->finalized == 1, "original receiver survives reentry and GC");
     if (s->moving)
@@ -317,10 +317,13 @@ static HOST_NOINLINE void exercise(int moving)
         "if(alive()!==0)throw Error('temporary function operand retained');"
         "if(fresh('a').f({get right(){hostProbe();return 'b';}})!==-1)throw Error('fallback getter');"
         "if(alive()!==0)throw Error('fallback owner retained');"
-        "}"
-        "let failed=false;try{fresh('a').f(Object.assign(fresh('b'),{right:{toString:oomString}}));}catch(e){failed=true;}"
-        "if(!failed||alive()!==0)throw Error('OOM cleanup');"
-        "if(a.f(b)!==-1)throw Error('OOM recovery');");
+        "}");
+    /* 0.17 InternalError can bypass JS catch. Observe the fault at the host boundary. */
+    const char *fault = "fresh('a').f(Object.assign(fresh('b'),{right:{toString:oomString}}))";
+    JSValue failed = JS_Eval(ctx, fault, strlen(fault), "compound_oom.js", JS_EVAL_TYPE_GLOBAL);
+    require(JS_IsException(failed) && s.oom == 1, "coercion OOM reached host");
+    JS_FreeValue(ctx, JS_GetException(ctx));
+    run(ctx, "if(alive()!==0||a.f(b)!==-1)throw Error('OOM recovery');");
     require(s.callbacks == 16 && s.oom == 1 && s.born == s.finalized,
             "semantic coverage and owner balance");
     wire_roundtrip(ctx);

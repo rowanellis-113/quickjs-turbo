@@ -55,8 +55,8 @@ def _specialize_c_owners(source, output):
         "        JSValue pval = callee->prop[m->proto_slot].u.value;",
         "        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch &&\n"
         "        m->proto_slot < (uint32_t)callee->shape->prop_count &&\n"
-        "        callee->shape->prop[m->proto_slot].atom == JS_ATOM_prototype &&\n"
-        "        (callee->shape->prop[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
+        "        get_shape_prop(callee->shape)[m->proto_slot].atom == JS_ATOM_prototype &&\n"
+        "        (get_shape_prop(callee->shape)[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
         "        JSValue pval = callee->prop[m->proto_slot].u.value;",
         1,
         "fast_construct proto_slot descriptor guard",
@@ -81,7 +81,7 @@ def _specialize_c_owners(source, output):
         "        if (m->tier == 4)\n"
         "            return JS_FrameInterpProperty_call_constructor(state);\n"
         "        if (m->init_slot < (uint32_t)proto_obj->shape->prop_count &&\n"
-        "            (proto_obj->shape->prop[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
+        "            (get_shape_prop(proto_obj->shape)[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
         "            JSValue iv = proto_obj->prop[m->init_slot].u.value;\n"
         "            if (JS_IsObject(iv)) {\n"
         "                JSObject *ifo = JS_VALUE_GET_OBJ(iv);\n"
@@ -91,8 +91,8 @@ def _specialize_c_owners(source, output):
         "                    ifo->shape->proto->is_prototype && !ifo->shape->proto->is_exotic &&\n"
         "                    (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id &&\n"
         "                    m->apply_slot < (uint32_t)ifo->shape->proto->shape->prop_count &&\n"
-        "                    ifo->shape->proto->shape->prop[m->apply_slot].atom == JS_ATOM_apply &&\n"
-        "                    (ifo->shape->proto->shape->prop[m->apply_slot].flags & JS_PROP_TMASK) ==\n"
+        "                    get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].atom == JS_ATOM_apply &&\n"
+        "                    (get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].flags & JS_PROP_TMASK) ==\n"
         "                        JS_PROP_NORMAL) {\n"
         "                    JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;\n"
         "                    if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)\n"
@@ -127,8 +127,8 @@ def _specialize_c_owners(source, output):
         "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
         "                   e->ctx == ctx && e->holder && fast_instof_holder_live(ctor, e->holder) &&\n"
         "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_count &&\n"
-        "                   e->holder->shape->prop[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
-        "                   !(e->holder->shape->prop[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
+        "                   get_shape_prop(e->holder->shape)[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
+        "                   !(get_shape_prop(e->holder->shape)[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
         "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
         1,
         "instanceof-fast live holder validation",
@@ -308,9 +308,9 @@ def _specialize_c_owners(source, output):
         "        va_cache[va_slot].proto != NULL && recv_obj->shape->proto == va_cache[va_slot].proto &&\n"
         "        !va_cache[va_slot].proto->is_exotic &&\n"
         "        va_cache[va_slot].method_slot < (uint32_t)va_cache[va_slot].proto->shape->prop_count &&\n"
-        "        va_cache[va_slot].proto->shape->prop[va_cache[va_slot].method_slot].atom ==\n"
+        "        get_shape_prop(va_cache[va_slot].proto->shape)[va_cache[va_slot].method_slot].atom ==\n"
         "            get_u32(p + 7) &&\n"
-        "        (va_cache[va_slot].proto->shape->prop[va_cache[va_slot].method_slot].flags &\n"
+        "        (get_shape_prop(va_cache[va_slot].proto->shape)[va_cache[va_slot].method_slot].flags &\n"
         "         JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
         "        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;\n"
         "        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function &&\n"
@@ -409,7 +409,9 @@ def _specialize_c_owners(source, output):
         "core inline-properties header include",
     )
     core = _wire_inline_ctor(core)
-    core, n_core_birth = re.subn(r"(\bp->is_prototype\s*=\s*0\s*;)", r"\1 p->__gc_mark = 0;", core)
+    n_core_birth = len(
+        re.findall(r"\bp->is_prototype\s*=\s*0\s*;\s*p->turbo_obj_flags\s*=\s*0\s*;", core)
+    )
     if n_core_birth != 1:
         raise ValueError(f"Expected 1 core birth initializer, got {n_core_birth}")
     core = _replace_exact(
@@ -529,14 +531,11 @@ def _specialize_c_owners(source, output):
     updated["json_workers"] = sha(json_path)
 
     null_path = output / "quickjs-linux-null-proto.h"
-    null_text, n_null = re.subn(
-        r"(\bp->is_prototype\s*=\s*0\s*;)",
-        r"\1 p->__gc_mark = 0;",
-        null_path.read_text(),
-    )
-    if n_null != 1:
-        raise ValueError(f"Expected 1 null-proto birth initializer, got {n_null}")
-    null_path.write_text(null_text)
+    null_text = null_path.read_text()
+    n_null = len(re.findall(r"\bp->is_prototype\s*=\s*0\s*;", null_text))
+    n_null_flags = len(re.findall(r"\bp->turbo_obj_flags\s*=\s*0\s*;", null_text))
+    if n_null != 1 or n_null_flags < 1:
+        raise ValueError(f"Expected 1 null-proto birth initializer, got {n_null}/{n_null_flags}")
     updated["null_proto"] = sha(null_path)
 
     return updated

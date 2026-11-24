@@ -227,7 +227,7 @@ def route(out, masm, gas, diagnostics):
         dirty.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def body(name, fallback, *, layout=None):
+def body(name, fallback, *, layout=None, runtime_control=True):
     # Incoming R8/ECX are the original array/index after class, fast-array and
     # refcount>1 guards. No observer, C call, allocator or failure after commit.
     abi = current_abi() if layout is None else layout
@@ -243,11 +243,21 @@ def body(name, fallback, *, layout=None):
             f"lea r11, [rax+r11*4+{fields['JSShape.hash_table'] + 4}]",
         ]
     )
-    return [
+    control = [
         f"movzx eax, BYTE PTR [rip+{DATA}]",
         "and eax, 3",
         "cmp eax, 1",
         "jne " + fallback,
+    ]
+    statistics = [
+        f"movzx eax, BYTE PTR [rip+{DATA}]",
+        "test al, 4",
+        "jz " + name + "_commit",
+        f"inc QWORD PTR [rip+{DATA}+8]",
+        name + "_commit:",
+    ]
+    return [
+        *(control if runtime_control else []),
         f"cmp ecx, DWORD PTR [r8+{fields['JSObject.u.array.count']}]",
         "jne " + fallback,
         f"test BYTE PTR [r8+{ext_byte}], {ext_mask}",
@@ -272,11 +282,7 @@ def body(name, fallback, *, layout=None):
         "test DWORD PTR [r11], 134217728",
         "jz " + fallback,
         name + "_length_allowed:",
-        f"movzx eax, BYTE PTR [rip+{DATA}]",
-        "test al, 4",
-        "jz " + name + "_commit",
-        f"inc QWORD PTR [rip+{DATA}+8]",
-        name + "_commit:",
+        *(statistics if runtime_control else []),
         f"mov r11, QWORD PTR [r8+{fields['JSObject.u.array.u.values']}]",
         "shl rcx, 4",
         "movdqu xmm0, XMMWORD PTR [r13-16]",

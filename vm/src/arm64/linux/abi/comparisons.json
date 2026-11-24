@@ -4,9 +4,9 @@
   "source_owners": {
     "src/common/value/loose_control.inc": "a745c1af37af6eb690d26053f91d223e19ef0ae3d19011ab14c807638f143ae9",
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
-    "src/common/linux/interpreter-comparisons.inc": "41fff1219fe3dd9764e0e95d2bd98dae8c2f8891dcd69435a433829829bd9038",
-    "asm/arm64/common/register-comparisons.inc": "a44694c542f6800e6fb998586866a6129ceb942dab01886568681bdde3b63e3f",
-    "asm/arm64/linux/comparison-identity.S": "e1c8e0483ff9be117348dcad5e26e14f16838b7dbe187bcc3a4a41e2db5176ac"
+    "src/common/linux/interpreter-comparisons.inc": "872fa8bcecde8511479f67bc137870e3d82c8586b9b70270f55b1e7a293a0f39",
+    "asm/arm64/common/register-comparisons.inc": "636ee7164d0b5dc66e807664c32cc4c117e98951a91edb643db93b515ad81abd",
+    "asm/arm64/linux/comparison-identity.S": "cbf2d657117345de96b5656d2e6109b5d912361b5e29d039a24ddb828edfedc0"
   },
   "scope": "Complete GNU loose/strict/reference/C-identity kernels and original controls/owners",
   "new_frame_fields": 0,
@@ -14,30 +14,30 @@
   "new_strong_roots": 0,
   "extra_allocations": 0,
   "hardware_performance_qualified": false,
-  "pinned_core_sha256": "ddab054455e43cfafbe5c0671fa38acd9f3a1eac4ce2a49a97dfec6437701ebe",
+  "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "retained_strict_slow_sha256": "bf460cd0a834f1ef64d1078f6baa85518c367c0d5b94ce1c937d27fee505a70c",
   "string_bits": {
     "JSString.len": [
       [
-        4,
+        0,
         1
       ]
     ],
     "JSString.is_wide_char": [
       [
-        7,
+        3,
         128
       ]
     ],
     "JSString.hash": [
       [
-        8,
+        4,
         1
       ]
     ],
     "JSString.kind": [
       [
-        11,
+        7,
         16
       ]
     ]

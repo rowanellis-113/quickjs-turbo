@@ -21,10 +21,7 @@ def append(source, stream, layout):
         if layout["bits"].get(name) != value:
             raise ValueError("Review dense append bit encoding: " + name)
     std_proto_bits = layout["bits"].get("JSContext.std_array_prototype")
-    if (
-        len(std_proto_bits or ()) != 1
-        or (not prefix_rc and std_proto_bits != [[55, 128]])
-    ):
+    if len(std_proto_bits or ()) != 1 or (not prefix_rc and std_proto_bits != [[55, 128]]):
         raise ValueError("Review dense append bit encoding: JSContext.std_array_prototype")
     if layout["reference_count_model"] not in ("inline-header", "allocator-prefix"):
         raise ValueError("Review native append release protocol")

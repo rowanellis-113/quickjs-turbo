@@ -136,6 +136,7 @@ const uint64_t qjs_arm_features[] = {__ARM_ARCH,__ARM_FEATURE_BTI_DEFAULT,__ARM_
     layout = dict(
         schema=1,
         platform="linux-aarch64-aapcs64",
+        reference_count_model="allocator-prefix",
         sizes={},
         offsets={},
         constants={},

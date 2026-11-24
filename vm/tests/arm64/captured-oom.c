@@ -48,9 +48,12 @@ int main(int argc, char **argv)
             JSValue args[] = {f, object};
             uintptr_t top = word(rt, ARM_OFF_JSRuntime_stack_top),
                       limit = word(rt, ARM_OFF_JSRuntime_stack_limit);
+            AllocatorArenaDrain drain = {0};
+            oom_drain_arenas(rt, &ledger, &drain);
             ledger.fail_at = ledger.sequence + point;
             result = JS_Call(ctx, driver, JS_UNDEFINED, 2, args);
             ledger.fail_at = 0;
+            oom_undrain_arenas(rt, &drain);
             rejections += ledger.rejected;
             if (JS_IsException(result)) {
                 ++failures;

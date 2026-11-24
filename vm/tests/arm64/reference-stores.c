@@ -178,10 +178,13 @@ static void oom_tests(void)
         JSValue f = eval(foreign, "(function storeOOM(make){var value=make();value=17;return 7})");
         uintptr_t before[2], after[2];
         qjs_aarch64_vm_quota(rt, before);
+        AllocatorArenaDrain drain = {0};
+        oom_drain_arenas(rt, &memory, &drain);
         if (point)
             memory.fail_at = memory.sequence + point;
         JSValue result = JS_Call(foreign, f, JS_UNDEFINED, 1, &maker);
         memory.fail_at = 0;
+        oom_undrain_arenas(rt, &drain);
         if (JS_IsException(result)) {
             assert(memory.rejected);
             JS_FreeValue(foreign, JS_GetException(foreign));

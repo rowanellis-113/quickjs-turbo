@@ -171,7 +171,7 @@ def append(masm, gas, entries, diagnostics, source=None):
         ".p2align 2",
         "JS_FrameSlotDisable:",
         '.asciz "QJS_DISABLE_NATIVE_SLOT_STORE"',
-        '.section .pdata$zzqjscold,"dr"',
+        '.section .pdata$zzqjsleaf,"dr"',
         ".p2align 2",
         ".rva " + name + ", " + name + "_end, JS_FrameInterpPropertyCold_unwind",
     ]

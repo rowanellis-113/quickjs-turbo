@@ -108,9 +108,10 @@
     ldr w9, [x2, #ARM_OFF_JSShape_prop_hash_mask]
     cmp w9, w6
     b.ne .Lglobal_miss
-    lsr x9, x6, #32
-    neg x9, x9
-    add x9, x2, x9, lsl #2
+    add x9, x2, w9, uxtw #2
+    add x9, x9, #(ARM_OFF_JSShape_hash_table + 4)
+    lsr x10, x6, #32
+    sub x9, x9, x10, lsl #2
     ldur w9, [x9, #-4]
     cbnz w9, .Lglobal_miss
     ldr x1, [x0, #ARM_OFF_JSContext_global_obj]
@@ -122,9 +123,10 @@
     ldr w9, [x2, #ARM_OFF_JSShape_prop_count]
     cmp w4, w9
     b.hs .Lglobal_miss
-    mov w9, w4
-    add x5, x2, #ARM_OFF_JSShape_prop
-    add x5, x5, x9, lsl #3
+    ldr w9, [x2, #ARM_OFF_JSShape_prop_hash_mask]
+    add x5, x2, w9, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    add x5, x5, w4, uxtw #3
     ldr w9, [x5, #ARM_OFF_JSShapeProperty_atom]
     cmp w9, w8
     b.ne .Lglobal_miss
@@ -156,16 +158,25 @@
     ldar x6, [x5]
     cmp w6, w4
     b.eq .Lglobal_undefined_bucket
+    movz x10, #0x83eb
+    movk x10, #0x80b5, lsl #16
+    movk x10, #0x8646, lsl #32
+    movk x10, #0x61c8, lsl #48
     mov w9, #ARM_CONST_JS_ATOM_undefined
-    and w9, w9, w4
+    mul x9, x9, x10
+    lsr x9, x9, #32
+    add x11, x4, #1
+    mul x9, x9, x11
+    lsr x9, x9, #32
     orr x6, x4, x9, lsl #32
     stlr x6, [x5]
     ARM_GLOBAL_EVENT 72
 .Lglobal_undefined_bucket:
+    add x10, x2, w4, uxtw #2
+    add x10, x10, #(ARM_OFF_JSShape_hash_table + 4)
     lsr x9, x6, #32
-    neg x9, x9
-    add x9, x2, x9, lsl #2
-    ldur w9, [x9, #-4]
+    sub x10, x10, x9, lsl #2
+    ldur w9, [x10, #-4]
     cbz w9, .Lglobal_undefined_empty
     ARM_GLOBAL_EVENT 64
     mov w16, #0
@@ -183,12 +194,21 @@
     ldr x2, [x1, #ARM_OFF_JSObject_shape]
     ldr w4, [x2, #ARM_OFF_JSShape_prop_hash_mask]
     tbnz w4, #31, .Lglobal_fallback
-    and w9, w8, w4
+    movz x10, #0x83eb
+    movk x10, #0x80b5, lsl #16
+    movk x10, #0x8646, lsl #32
+    movk x10, #0x61c8, lsl #48
+    uxtw x9, w8
+    mul x9, x9, x10
+    lsr x9, x9, #32
+    add x11, x4, #1
+    mul x9, x9, x11
+    lsr x9, x9, #32
     orr x6, x4, x9, lsl #32
-    neg x9, x9
-    add x9, x2, x9, lsl #2
+    add x5, x2, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    sub x9, x5, x9, lsl #2
     ldur w4, [x9, #-4]
-    add x5, x2, #ARM_OFF_JSShape_prop
     cbnz w4, .Lglobal_hash_probe
 .Lglobal_hash_object:
     ldp x1, x9, [x0, #ARM_OFF_JSContext_global_obj]
@@ -200,11 +220,20 @@
     mov w7, #-2
     ldr x2, [x1, #ARM_OFF_JSObject_shape]
     ldr w4, [x2, #ARM_OFF_JSShape_prop_hash_mask]
-    and w9, w8, w4
-    neg x9, x9
-    add x9, x2, x9, lsl #2
+    movz x10, #0x83eb
+    movk x10, #0x80b5, lsl #16
+    movk x10, #0x8646, lsl #32
+    movk x10, #0x61c8, lsl #48
+    uxtw x9, w8
+    mul x9, x9, x10
+    lsr x9, x9, #32
+    add x11, x4, #1
+    mul x9, x9, x11
+    lsr x9, x9, #32
+    add x5, x2, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
+    sub x9, x5, x9, lsl #2
     ldur w4, [x9, #-4]
-    add x5, x2, #ARM_OFF_JSShape_prop
 .Lglobal_hash_probe:
     cbz w4, .Lglobal_hash_absent
     sub w9, w4, #1
@@ -291,9 +320,9 @@
     add x20, x20, #5
     str x20, [x22, #ARM_OFF_JSStackFrame_cur_pc]
     tbz x13, #63, .Lglobal_push
-    ldr w9, [x12, #ARM_REF_COUNT_OFFSET]
+    ldur w9, [x12, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
-    str w9, [x12, #ARM_REF_COUNT_OFFSET]
+    stur w9, [x12, #ARM_REF_COUNT_OFFSET]
 .Lglobal_push:
     stp x12, x13, [x21], #16
     ARM_DISPATCH_NEXT 1
@@ -308,7 +337,7 @@
     ldp x1, x2, [x21, #-16]
     cmp x2, #ARM_CONST_JS_TAG_SYMBOL
     b.ne .Lglobal_ready
-    ldr w3, [x1, #ARM_REF_COUNT_OFFSET]
+    ldur w3, [x1, #ARM_REF_COUNT_OFFSET]
     cmp w3, #1
     b.le .Lglobal_ready
     ldr w4, [x0, #ARM_OFF_JSContext_interrupt_counter]
@@ -368,7 +397,7 @@
     cmp x9, x6
     b.hs .Lglobal_ready
     sub w3, w3, #1
-    str w3, [x1, #ARM_REF_COUNT_OFFSET]
+    stur w3, [x1, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #16
     sub w4, w4, #1
     str w4, [x0, #ARM_OFF_JSContext_interrupt_counter]

@@ -24,6 +24,7 @@ from x86.common.paths_x86 import activate_tools as _act_x86
 
 _act_x86()
 
+from bellard_backports import replace_once
 from x86.win64.measure_layout_win64 import measure as measure_win64
 
 
@@ -181,6 +182,22 @@ def _build_foundation_c(core_path, output_dir, layout):
         raise ValueError("Public JS_Call definition anchor changed")
     text = original.replace(anchor, "JSValue JS_LegacyCall(JSContext *ctx,", 1)
 
+    # A dense own element cannot run user code. Other iterator kinds, holes,
+    # and completion still use the original length and property operations.
+    iterator_anchor = "    p = JS_VALUE_GET_OBJ(it->obj);\n    if (is_typed_array(p->class_id)) {"
+    text = replace_once(
+        text,
+        iterator_anchor,
+        """    p = JS_VALUE_GET_OBJ(it->obj);
+    if (p->class_id == JS_CLASS_ARRAY && p->fast_array &&
+        it->kind == JS_ITERATOR_KIND_VALUE && it->idx < p->u.array.count) {
+        *pdone = false;
+        return js_dup(p->u.array.u.values[it->idx++]);
+    }
+    if (is_typed_array(p->class_id)) {""",
+        "Win64 dense array value iterator",
+    )
+
     definition = re.compile(r"(^static JSValue )JS_CallInternal(\([^;{}]*\)\s*\{)", re.M | re.S)
     text, count = definition.subn(r"\1JS_LegacyCallInternal\2", text)
     if count != 1:
@@ -280,6 +297,9 @@ def main():
     reg_mod = _load_module(
         "qjs_win64_register", source / "tools/x86/common/codegen/generate-register.py"
     )
+    append_mod = _load_module(
+        "qjs_win64_append", source / "tools/x86/common/codegen/array-append.py"
+    )
     reg_mod.generate(
         source,
         native_dir,
@@ -287,6 +307,7 @@ def main():
         internal_entry=True,
         foundation_only=True,
         layout_override=layout,
+        array_append_body=append_mod.body,
     )
 
     masm_in = native_dir / "quickjs-interpreter-register-win64.asm"

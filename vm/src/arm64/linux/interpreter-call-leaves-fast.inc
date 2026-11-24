@@ -311,9 +311,13 @@ static int leaf_own(JSValue object, JSAtom atom, JSValue *value)
         return 0;
     o = JS_VALUE_GET_OBJ(object);
     s = o->shape;
-    h = *(uint32_t *)((uint8_t *)s - 4 * ((atom & s->prop_hash_mask) + 1));
+    uint64_t h64 = ((uint64_t)(uint32_t)atom * 0x61c8864680b583ebULL) >> 32;
+    uintptr_t bucket = (uintptr_t)((h64 * ((uint64_t)s->prop_hash_mask + 1ULL)) >> 32);
+    const uint32_t *hash_end = s->hash_table + (uintptr_t)s->prop_hash_mask + 1;
+    JSShapeProperty *table = (JSShapeProperty *)(void *)hash_end;
+    h = hash_end[-(intptr_t)bucket - 1];
     while (h) {
-        p = &s->prop[h - 1];
+        p = &table[h - 1];
         if (p->atom == atom) {
             if (p->flags & JS_PROP_TMASK)
                 return 0;

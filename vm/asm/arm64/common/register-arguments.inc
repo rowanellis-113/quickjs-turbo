@@ -167,15 +167,13 @@
     str x2, [x10, #ARM_OFF_JSStackFrame_arg_buf]
     str xzr, [x10, #ARM_OFF_JSStackFrame_var_refs]
     str xzr, [x10, #ARM_OFF_JSStackFrame_cur_pc]
-    str xzr, [x10, #ARM_OFF_JSStackFrame_cur_sp]
+    stp xzr, xzr, [x10, #ARM_OFF_JSStackFrame_cur_sp]
     strh wzr, [x10, #ARM_OFF_JSStackFrame_var_ref_count]
     strh w0, [x10, #ARM_OFF_JSStackFrame_arg_count]
     ldrb w12, [x7, #ARM_STRICT_BYTE]
     and w12, w12, #ARM_STRICT_MASK
     lsr w12, w12, #ARM_STRICT_SHIFT
-    strb w12, [x10, #ARM_OFF_JSStackFrame_is_strict_mode]
-    strb wzr, [x10, #ARM_FRAME_ROOT_OFFSET]
-    strb wzr, [x10, #ARM_FRAME_FLAGS_OFFSET]
+    str w12, [x10, #ARM_OFF_JSStackFrame_is_strict_mode]
     str x7, [x10, #ARM_OFF_JSFrame_bytecode]
     mov x5, #0
     mov x6, #ARM_CONST_JS_TAG_UNDEFINED
@@ -261,7 +259,7 @@
     ldrb w4, [x0, #ARM_BIT_JSObject_fast_array_BYTE]
     tst w4, #ARM_BIT_JSObject_fast_array_MASK
     b.eq .Lslow
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     ldrh w4, [x0, #ARM_OFF_JSObject_class_id]
@@ -281,9 +279,9 @@
 .Lget_array_el_slot:
     ldp x6, x7, [x5]
     tbz x7, #63, .Lget_array_el_value
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lget_array_el_value:
     tbz w16, #2, .Lget_array_el_counted
     adrp x12, JS_FrameArgumentsAccessStats
@@ -295,9 +293,9 @@
     stxr w14, x13, [x12]
     cbnz w14, .Lget_array_el_count
 .Lget_array_el_counted:
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-32]
     sub x21, x21, #16
     add x20, x20, #1
@@ -337,9 +335,9 @@
 .Lget_array_el2_slot:
     ldp x6, x7, [x5]
     tbz x7, #63, .Lget_array_el2_value
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     add w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lget_array_el2_value:
     tbz w16, #2, .Lget_array_el2_counted
     adrp x12, JS_FrameArgumentsAccessStats
@@ -372,7 +370,7 @@
     ldrb w4, [x0, #ARM_BIT_JSObject_fast_array_BYTE]
     tst w4, #ARM_BIT_JSObject_fast_array_MASK
     b.eq .Lslow
-    ldr w4, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w4, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w4, #1
     b.le .Lslow
     ldrh w4, [x0, #ARM_OFF_JSObject_class_id]
@@ -394,11 +392,11 @@
     tbz x7, #63, .Lput_array_el_store
     cmp x6, x0
     b.eq .Lslow
-    ldr w8, [x6, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x6, #ARM_REF_COUNT_OFFSET]
     cmp w8, #1
     b.le .Lslow
     sub w8, w8, #1
-    str w8, [x6, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x6, #ARM_REF_COUNT_OFFSET]
 .Lput_array_el_store:
     ldp x6, x7, [x21, #-16]
     stp x6, x7, [x5]
@@ -412,9 +410,9 @@
     stxr w14, x13, [x12]
     cbnz w14, .Lput_array_el_count
 .Lput_array_el_counted:
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
@@ -438,13 +436,15 @@
     cmp w4, #ARM_CONST_JS_CLASS_MAPPED_ARGUMENTS
     b.ne .Lget_length_original
 .Larguments_length_class:
-    ldr w8, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w8, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w8, #1
     b.le .Lslow
     ldr x5, [x0, #ARM_OFF_JSObject_shape]
     ldr w4, [x5, #ARM_OFF_JSShape_prop_count]
     cbz w4, .Lslow
-    add x5, x5, #ARM_OFF_JSShape_prop
+    ldr w4, [x5, #ARM_OFF_JSShape_prop_hash_mask]
+    add x5, x5, w4, uxtw #2
+    add x5, x5, #(ARM_OFF_JSShape_hash_table + 4)
     ldr w4, [x5, #ARM_OFF_JSShapeProperty_atom]
     cmp w4, #ARM_CONST_JS_ATOM_length
     b.ne .Lslow
@@ -469,7 +469,7 @@
     cbnz w14, .Larguments_length_count
 .Larguments_length_counted:
     sub w8, w8, #1
-    str w8, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w8, [x0, #ARM_REF_COUNT_OFFSET]
     stp x6, x7, [x21, #-16]
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1

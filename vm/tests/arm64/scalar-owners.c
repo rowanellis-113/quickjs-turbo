@@ -114,9 +114,12 @@ static void property_oom(void)
                 key = evaluate(c, "({[Symbol.toPrimitive](){return 123456789.25}})"),
                 args[2] = {o, key};
         assert(JS_SetPropertyStr(c, o, "123456789.25", JS_NewInt32(c, 7)) >= 0);
+        AllocatorArenaDrain drain = {0};
+        oom_drain_arenas(r, &a, &drain);
         a.fail_at = a.sequence + step;
         JSValue v = JS_Call(c, f, JS_UNDEFINED, 2, args);
         a.fail_at = 0;
+        oom_undrain_arenas(r, &drain);
         if (JS_IsException(v)) {
             failed++;
             JS_FreeValue(c, JS_GetException(c));

@@ -5,7 +5,7 @@ from arguments import asm_body
 from c_workers import module
 
 OWNER = "tools/x86/common/codegen/slot-store.py"
-OWNER_SHA = "8a31469609990b677b03e941f9139547b6805bc2f77bb46dbc7149684e57628a"
+OWNER_SHA = "bd468b1199a728c1c54daf5b66eecfeeef2ecba67a4491f22668cd9f3c866111"
 
 
 def append(source, stream, layout):

@@ -157,10 +157,13 @@ int main(void)
     /* A native miss must preserve the complete allocating typed-array owner.
      * Force the actual first large-BigInt allocation, then recover in place. */
     JSValue faulted = JS_UNDEFINED;
+    AllocatorArenaDrain drain = {0};
+    oom_drain_arenas(rt, &memory, &drain);
     unsigned rejected_before = memory.rejected;
     memory.fail_at = memory.sequence + 1;
     bool allocated = JS_AArch64FastArrayOwnGet(ctx, JS_VALUE_GET_PTR(typed), 2, &faulted);
     memory.fail_at = 0;
+    oom_undrain_arenas(rt, &drain);
     assert(memory.rejected == rejected_before + 1 && allocated && JS_IsException(faulted));
     JSValue allocation_error = JS_GetException(ctx);
     assert(!JS_IsUndefined(allocation_error));

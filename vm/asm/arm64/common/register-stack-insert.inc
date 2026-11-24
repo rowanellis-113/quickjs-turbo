@@ -8,9 +8,9 @@
     tbnz w9, #5, .Lslow
     ldp x0, x1, [x21, #-16]
     tbz x1, #63, .Lstack_insert3_copy
-    ldr w6, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w6, [x0, #ARM_REF_COUNT_OFFSET]
     add w6, w6, #1
-    str w6, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w6, [x0, #ARM_REF_COUNT_OFFSET]
 .Lstack_insert3_copy:
     ldp x2, x3, [x21, #-32]
     ldp x4, x5, [x21, #-48]

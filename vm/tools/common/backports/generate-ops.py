@@ -92,6 +92,76 @@ from qualified_ops import apply as apply_qualified_ops
 
 opcode_body = apply_qualified_ops(opcode_body)
 
+from bellard_backports import replace_once, writable_array_append
+
+opcode_body = writable_array_append(opcode_body)
+# Both additions have a complete original fallback. Keep the store edit
+# inside put_field, since reads use the same own-property probe.
+put_start = opcode_body.index("        CASE(OP_put_field):")
+put_end = opcode_body.index("        CASE(", put_start + 1)
+probe = "                    prs = find_own_property(&pr, p, atom);"
+put = replace_once(
+    opcode_body[put_start:put_end],
+    probe,
+    """                    /* No element needs removal when the dense prefix fits, or when
+                       a sparse array has only its permanent length property left. */
+                    if (atom == JS_ATOM_length && p->class_id == JS_CLASS_ARRAY &&
+                        JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_INT &&
+                        JS_VALUE_GET_INT(sp[-1]) >= 0 &&
+                        (get_shape_prop(p->shape)[0].flags & JS_PROP_WRITABLE) &&
+                        (p->fast_array
+                             ? (uint32_t)JS_VALUE_GET_INT(sp[-1]) >= p->u.array.count
+                             : p->shape->prop_count - p->shape->deleted_prop_count == 1)) {
+                        p->prop[0].u.value = sp[-1];
+                        JS_FreeValue(ctx, obj);
+                        sp -= 2;
+                        BREAK;
+                    }
+"""
+    + probe,
+    "array length without element removal",
+)
+opcode_body = opcode_body[:put_start] + put + opcode_body[put_end:]
+add_slow = "                add_slow_case:\n                    sf->cur_pc = pc;\n"
+opcode_body = replace_once(
+    opcode_body,
+    add_slow,
+    add_slow
+    + """#ifdef QJS_FRAME_NUMBER_ADD_EMPTY_STRING
+                    if (JS_IsNumber(op1) && JS_VALUE_GET_TAG(op2) == JS_TAG_STRING &&
+                        JS_VALUE_GET_STRING(op2)->len == 0) {
+                        JSValue text = JS_ToString(ctx, op1);
+                        JS_FreeValue(ctx, op2);
+                        sp[-1] = JS_UNDEFINED;
+                        if (unlikely(JS_IsException(text))) {
+                            sp[-2] = JS_UNDEFINED;
+                            goto exception;
+                        }
+                        sp[-2] = text;
+                        sp--;
+                        BREAK;
+                    }
+#endif
+""",
+    "number plus empty string",
+)
+
+local_string = "                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING) {"
+opcode_body = replace_once(
+    opcode_body,
+    local_string,
+    """#ifdef QJS_FRAME_LOCAL_ROPE_APPEND
+                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING_ROPE &&
+                           JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {
+                    sf->cur_pc = pc;
+                    if (js_frame_append_local_rope(ctx, pv, *--sp) < 0)
+                        goto exception;
+#endif
+"""
+    + local_string,
+    "append to an unaliased rope tail",
+)
+
 global_get = "                val = JS_GetGlobalVar(ctx, atom, opcode - OP_get_var_undef);"
 assert opcode_body.count(global_get) == 1
 opcode_body = opcode_body.replace(

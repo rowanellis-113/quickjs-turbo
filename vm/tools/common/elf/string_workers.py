@@ -79,30 +79,23 @@ def generate(
             "#define COMPOUND_NOINLINE LINUX_STRING_CODE",
             "isolated Linux compound helper",
         )
-        locale = replace_one(
-            locale,
-            "sizeof(JSFunctionBytecode) == 152",
-            "sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode",
-            "compound measured bytecode size",
-        )
-        locale = replace_one(
-            locale,
-            "offsetof(JSFunctionBytecode, property_ic) == 144",
-            "offsetof(JSFunctionBytecode, property_ic) == QJS_ABI_OFF_JSFunctionBytecode_property_ic",
-            "compound measured IC field",
-        )
-        locale = replace_one(
-            locale,
-            "sizeof(JSPropertyICSite) == 64",
-            "sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite",
-            "compound measured IC site",
-        )
-        locale = replace_one(
-            locale,
-            "sizeof(JSPropertyICWay) == 40",
-            "sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay",
-            "compound measured IC way",
-        )
+        for token, label in (
+            (
+                "sizeof(JSFunctionBytecode) == QJS_ABI_SIZE_JSFunctionBytecode",
+                "compound measured bytecode size",
+            ),
+            (
+                "offsetof(JSFunctionBytecode, property_ic) ==\n                       QJS_ABI_OFF_JSFunctionBytecode_property_ic",
+                "compound measured IC field",
+            ),
+            (
+                "sizeof(JSPropertyICSite) == QJS_ABI_SIZE_JSPropertyICSite",
+                "compound measured IC site",
+            ),
+            ("sizeof(JSPropertyICWay) == QJS_ABI_SIZE_JSPropertyICWay", "compound measured IC way"),
+        ):
+            if " ".join(token.split()) not in " ".join(locale.split()):
+                raise ValueError("Source-owned C worker boundary changed: " + label)
     else:
         locale = locale[: locale.index(boundary)]
     locale = locale.replace(".qjslfm", ".bss.qjs_strings")

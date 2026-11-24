@@ -27,7 +27,9 @@ _Static_assert(sizeof(JSCVMSegmentState) == 48 && offsetof(JSCVMSegmentState, pc
 _Static_assert(sizeof(JSValue) == 16 && offsetof(JSValue, tag) == 8 && JS_TAG_FIRST == -9 &&
                    JS_TAG_INT == 0 && JS_TAG_BOOL == 1 && JS_TAG_NULL == 2 &&
                    JS_TAG_UNDEFINED == 3 && JS_TAG_UNINITIALIZED == 4 &&
-                   offsetof(JSMallocBlockHeader, user_data) - offsetof(JSMallocBlockHeader, ref_count) == 4 &&
+                   offsetof(JSMallocBlockHeader, user_data) -
+                           offsetof(JSMallocBlockHeader, ref_count) ==
+                       4 &&
                    sizeof(int) == 4 &&
                    (offsetof(JSContext, interrupt_counter) == 548 ||
                     offsetof(JSContext, interrupt_counter) == 556) &&

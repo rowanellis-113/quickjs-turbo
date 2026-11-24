@@ -153,4 +153,26 @@ equal(proxyGets, 2);
 equal(proxySets, 1);
 const ordinary = { 0: 1 };
 equal(put(ordinary, 0, 2), 2);
+
+// Keep spare backing capacity across truncation. A dense append may fill an
+// existing length, but a strict store past a read-only length must throw.
+function storeAt(array, index) {
+  "use strict";
+  array[index] = 42;
+}
+{
+  const array = [1, 2, 3, 4, 5, 6, 7, 8];
+  array.length = 2;
+  array.length = 3;
+  Object.defineProperty(array, "length", { writable: false });
+  storeAt(array, 2);
+  let rejected = false;
+  try {
+    storeAt(array, 3);
+  } catch (error) {
+    rejected = error instanceof TypeError;
+  }
+  if (!rejected || array.length !== 3 || array[2] !== 42 || 3 in array)
+    throw Error("indexed store across a read-only length");
+}
 print("INDEXED_OWN_SEMANTICS passed");

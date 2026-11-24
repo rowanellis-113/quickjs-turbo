@@ -2,14 +2,14 @@
   "schema": 1,
   "target": "Linux AArch64 LE LP64/glibc/GCC",
   "source_owners": {
-    "tools/arm64/workers/reference_stores.py": "731b740d629753c5237c35650f5518d0e2033240ffa61d78c29ccb86f4a087b7",
+    "tools/arm64/workers/reference_stores.py": "9a34ca8dd3a228e51c7787f5b8e7b18ed479016fdcc4f04692aeb61a24d1dabf",
     "src/common/call/quickjs-interpreter-loop.inc": "008dff05decf1449550fb9410e4c36ed6027347a8774ceda827c6409bf040e2f",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
-    "src/common/call/quickjs-interpreter-ops.inc": "51f551fbbb7a2afc99221abcde7259d0dd31dff432a9e1f3b52fa81ac91330e6",
-    "asm/arm64/common/register-reference-stores.inc": "30db27b7371ceec79b04505a50f5b9b63a1e7c790226ca6baa9d14fdee285a10",
-    "asm/arm64/common/register-slots.inc": "5c6d212d80010a5898eaf99695530b8802d202bd287556a799a8d7a90f661271",
-    "asm/arm64/common/register-property-hints.inc": "fbdaabe9e17ff785333025815ad5ea647afcd6e9b788df458d5b4cb6cae56ef7",
-    "asm/arm64/common/register-property-ic.inc": "f7de1ecdf1d14fa072adf7d2123553416c8c22375eddab71f2d0d458fd86a2c4"
+    "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
+    "asm/arm64/common/register-reference-stores.inc": "b2037f07240a6e3105a7bbf26b942d00777ac9409c038f988ddf9a043d3e59a5",
+    "asm/arm64/common/register-slots.inc": "17ff18c9959ddddccd8fec030f8ab29c4066141d612db2d7e0c44a706c9f1cc0",
+    "asm/arm64/common/register-property-hints.inc": "28a79ad79fa55ef14a8179c914471c50062cead87ea4c2b7a4270fe73d2f8d73",
+    "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9"
   },
   "semantics": "Original GNU incoming-value ownership and finalizer protocol;actual compiler JSValue Free witness reused;generic writable own hash retains original GNU referenced-old fallback",
   "frame_growth": 0,

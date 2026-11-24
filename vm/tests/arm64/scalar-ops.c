@@ -126,6 +126,7 @@ int main(void)
     probe(c, 20, "(function(a,b){return a[b]++})", args, 1, 7, NULL);
     probe(c, 12, "(function(a){let x;[x]=[a];return x.v})", args, 1, 7, NULL);
     probe(c, 19, "(function(a,b){let x;({[b]:x}=a);return x})", args, 1, 7, NULL);
+    probe(c, 19, "(function(a,b){return `key:${b}!`})", args, 0, 0, "key:v!");
     JS_FreeValue(c, args[1]);
     args[1] = JS_UNDEFINED;
     JSValue ctor = eval(c, "(class C{constructor(){this.v=9}})");
@@ -147,13 +148,8 @@ int main(void)
         for (unsigned i = 0; i < 22; i++)
             assert(counts[i] == 0);
     } else {
-        for (unsigned i = 0; i < 22; i++) {
-#ifndef QJS_TEST_SCALAR_LEGACY_ASSIGN
-            if (i == 19)
-                continue; /* Current compiler removes ordinary to_propkey. */
-#endif
+        for (unsigned i = 0; i < 22; i++)
             assert(counts[i] > 0);
-        }
     }
     JS_FreeValue(c, o);
     JS_RunGC(r);

@@ -161,16 +161,16 @@
     tbz w12, #16, .Lslow
     ldp x0, x1, [x23]
     tbz x1, #63, .Lscalar_pair_first_ready
-    ldr w2, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w2, [x0, #ARM_REF_COUNT_OFFSET]
     add w2, w2, #1
-    str w2, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w2, [x0, #ARM_REF_COUNT_OFFSET]
 .Lscalar_pair_first_ready:
     stp x0, x1, [x21], #16
     ldp x0, x1, [x23, #16]
     tbz x1, #63, .Lscalar_pair_second_ready
-    ldr w2, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w2, [x0, #ARM_REF_COUNT_OFFSET]
     add w2, w2, #1
-    str w2, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w2, [x0, #ARM_REF_COUNT_OFFSET]
 .Lscalar_pair_second_ready:
     stp x0, x1, [x21], #16
     ARM_SCALAR_EVENT 13
@@ -203,9 +203,9 @@
     ARM_SCALAR_EVENT 15
     add x20, x20, #5
 .Lscalar_atom_commit:
-    ldr w2, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w2, [x0, #ARM_REF_COUNT_OFFSET]
     add w2, w2, #1
-    str w2, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w2, [x0, #ARM_REF_COUNT_OFFSET]
     stp x0, x1, [x21], #16
     ARM_DISPATCH_NEXT 1
 .Lscalar_is_undefined:
@@ -228,11 +228,11 @@
 .Lscalar_predicate:
     ldp x0, x1, [x21, #-16]
     tbz x1, #63, .Lscalar_predicate_value
-    ldr w2, [x0, #ARM_REF_COUNT_OFFSET]
+    ldur w2, [x0, #ARM_REF_COUNT_OFFSET]
     cmp w2, #1
     b.le .Lslow
     sub w2, w2, #1
-    str w2, [x0, #ARM_REF_COUNT_OFFSET]
+    stur w2, [x0, #ARM_REF_COUNT_OFFSET]
 .Lscalar_predicate_value:
     cmp w8, #18
     b.eq .Lscalar_predicate_both

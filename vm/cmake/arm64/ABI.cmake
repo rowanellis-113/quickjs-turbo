@@ -63,7 +63,7 @@ add_custom_command(
             "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/elf/layout_input.py"
             "${CMAKE_CURRENT_SOURCE_DIR}/src/common/internal/abi/core-fields.json"
             "${CMAKE_CURRENT_BINARY_DIR}/generated/backports/BACKPORTS.json"
-            "${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json"
+            "${CMAKE_BINARY_DIR}/compile_commands.json"
     VERBATIM)
 add_custom_target(
     qjs-aarch64-abi-contract

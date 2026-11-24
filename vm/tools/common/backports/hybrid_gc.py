@@ -66,7 +66,7 @@ def core_overlay(text):
         " } JSHybridGCBoundary; struct JSRuntime {"
     )
     assert rt_part.startswith("\nstruct JSRuntime {\n")
-    rt_part = "\n" + boundary_decl + rt_part[len("\nstruct JSRuntime {"):]
+    rt_part = "\n" + boundary_decl + rt_part[len("\nstruct JSRuntime {") :]
 
     new_block = gc_part + rt_part
     if new_block.count("\n") != block.count("\n"):
@@ -76,8 +76,7 @@ def core_overlay(text):
     # Propagate hybrid_young across block realloc and shape resize/compaction.
     text = replace_exact_lines(
         text,
-        "            nb->gc_obj_type = b->gc_obj_type;\n"
-        "            nb->mark = b->mark;",
+        "            nb->gc_obj_type = b->gc_obj_type;\n            nb->mark = b->mark;",
         "            nb->gc_obj_type = b->gc_obj_type; nb->hybrid_young = b->hybrid_young;\n"
         "            nb->mark = b->mark;",
     )
