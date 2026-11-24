@@ -19,11 +19,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    name: Deploy perf-site
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  build:
+    name: Build perf-site artifact
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
@@ -33,5 +30,14 @@ jobs:
       - uses: actions/upload-pages-artifact@v3
         with:
           path: perf-site
+
+  deploy:
+    name: Deploy perf-site
+    needs: build
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-24.04
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
