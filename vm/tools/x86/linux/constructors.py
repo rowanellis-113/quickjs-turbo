@@ -322,9 +322,15 @@ FRAME_CODE int JS_FrameInterpSlow(JSFrameRegisterState *state)
     )
     adapted = replace_one(
         adapted,
-        "#ifndef QJS_LINUX_REGISTER_FOUNDATION",
-        "#if !defined(QJS_LINUX_REGISTER_FOUNDATION) || defined(QJS_LINUX_CONSTRUCT_CONTINUATION)",
-        "enable ordinary same-activation constructor hook on Linux",
+        "#ifndef QJS_LINUX_REGISTER_FOUNDATION\n    extern int JS_FrameVarargsConstructCall(JSFrameRegisterState *);",
+        "#if !defined(QJS_LINUX_REGISTER_FOUNDATION) || defined(QJS_LINUX_CONSTRUCT_CONTINUATION)\n"
+        "#ifdef QJS_LINUX_FAST_CONSTRUCT\n"
+        "    extern int JS_FastConstructTry(JSFrameRegisterState *);\n"
+        "    int fast_construct_event=JS_FastConstructTry(state);\n"
+        "    if (fast_construct_event>=0)return fast_construct_event;\n"
+        "#endif\n"
+        "    extern int JS_FrameVarargsConstructCall(JSFrameRegisterState *);",
+        "enable fast and ordinary same-activation constructor hook on Linux",
     )
     adapted += '\n#include "quickjs-linux-construct.h"\n'
     base.write_text(adapted)

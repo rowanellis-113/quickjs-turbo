@@ -208,7 +208,7 @@ def core_overlay(text, raw, root, build):
 """
     prefix = [
         "/* Generated from this build's fully declared JS_CallInternal loop. MIT. */",
-        "#ifdef QJS_CVM_NATIVE_SEGMENTS",
+        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && !DIRECT_DISPATCH",
         '#include "src/common/call/cvm-native-segments.inc"',
         "#undef SWITCH",
         "#undef CASE",
@@ -234,10 +234,37 @@ def core_overlay(text, raw, root, build):
         native_opcodes=list(ELIGIBLE_OPCODES),
     )
     target.with_suffix(".json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
-    # This is a derived input, never part of the original compiler TU. The
-    # separately compiled owner retargets one verified async_func_resume call
-    # relocation after the normal core adapter. Ordinary core code generation
-    # therefore sees the exact accepted compiler input.
+    anchor = (
+        "\n\nstatic JSValue async_func_resume(JSContext *ctx, JSAsyncFunctionState *s)\n"
+        "{\n"
+        "    JSValue func_obj;\n"
+        "\n"
+        "    if (js_check_stack_overflow(ctx->rt, 0))\n"
+        "        return JS_ThrowStackOverflow(ctx);\n"
+        "\n"
+        "    /* the tag does not matter provided it is not an object */\n"
+        "    func_obj = JS_MKPTR(JS_TAG_INT, s);\n"
+        "    return JS_CallInternal(ctx, func_obj, s->this_val, JS_UNDEFINED,\n"
+        "                           s->argc, vc(s->frame.arg_buf),\n"
+        "                           JS_CALL_FLAG_GENERATOR);"
+    )
+    repl = (
+        "\n#define QJS_CVM_NATIVE_SEGMENTS 1\n"
+        '#include "quickjs-coroutine-resume.inc"\n'
+        "static JSValue async_func_resume(JSContext *ctx, JSAsyncFunctionState *s)\n"
+        "{\n"
+        "    JSValue func_obj;\n"
+        "    if (js_check_stack_overflow(ctx->rt, 0))\n"
+        "        return JS_ThrowStackOverflow(ctx);\n"
+        "\n"
+        "    /* the tag does not matter provided it is not an object */\n"
+        "    func_obj = JS_MKPTR(JS_TAG_INT, s);\n"
+        "    return JS_CVMResumeEntry(ctx, func_obj, s->this_val, JS_UNDEFINED,\n"
+        "                             s->argc, vc(s->frame.arg_buf),\n"
+        "                             JS_CALL_FLAG_GENERATOR);"
+    )
+    assert anchor.count("\n") == repl.count("\n") and text.count(anchor) == 1
+    text = text.replace(anchor, repl, 1)
     assert text.count("\n") == line_count
     return text
 

@@ -243,6 +243,18 @@ JSValue JS_FrameJSONToJSONProperty(JSContext *, JSValueConst, JSAtom, JSValueCon
     groups.append(island(slot, "linux_json_slot_"))
     entries += ["JS_FrameJSONToJSONProperty", "JS_FrameJSONToJSONSlotState"]
     text = prefix + "\n" + "\n".join(groups)
+    text, n_strtod = re.subn(
+        r"\bvalue = strtod\(buf, NULL\);",
+        "#if defined(QJS_AARCH64_VM_INSTRUMENT) || defined(QJS_X86_VM_INSTRUMENT)\n"
+        "    value = strtod(buf, NULL);\n"
+        "#else\n"
+        "    { extern double JS_FrameAtod(const char *, const char **, int, int, JSATODTempMem *);"
+        " JSATODTempMem _atod_tm; value = JS_FrameAtod(buf, NULL, 10, 0, &_atod_tm); }\n"
+        "#endif",
+        text,
+    )
+    if n_strtod != 3:
+        raise ValueError(f"Review all 3 JSON strtod sites: {n_strtod}")
     architecture_record = {}
     if arch_adapt is not None:
         text, architecture_record = arch_adapt(source, output, text, adapter)

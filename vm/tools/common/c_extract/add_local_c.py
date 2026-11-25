@@ -50,6 +50,95 @@ FRAME_NULL_CODE int JS_FrameAddLocalBig(JSFrameRegisterState *state)
     if (*mode!=1) return JS_FrameInterpSlow(state);
     /* The ASM gate has checked both tags before reaching the C boundary. */
     assert(JS_IsBigInt(*pv) && JS_IsBigInt(sp[-1]));
+    if (JS_VALUE_GET_TAG(*pv)==JS_TAG_BIG_INT) {
+        JSBigInt *p1=(JSBigInt *)JS_VALUE_GET_PTR(*pv);
+        uint32_t n1=(uint32_t)p1->len;
+        if (JS_REF_COUNT(p1)==1 && n1>=2u && n1<=32u) {
+            JSValue rhs=sp[-1];
+            uint32_t rtag=JS_VALUE_GET_TAG(rhs);
+            JSBigInt *p2=NULL;
+            const js_limb_t *p2_tab=NULL;
+            js_limb_t rhs_limb0=0;
+            uint32_t n2=0;
+            if (rtag==JS_TAG_SHORT_BIG_INT) {
+                rhs_limb0=(js_limb_t)(js_slimb_t)JS_VALUE_GET_SHORT_BIG_INT(rhs);
+                p2_tab=&rhs_limb0;
+                n2=1u;
+            } else if (rtag==JS_TAG_BIG_INT) {
+                p2=(JSBigInt *)JS_VALUE_GET_PTR(rhs);
+                p2_tab=p2->tab;
+                n2=(uint32_t)p2->len;
+            }
+            if (p2_tab && n1==2u && n2<=2u) {
+                int64_t v2=(n2==1u)?(int64_t)(js_slimb_t)p2_tab[0]:(int64_t)((uint64_t)p2_tab[0]|((uint64_t)p2_tab[1]<<32));
+                int64_t v1=(int64_t)((uint64_t)p1->tab[0]|((uint64_t)p1->tab[1]<<32));
+                uint64_t ures=(uint64_t)v1+(uint64_t)v2;
+                int64_t sres=(int64_t)ures;
+                if (!((((uint64_t)v1^~(uint64_t)v2)&((uint64_t)v1^ures))>>63) &&
+                    (sres<INT32_MIN || sres>INT32_MAX)) {
+                    p1->tab[0]=(js_limb_t)ures;
+                    p1->tab[1]=(js_limb_t)(ures>>32);
+                    if (p2 && --JS_REF_COUNT(p2)<=0) {
+#ifndef FORCE_GC_AT_MALLOC
+                        if ((uint32_t)(p2->len-1u)<8u && rt->fast_pool_ok && !rt->in_free &&
+                            !rt->malloc_state.malloc_limit &&
+                            (rt->fast_pools ||
+                             (rt->fast_pools=js_mallocz_rt(rt,sizeof(QJSFastValuePools)))!=NULL) &&
+                            rt->fast_pools->bigint_count[p2->len]<8u) {
+                            rt->fast_pools->bigint_pool[p2->len][rt->fast_pools->bigint_count[p2->len]++]=p2;
+                        } else
+#endif
+                        {
+                            js_free_rt(rt,p2);
+                        }
+                    }
+                    state->pc=pc;
+                    state->sp=sp-1;
+                    return 2;
+                }
+            } else if (p2_tab && n1>=n2) {
+                js_limb_t tmp[32];
+                uint64_t carry=0;
+                uint32_t i;
+                for (i=0; i<n2; i++) {
+                    uint64_t sum=(uint64_t)p1->tab[i]+(uint64_t)p2_tab[i]+carry;
+                    tmp[i]=(js_limb_t)sum;
+                    carry=sum>>32;
+                }
+                js_limb_t b_sign=(js_limb_t)(0u-(p2_tab[n2-1u]>>31));
+                for (; i<n1; i++) {
+                    uint64_t sum=(uint64_t)p1->tab[i]+(uint64_t)b_sign+carry;
+                    tmp[i]=(js_limb_t)sum;
+                    carry=sum>>32;
+                }
+                js_limb_t a_sign=(js_limb_t)(0u-(p1->tab[n1-1u]>>31));
+                js_limb_t top_ext=a_sign+b_sign+(js_limb_t)carry;
+                if ((top_ext==0u || top_ext==(js_limb_t)-1) &&
+                    (top_ext&1u)==(tmp[n1-1u]>>31) &&
+                    !((tmp[n1-1u]==0u || tmp[n1-1u]==(js_limb_t)-1) &&
+                      (tmp[n1-1u]&1u)==(tmp[n1-2u]>>31))) {
+                    memcpy(p1->tab, tmp, (size_t)n1*sizeof(js_limb_t));
+                    if (p2 && --JS_REF_COUNT(p2)<=0) {
+#ifndef FORCE_GC_AT_MALLOC
+                        if ((uint32_t)(p2->len-1u)<8u && rt->fast_pool_ok && !rt->in_free &&
+                            !rt->malloc_state.malloc_limit &&
+                            (rt->fast_pools ||
+                             (rt->fast_pools=js_mallocz_rt(rt,sizeof(QJSFastValuePools)))!=NULL) &&
+                            rt->fast_pools->bigint_count[p2->len]<8u) {
+                            rt->fast_pools->bigint_pool[p2->len][rt->fast_pools->bigint_count[p2->len]++]=p2;
+                        } else
+#endif
+                        {
+                            js_free_rt(rt,p2);
+                        }
+                    }
+                    state->pc=pc;
+                    state->sp=sp-1;
+                    return 2;
+                }
+            }
+        }
+    }
     op1=js_dup(*pv);
     op2=sp[-1];
     tag1=JS_VALUE_GET_TAG(op1);

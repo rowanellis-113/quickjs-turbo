@@ -199,6 +199,8 @@ static JSPropertyICWay *js_ic_match(JSRuntime *rt, JSPropertyICSite *site, JSSha
     return NULL;
 }
 
+#include "src/common/property/property-ic-getter.inc"
+
 JSValue js_property_ic_get(JSContext *ctx, JSFunctionBytecode *b, const uint8_t *pc,
                            JSValueConst obj, JSAtom atom)
 {
@@ -230,8 +232,21 @@ JSValue js_property_ic_get(JSContext *ctx, JSFunctionBytecode *b, const uint8_t 
             p->is_prototype = true;
         prs = find_own_property(&pr, p, atom);
         if (prs) {
-            if (prs->flags & JS_PROP_TMASK)
+            if (unlikely(prs->flags & JS_PROP_TMASK)) {
+                uint32_t tmask = prs->flags & JS_PROP_TMASK;
+                if (tmask == JS_PROP_GETSET) {
+                    if (unlikely(!pr->u.getset.getter))
+                        return JS_UNDEFINED;
+                    return js_ic_invoke_getter(ctx, receiver, pr->u.getset.getter, obj);
+                }
+                if (tmask == JS_PROP_VARREF) {
+                    JSValue val = *pr->u.var_ref->pvalue;
+                    if (unlikely(JS_IsUninitialized(val)))
+                        return JS_ThrowReferenceErrorUninitialized(ctx, prs->atom);
+                    return js_dup(val);
+                }
                 break;
+            }
             if (cacheable && (p == receiver || ctx->rt->property_ic_epoch)) {
                 fresh.shape = receiver->shape;
                 fresh.slot = (uint32_t)(pr - p->prop);

@@ -203,12 +203,21 @@ done:
     return result;
 }
 
+#include "src/common/call/fast-root-leaf.inc"
+
 SHARED_CODE JSValue JS_FrameCallEntryShared(JSContext *ctx, JSValueConst func,
                                             JSValueConst this_value, JSValueConst new_target,
                                             int argc, JSValueConst *argv, int flags)
 {
     JSFrameSharedAnchor *host = *js_frame_shared_slot();
     JSFunctionBytecode *b;
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+    if (JS_IsUndefined(new_target) && (flags == 0 || flags == JS_CALL_FLAG_COPY_ARGV)) {
+        JSValue leaf_res;
+        if (js_try_fast_borrowed_leaf(ctx, func, this_value, argc, argv, &leaf_res))
+            return leaf_res;
+    }
+#endif
     if (host && !host->kind && host->state->rt == ctx->rt && FRAME_SHARED_MODE(ctx->rt) == 1 &&
         FRAME_STATE(ctx->rt) == 1 && FRAME_REGISTER_STATE(ctx->rt) == 1 &&
         (flags == 0 || flags == JS_CALL_FLAG_COPY_ARGV)

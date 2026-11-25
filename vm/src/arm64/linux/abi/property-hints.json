@@ -9,7 +9,7 @@
     "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9",
     "asm/arm64/common/register-ops.inc": "90a544912a6fa446407980bc6d45494760f9cb74484c5b4b7fdeae7635eb9f72",
     "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
-    "src/common/property/property-ic.inc": "807bc88c09686a5c9c6bb78a74b173fa51a2d1827fb895e430e5ff8866906905"
+    "src/common/property/property-ic.inc": "8ff357127665e36492e24956a9001bb561d387997a3ad7537bb52be700df60a2"
   },
   "lifetime": "Exact two original bytecode producer/free owners;bounded zeroed tail and monotonic optional-reservation failure",
   "native": "Current own descriptor slot validation;original no-hint hash when disabled or length>2048;original four-way borrowed live-slot PIC",

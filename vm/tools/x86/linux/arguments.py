@@ -377,6 +377,11 @@ FRAME_CODE bool JS_LinuxArgumentsCandidate(JSContext *ctx,JSValueConst func)
     )
     text += scoped(source, "js_linux_arguments_try_body", "JS_FrameArgumentsTry") + "\n"
     text += scoped(source, "js_linux_arguments_step_body", "JS_FrameArgumentsStep") + "\n"
+    text += (
+        "\n#define QJS_DEFINE_ARGUMENTS_CONSTRUCT_FAST_OK\n"
+        '#include "src/common/linux/virtual-arguments-fast.inc"\n'
+        "#undef QJS_DEFINE_ARGUMENTS_CONSTRUCT_FAST_OK\n"
+    )
     text += "\n#undef FRAME_CODE\n#undef FRAME_INLINE\n"
     target = output / "quickjs-linux-arguments.h"
     target.write_text(text)

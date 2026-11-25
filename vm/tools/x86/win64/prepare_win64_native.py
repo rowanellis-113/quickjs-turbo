@@ -175,28 +175,401 @@ def _inject_property_ic_win64(masm_lines, gas_lines, build, layout, source):
     return masm_lines, gas_lines
 
 
-def _build_foundation_c(core_path, output_dir, layout):
-    original = core_path.read_text(encoding="utf-8")
+def _wire_win64_inline_properties(text, property_ic):
+    text = replace_once(
+        text,
+        "static no_inline int resize_properties(JSContext *ctx, JSShape **psh,",
+        '#include "src/common/property/inline-properties.h"\n'
+        "#define QJS_HYBRID_INLINE_PROPERTIES 1\n\n"
+        "static no_inline int resize_properties(JSContext *ctx, JSShape **psh,",
+        "Win64 property storage helper types",
+    )
+    if "turbo_obj_flags" not in text:
+        text = replace_once(
+            text,
+            "    uint8_t is_HTMLDDA : 1; /* specific annex B IsHtmlDDA behavior */",
+            "    uint8_t is_HTMLDDA : 1; uint8_t turbo_obj_flags : 7; /* specific annex B IsHtmlDDA behavior */",
+            "Win64 private object flags",
+        )
+    text = replace_once(
+        text,
+        "    js_trigger_gc(ctx->rt, sizeof(JSObject) + sizeof(JSProperty) * sh->prop_size);\n"
+        "    p = js_malloc(ctx, sizeof(JSObject));",
+        "    size_t inline_bytes = (class_id == JS_CLASS_OBJECT || (props && class_id == JS_CLASS_ARRAY))\n"
+        "        ? qjs_inline_property_plan(sh, 0, props ? 4u : 0u) : 0;\n"
+        "    size_t object_bytes = inline_bytes ? inline_bytes : sizeof(JSObject);\n"
+        "    js_trigger_gc(ctx->rt, object_bytes + (inline_bytes ? 0 : sizeof(JSProperty) * sh->prop_size));\n"
+        "    p = js_malloc(ctx, object_bytes);",
+        "Win64 plain-object allocation",
+    )
+    if "p->turbo_obj_flags = 0;" not in text:
+        text = replace_once(
+            text,
+            "    p->is_prototype = 0;\n    p->first_weak_ref = NULL;",
+            "    p->is_prototype = 0; p->turbo_obj_flags = 0;\n    p->first_weak_ref = NULL;",
+            "Win64 initialize inline bit before installing GC header",
+        )
+    text = replace_once(
+        text,
+        "    p->prop = js_malloc(ctx, sizeof(JSProperty) * sh->prop_size);",
+        "    p->prop = inline_bytes ? qjs_inline_property_initialize(p, sh, 0, inline_bytes)\n"
+        "                           : js_malloc(ctx, sizeof(JSProperty) * sh->prop_size);",
+        "Win64 ordinary property storage owner",
+    )
+    old_realloc = "js_realloc(ctx, p->prop, sizeof(new_prop[0]) * new_size)"
+    if text.count(old_realloc) != 2:
+        raise ValueError("Review Win64 property growth and compaction anchors")
+    text = text.replace(
+        old_realloc,
+        old_realloc.replace("js_realloc(ctx, p->prop,", "qjs_inline_property_realloc(ctx, p,"),
+    )
+    text = replace_once(
+        text,
+        "js_realloc(ctx, p->prop, sizeof(p->prop[0]) *",
+        "qjs_inline_property_realloc(ctx, p, sizeof(p->prop[0]) *",
+        "Win64 resized hashed property transition",
+    )
+    text = replace_once(
+        text,
+        "    js_free_rt(rt, p->prop);",
+        "    if (!qjs_inline_property_current(p))\n        js_free_rt(rt, p->prop);",
+        "Win64 ordinary destruction property guard",
+    )
+    text = replace_once(
+        text,
+        "            s->prop_count += sh->prop_count;",
+        "            s->prop_count += sh->prop_count;\n            qjs_inline_property_account(s, p);",
+        "Win64 memory usage inline property accounting",
+    )
+    if property_ic:
+        text = replace_once(
+            text,
+            '#include "src/common/property/property-ic.inc"',
+            '#include "src/common/property/inline-property-ic-storage.inc"',
+            "Win64 co-allocated property IC resize",
+        )
+    return text
+
+
+def _prepare_win64_admission(source, output_dir, layout):
+    c_match = _load_module("qjs_win64_c_match", source / "tools/common/backports/c_source_match.py")
+    loop = (source / "src/common/call/quickjs-interpreter-loop.inc").read_text(encoding="utf-8")
+    signature = "static FRAME_CODE bool js_frame_validate(JSFunctionBytecode *b)"
+    original = c_match.extract_function(loop, signature)
+    loop = replace_once(
+        loop,
+        "static FRAME_INLINE JSFunctionBytecode *js_frame_target(",
+        "static no_inline bool js_frame_win64_admit(JSFunctionBytecode *b);\n\n"
+        "static FRAME_INLINE JSFunctionBytecode *js_frame_target(",
+        "Win64 admission forward declaration",
+    )
+    loop = replace_once(
+        loop,
+        "if (!FRAME_KIND(b) && !js_frame_validate(b))",
+        "if (!FRAME_KIND(b) && !js_frame_win64_admit(b))",
+        "Win64 admission dispatch",
+    )
+    (output_dir / "quickjs-win64-loop.h").write_text(loop, encoding="utf-8", newline="\n")
+
+    extra_cases = """        case OP_regexp:
+        case OP_set_name:
+        case OP_set_name_computed:
+        case OP_set_proto:
+        case OP_copy_data_properties:
+        case OP_check_object:
+        case OP_for_in_start:
+        case OP_for_in_next:
+            if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL)
+                return false;
+            break;
+"""
+    anchor = "#undef FRAME_OP\n            break;\n"
+
+    short_fn = replace_once(
+        original,
+        signature,
+        "static no_inline bool JS_FrameWin64ShortValidate(JSFunctionBytecode *b)",
+        "Win64 short validator signature",
+    )
+    short_fn = replace_once(short_fn, anchor, anchor + extra_cases, "Win64 short extra opcodes")
+
+    long_fn = replace_once(
+        original,
+        signature,
+        "static FRAME_LARGE_CODE bool JS_FrameLongValidate(JSFunctionBytecode *b)",
+        "Win64 long validator signature",
+    )
+    long_fn = replace_once(
+        long_fn,
+        "int pos, size, op, index, target;",
+        "int pos, size, op, index; int64_t target;",
+        "Win64 long validator target width",
+    )
+    if long_fn.count("target = pos + 1 +") != 3:
+        raise ValueError("Review Win64 checked branch-target arithmetic")
+    long_fn = long_fn.replace("target = pos + 1 +", "target = (int64_t)pos + 1 +")
+    long_fn = replace_once(
+        long_fn,
+        "uint8_t boundaries[(4096 + 7) / 8]",
+        "uint8_t boundaries[FRAME_LARGE_BITMAP_BYTES]",
+        "Win64 long validator bitmap",
+    )
+    long_fn = replace_once(
+        long_fn,
+        "b->byte_code_len > 4096",
+        "b->byte_code_len > FRAME_LARGE_CODE_MAX",
+        "Win64 long validator limit",
+    )
+    long_fn = replace_once(long_fn, anchor, anchor + extra_cases, "Win64 long extra opcodes")
+    admission_h = (
+        "#define FRAME_LARGE_CODE_DEFAULT "
+        + str(int(bool(layout.get("property_ic"))))
+        + "\n"
+        + '#include "src/common/call/large-code-policy.inc"\n\n'
+        + short_fn
+        + "\n\n"
+        + long_fn
+        + "\n\nstatic no_inline bool js_frame_win64_admit(JSFunctionBytecode *b)\n"
+        "{\n"
+        "    if (js_frame_validate(b))\n"
+        "        return true;\n"
+        "    if (!js_frame_register_enabled(b->realm->rt) ||\n"
+        '        getenv("QJS_DISABLE_WIN64_ADMISSION") != NULL)\n'
+        "        return false;\n"
+        "    if (b->byte_code_len <= 4096)\n"
+        "        return JS_FrameWin64ShortValidate(b);\n"
+        "    return js_frame_large_select(b);\n"
+        "}\n"
+    )
+    (output_dir / "quickjs-win64-admission.h").write_text(
+        admission_h, encoding="utf-8", newline="\n"
+    )
+
+
+def _prepare_win64_json(source, output_dir):
+    paths_mod = _load_module("qjs_common_paths", source / "tools/common/paths.py")
+    json_mod = _load_module("qjs_linux_json", source / "tools/x86/linux/json_workers.py")
+    text = paths_mod.source_text(source, "linux-json.inc")
+    text = text.replace('#include "qjs-json-simd.h"', "#include <emmintrin.h>")
+    text = text.replace("/* @QJS_MSC_INTRIN@ */", "#include <intrin.h>")
+    text = text.replace(
+        "#include <stdatomic.h>\n",
+        "#include <stdatomic.h>\n"
+        "static inline JSAtom frame_json_dup_atom(JSContext *ctx, JSAtom v)\n"
+        "{\n"
+        "    return JS_DupAtom(ctx, v);\n"
+        "}\n",
+        1,
+    )
+    text = re.sub(r"\bqjs_vec128_t\b", "__m128i", text)
+    text = re.sub(r"\bqjs_vec_\w+\b", lambda m: json_mod.VEC_REV[m[0]], text)
+    text = replace_once(
+        text,
+        "extern _Atomic unsigned char JS_FrameJSONControl;\n"
+        "/* Generated native leaf helpers implement an indivisible byte read and locked\n"
+        " * CAS. Their owned late code/unwind entries avoid adding volatile metadata\n"
+        " * before the inherited dispatch table or retaining unused CRT COMDAT copies. */\n"
+        "extern unsigned char JS_FrameJSONLoad8(const unsigned char *);\n"
+        "extern _Bool JS_FrameJSONCAS8(unsigned char *, unsigned char *, unsigned char);",
+        "static _Atomic unsigned char JS_FrameJSONControl;\n"
+        "static __forceinline unsigned char JS_FrameJSONLoad8(const unsigned char *p)\n"
+        "{\n"
+        "    return atomic_load_explicit((const _Atomic unsigned char *)p, memory_order_relaxed);\n"
+        "}\n"
+        "static __forceinline _Bool JS_FrameJSONCAS8(unsigned char *p, unsigned char *expected,\n"
+        "                                           unsigned char desired)\n"
+        "{\n"
+        "    return atomic_compare_exchange_strong_explicit(\n"
+        "        (_Atomic unsigned char *)p, expected, desired, memory_order_relaxed,\n"
+        "        memory_order_relaxed);\n"
+        "}",
+        "Win64 local JSON control atomics",
+    )
+    text = re.sub(
+        r"QJS_CONTROL_SLOT_ADDR\(p,\s*(\w+)\);",
+        lambda m: f"p = &{m[1]};",
+        text,
+    )
+    text = re.sub(
+        r"QJS_JSON_STACK_CHECK\(([^,]+),\s*([^\)]+)\);",
+        lambda m: f"return js_check_stack_overflow({m[2].strip()}, 0);",
+        text,
+    )
+    text = text.replace("JS_FrameJSONCallbackStringify(", "JS_LegacyJSONStringify(")
+    old_prop = "                prop = js_realloc(p->ctx, o->prop, sizeof(JSProperty) * (size_t)e->to->prop_size);"
+    if text.count(old_prop) != 1:
+        raise ValueError("Review Win64 JSON property storage growth boundary")
+    text = text.replace(
+        old_prop,
+        "#ifdef QJS_HYBRID_INLINE_PROPERTIES\n"
+        "                prop = qjs_inline_property_realloc(\n"
+        "                    p->ctx, o, sizeof(JSProperty) * (size_t)e->to->prop_size);\n"
+        "#else\n" + old_prop + "\n#endif",
+    )
+    text = replace_once(
+        text,
+        "    value = strtod(buf, NULL);",
+        "    {\n"
+        "        JSATODTempMem atod_mem;\n"
+        "        value = js_atod(buf, NULL, 10, 0, &atod_mem);\n"
+        "    }",
+        "Win64 JSON js_atod parser",
+    )
+    (output_dir / "quickjs-win64-json.h").write_text(text, encoding="utf-8", newline="\n")
+
+
+def _prepare_win64_locale(source, output_dir):
+    locale = (source / "src/common/string/locale-compare.inc").read_text(encoding="utf-8")
+    boundary = "/* Native compound interpreter entry."
+    if locale.count(boundary) != 1:
+        raise ValueError("Review Win64 locale-compare boundary")
+    locale = locale[: locale.index(boundary)]
+    locale = replace_once(
+        locale,
+        "#ifdef _MSC_VER\n"
+        "extern unsigned char JS_FrameCallMetaLoadByte(unsigned char *);\n"
+        "extern unsigned char JS_FrameCallMetaInitByte(unsigned char *, unsigned char);\n"
+        '#pragma section(".qjslfm", read, write)\n'
+        '__declspec(allocate(".qjslfm"))\n'
+        "#else\n"
+        '__attribute__((section(".qjslfm"), aligned(1)))\n'
+        "#endif\n"
+        "static unsigned char js_frame_locale_compare_control;",
+        "#include <stdatomic.h>\nstatic _Atomic unsigned char js_frame_locale_compare_control;",
+        "Win64 locale control declaration",
+    )
+    locale = replace_once(
+        locale,
+        "#ifdef _MSC_VER\n"
+        "    mode = JS_FrameCallMetaLoadByte(&js_frame_locale_compare_control);\n"
+        "#else\n"
+        "    mode = __atomic_load_n(&js_frame_locale_compare_control, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "    if (unlikely(mode == 0)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_LOCALE_COMPARE_LATIN1") ? 2 : 1;\n'
+        "#ifdef _MSC_VER\n"
+        "        mode = JS_FrameCallMetaInitByte(&js_frame_locale_compare_control, desired);\n"
+        "#else\n"
+        "        __atomic_compare_exchange_n(&js_frame_locale_compare_control, &mode, desired, false,\n"
+        "                                    __ATOMIC_RELAXED, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "    mode = atomic_load_explicit(&js_frame_locale_compare_control, memory_order_relaxed);\n"
+        "    if (unlikely(mode == 0)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_LOCALE_COMPARE_LATIN1") ? 2 : 1;\n'
+        "        atomic_compare_exchange_strong_explicit(&js_frame_locale_compare_control, &mode,\n"
+        "                                                desired, memory_order_relaxed,\n"
+        "                                                memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "Win64 locale control atomics",
+    )
+    (output_dir / "quickjs-win64-locale.h").write_text(locale, encoding="utf-8", newline="\n")
+
+
+def _inject_push_bigint_i32_win64(masm_lines, gas_lines, upstream):
+    opcodes = re.findall(
+        r"^DEF\(\s*(\w+)\s*,", (upstream / "quickjs-opcode.h").read_text(encoding="utf-8"), re.M
+    )
+    op_idx = opcodes.index("push_bigint_i32")
+    masm_slot = masm_lines.index("interp_table LABEL QWORD") + 1 + op_idx
+    if masm_lines[masm_slot].strip() != "DQ interp_slow":
+        raise ValueError(f"Unexpected MASM push_bigint_i32 slot: {masm_lines[masm_slot]}")
+    masm_lines[masm_slot] = "DQ JS_Win64PushBigIntI32"
+
+    gas_slot = gas_lines.index("interp_table:") + 1 + op_idx
+    if gas_lines[gas_slot].strip() != ".quad interp_slow":
+        raise ValueError(f"Unexpected GAS push_bigint_i32 slot: {gas_lines[gas_slot]}")
+    gas_lines[gas_slot] = ".quad JS_Win64PushBigIntI32"
+
+    body = [
+        "mov eax, DWORD PTR [r12+1]",
+        "mov QWORD PTR [r13], rax",
+        "mov QWORD PTR [r13+8], 7",
+        "add r13, 16",
+        "add r12, 5",
+        "movzx eax, BYTE PTR [r12]",
+        "jmp QWORD PTR [rdi+rax*8]",
+    ]
+    assert masm_lines[-1].strip() == "END", "Unexpected MASM trailer"
+    masm_lines.pop()
+    masm_lines += [
+        ".qjscold SEGMENT ALIGN(16) 'CODE'",
+        "PUBLIC JS_Win64PushBigIntI32",
+        "PUBLIC JS_Win64PushBigIntI32_end",
+        "JS_Win64PushBigIntI32 PROC",
+        *body,
+        "JS_Win64PushBigIntI32_end LABEL BYTE",
+        "JS_Win64PushBigIntI32 ENDP",
+        ".qjscold ENDS",
+        ".pdata$zzqjscold SEGMENT ALIGN(4) READONLY 'DATA'",
+        "DD IMAGEREL JS_Win64PushBigIntI32, IMAGEREL JS_Win64PushBigIntI32_end, IMAGEREL JS_FrameInterpPropertyCold_unwind",
+        ".pdata$zzqjscold ENDS",
+        "END",
+    ]
+    gas_lines += [
+        '.section .qjscold,"xr"',
+        ".globl JS_Win64PushBigIntI32, JS_Win64PushBigIntI32_end",
+        ".def JS_Win64PushBigIntI32; .scl 2; .type 32; .endef",
+        "JS_Win64PushBigIntI32:",
+        *body,
+        "JS_Win64PushBigIntI32_end:",
+        '.section .pdata$zzqjscold,"dr"',
+        ".p2align 2",
+        ".rva JS_Win64PushBigIntI32, JS_Win64PushBigIntI32_end, JS_FrameInterpPropertyCold_unwind",
+    ]
+    return masm_lines, gas_lines
+
+
+def _build_foundation_c(core_path, output_dir, layout, source):
+    _prepare_win64_admission(source, output_dir, layout)
+    _prepare_win64_json(source, output_dir)
+    _prepare_win64_locale(source, output_dir)
+    original = _wire_win64_inline_properties(
+        core_path.read_text(encoding="utf-8"), bool(layout.get("property_ic"))
+    )
+    for old_api, new_api in (
+        ("JS_ParseJSON", "JS_LegacyParseJSON"),
+        ("JS_JSONStringify", "JS_LegacyJSONStringify"),
+    ):
+        original = re.sub(r"\b" + old_api + r"\b", new_api, original)
+    for old_fn, new_fn in (
+        ("js_json_parse", "JS_FrameJSONParse"),
+        ("js_json_stringify", "JS_FrameJSONStringify"),
+    ):
+        pattern = r'(JS_CFUNC_DEF\("(?:parse|stringify)",\s*\d+,\s*)' + old_fn + r"(\s*\))"
+        original, count = re.subn(pattern, lambda m: m[1] + new_fn + m[2], original)
+        if count != 1:
+            raise ValueError("Win64 JSON builtin table route changed: " + old_fn)
+    original = replace_once(
+        original,
+        "static const JSCFunctionListEntry js_json_funcs[] = {",
+        "JSValue JS_FrameJSONParse(JSContext *, JSValueConst, int, JSValueConst *);\n"
+        "JSValue JS_FrameJSONStringify(JSContext *, JSValueConst, int, JSValueConst *);\n"
+        "static const JSCFunctionListEntry js_json_funcs[] = {",
+        "Win64 JSON builtin declarations",
+    )
+    old_locale = 'JS_CFUNC_DEF("localeCompare", 1, js_string_localeCompare )'
+    if original.count(old_locale) != 1:
+        raise ValueError("Win64 localeCompare builtin table route changed")
+    original = original.replace(
+        old_locale, old_locale.replace("js_string_localeCompare", "JS_FrameLocaleCompare"), 1
+    )
+    original = replace_once(
+        original,
+        "static const JSCFunctionListEntry js_string_proto_funcs[] = {",
+        "JSValue JS_FrameLocaleCompare(JSContext *, JSValueConst, int, JSValueConst *);\n"
+        "static const JSCFunctionListEntry js_string_proto_funcs[] = {",
+        "Win64 localeCompare declaration",
+    )
+
     anchor = "JSValue JS_Call(JSContext *ctx,"
     if original.count(anchor) != 1:
         raise ValueError("Public JS_Call definition anchor changed")
     text = original.replace(anchor, "JSValue JS_LegacyCall(JSContext *ctx,", 1)
-
-    # A dense own element cannot run user code. Other iterator kinds, holes,
-    # and completion still use the original length and property operations.
-    iterator_anchor = "    p = JS_VALUE_GET_OBJ(it->obj);\n    if (is_typed_array(p->class_id)) {"
-    text = replace_once(
-        text,
-        iterator_anchor,
-        """    p = JS_VALUE_GET_OBJ(it->obj);
-    if (p->class_id == JS_CLASS_ARRAY && p->fast_array &&
-        it->kind == JS_ITERATOR_KIND_VALUE && it->idx < p->u.array.count) {
-        *pdone = false;
-        return js_dup(p->u.array.u.values[it->idx++]);
-    }
-    if (is_typed_array(p->class_id)) {""",
-        "Win64 dense array value iterator",
-    )
 
     definition = re.compile(r"(^static JSValue )JS_CallInternal(\([^;{}]*\)\s*\{)", re.M | re.S)
     text, count = definition.subn(r"\1JS_LegacyCallInternal\2", text)
@@ -222,7 +595,16 @@ def _build_foundation_c(core_path, output_dir, layout):
 #include "src/x86/win64/internal/win64-native-compat.inc"
 #include "src/common/call/interpreter-slow-host-declare.inc"
 #include "src/common/value/arithmetic.inc"
-#include "src/common/call/quickjs-interpreter-loop.inc"
+#ifdef QJS_PROPERTY_IC
+#define QJS_WIN64_FAST_INSTANCEOF 1
+#define QJS_FAST_INSTANCEOF_NO_DIRECT_DATA 1
+#define QJS_FAST_INSTANCEOF_CTX_ENTRY 1
+#include "src/common/value/instanceof-fast.inc"
+#undef QJS_FAST_INSTANCEOF_CTX_ENTRY
+#undef QJS_FAST_INSTANCEOF_NO_DIRECT_DATA
+#endif
+#include "quickjs-win64-loop.h"
+#include "quickjs-win64-admission.h"
 #include "src/common/call/quickjs-interpreter-shared.inc"
 #include "src/common/call/interpreter-slow-host.inc"
 
@@ -248,11 +630,16 @@ JSValue JS_Call(JSContext *ctx, JSValueConst func_obj, JSValueConst this_obj,
                 int argc, JSValueConst *argv)
 {
     if (FRAME_STATE(ctx->rt) == 2 || JS_VALUE_GET_TAG(func_obj) != JS_TAG_OBJECT ||
-        JS_VALUE_GET_OBJ(func_obj)->class_id != JS_CLASS_BYTECODE_FUNCTION)
+        JS_VALUE_GET_OBJ(func_obj)->class_id != JS_CLASS_BYTECODE_FUNCTION ||
+        JS_VALUE_GET_OBJ(func_obj)->u.func.function_bytecode->func_kind != JS_FUNC_NORMAL ||
+        FRAME_KIND(JS_VALUE_GET_OBJ(func_obj)->u.func.function_bytecode) == 2)
         return JS_LegacyCall(ctx, func_obj, this_obj, argc, argv);
     return JS_FrameCallEntryDispatch(ctx, func_obj, this_obj, JS_UNDEFINED, argc,
                                      argv, JS_CALL_FLAG_COPY_ARGV);
 }
+
+#include "quickjs-win64-json.h"
+#include "quickjs-win64-locale.h"
 """
     out_c = output_dir / "quickjs-win64-foundation.c"
     out_c.write_text(text, encoding="utf-8", newline="\n")
@@ -289,9 +676,231 @@ def main():
         is_gnu=args.gnu,
     )
 
-    # 2. Generate quickjs-interpreter-slow.h
+    # 2. Generate quickjs-interpreter-slow.h (with Win64 fast instanceof op)
     slow_mod = _load_module("qjs_win64_slow", source / "tools/x86/win64/codegen/generate-slow.py")
-    slow_mod.generate(source, native_dir / "quickjs-interpreter-slow.h")
+    slow_path = native_dir / "quickjs-interpreter-slow.h"
+    slow_mod.generate(source, slow_path)
+    ops_text = (source / "src/common/call/quickjs-interpreter-ops.inc").read_text(encoding="utf-8")
+    ops_anchor = "        CASE(OP_instanceof):\n            sf->cur_pc = pc;"
+    ops_text = replace_once(
+        ops_text,
+        ops_anchor,
+        "        CASE(OP_instanceof):\n"
+        "#if defined(QJS_WIN64_FAST_INSTANCEOF) && defined(QJS_PROPERTY_IC)\n"
+        "            if (JS_FastInstanceOfContext(ctx, sp)) {\n"
+        "                sp--;\n"
+        "                BREAK;\n"
+        "            }\n"
+        "#endif\n"
+        "            sf->cur_pc = pc;",
+        "Win64 OP_instanceof fast path",
+    )
+    add_loc_old = (
+        "#ifdef QJS_FRAME_LOCAL_ROPE_APPEND\n"
+        "                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING_ROPE &&\n"
+        "                           JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {\n"
+        "                    sf->cur_pc = pc;\n"
+        "                    if (js_frame_append_local_rope(ctx, pv, *--sp) < 0)\n"
+        "                        goto exception;\n"
+        "#endif\n"
+        "                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING) {\n"
+        "                    JSValue op1;\n"
+        "                    op1 = sp[-1];\n"
+        "                    sp--;\n"
+        "                    sf->cur_pc = pc;\n"
+        "                    op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);\n"
+        "                    if (JS_IsException(op1))\n"
+        "                        goto exception;\n"
+        "                    op1 = JS_ConcatString(ctx, js_dup(*pv), op1);\n"
+        "                    if (JS_IsException(op1))\n"
+        "                        goto exception;\n"
+        "                    set_value(ctx, pv, op1);"
+    )
+    add_loc_new = (
+        "#ifdef QJS_FRAME_LOCAL_ROPE_APPEND\n"
+        "                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING_ROPE &&\n"
+        "                           JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING) {\n"
+        "                    JSValue op1 = *--sp;\n"
+        "                    if (JS_VALUE_GET_STRING(op1)->len == 0) {\n"
+        "                        JS_FreeValue(ctx, op1);\n"
+        "                    } else {\n"
+        "                        sf->cur_pc = pc;\n"
+        "                        if (js_frame_append_local_rope(ctx, pv, op1) < 0)\n"
+        "                            goto exception;\n"
+        "                    }\n"
+        "#endif\n"
+        "                } else if (JS_VALUE_GET_TAG(*pv) == JS_TAG_STRING) {\n"
+        "                    JSValue op1;\n"
+        "                    op1 = sp[-1];\n"
+        "                    sp--;\n"
+        "                    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING) {\n"
+        "                        JSString *p1 = JS_VALUE_GET_STRING(*pv);\n"
+        "                        JSString *p2 = JS_VALUE_GET_STRING(op1);\n"
+        "                        if (p2->len == 0) {\n"
+        "                            JS_FreeValue(ctx, op1);\n"
+        "                            BREAK;\n"
+        "                        }\n"
+        "                        if (JS_REF_COUNT(p1) == 1 && !p1->atom_type &&\n"
+        "                            p1->kind == JS_STRING_KIND_NORMAL &&\n"
+        "                            p1->is_wide_char == p2->is_wide_char &&\n"
+        "                            js_malloc_usable_size(ctx, p1) >=\n"
+        "                                sizeof(*p1) +\n"
+        "                                    (((size_t)p1->len + (size_t)p2->len) << p1->is_wide_char) +\n"
+        "                                    1 - p1->is_wide_char) {\n"
+        "                            if (p1->is_wide_char) {\n"
+        "                                memcpy(str16(p1) + p1->len, str16(p2),\n"
+        "                                       (size_t)p2->len << 1);\n"
+        "                                p1->len += p2->len;\n"
+        "                            } else {\n"
+        "                                memcpy(str8(p1) + p1->len, str8(p2), p2->len);\n"
+        "                                p1->len += p2->len;\n"
+        "                                str8(p1)[p1->len] = '\\0';\n"
+        "                            }\n"
+        "                            if (unlikely(p1->hash))\n"
+        "                                p1->hash = 0;\n"
+        "                            JS_FreeValue(ctx, op1);\n"
+        "                            BREAK;\n"
+        "                        }\n"
+        "                        sf->cur_pc = pc;\n"
+        "                        op1 = JS_ConcatString(ctx, js_dup(*pv), op1);\n"
+        "                        if (JS_IsException(op1))\n"
+        "                            goto exception;\n"
+        "                        set_value(ctx, pv, op1);\n"
+        "                        BREAK;\n"
+        "                    }\n"
+        "                    sf->cur_pc = pc;\n"
+        "                    op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NONE);\n"
+        "                    if (JS_IsException(op1))\n"
+        "                        goto exception;\n"
+        "                    op1 = JS_ConcatString(ctx, js_dup(*pv), op1);\n"
+        "                    if (JS_IsException(op1))\n"
+        "                        goto exception;\n"
+        "                    set_value(ctx, pv, op1);"
+    )
+    ops_text = replace_once(
+        ops_text, add_loc_old, add_loc_new, "Win64 OP_add_loc fast string append"
+    )
+    extra_ops = """
+        CASE(OP_regexp):
+            {
+                sf->cur_pc = pc;
+                sp[-2] = js_regexp_constructor_internal(ctx, JS_UNDEFINED, sp[-2], sp[-1]);
+                sp--;
+                if (JS_IsException(sp[-1]))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_set_name):
+            {
+                int ret;
+                JSAtom atom;
+                atom = get_u32(pc);
+                pc += 4;
+                sf->cur_pc = pc;
+                ret = JS_DefineObjectName(ctx, sp[-1], atom, JS_PROP_CONFIGURABLE);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_set_name_computed):
+            {
+                int ret;
+                sf->cur_pc = pc;
+                ret = JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_set_proto):
+            {
+                JSValue proto;
+                proto = sp[-1];
+                if (JS_IsObject(proto) || JS_IsNull(proto)) {
+                    sf->cur_pc = pc;
+                    if (JS_SetPrototypeInternal(ctx, sp[-2], proto, true) < 0)
+                        goto exception;
+                }
+                JS_FreeValue(ctx, proto);
+                sp--;
+            }
+            BREAK;
+        CASE(OP_copy_data_properties):
+            {
+                int mask;
+                mask = *pc++;
+                sf->cur_pc = pc;
+                if (JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)],
+                                          sp[-1 - ((mask >> 2) & 7)],
+                                          sp[-1 - ((mask >> 5) & 7)], 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_check_object):
+            if (unlikely(!JS_IsObject(sp[-1]))) {
+                sf->cur_pc = pc;
+                JS_ThrowTypeErrorNotAnObject(ctx);
+                goto exception;
+            }
+            BREAK;
+        CASE(OP_for_in_start):
+            sf->cur_pc = pc;
+            if (js_for_in_start(ctx, sp))
+                goto exception;
+            BREAK;
+        CASE(OP_for_in_next):
+            sf->cur_pc = pc;
+            if (js_for_in_next(ctx, sp))
+                goto exception;
+            sp += 2;
+            BREAK;
+"""
+    ops_text = ops_text + extra_ops
+    (native_dir / "quickjs-win64-ops.inc").write_text(ops_text, encoding="utf-8", newline="\n")
+
+    dispatch_text = (source / "src/common/call/quickjs-interpreter-dispatch.inc").read_text(
+        encoding="utf-8"
+    )
+    for op in (
+        "regexp",
+        "set_name",
+        "set_name_computed",
+        "set_proto",
+        "copy_data_properties",
+        "check_object",
+        "for_in_start",
+        "for_in_next",
+    ):
+        dispatch_text = replace_once(
+            dispatch_text,
+            f"FRAME_TARGET({op}, invalid)",
+            f"FRAME_TARGET({op}, OP_{op})",
+            f"Win64 dispatch {op}",
+        )
+    (native_dir / "quickjs-win64-dispatch.inc").write_text(
+        dispatch_text, encoding="utf-8", newline="\n"
+    )
+
+    slow_text = slow_path.read_text(encoding="utf-8")
+    slow_text = replace_once(
+        slow_text,
+        '#include "src/common/call/quickjs-interpreter-dispatch.inc"',
+        '#include "quickjs-win64-dispatch.inc"',
+        "Win64 slow dispatch include",
+    )
+    slow_text = replace_once(
+        slow_text,
+        '#include "src/common/call/quickjs-interpreter-ops.inc"',
+        '#include "quickjs-win64-ops.inc"',
+        "Win64 slow ops include",
+    )
+    slow_text = replace_once(
+        slow_text,
+        "ret_val = js_frame_legacy_call(ctx, callee, call_this, call_argc, vc(call_argv));",
+        "ret_val = js_frame_slow_host_call(state, frame, segment, used_bytes, pc, sp, ctx, "
+        "callee, call_this, call_argc, vc(call_argv));",
+        "Win64 slow host call TLS bridge",
+    )
+    slow_path.write_text(slow_text, encoding="utf-8", newline="\n")
 
     # 3. Generate Win64 register VM assembly (MASM + GAS/Clang Intel syntax)
     reg_mod = _load_module(
@@ -334,6 +943,7 @@ def main():
         masm_lines, gas_lines = _inject_property_ic_win64(
             masm_lines, gas_lines, build, layout, source
         )
+    masm_lines, gas_lines = _inject_push_bigint_i32_win64(masm_lines, gas_lines, upstream)
 
     masm_text = "\n".join(masm_lines) + "\n"
     gas_text = "\n".join(gas_lines) + "\n"
@@ -347,7 +957,7 @@ def main():
 
     # 5. Generate quickjs-win64-foundation.c
     core_path = Path(layout["compiler_input"])
-    foundation_c = _build_foundation_c(core_path, native_dir, layout)
+    foundation_c = _build_foundation_c(core_path, native_dir, layout, source)
 
     receipt = dict(
         schema=1,

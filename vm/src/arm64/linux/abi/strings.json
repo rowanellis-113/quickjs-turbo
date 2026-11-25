@@ -2,11 +2,11 @@
   "schema": 1,
   "target": "Linux AArch64 GCC/glibc",
   "source_owners": {
-    "tools/common/elf/string_workers.py": "0ef7010c1d7b064a11928ad996305a4eeaa971dd6bb2bf45bf0eb9a755f5264c",
+    "tools/common/elf/string_workers.py": "3876aae09aff864af55d7bd7a2f6de68d900b842e3fb3cc9ee31d5f4e2da9cbb",
     "tools/common/c_extract/local_string_c.py": "6dc46ff734ed8d4fc97d527060ff7c764aa770fe03caac436ee71b451a9645d7",
     "src/common/string/concat-rope.inc": "a24af910ddcd08b49e5a6541c4793a8de7f3564b49401bddc5b145ab4d8c0ce3",
     "src/common/string/local-rope-append.inc": "17d9554d4a919c922b3b4863ae65e3c6cbbe2ae801da80bfefa37918468b6925",
-    "src/common/string/locale-compare.inc": "3159d1113495eb2219f6e9ab8d675f5162e23b0df571336354292cb76e393150",
+    "src/common/string/locale-compare.inc": "0677ed43242c0fc7b924e492d62db0fae7755b2ccdd70dd9ec0556828621e97c",
     "src/common/linux/interpreter-string.inc": "b8c65f1ab1d7c8884c693b423359f4f39ad839bb1c0fcc81e770082251627ed8",
     "src/common/kernel/string-index.c": "52b05fc68bb9e82e3bd4d8851719cf72154ff3cc982d83daa4718306456feec0",
     "src/common/kernel/small-char.c": "5167df183786da00ec02ef63151b57429172f6ab9f7bb2a35820a510c8a51b96",

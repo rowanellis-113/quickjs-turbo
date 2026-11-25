@@ -7,8 +7,8 @@
  * use the same switch body. Keep the VM out of the entry wrapper.
  * Decode remains at the opcode boundary, preserving existing fault/poll order.
  */
-#if defined(__GNUC__) && defined(_WIN32) && defined(__x86_64__) && !defined(_MSC_VER) &&           \
-    !defined(DUMP_EXEC) && !defined(QJS_REGEXP_SWITCH_DISPATCH)
+#if defined(__GNUC__) && !defined(_MSC_VER) && !defined(DUMP_EXEC) &&                              \
+    !defined(QJS_REGEXP_SWITCH_DISPATCH)
 #define RE_VM_THREADED 1
 #define RE_VM_CASE(id) re_vm_##id:
 #define RE_VM_SWITCH(opcode)
@@ -297,6 +297,43 @@ static no_inline intptr_t FRAME_RE_EXEC_NAME(REExecContext *s, uint8_t **capture
 
                 val = get_u32(pc);
                 pc += 4;
+#if defined(FRAME_RE_CBUF_TYPE) && FRAME_RE_CBUF_TYPE == 0
+                if ((int)val > 0 && cptr < cbuf_end) {
+                    const uint8_t *probe = (opcode == REOP_split_next_first) ? pc : (pc + (int)val);
+                    if (probe + 2 < s->bytecode_end && probe[0] == REOP_save_start)
+                        probe += 2;
+                    if (probe < s->bytecode_end) {
+                        uint8_t popc = probe[0];
+                        if (popc == REOP_char && probe + 3 <= s->bytecode_end) {
+                            if (get_u16(probe + 1) != *cptr) {
+                                if (opcode == REOP_split_next_first)
+                                    pc += (int)val;
+                                RE_VM_NEXT();
+                            }
+                        } else if (popc == REOP_range && probe + 3 <= s->bytecode_end) {
+                            unsigned rn = get_u16(probe + 1);
+                            if (rn <= 6 && probe + 3 + 4 * rn <= s->bytecode_end) {
+                                const uint8_t *ranges = probe + 3;
+                                uint8_t ch = *cptr;
+                                bool ok = false;
+                                for (unsigned ri = 0; ri < rn; ri++) {
+                                    uint16_t lo = get_u16(ranges + 4 * ri);
+                                    uint16_t hi = get_u16(ranges + 4 * ri + 2);
+                                    if (ch >= lo && ch <= hi) {
+                                        ok = true;
+                                        break;
+                                    }
+                                }
+                                if (!ok) {
+                                    if (opcode == REOP_split_next_first)
+                                        pc += (int)val;
+                                    RE_VM_NEXT();
+                                }
+                            }
+                        }
+                    }
+                }
+#endif
                 if (opcode == REOP_split_next_first) {
                     pc1 = pc + (int)val;
                 } else {

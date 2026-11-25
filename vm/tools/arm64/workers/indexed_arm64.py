@@ -1149,6 +1149,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
         ("dup2", ".Lfast_dup2"),
         ("perm3", ".Lfast_perm3"),
         ("rot3r", ".Lfast_rot3r"),
+        ("push_bigint_i32", ".Lfast_push_bigint_i32"),
     ):
         bind_shared(op_name, label)
 
@@ -1781,6 +1782,15 @@ def _specialize_stack_and_globals(text, output, op_ids):
     add x20, x20, #10
     add x20, x20, x15
     ARM_DISPATCH_NEXT 2
+#endif
+""",
+        """#ifndef QJS_AARCH64_VM_INSTRUMENT
+.Lfast_push_bigint_i32:
+    ldursw x10, [x20, #1]
+    mov x11, #ARM_CONST_JS_TAG_SHORT_BIG_INT
+    stp x10, x11, [x21], #16
+    add x20, x20, #5
+    ARM_DISPATCH_NEXT 1
 #endif
 """,
     ]

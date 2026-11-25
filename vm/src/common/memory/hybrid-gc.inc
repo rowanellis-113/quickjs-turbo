@@ -568,13 +568,14 @@ static no_inline void js_hybrid_gc_minor(JSRuntime *rt)
         JS_HYBRID_YOUNG(p) = 0;
     }
 
+    if (!list_empty(&rt->tmp_obj_list)) {
 #ifdef QJS_PROPERTY_IC
-    rt->gc_phase = JS_GC_PHASE_REMOVE_CYCLES;
-    js_property_ic_gc_prune(rt);
-    rt->gc_phase = JS_GC_PHASE_NONE;
+        rt->gc_phase = JS_GC_PHASE_REMOVE_CYCLES;
+        js_property_ic_gc_prune(rt);
+        rt->gc_phase = JS_GC_PHASE_NONE;
 #endif
-
-    gc_free_cycles(rt);
+        gc_free_cycles(rt);
+    }
     rt->hybrid_gc_minor_count++;
     rt->hybrid_gc_minor_since_full++;
     js_hybrid_link_boundary_tail(rt);
@@ -624,9 +625,15 @@ static no_inline void js_hybrid_trigger_gc_slow(JSRuntime *rt)
         size_t full_cap = base + (base >> 1) + (base >> 2);
         bool near_limit = (lim != 0 && before + (before >> 2) > lim);
         if (rt->hybrid_gc_minor_since_full >= 8 || near_limit || before > full_cap) {
+            size_t after;
             JS_RunGC(rt);
-            rt->malloc_gc_threshold =
-                rt->malloc_state.malloc_size + (rt->malloc_state.malloc_size >> 1);
+            after = rt->malloc_state.malloc_size;
+            if (!near_limit && before >= (1024u * 1024u) && after >= before - (before >> 4)) {
+                rt->malloc_gc_threshold = after + after;
+                rt->hybrid_gc_full_malloc = after + (after >> 2);
+            } else {
+                rt->malloc_gc_threshold = after + (after >> 1);
+            }
         } else {
             size_t after;
             js_hybrid_gc_minor(rt);

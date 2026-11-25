@@ -17,6 +17,7 @@ typedef struct JSCVMSegmentState {
     JSContext *ctx;
 } JSCVMSegmentState;
 
+#ifdef QJS_CVM_NATIVE_OPS
 _Static_assert(sizeof(JSCVMSegmentState) == 48 && offsetof(JSCVMSegmentState, pc) == 0 &&
                    offsetof(JSCVMSegmentState, sp) == 8 &&
                    offsetof(JSCVMSegmentState, locals) == 16 &&
@@ -35,7 +36,6 @@ _Static_assert(sizeof(JSValue) == 16 && offsetof(JSValue, tag) == 8 && JS_TAG_FI
                     offsetof(JSContext, interrupt_counter) == 556) &&
                    offsetof(JSVarRef, pvalue) == 24,
                "native coroutine reads the pinned value/RC/context/capture contract");
-#ifdef QJS_CVM_NATIVE_OPS
 extern void JS_CVMRunSegment(JSCVMSegmentState *state);
 #endif
 static JSValue JS_CVMResumeInternal(JSContext *, JSValueConst, JSValueConst, JSValueConst, int,
@@ -63,8 +63,9 @@ static unsigned char js_cvm_segment_mode(void)
 #else
     mode = 3;
 #endif
-    if (getenv("QJS_DISABLE_CVM_NATIVE_SEGMENTS") || qjs_internal_interp_frame_disabled() ||
-        qjs_internal_interp_internal_disabled() || qjs_internal_interp_register_disabled())
+    if (getenv("QJS_DISABLE_CVM_NATIVE_SEGMENTS") || getenv("QJS_DISABLE_COROUTINE_FAST_RESUME") ||
+        qjs_internal_interp_frame_disabled() || qjs_internal_interp_internal_disabled() ||
+        qjs_internal_interp_register_disabled())
         mode = 2;
     else if (getenv("QJS_DISABLE_CVM_NATIVE_SEGMENT_OPS"))
         mode = 3;

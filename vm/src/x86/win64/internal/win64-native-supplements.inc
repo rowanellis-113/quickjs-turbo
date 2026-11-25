@@ -57,6 +57,8 @@ typedef struct Win64FastCtorMeta {
     uintptr_t proto_id;
     uintptr_t proto_shape_id;
     uintptr_t shape_id;
+    uintptr_t init_holder_id;
+    uintptr_t init_holder_shape_id;
     uintptr_t init_fn_id;
     uintptr_t init_fn_shape_id;
     uintptr_t fn_proto_id;
@@ -67,6 +69,7 @@ typedef struct Win64FastCtorMeta {
     uint32_t proto_slot;
     uint32_t init_slot;
     uint32_t apply_slot;
+    uint8_t init_depth;
     uint8_t tier; /* 1=leaf fields, 2=general shared child, 3=va_wrapper, 4=declined */
     uint8_t n_fields;
     uint8_t need_undef_varref0;
@@ -648,6 +651,58 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
         JS_VALUE_GET_OBJ(func_obj) != JS_VALUE_GET_OBJ(argv[-1]))
         return -1;
     JSObject *callee = JS_VALUE_GET_OBJ(func_obj);
+    if (incoming_argc == 0 && callee->class_id == JS_CLASS_C_FUNCTION && callee->is_constructor &&
+        !callee->is_exotic &&
+        (callee->u.cfunc.cproto == JS_CFUNC_constructor ||
+         callee->u.cfunc.cproto == JS_CFUNC_constructor_or_func) &&
+        callee->u.cfunc.c_function.constructor == js_object_constructor &&
+        callee->u.cfunc.realm == ctx) {
+        if (rt->dump_flags || ctx->interrupt_counter <= 2 ||
+            !JS_IsObject(ctx->class_proto[JS_CLASS_OBJECT]))
+            return -1;
+        JSObject *op_proto = JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_OBJECT]);
+        frame->saved_sp = sp;
+        frame->sf.cur_sp = sp;
+        frame->sf.cur_pc = pc + 3;
+        state->pc = pc + 3;
+        state->sp = sp;
+        js_frame_begin_c(state);
+        JSShape *sh = find_hashed_shape_proto(rt, op_proto);
+        sh = sh ? js_dup_shape(sh) : js_new_shape(ctx, op_proto);
+        if (!sh) {
+            state->exception_pending = true;
+            js_frame_finish_c(state);
+            return JS_FrameInterpSlow(state);
+        }
+        JSProperty dummy_prop;
+        dummy_prop.u.value = JS_UNDEFINED;
+        JSValue this_obj = JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, &dummy_prop);
+        if (JS_IsException(this_obj)) {
+            state->exception_pending = true;
+            js_frame_finish_c(state);
+            return JS_FrameInterpSlow(state);
+        }
+        ctx->interrupt_counter--;
+        JSValue old_f0 = argv[-2], old_f1 = argv[-1];
+        JSValue *new_sp = argv - 1;
+        argv[-2] = this_obj;
+        argv[-1] = JS_UNDEFINED;
+        state->pc = pc + 3;
+        state->sp = new_sp;
+        frame->saved_sp = new_sp;
+        frame->sf.cur_sp = new_sp;
+        frame->sf.cur_pc = pc + 3;
+        if (JS_REF_COUNT(callee) > 2) {
+            JS_REF_COUNT(callee) -= 2;
+        } else {
+            JS_FreeValue(ctx, old_f0);
+            JS_FreeValue(ctx, old_f1);
+        }
+        if (!FRAME_CHECKPOINT(frame))
+            frame->sf.cur_sp = NULL;
+        js_frame_finish_c(state);
+        return 0;
+    }
     if (callee->class_id != JS_CLASS_BYTECODE_FUNCTION || !callee->is_constructor ||
         callee->is_exotic)
         return -1;
@@ -673,7 +728,10 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
     if (m->rt_id == (uintptr_t)rt && m->tier != 0 &&
         (is_va_wrapper ? (m->tier >= 3) : (m->tier <= 2 || m->tier == 4)) &&
         m->callee_id == (uintptr_t)callee && m->bc_id == (uintptr_t)b &&
-        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch) {
+        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch &&
+        m->proto_slot < (uint32_t)callee->shape->prop_count &&
+        get_shape_prop(callee->shape)[m->proto_slot].atom == JS_ATOM_prototype &&
+        (get_shape_prop(callee->shape)[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
         JSValue pval = callee->prop[m->proto_slot].u.value;
         if (JS_IsObject(pval)) {
             JSObject *po = JS_VALUE_GET_OBJ(pval);
@@ -686,17 +744,36 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
     if (proto_obj && is_va_wrapper) {
         if (m->tier == 4)
             return -1;
-        JSValue iv = proto_obj->prop[m->init_slot].u.value;
-        if (JS_IsObject(iv)) {
-            JSObject *ifo = JS_VALUE_GET_OBJ(iv);
-            if ((uintptr_t)ifo == m->init_fn_id && !ifo->is_exotic &&
-                (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&
-                (uintptr_t)ifo->shape->proto == m->fn_proto_id && ifo->shape->proto->is_prototype &&
-                !ifo->shape->proto->is_exotic &&
-                (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id) {
-                JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;
-                if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)
-                    init_b = ifo->u.func.function_bytecode;
+        JSObject *cur = proto_obj;
+        for (uint8_t d = 1; d < m->init_depth && cur; d++) {
+            if (cur->is_exotic || !cur->is_prototype) {
+                cur = NULL;
+                break;
+            }
+            cur = cur->shape->proto;
+        }
+        if (cur && (uintptr_t)cur == m->init_holder_id && !cur->is_exotic && cur->is_prototype &&
+            (uintptr_t)cur->shape == m->init_holder_shape_id &&
+            m->init_slot < (uint32_t)cur->shape->prop_count &&
+            get_shape_prop(cur->shape)[m->init_slot].atom == get_u32(b->byte_code_buf + 7) &&
+            (get_shape_prop(cur->shape)[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
+            JSValue iv = cur->prop[m->init_slot].u.value;
+            if (JS_IsObject(iv)) {
+                JSObject *ifo = JS_VALUE_GET_OBJ(iv);
+                if ((uintptr_t)ifo == m->init_fn_id &&
+                    ifo->class_id == JS_CLASS_BYTECODE_FUNCTION && !ifo->is_exotic &&
+                    (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&
+                    (uintptr_t)ifo->shape->proto == m->fn_proto_id &&
+                    ifo->shape->proto->is_prototype && !ifo->shape->proto->is_exotic &&
+                    (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id &&
+                    m->apply_slot < (uint32_t)ifo->shape->proto->shape->prop_count &&
+                    get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].atom == JS_ATOM_apply &&
+                    (get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].flags &
+                     JS_PROP_TMASK) == JS_PROP_NORMAL) {
+                    JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;
+                    if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)
+                        init_b = ifo->u.func.function_bytecode;
+                }
             }
         }
         if (!init_b)
@@ -722,6 +799,9 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
         m->shape_hash = 0;
         m->proto_slot = (uint32_t)(pr - callee->prop);
         m->epoch = rt->property_ic_epoch;
+        m->init_holder_id = 0;
+        m->init_holder_shape_id = 0;
+        m->init_depth = 0;
         m->init_fn_id = 0;
         m->init_fn_shape_id = 0;
         m->fn_proto_id = 0;
@@ -747,9 +827,24 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
                 return -1;
             }
             JSAtom init_atom = get_u32(buf + 7);
+            JSObject *init_holder = proto_obj;
             JSProperty *init_pr = NULL, *own_apply = NULL, *proto_apply = NULL;
-            JSShapeProperty *init_ps = find_own_property(&init_pr, proto_obj, init_atom);
-            if (!init_ps || (init_ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL ||
+            JSShapeProperty *init_ps = NULL;
+            uint8_t init_depth = 0;
+            for (uint8_t d = 0; d < 8 && init_holder; d++) {
+                if (init_holder->is_exotic || (d > 0 && !init_holder->is_prototype)) {
+                    init_holder = NULL;
+                    break;
+                }
+                init_holder->is_prototype = true;
+                init_ps = find_own_property(&init_pr, init_holder, init_atom);
+                if (init_ps) {
+                    init_depth = (uint8_t)(d + 1);
+                    break;
+                }
+                init_holder = init_holder->shape->proto;
+            }
+            if (!init_holder || !init_ps || (init_ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL ||
                 !JS_IsObject(init_pr->u.value)) {
                 m->tier = 0;
                 return -1;
@@ -792,12 +887,15 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
                 return -1;
             }
             fn_proto->is_prototype = true;
+            m->init_holder_id = (uintptr_t)init_holder;
+            m->init_holder_shape_id = (uintptr_t)init_holder->shape;
+            m->init_depth = init_depth;
             m->init_fn_id = (uintptr_t)init_fn;
             m->init_fn_shape_id = (uintptr_t)init_fn->shape;
             m->fn_proto_id = (uintptr_t)fn_proto;
             m->fn_proto_shape_id = (uintptr_t)fn_proto->shape;
             m->apply_id = (uintptr_t)apply_obj;
-            m->init_slot = (uint32_t)(init_pr - proto_obj->prop);
+            m->init_slot = (uint32_t)(init_pr - init_holder->prop);
             m->apply_slot = (uint32_t)(proto_apply - fn_proto->prop);
             m->tier = 3;
             m->n_fields = 0xFF;

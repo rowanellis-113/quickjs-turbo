@@ -4,7 +4,7 @@
   "source_owners": {
     "tools/common/elf/numeric_c.py": "37fabcb342c5aa7d89699db7eb7c4b26d8b5cf490f01e6a5c95f8a0f2dacaedc",
     "tools/common/elf/compiler_projection_c.py": "8bdbd7824c575acde93b59006077e3488de22222b6076ab4c6e87269813f9fcc",
-    "tools/common/c_extract/add_local_c.py": "27d99aea78e89e8b4d4be480ecb62f88084692ec9ff34df51dfb946bf1104eb8",
+    "tools/common/c_extract/add_local_c.py": "4d2da110acbcd91d07101720ffc848d89b6ebb1241260cdb1943c7ea45e83183",
     "tools/common/c_extract/free_boundary_c.py": "741c2ea953b3ca3b3f0aac2f65bf30764cba26667de3761a7cb47f6d87aee3b9",
     "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
     "src/common/kernel/string-to-number.c": "1e5e611095d438ed6f1cfad4aa46dac9475119eed1b6116a56966bed44212855",

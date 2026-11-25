@@ -260,6 +260,8 @@ JSValue JS_LinuxCallPublicFallback(JSContext *ctx, JSValueConst func_obj, JSValu
         flags += ["-DQJS_INTERP_FRAME_REGISTER_ABI", "-DQJS_LINUX_REGISTER_FOUNDATION"]
         if vm.get("shared_entry"):
             flags.append("-DQJS_INTERP_FRAME_LINUX_SHARED")
+        if vm.get("native_literals") and vm.get("native_construct"):
+            flags.append("-DQJS_LINUX_FAST_CONSTRUCT=1")
     executed_commands = []
 
     def run(label, args, cwd=build):

@@ -4,7 +4,7 @@
   "source_owners": {
     "quickjs.c": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
     "cutils.h": "dffec8bea17f08108da5a91c1178804754698bbbb6202dc100268e78e8c5b770",
-    "tools/common/elf/json_workers.py": "427325a34c2c5d562e4268ca97bf9ecde09edea81fee246c2191126a97672d75",
+    "tools/common/elf/json_workers.py": "3f2467efd20673a03264cd9a142f520206a12cfa1bbef00a9dd1fccaa63ff80b",
     "tools/arm64/workers/json_worker.py": "adcafa68baa8bdac6e7a7744e41817b32070a8d9b59b8e48bcbd3871a3b21764",
     "tools/common/c_extract/json_callback_c.py": "a40268d0a31fffc9155552fdc2b514b735bcce37c26971414edd37b9daf7aaa8",
     "src/common/kernel/json.inc": "0a809ff801594f8bc1c0cc74268d02901c768bd29f214bdbc1e0059d8048fa5e",

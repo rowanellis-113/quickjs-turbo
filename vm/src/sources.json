@@ -211,6 +211,7 @@
   "fast-get-field.inc": "src/common/property/fast-get-field.inc",
   "instanceof-fast.inc": "src/common/value/instanceof-fast.inc",
   "bigint-divrem-fast.inc": "src/common/value/bigint-divrem-fast.inc",
+  "dtoa-fast.inc": "src/common/value/dtoa-fast.inc",
   "compound-leaf.inc": "src/common/call/compound-leaf.inc",
   "fast-for-of-next.inc": "src/common/call/fast-for-of-next.inc",
   "fast-construct.inc": "src/common/kernel/fast-construct.inc",

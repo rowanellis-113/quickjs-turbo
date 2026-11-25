@@ -24,11 +24,45 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  */
+static inline bool js_regexp_fast_read_last_index(JSValueConst this_val, int64_t *out)
+{
+    JSObject *ro = JS_VALUE_GET_OBJ(this_val);
+    if (likely(!ro->is_exotic && ro->shape->prop_count >= 1)) {
+        JSShapeProperty *prs = get_shape_prop(ro->shape);
+        if (likely(prs[0].atom == JS_ATOM_lastIndex &&
+                   (prs[0].flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+                   JS_VALUE_GET_TAG(ro->prop[0].u.value) == JS_TAG_INT)) {
+            int32_t li = JS_VALUE_GET_INT(ro->prop[0].u.value);
+            *out = li > 0 ? (int64_t)li : 0;
+            return true;
+        }
+    }
+    return false;
+}
+
+static inline bool js_regexp_fast_set_last_index(JSContext *ctx, JSValueConst this_val,
+                                                 int32_t new_li)
+{
+    JSObject *ro = JS_VALUE_GET_OBJ(this_val);
+    if (likely(!ro->is_exotic && ro->shape->prop_count >= 1)) {
+        JSShapeProperty *prs = get_shape_prop(ro->shape);
+        if (likely(prs[0].atom == JS_ATOM_lastIndex &&
+                   (prs[0].flags & (JS_PROP_TMASK | JS_PROP_WRITABLE)) == JS_PROP_WRITABLE)) {
+            JSValue old_val = ro->prop[0].u.value;
+            ro->prop[0].u.value = js_int32(new_li);
+            if (unlikely(JS_VALUE_HAS_REF_COUNT(old_val)))
+                JS_FreeValue(ctx, old_val);
+            return true;
+        }
+    }
+    return false;
+}
+
 /* Shared exec ownership and observable operations for native and C backends. */
 static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv)
 {
     int rc, capture_count, alloc_count, shift, index, i, re_flags, prop_flags;
-    JSRegExp *re = js_get_regexp(ctx, this_val, true);
+    JSRegExp *re;
     JSString *str;
     JSValue t, ret, str_val, obj, val, groups;
     JSValue indices, indices_groups;
@@ -40,12 +74,22 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     JSAtom group_name;
     JSProperty props[4]; // length, index, input, groups, in that order
 
-    if (!re)
-        return JS_EXCEPTION;
+    if (likely(JS_VALUE_GET_TAG(this_val) == JS_TAG_OBJECT &&
+               JS_VALUE_GET_OBJ(this_val)->class_id == JS_CLASS_REGEXP)) {
+        re = &JS_VALUE_GET_OBJ(this_val)->u.regexp;
+    } else {
+        re = js_get_regexp(ctx, this_val, true);
+        if (!re)
+            return JS_EXCEPTION;
+    }
 
-    str_val = JS_ToString(ctx, argv[0]);
-    if (JS_IsException(str_val))
-        return JS_EXCEPTION;
+    if (likely(argc >= 1 && JS_VALUE_GET_TAG(argv[0]) == JS_TAG_STRING)) {
+        str_val = js_dup(argv[0]);
+    } else {
+        str_val = JS_ToString(ctx, argv[0]);
+        if (JS_IsException(str_val))
+            return JS_EXCEPTION;
+    }
 
     ret = JS_EXCEPTION;
     obj = JS_NULL;
@@ -55,9 +99,11 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     group_name = JS_ATOM_NULL;
     capture = NULL;
 
-    val = JS_GetProperty(ctx, this_val, JS_ATOM_lastIndex);
-    if (JS_IsException(val) || JS_ToLengthFree(ctx, &last_index, val))
-        goto fail;
+    if (!js_regexp_fast_read_last_index(this_val, &last_index)) {
+        val = JS_GetProperty(ctx, this_val, JS_ATOM_lastIndex);
+        if (JS_IsException(val) || JS_ToLengthFree(ctx, &last_index, val))
+            goto fail;
+    }
 
     re_bytecode = str8(re->bytecode);
     re_flags = lre_get_flags(re_bytecode);
@@ -86,7 +132,8 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     if (rc != 1) {
         if (rc >= 0) {
             if (rc == 2 || (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY))) {
-                if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, js_int32(0)) < 0)
+                if (!js_regexp_fast_set_last_index(ctx, this_val, 0) &&
+                    JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, js_int32(0)) < 0)
                     goto fail;
             }
         } else {
@@ -107,8 +154,9 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
         }
     } else {
         if (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY)) {
-            if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex,
-                               js_int32((capture[1] - str_buf) >> shift)) < 0)
+            int32_t new_li = (int32_t)((capture[1] - str_buf) >> shift);
+            if (!js_regexp_fast_set_last_index(ctx, this_val, new_li) &&
+                JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, js_int32(new_li)) < 0)
                 goto fail;
         }
         group_name_ptr = lre_get_groupnames(re_bytecode);
@@ -143,81 +191,96 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
          */
         if (capture_count && expand_fast_array(ctx, JS_VALUE_GET_OBJ(obj), capture_count))
             goto fail;
-        prop_flags = JS_PROP_C_W_E | JS_PROP_THROW;
-        for (i = 0; i < capture_count; i++) {
-            uint8_t **match = &capture[2 * i];
-            int start = -1;
-            int end = -1;
-
-            if (group_name_ptr && i > 0) {
-                if (*group_name_ptr) {
-                    group_name = JS_NewAtom(ctx, group_name_ptr);
-                    if (group_name == JS_ATOM_NULL)
+        if (likely(!group_name_ptr && JS_IsUndefined(indices))) {
+            JSValue *vals = JS_VALUE_GET_OBJ(obj)->u.array.u.values;
+            for (i = 0; i < capture_count; i++) {
+                uint8_t **match = &capture[2 * i];
+                JSValue val = JS_UNDEFINED;
+                if (match[0] && match[1]) {
+                    int start = (match[0] - str_buf) >> shift;
+                    int end = (match[1] - str_buf) >> shift;
+                    val = js_sub_string(ctx, str, start, end);
+                    if (unlikely(JS_IsException(val)))
                         goto fail;
                 }
-                group_name_ptr += strlen(group_name_ptr) + LRE_GROUP_NAME_TRAILER_LEN;
+                vals[i] = val;
+                JS_VALUE_GET_OBJ(obj)->u.array.count = (uint32_t)i + 1;
             }
+        } else {
+            prop_flags = JS_PROP_C_W_E | JS_PROP_THROW;
+            for (i = 0; i < capture_count; i++) {
+                uint8_t **match = &capture[2 * i];
+                int start = -1;
+                int end = -1;
 
-            if (match[0] && match[1]) {
-                start = (match[0] - str_buf) >> shift;
-                end = (match[1] - str_buf) >> shift;
-            }
+                if (group_name_ptr && i > 0) {
+                    if (*group_name_ptr) {
+                        group_name = JS_NewAtom(ctx, group_name_ptr);
+                        if (group_name == JS_ATOM_NULL)
+                            goto fail;
+                    }
+                    group_name_ptr += strlen(group_name_ptr) + LRE_GROUP_NAME_TRAILER_LEN;
+                }
 
-            if (!JS_IsUndefined(indices)) {
+                if (match[0] && match[1]) {
+                    start = (match[0] - str_buf) >> shift;
+                    end = (match[1] - str_buf) >> shift;
+                }
+
+                if (!JS_IsUndefined(indices)) {
+                    JSValue val = JS_UNDEFINED;
+                    if (start != -1) {
+                        val = JS_NewArray(ctx);
+                        if (JS_IsException(val))
+                            goto fail;
+                        if (JS_DefinePropertyValueUint32(ctx, val, 0, js_int32(start), prop_flags) <
+                            0) {
+                            JS_FreeValue(ctx, val);
+                            goto fail;
+                        }
+                        if (JS_DefinePropertyValueUint32(ctx, val, 1, js_int32(end), prop_flags) <
+                            0) {
+                            JS_FreeValue(ctx, val);
+                            goto fail;
+                        }
+                    }
+                    if (group_name != JS_ATOM_NULL && !JS_IsUndefined(indices_groups)) {
+                        if (!JS_IsUndefined(val) ||
+                            !JS_HasProperty(ctx, indices_groups, group_name)) {
+                            if (JS_DefinePropertyValue(ctx, indices_groups, group_name, js_dup(val),
+                                                       prop_flags) < 0) {
+                                JS_FreeValue(ctx, val);
+                                goto fail;
+                            }
+                        }
+                    }
+                    if (JS_DefinePropertyValueUint32(ctx, indices, i, val, prop_flags) < 0) {
+                        goto fail;
+                    }
+                }
+
                 JSValue val = JS_UNDEFINED;
                 if (start != -1) {
-                    val = JS_NewArray(ctx);
+                    val = js_sub_string(ctx, str, start, end);
                     if (JS_IsException(val))
                         goto fail;
-                    if (JS_DefinePropertyValueUint32(ctx, val, 0, js_int32(start), prop_flags) <
-                        0) {
-                        JS_FreeValue(ctx, val);
-                        goto fail;
-                    }
-                    if (JS_DefinePropertyValueUint32(ctx, val, 1, js_int32(end), prop_flags) < 0) {
-                        JS_FreeValue(ctx, val);
-                        goto fail;
-                    }
                 }
-                if (group_name != JS_ATOM_NULL && !JS_IsUndefined(indices_groups)) {
-                    /* For duplicate named groups, only the alternative that
-                       actually matched (non-undefined) wins; a later
-                       undefined alternative must not clobber it. */
-                    if (!JS_IsUndefined(val) || !JS_HasProperty(ctx, indices_groups, group_name)) {
-                        if (JS_DefinePropertyValue(ctx, indices_groups, group_name, js_dup(val),
+
+                if (group_name != JS_ATOM_NULL) {
+                    if (!JS_IsUndefined(val) || !JS_HasProperty(ctx, groups, group_name)) {
+                        if (JS_DefinePropertyValue(ctx, groups, group_name, js_dup(val),
                                                    prop_flags) < 0) {
                             JS_FreeValue(ctx, val);
                             goto fail;
                         }
                     }
+                    JS_FreeAtom(ctx, group_name);
+                    group_name = JS_ATOM_NULL;
                 }
-                if (JS_DefinePropertyValueUint32(ctx, indices, i, val, prop_flags) < 0) {
-                    goto fail;
-                }
-            }
 
-            JSValue val = JS_UNDEFINED;
-            if (start != -1) {
-                val = js_sub_string(ctx, str, start, end);
-                if (JS_IsException(val))
-                    goto fail;
+                JS_VALUE_GET_OBJ(obj)->u.array.u.values[i] = val;
+                JS_VALUE_GET_OBJ(obj)->u.array.count = (uint32_t)i + 1;
             }
-
-            if (group_name != JS_ATOM_NULL) {
-                /* duplicate named groups: matched alternative wins (see above) */
-                if (!JS_IsUndefined(val) || !JS_HasProperty(ctx, groups, group_name)) {
-                    if (JS_DefinePropertyValue(ctx, groups, group_name, js_dup(val), prop_flags) <
-                        0) {
-                        JS_FreeValue(ctx, val);
-                        goto fail;
-                    }
-                }
-                JS_FreeAtom(ctx, group_name);
-                group_name = JS_ATOM_NULL;
-            }
-
-            JS_VALUE_GET_OBJ(obj)->u.array.u.values[i] = val;
-            JS_VALUE_GET_OBJ(obj)->u.array.count = (uint32_t)i + 1;
         }
 
         if (!JS_IsUndefined(indices)) {

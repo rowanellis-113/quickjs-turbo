@@ -789,6 +789,26 @@ def main():
             blocks += hybrid_blocks
             forward_leaves += hybrid_leaves
             extra_fast_blocks = apply_regression_fast_paths(stream, handlers, layout, slot_blocks)
+        if a.sysv_bridges and a.shared_entry and native_c_invoke:
+            cold_code = stream["cold_code"]
+            cc_idx = cold_code.index("interp_property_slow_call_constructor:")
+            cc_end = cold_code.index("jmp interp_exit", cc_idx)
+            cc_window = cold_code[cc_idx : cc_end + 1]
+            if cc_window[-2:] != ["mov r13, QWORD PTR [rbx+24]", "jmp interp_exit"]:
+                raise ValueError("Review interp_property_slow_call_constructor layout")
+            jz_idx = cc_window.index("jz interp_reload")
+            cc_window[jz_idx + 1 : jz_idx + 1] = [
+                "cmp eax, 2",
+                "je interp_fast_resume_call_constructor",
+            ]
+            cc_window += [
+                "interp_fast_resume_call_constructor:",
+                "mov r12, QWORD PTR [rbx+16]",
+                "mov r13, QWORD PTR [rbx+24]",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ]
+            cold_code[cc_idx : cc_end + 1] = cc_window
         publication = None
         publish_blocks, publish_proxies = [], []
         if native_c_invoke:

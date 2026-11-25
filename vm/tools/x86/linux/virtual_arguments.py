@@ -79,7 +79,7 @@ static FRAME_INLINE unsigned arguments_mode(void)
     )
     worker = output / "quickjs-linux-virtual-arguments.c"
     worker.write_text("""#include "quickjs-linux-virtual-arguments-private.h"
-#include "src/common/linux/interpreter-virtual-arguments.inc"
+#include "src/common/linux/virtual-arguments-fast.inc"
 __attribute__((visibility("hidden"))) FRAME_CODE
 int JS_LinuxVirtualArgumentsStep(JSFrameRegisterState *state)
 {
@@ -94,7 +94,7 @@ int JS_LinuxVirtualArgumentsStep(JSFrameRegisterState *state)
             for n in [
                 "tools/x86/linux/virtual_arguments.py",
                 "tools/x86/linux/compiler_projection.py",
-                "src/common/linux/interpreter-virtual-arguments.inc",
+                "src/common/linux/virtual-arguments-fast.inc",
                 "src/x86/linux/interpreter-private-compat.inc",
                 "src/common/call/interpreter-retained-context.inc",
                 "src/x86/win64/mingw64/mingw-arguments.c",

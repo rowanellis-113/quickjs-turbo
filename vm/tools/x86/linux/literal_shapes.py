@@ -223,7 +223,15 @@ FRAME_CODE int JS_FrameInterpSlow(JSFrameRegisterState *state)
         "return JS_LinuxLiteralBaseSlow(state);", "return " + slow_selector + "(state);"
     )
     text = '#include "' + platform_binding + '"\n' + iterator + "\n" + ordinary + "\n" + facade
-    text += "\n#undef FRAME_CODE\n#undef FRAME_INLINE\n"
+    text += (
+        "\n#define QJS_FAST_CONSTRUCT_TRY_MODE 1\n"
+        "extern int JS_FrameInterpProperty_call_constructor(JSFrameRegisterState *);\n"
+        "extern int JS_FrameInterpSlow(JSFrameRegisterState *);\n"
+        "extern int JS_FrameVarargsSlow(JSFrameRegisterState *);\n"
+        '#include "src/common/kernel/fast-construct.inc"\n'
+        "#undef QJS_FAST_CONSTRUCT_TRY_MODE\n"
+        "\n#undef FRAME_CODE\n#undef FRAME_INLINE\n"
+    )
     header = output / "quickjs-linux-literals.h"
     header.write_text(text)
     core += '\n#include "quickjs-linux-literals.h"\n'
@@ -236,6 +244,7 @@ FRAME_CODE int JS_FrameInterpSlow(JSFrameRegisterState *state)
                 "tools/x86/linux/literal_shapes.py",
                 "src/x86/linux/interpreter-literals.inc",
                 "src/common/call/interpreter-slow-host.inc",
+                "src/common/kernel/fast-construct.inc",
             )
         },
         generated_sha256=sha(header),

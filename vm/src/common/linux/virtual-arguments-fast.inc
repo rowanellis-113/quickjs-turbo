@@ -81,34 +81,60 @@ static FRAME_CODE int js_linux_virtual_arguments_step(JSFrameRegisterState *stat
     JSObject *recv_obj = JS_VALUE_GET_OBJ(receiver);
     JSObject *function = NULL, *apply = NULL;
     JSFunctionBytecode *b = NULL;
-    static struct {
+    JSAtom method_atom = get_u32(p + 7);
+    static _Thread_local struct {
         JSFunctionBytecode *caller;
         JSContext *ctx;
         JSShape *recv_shape;
-        JSObject *proto;
+        JSObject *holder;
+        JSShape *holder_shape;
         uint32_t method_slot;
+        JSAtom method_atom;
+        uint8_t proto_depth;
         uint64_t epoch;
         JSObject *function;
         JSObject *apply;
         JSFunctionBytecode *callee_b;
-    } va_cache[8];
+    } va_cache[16];
     uint32_t va_slot =
-        (((uint32_t)((uintptr_t)caller >> 4)) ^ ((uint32_t)((uintptr_t)recv_obj->shape >> 4))) & 7u;
+        (((uint32_t)((uintptr_t)caller >> 4)) ^ ((uint32_t)((uintptr_t)recv_obj->shape >> 4))) &
+        15u;
     if (!recv_obj->is_exotic && va_cache[va_slot].caller == caller &&
         va_cache[va_slot].ctx == ctx && va_cache[va_slot].recv_shape == recv_obj->shape &&
-        va_cache[va_slot].epoch != 0 && va_cache[va_slot].epoch == rt->property_ic_epoch &&
-        recv_obj->shape->proto == va_cache[va_slot].proto) {
-        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;
-        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function) {
-            func = pv;
-            function = va_cache[va_slot].function;
-            apply = va_cache[va_slot].apply;
-            callee = JS_MKPTR(JS_TAG_OBJECT, apply);
-            b = va_cache[va_slot].callee_b;
-            goto va_cached_hit;
+        va_cache[va_slot].method_atom == method_atom && va_cache[va_slot].epoch != 0 &&
+        va_cache[va_slot].epoch == rt->property_ic_epoch && va_cache[va_slot].proto_depth >= 1) {
+        JSObject *cur = recv_obj->shape->proto;
+        for (uint8_t d = 1; d < va_cache[va_slot].proto_depth && cur; d++) {
+            if (unlikely(cur->is_exotic || !cur->is_prototype)) {
+                cur = NULL;
+                break;
+            }
+            cur = cur->shape->proto;
+        }
+        if (cur && cur == va_cache[va_slot].holder && !cur->is_exotic && cur->is_prototype &&
+            cur->shape == va_cache[va_slot].holder_shape &&
+            va_cache[va_slot].method_slot < (uint32_t)cur->shape->prop_count &&
+            get_shape_prop(cur->shape)[va_cache[va_slot].method_slot].atom == method_atom &&
+            (get_shape_prop(cur->shape)[va_cache[va_slot].method_slot].flags & JS_PROP_TMASK) ==
+                JS_PROP_NORMAL) {
+            JSValue pv = cur->prop[va_cache[va_slot].method_slot].u.value;
+            if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function &&
+                va_cache[va_slot].function->class_id == JS_CLASS_BYTECODE_FUNCTION &&
+                !va_cache[va_slot].function->is_exotic &&
+                va_cache[va_slot].function->u.func.function_bytecode ==
+                    va_cache[va_slot].callee_b &&
+                js_linux_virtual_arguments_data(va_cache[va_slot].function, JS_ATOM_apply,
+                                                &callee) &&
+                JS_IsObject(callee) && JS_VALUE_GET_OBJ(callee) == va_cache[va_slot].apply) {
+                func = pv;
+                function = va_cache[va_slot].function;
+                apply = va_cache[va_slot].apply;
+                b = va_cache[va_slot].callee_b;
+                goto va_cached_hit;
+            }
         }
     }
-    if (!js_linux_virtual_arguments_data(recv_obj, get_u32(p + 7), &func) || !JS_IsObject(func))
+    if (!js_linux_virtual_arguments_data(recv_obj, method_atom, &func) || !JS_IsObject(func))
         return 0;
     function = JS_VALUE_GET_OBJ(func);
     if (function->class_id != JS_CLASS_BYTECODE_FUNCTION ||
@@ -124,23 +150,33 @@ static FRAME_CODE int js_linux_virtual_arguments_step(JSFrameRegisterState *stat
         b->is_derived_class_constructor || b->arg_count > 128 || b->var_count > 128 ||
         b->stack_size > 256)
         return 0;
-    if (!recv_obj->is_exotic && rt->property_ic_epoch && recv_obj->shape->proto &&
-        !recv_obj->shape->proto->is_exotic) {
+    if (!recv_obj->is_exotic && rt->property_ic_epoch && recv_obj->shape->proto) {
         JSProperty *own_r, *proto_m, *own_f;
-        if (!find_own_property(&own_r, recv_obj, get_u32(p + 7)) &&
+        if (!find_own_property(&own_r, recv_obj, method_atom) &&
             !find_own_property(&own_f, function, JS_ATOM_apply)) {
-            JSShapeProperty *pm =
-                find_own_property(&proto_m, recv_obj->shape->proto, get_u32(p + 7));
-            if (pm && (pm->flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
-                va_cache[va_slot].caller = caller;
-                va_cache[va_slot].ctx = ctx;
-                va_cache[va_slot].recv_shape = recv_obj->shape;
-                va_cache[va_slot].proto = recv_obj->shape->proto;
-                va_cache[va_slot].method_slot = (uint32_t)(proto_m - recv_obj->shape->proto->prop);
-                va_cache[va_slot].epoch = rt->property_ic_epoch;
-                va_cache[va_slot].function = function;
-                va_cache[va_slot].apply = apply;
-                va_cache[va_slot].callee_b = b;
+            JSObject *cur = recv_obj->shape->proto;
+            for (uint8_t depth = 1; depth <= 8 && cur; depth++, cur = cur->shape->proto) {
+                if (cur->is_exotic)
+                    break;
+                cur->is_prototype = true;
+                JSShapeProperty *pm = find_own_property(&proto_m, cur, method_atom);
+                if (pm) {
+                    if ((pm->flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
+                        va_cache[va_slot].caller = caller;
+                        va_cache[va_slot].ctx = ctx;
+                        va_cache[va_slot].recv_shape = recv_obj->shape;
+                        va_cache[va_slot].holder = cur;
+                        va_cache[va_slot].holder_shape = cur->shape;
+                        va_cache[va_slot].method_slot = (uint32_t)(proto_m - cur->prop);
+                        va_cache[va_slot].method_atom = method_atom;
+                        va_cache[va_slot].proto_depth = depth;
+                        va_cache[va_slot].epoch = rt->property_ic_epoch;
+                        va_cache[va_slot].function = function;
+                        va_cache[va_slot].apply = apply;
+                        va_cache[va_slot].callee_b = b;
+                    }
+                    break;
+                }
             }
         }
     }

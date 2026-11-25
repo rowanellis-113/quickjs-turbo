@@ -82,13 +82,22 @@ def _unify_publication_release(text, output, op_ids):
                 "    " + lbl.replace(" - qjs_aarch64_publish_clean", " - qjs_aarch64_publish_dirty")
             )
     typeof_slot = op_ids["typeof"]
+    pbi_slot = op_ids["push_bigint_i32"]
     dirty_words[typeof_slot] = "    .word .Lpub_literal_typeof - qjs_aarch64_publish_dirty"
+    dirty_words[pbi_slot] = "    .word .Lpub_slow - qjs_aarch64_publish_dirty"
     clean_prefix = list(ptab_lines[: dirty_idx + 1])
     clean_prefix[clean_idx + 1 + typeof_slot] = (
         "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
         "    .word .Lliteral_typeof - qjs_aarch64_publish_clean\n"
         "#else\n"
         "    .word .Lfast_typeof - qjs_aarch64_publish_clean\n"
+        "#endif"
+    )
+    clean_prefix[clean_idx + 1 + pbi_slot] = (
+        "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+        "    .word .Lslow - qjs_aarch64_publish_clean\n"
+        "#else\n"
+        "    .word .Lfast_push_bigint_i32 - qjs_aarch64_publish_clean\n"
         "#endif"
     )
     new_ptab = (
@@ -102,19 +111,29 @@ def _unify_publication_release(text, output, op_ids):
     )
     ptab_path.write_text("\n".join(new_ptab) + "\n")
     disp_path = output / "interpreter-aarch64-dispatch.inc"
-    disp_path.write_text(
-        _replace_exact(
-            disp_path.read_text(),
-            ".word .Lfast_typeof - .Ldispatch_table",
-            "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
-            ".word .Lliteral_typeof - .Ldispatch_table\n"
-            "#else\n"
-            ".word .Lfast_typeof - .Ldispatch_table\n"
-            "#endif",
-            1,
-            "typeof instrument dispatch",
-        )
+    disp_text = _replace_exact(
+        disp_path.read_text(),
+        ".word .Lfast_typeof - .Ldispatch_table",
+        "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+        ".word .Lliteral_typeof - .Ldispatch_table\n"
+        "#else\n"
+        ".word .Lfast_typeof - .Ldispatch_table\n"
+        "#endif",
+        1,
+        "typeof instrument dispatch",
     )
+    disp_text = _replace_exact(
+        disp_text,
+        ".word .Lfast_push_bigint_i32 - .Ldispatch_table",
+        "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+        ".word .Lslow - .Ldispatch_table\n"
+        "#else\n"
+        ".word .Lfast_push_bigint_i32 - .Ldispatch_table\n"
+        "#endif",
+        1,
+        "push_bigint_i32 instrument dispatch",
+    )
+    disp_path.write_text(disp_text)
 
     # 3. Rewrite non-pub_ `bl JS_<stem>` (for 29 proxy stems) after `.Lpublication_selected:`
     #    Skip lines inside existing #ifdef QJS_AARCH64_VM_INSTRUMENT blocks or inside .Lpub_ handlers.

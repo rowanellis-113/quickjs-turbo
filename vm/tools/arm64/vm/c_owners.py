@@ -43,96 +43,8 @@ def _specialize_c_owners(source, output):
     )
     if n_lit != 1:
         raise ValueError(f"Expected 1 JS_LinuxLiteralEnter anchor, got {n_lit}")
-    fast_ctor_inc = _tls_fast_inc(
-        source,
-        "src/common/kernel/fast-construct.inc",
-        "static FastCtorMeta fast_ctor_cache[64];",
-        "static _Thread_local FastCtorMeta fast_ctor_cache[64];",
-    )
-    fast_ctor_inc = _replace_exact(
-        fast_ctor_inc,
-        "        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch) {\n"
-        "        JSValue pval = callee->prop[m->proto_slot].u.value;",
-        "        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch &&\n"
-        "        m->proto_slot < (uint32_t)callee->shape->prop_count &&\n"
-        "        get_shape_prop(callee->shape)[m->proto_slot].atom == JS_ATOM_prototype &&\n"
-        "        (get_shape_prop(callee->shape)[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
-        "        JSValue pval = callee->prop[m->proto_slot].u.value;",
-        1,
-        "fast_construct proto_slot descriptor guard",
-    )
-    fast_ctor_inc = _replace_exact(
-        fast_ctor_inc,
-        "        if (m->tier == 4)\n"
-        "            return JS_FrameInterpProperty_call_constructor(state);\n"
-        "        JSValue iv = proto_obj->prop[m->init_slot].u.value;\n"
-        "        if (JS_IsObject(iv)) {\n"
-        "            JSObject *ifo = JS_VALUE_GET_OBJ(iv);\n"
-        "            if ((uintptr_t)ifo == m->init_fn_id && !ifo->is_exotic &&\n"
-        "                (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&\n"
-        "                (uintptr_t)ifo->shape->proto == m->fn_proto_id && ifo->shape->proto->is_prototype &&\n"
-        "                !ifo->shape->proto->is_exotic &&\n"
-        "                (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id) {\n"
-        "                JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;\n"
-        "                if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)\n"
-        "                    init_b = ifo->u.func.function_bytecode;\n"
-        "            }\n"
-        "        }",
-        "        if (m->tier == 4)\n"
-        "            return JS_FrameInterpProperty_call_constructor(state);\n"
-        "        if (m->init_slot < (uint32_t)proto_obj->shape->prop_count &&\n"
-        "            (get_shape_prop(proto_obj->shape)[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
-        "            JSValue iv = proto_obj->prop[m->init_slot].u.value;\n"
-        "            if (JS_IsObject(iv)) {\n"
-        "                JSObject *ifo = JS_VALUE_GET_OBJ(iv);\n"
-        "                if ((uintptr_t)ifo == m->init_fn_id && ifo->class_id == JS_CLASS_BYTECODE_FUNCTION &&\n"
-        "                    !ifo->is_exotic && (uintptr_t)ifo->shape == m->init_fn_shape_id &&\n"
-        "                    ifo->shape->proto && (uintptr_t)ifo->shape->proto == m->fn_proto_id &&\n"
-        "                    ifo->shape->proto->is_prototype && !ifo->shape->proto->is_exotic &&\n"
-        "                    (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id &&\n"
-        "                    m->apply_slot < (uint32_t)ifo->shape->proto->shape->prop_count &&\n"
-        "                    get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].atom == JS_ATOM_apply &&\n"
-        "                    (get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].flags & JS_PROP_TMASK) ==\n"
-        "                        JS_PROP_NORMAL) {\n"
-        "                    JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;\n"
-        "                    if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)\n"
-        "                        init_b = ifo->u.func.function_bytecode;\n"
-        "                }\n"
-        "            }\n"
-        "        }",
-        1,
-        "fast_construct init_slot and apply_slot guards",
-    )
-    instof_inc = _tls_fast_inc(
-        source,
-        "src/common/value/instanceof-fast.inc",
-        "static FastInstOfEntry fast_instof_cache[16];",
-        "static _Thread_local FastInstOfEntry fast_instof_cache[16];\n"
-        "static inline bool fast_instof_holder_live(JSObject *ctor, const JSObject *holder)\n"
-        "{\n"
-        "    JSObject *cur = ctor;\n"
-        "    for (unsigned d = 0; cur && d < 16; d++, cur = cur->shape->proto) {\n"
-        "        if (cur->is_exotic)\n"
-        "            return false;\n"
-        "        if (cur == holder)\n"
-        "            return true;\n"
-        "    }\n"
-        "    return false;\n"
-        "}",
-    )
-    instof_inc = _replace_exact(
-        instof_inc,
-        "                   e->ctx == ctx && e->holder &&\n"
-        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_size &&\n"
-        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
-        "                   e->ctx == ctx && e->holder && fast_instof_holder_live(ctor, e->holder) &&\n"
-        "                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_count &&\n"
-        "                   get_shape_prop(e->holder->shape)[e->has_inst_slot].atom == JS_ATOM_Symbol_hasInstance &&\n"
-        "                   !(get_shape_prop(e->holder->shape)[e->has_inst_slot].flags & JS_PROP_TMASK) &&\n"
-        "                   JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&",
-        1,
-        "instanceof-fast live holder validation",
-    )
+    fast_ctor_inc = (source / "src/common/kernel/fast-construct.inc").read_text(encoding="utf-8")
+    instof_inc = (source / "src/common/value/instanceof-fast.inc").read_text(encoding="utf-8")
     fg_inc = _tls_fast_inc(
         source,
         "src/common/property/fast-get-field.inc",
@@ -286,49 +198,8 @@ def _specialize_c_owners(source, output):
     updated["call_leaves"] = sha(cl_path)
 
     # 4. Wire common virtual-arguments cache + JS_FastArrayFrom + arguments fast guard.
-    va_fast_inc = _tls_fast_inc(
-        source,
-        "src/common/linux/virtual-arguments-fast.inc",
-        "    static struct {",
-        "    static _Thread_local struct {",
-    )
-    va_fast_inc = _replace_exact(
-        va_fast_inc,
-        "        recv_obj->shape->proto == va_cache[va_slot].proto) {\n"
-        "        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;\n"
-        "        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function) {\n"
-        "            func = pv;\n"
-        "            function = va_cache[va_slot].function;\n"
-        "            apply = va_cache[va_slot].apply;\n"
-        "            callee = JS_MKPTR(JS_TAG_OBJECT, apply);\n"
-        "            b = va_cache[va_slot].callee_b;\n"
-        "            goto va_cached_hit;\n"
-        "        }\n"
-        "    }",
-        "        va_cache[va_slot].proto != NULL && recv_obj->shape->proto == va_cache[va_slot].proto &&\n"
-        "        !va_cache[va_slot].proto->is_exotic &&\n"
-        "        va_cache[va_slot].method_slot < (uint32_t)va_cache[va_slot].proto->shape->prop_count &&\n"
-        "        get_shape_prop(va_cache[va_slot].proto->shape)[va_cache[va_slot].method_slot].atom ==\n"
-        "            get_u32(p + 7) &&\n"
-        "        (get_shape_prop(va_cache[va_slot].proto->shape)[va_cache[va_slot].method_slot].flags &\n"
-        "         JS_PROP_TMASK) == JS_PROP_NORMAL) {\n"
-        "        JSValue pv = va_cache[va_slot].proto->prop[va_cache[va_slot].method_slot].u.value;\n"
-        "        if (JS_IsObject(pv) && JS_VALUE_GET_OBJ(pv) == va_cache[va_slot].function &&\n"
-        "            va_cache[va_slot].function->class_id == JS_CLASS_BYTECODE_FUNCTION &&\n"
-        "            !va_cache[va_slot].function->is_exotic &&\n"
-        "            va_cache[va_slot].function->u.func.function_bytecode ==\n"
-        "                va_cache[va_slot].callee_b &&\n"
-        "            js_linux_virtual_arguments_data(va_cache[va_slot].function, JS_ATOM_apply, &callee) &&\n"
-        "            JS_IsObject(callee) && JS_VALUE_GET_OBJ(callee) == va_cache[va_slot].apply) {\n"
-        "            func = pv;\n"
-        "            function = va_cache[va_slot].function;\n"
-        "            apply = va_cache[va_slot].apply;\n"
-        "            b = va_cache[va_slot].callee_b;\n"
-        "            goto va_cached_hit;\n"
-        "        }\n"
-        "    }",
-        1,
-        "virtual-arguments live proto/apply guard",
+    va_fast_inc = (source / "src/common/linux/virtual-arguments-fast.inc").read_text(
+        encoding="utf-8"
     )
     va_path = output / "quickjs-linux-virtual-arguments.c"
     va_path.write_text(
@@ -371,8 +242,8 @@ def _specialize_c_owners(source, output):
         src_txt = _replace_exact(
             src_txt,
             "    p = js_malloc(ctx, sizeof(JSObject));",
-            "    size_t inline_bytes = qjs_inline_property_plan(\n"
-            "        sh, 0, ((props && class_id == JS_CLASS_OBJECT) ? 4u : 0u));\n"
+            "    size_t inline_bytes = (class_id == JS_CLASS_OBJECT || (props && class_id == JS_CLASS_ARRAY))\n"
+            "        ? qjs_inline_property_plan(sh, 0, props ? 4u : 0u) : 0;\n"
             "    p = js_malloc(ctx, inline_bytes ? inline_bytes : sizeof(JSObject));",
             1,
             "inline property ctor",

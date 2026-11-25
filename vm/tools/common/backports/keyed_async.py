@@ -192,5 +192,234 @@ static JSValue js_promise_resolve_function_call(JSContext *ctx, JSValueConst fun
     return text
 
 
+def value_fast_paths(text):
+    before_lines = text.count("\n")
+    text = replace_exact_lines(
+        text,
+        "    void *libc_opaque;\n    JSRuntimeFinalizerState *finalizers;\n};",
+        "    void *libc_opaque;\n    JSRuntimeFinalizerState *finalizers; uint8_t fast_pool_ok; struct QJSFastValuePools *fast_pools;\n};",
+    )
+    text = replace_exact_lines(
+        text,
+        "JSRuntime *JS_NewRuntime(void)\n{\n    return JS_NewRuntime2(&def_malloc_funcs, NULL);\n}",
+        "JSRuntime *JS_NewRuntime(void)\n{\n    JSRuntime *rt = JS_NewRuntime2(&def_malloc_funcs, NULL); if (rt) rt->fast_pool_ok = 1; return rt;\n}",
+    )
+    text = replace_exact_lines(
+        text,
+        "\n\nvoid JS_FreeRuntime(JSRuntime *rt)",
+        "\ntypedef struct QJSFastValuePools { JSBigInt *bigint_pool[9][8]; uint8_t bigint_count[9]; JSString *small_int_strings[90]; } QJSFastValuePools; static void qjs_runtime_drain_fast_pools(JSRuntime *rt);\nvoid JS_FreeRuntime(JSRuntime *rt)",
+    )
+    text = replace_exact_lines(
+        text,
+        "    init_list_head(&rt->job_list);\n\n    JS_RunGC(rt);",
+        "    init_list_head(&rt->job_list);\n    qjs_runtime_drain_fast_pools(rt);\n    JS_RunGC(rt);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    case JS_TAG_BIG_INT:\n"
+        "        {\n"
+        "            JSBigInt *p = JS_VALUE_GET_PTR(v);\n"
+        "            js_free_rt(rt, p);\n"
+        "        }\n"
+        "        break;",
+        "    case JS_TAG_BIG_INT: {\n"
+        "        JSBigInt *p = JS_VALUE_GET_PTR(v);\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "        if ((uint32_t)(p->len - 1u) < 8u && rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit && (rt->fast_pools || (rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools))) != NULL) && rt->fast_pools->bigint_count[p->len] < 8u) { rt->fast_pools->bigint_pool[p->len][rt->fast_pools->bigint_count[p->len]++] = p; break; }\n"
+        "#endif\n"
+        "        js_free_rt(rt, p); } break;",
+    )
+    text = replace_exact_lines(
+        text,
+        "\n\nstatic JSBigInt *js_bigint_new(JSContext *ctx, int len)\n"
+        "{\n"
+        "    JSBigInt *r;\n"
+        "    if (len > JS_BIGINT_MAX_SIZE) {\n"
+        '        JS_ThrowRangeError(ctx, "BigInt is too large to allocate");\n'
+        "        return NULL;\n"
+        "    }\n"
+        "    r = js_malloc(ctx, sizeof(JSBigInt) + len * sizeof(js_limb_t));",
+        '\n#include "src/common/value/dtoa-fast.inc"\n'
+        "static JSBigInt *js_bigint_new(JSContext *ctx, int len)\n"
+        "{\n"
+        "    JSBigInt *r;\n"
+        '    if (len > JS_BIGINT_MAX_SIZE) { JS_ThrowRangeError(ctx, "BigInt is too large to allocate"); return NULL; }\n'
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    { JSBigInt *fast_r = qjs_bigint_pool_get(ctx, len); if (fast_r) return fast_r; }\n"
+        "#endif\n"
+        "    r = js_malloc(ctx, sizeof(JSBigInt) + len * sizeof(js_limb_t));",
+    )
+    text = replace_exact_lines(
+        text,
+        "static JSBigInt *js_bigint_mul(JSContext *ctx, const JSBigInt *a,\n"
+        "                               const JSBigInt *b)\n"
+        "{\n"
+        "    JSBigInt *r;\n\n"
+        "    r = js_bigint_new(ctx, a->len + b->len);",
+        "static JSBigInt *js_bigint_mul(JSContext *ctx, const JSBigInt *a,\n"
+        "                               const JSBigInt *b)\n"
+        "{\n"
+        "    JSBigInt *r;\n"
+        "    if (qjs_bigint_mul_fast(ctx, a, b, &r)) return r;\n"
+        "    r = js_bigint_new(ctx, a->len + b->len);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    case JS_TAG_STRING:\n"
+        "    case JS_TAG_STRING_ROPE:\n"
+        "        {\n"
+        "            const char *str;\n"
+        "            const char *p;\n"
+        "            size_t len;\n\n"
+        "            str = JS_ToCStringLen(ctx, &len, val);\n"
+        "            JS_FreeValue(ctx, val);",
+        "    case JS_TAG_STRING:\n"
+        "    case JS_TAG_STRING_ROPE:\n"
+        "        {\n"
+        "            const char *str; const char *p; size_t len; JSValue fast_num;\n"
+        "            if (JS_VALUE_GET_TAG(val) == JS_TAG_STRING && qjs_try_flat_str_to_number(ctx, JS_VALUE_GET_STRING(val), &fast_num)) { JS_FreeValue(ctx, val); return fast_num; }\n"
+        "            str = JS_ToCStringLen(ctx, &len, val);\n"
+        "            JS_FreeValue(ctx, val);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    str = JS_ToCString(ctx, argv[0]);\n"
+        "    if (!str)\n"
+        "        return JS_EXCEPTION;\n"
+        "    p = str;\n"
+        "    p += skip_spaces(p);\n"
+        "    ret = js_atof(ctx, p, NULL, 10, 0);",
+        "    if (JS_VALUE_GET_TAG(argv[0]) == JS_TAG_STRING && !JS_VALUE_GET_STRING(argv[0])->is_wide_char) { double fast_d; if (qjs_fast_atod_str8((const uint8_t *)str8(JS_VALUE_GET_STRING(argv[0])), JS_VALUE_GET_STRING(argv[0])->len, true, &fast_d)) return js_number(fast_d); }\n"
+        "    str = JS_ToCString(ctx, argv[0]);\n"
+        "    if (!str) return JS_EXCEPTION;\n"
+        "    p = str;\n"
+        "    p += skip_spaces(p);\n"
+        "    ret = js_atof(ctx, p, NULL, 10, 0);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    default:\n"
+        "        val = JS_ToNumberFree(ctx, val);\n"
+        "        if (JS_IsException(val)) {\n"
+        "            *pres = 0;\n"
+        "            return -1;\n"
+        "        }\n"
+        "        goto redo;\n"
+        "    }\n"
+        "    *pres = ret;\n"
+        "    return 0;\n"
+        "}\n\n"
+        "int JS_ToInt32(",
+        "    default:\n"
+        "        { int32_t fast_i32; if (tag == JS_TAG_STRING && qjs_try_flat_str_to_int32(JS_VALUE_GET_STRING(val), &fast_i32, true)) { JS_FreeValue(ctx, val); *pres = fast_i32; return 0; } }\n"
+        "        val = JS_ToNumberFree(ctx, val);\n"
+        "        if (JS_IsException(val)) { *pres = 0; return -1; }\n"
+        "        goto redo;\n"
+        "    }\n"
+        "    *pres = ret;\n"
+        "    return 0;\n"
+        "}\n\n"
+        "int JS_ToInt32(",
+    )
+    text = replace_exact_lines(
+        text,
+        "static JSValue js_dtoa2(JSContext *ctx,\n"
+        "                        double d, int radix, int n_digits, int flags)\n"
+        "{\n"
+        "    char static_buf[128], *buf, *tmp_buf;\n"
+        "    int len, len_max;\n"
+        "    JSValue res;\n"
+        "    JSDTOATempMem dtoa_mem;\n"
+        "    len_max = js_dtoa_max_len(d, radix, n_digits, flags);",
+        "static JSValue js_dtoa2(JSContext *ctx,\n"
+        "                        double d, int radix, int n_digits, int flags)\n"
+        "{\n"
+        "    char static_buf[128], *buf, *tmp_buf; int len, len_max; JSValue res; JSDTOATempMem dtoa_mem;\n"
+        "    if (likely(radix == 10 && n_digits == 0 && flags == JS_DTOA_FORMAT_FREE)) { len = qjs_dtoa_fast_free10(static_buf, d); return js_new_string8_len(ctx, static_buf, len); }\n"
+        "    len_max = js_dtoa_max_len(d, radix, n_digits, flags);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    case JS_TAG_INT:\n"
+        "        { int32_t v = JS_VALUE_GET_INT(val); if ((uint32_t)v < 10u) return js_new_string_char(ctx, '0' + v);\n"
+        "        len = i32toa(buf, v); return js_new_string8_len(ctx, buf, len); }",
+        "    case JS_TAG_INT:\n"
+        "        { (void)buf; (void)len; return qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(val)); }",
+    )
+    if text.count("\n") != before_lines:
+        raise ValueError("value_fast_paths overlay changed logical line count")
+    return text
+
+
+def string_key_lookup(text):
+    before_lines = text.count("\n")
+    text = replace_exact_lines(
+        text,
+        "        /* try and locate an already registered atom */\n"
+        "        len = str->len;\n"
+        "        h = hash_string(str, atom_type);\n"
+        "        h &= JS_ATOM_HASH_MASK;",
+        "        /* try and locate an already registered atom */\n"
+        "        len = str->len;\n"
+        "        h = (atom_type == JS_ATOM_TYPE_STRING && !str->atom_type && str->hash) ? str->hash : (hash_string(str, atom_type) & JS_ATOM_HASH_MASK);\n"
+        "        if (atom_type == JS_ATOM_TYPE_STRING && !str->atom_type) str->hash = h;",
+    )
+    text = replace_exact_lines(
+        text,
+        "\n\nJSValue JS_GetPropertyValue(JSContext *ctx, JSValueConst this_obj,",
+        '\n#include "src/common/property/string-key-lookup.inc"\n'
+        "JSValue JS_GetPropertyValue(JSContext *ctx, JSValueConst this_obj,",
+    )
+    text = replace_exact_lines(
+        text,
+        "    tag = JS_VALUE_GET_TAG(this_obj);\n"
+        "    if (likely(tag == JS_TAG_OBJECT)) {\n"
+        "        if (JS_VALUE_GET_TAG(prop) == JS_TAG_INT) {\n"
+        "            JSObject *p = JS_VALUE_GET_OBJ(this_obj);\n"
+        "            uint32_t idx = JS_VALUE_GET_INT(prop);\n"
+        "            JSValue val;\n"
+        "            /* fast path for array and typed array access */\n"
+        "            if (js_get_fast_array_element(ctx, p, idx, &val))\n"
+        "                return val;\n"
+        "        }",
+        "    tag = JS_VALUE_GET_TAG(this_obj);\n"
+        "    if (likely(tag == JS_TAG_OBJECT)) {\n"
+        "        if (JS_VALUE_GET_TAG(prop) == JS_TAG_INT) {\n"
+        "            JSObject *p = JS_VALUE_GET_OBJ(this_obj);\n"
+        "            uint32_t idx = JS_VALUE_GET_INT(prop);\n"
+        "            JSValue val;\n"
+        "            /* fast path for array and typed array access */\n"
+        "            if (js_get_fast_array_element(ctx, p, idx, &val))\n"
+        "                return val;\n"
+        "        } else if (JS_VALUE_GET_TAG(prop) == JS_TAG_STRING) { JSValue val; if (js_try_get_property_string(ctx, this_obj, prop, &val)) return val; }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    slow_path:\n        atom = JS_ValueToAtom(ctx, prop);",
+        "    slow_path:\n"
+        "        if (JS_VALUE_GET_TAG(this_obj) == JS_TAG_OBJECT && JS_VALUE_GET_TAG(prop) == JS_TAG_STRING) { int f_ret; if (js_try_set_property_string(ctx, this_obj, prop, val, flags, &f_ret)) return f_ret; } atom = JS_ValueToAtom(ctx, prop);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    if (JS_VALUE_GET_TAG(op2) != JS_TAG_OBJECT) {\n"
+        "        JS_ThrowTypeError(ctx, \"invalid 'in' operand\");\n"
+        "        return -1;\n"
+        "    }\n"
+        "    atom = JS_ValueToAtom(ctx, op1);",
+        "    if (JS_VALUE_GET_TAG(op2) != JS_TAG_OBJECT) { JS_ThrowTypeError(ctx, \"invalid 'in' operand\"); return -1; }\n"
+        "    if (JS_VALUE_GET_TAG(op1) == JS_TAG_STRING && js_try_has_property_string(ctx, op2, op1, &ret)) { JS_FreeValue(ctx, op1); JS_FreeValue(ctx, op2); sp[-2] = js_bool(ret); return 0; }\n"
+        "    atom = JS_ValueToAtom(ctx, op1);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    p = JS_VALUE_GET_OBJ(it->obj);\n    if (is_typed_array(p->class_id)) {",
+        "    p = JS_VALUE_GET_OBJ(it->obj);\n"
+        "    if (p->class_id == JS_CLASS_ARRAY && p->fast_array && it->kind == JS_ITERATOR_KIND_VALUE && it->idx < p->u.array.count) { *pdone = false; return js_dup(p->u.array.u.values[it->idx++]); } if (is_typed_array(p->class_id)) {",
+    )
+    if text.count("\n") != before_lines:
+        raise ValueError("string_key_lookup overlay changed logical line count")
+    return text
+
+
 def core_overlay(text):
-    return async_output(map_keys(text))
+    return string_key_lookup(value_fast_paths(async_output(map_keys(text))))

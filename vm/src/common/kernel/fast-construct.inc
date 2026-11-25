@@ -9,11 +9,14 @@ enum {
 };
 
 typedef struct FastCtorMeta {
+    uintptr_t rt_id;
     uintptr_t callee_id;
     uintptr_t bc_id;
     uintptr_t callee_shape_id;
     uintptr_t proto_id;
     uintptr_t proto_shape_id;
+    uintptr_t init_holder_id;
+    uintptr_t init_holder_shape_id;
     uintptr_t init_fn_id;
     uintptr_t init_fn_shape_id;
     uintptr_t fn_proto_id;
@@ -23,6 +26,7 @@ typedef struct FastCtorMeta {
     uint32_t proto_slot;
     uint32_t init_slot;
     uint32_t apply_slot;
+    uint8_t init_depth;
     uint8_t tier;
     uint8_t n_fields;
     uint8_t need_undef_varref0;
@@ -32,7 +36,7 @@ typedef struct FastCtorMeta {
     JSAtom atoms[16];
 } FastCtorMeta;
 
-static FastCtorMeta fast_ctor_cache[64];
+static _Thread_local FastCtorMeta fast_ctor_cache[64];
 
 extern int JS_LinuxVirtualArgumentsFastOk(void);
 extern int JS_FrameArgumentsConstructFastOk(void);
@@ -617,13 +621,22 @@ static inline JSShape *fast_ctor_ensure_shape(JSContext *ctx, JSRuntime *rt, Ord
     return sh;
 }
 
-__attribute__((visibility("hidden"), section(".text.qjs_frame"), noipa)) int
-JS_FastConstructCall(JSFrameRegisterState *state)
+static inline int fast_ctor_decline(JSFrameRegisterState *state)
+{
+#ifdef QJS_FAST_CONSTRUCT_TRY_MODE
+    (void)state;
+    return -1;
+#else
+    return JS_FrameInterpProperty_call_constructor(state);
+#endif
+}
+
+static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
 {
     uint8_t *pc = state->pc;
     uint16_t incoming_argc = get_u16(pc + 1);
     if (!js_frame_construct_enabled() || incoming_argc > 32765)
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     JSFrame *frame = state->frame;
     JSRuntime *rt = state->rt;
     JSContext *ctx = frame->bytecode->realm;
@@ -632,29 +645,83 @@ JS_FastConstructCall(JSFrameRegisterState *state)
     JSValue func_obj = argv[-2];
     if (!JS_IsObject(func_obj) || !JS_IsObject(argv[-1]) ||
         JS_VALUE_GET_OBJ(func_obj) != JS_VALUE_GET_OBJ(argv[-1]))
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     JSObject *callee = JS_VALUE_GET_OBJ(func_obj);
+    if (incoming_argc == 0 && callee->class_id == JS_CLASS_C_FUNCTION && callee->is_constructor &&
+        !callee->is_exotic &&
+        (callee->u.cfunc.cproto == JS_CFUNC_constructor ||
+         callee->u.cfunc.cproto == JS_CFUNC_constructor_or_func) &&
+        callee->u.cfunc.c_function.constructor == js_object_constructor &&
+        callee->u.cfunc.realm == ctx) {
+        if (FRAME_REGISTER_STATE(rt) != 1 || rt->dump_flags || ctx->interrupt_counter <= 2 ||
+            state->iterator_checkpoint_depth || !JS_IsObject(ctx->class_proto[JS_CLASS_OBJECT]))
+            return fast_ctor_decline(state);
+        JSObject *op_proto = JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_OBJECT]);
+        frame->saved_sp = sp;
+        frame->sf.cur_sp = sp;
+        frame->sf.cur_pc = pc + 3;
+        state->pc = pc;
+        state->sp = sp;
+        js_frame_begin_c(state);
+        JSShape *sh = find_hashed_shape_proto(rt, op_proto);
+        sh = sh ? js_dup_shape(sh) : js_new_shape(ctx, op_proto);
+        if (!sh) {
+            state->pc = pc + 3;
+            state->exception_pending = true;
+            js_frame_finish_c(state);
+            return JS_FrameInterpSlow(state);
+        }
+        JSProperty dummy_prop;
+        dummy_prop.u.value = JS_UNDEFINED;
+        JSValue this_obj = JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, &dummy_prop);
+        if (JS_IsException(this_obj)) {
+            state->pc = pc + 3;
+            state->exception_pending = true;
+            js_frame_finish_c(state);
+            return JS_FrameInterpSlow(state);
+        }
+        ctx->interrupt_counter--;
+        JSValue old_f0 = argv[-2], old_f1 = argv[-1];
+        JSValue *new_sp = argv - 1;
+        argv[-2] = this_obj;
+        argv[-1] = JS_UNDEFINED;
+        state->pc = pc + 3;
+        state->sp = new_sp;
+        frame->saved_sp = new_sp;
+        frame->sf.cur_sp = new_sp;
+        frame->sf.cur_pc = pc + 3;
+        if (JS_REF_COUNT(callee) > 2) {
+            JS_REF_COUNT(callee) -= 2;
+        } else {
+            JS_FreeValue(ctx, old_f0);
+            JS_FreeValue(ctx, old_f1);
+        }
+        if (!FRAME_CHECKPOINT(frame))
+            frame->sf.cur_sp = NULL;
+        js_frame_finish_c(state);
+        return 2;
+    }
     if (callee->class_id != JS_CLASS_BYTECODE_FUNCTION || !callee->is_constructor ||
         callee->is_exotic)
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     JSFunctionBytecode *b = callee->u.func.function_bytecode;
     if (b->is_derived_class_constructor || b->func_kind != JS_FUNC_NORMAL || b->realm != ctx)
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     bool is_kind1 = (FRAME_KIND(b) & 1) != 0;
     bool is_va_wrapper = !is_kind1 && FRAME_KIND(b) == 2 && FRAME_ITERATOR_KIND(b) == 128 &&
                          !rt->interrupt_handler && ctx->interrupt_counter > 4 &&
                          b->byte_code_len == 21 && JS_FrameArgumentsConstructFastOk() &&
                          JS_LinuxVirtualArgumentsFastOk();
     if (!is_kind1 && !is_va_wrapper)
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     if (FRAME_REGISTER_STATE(rt) != 1 || rt->dump_flags || rt->property_ic_mode != 1 ||
         !rt->property_ic_epoch || ctx->interrupt_counter <= 2 || state->iterator_checkpoint_depth ||
         !(ORD_ACTIVE(state) == 4 || (ORD_ACTIVE(state) == 0 && ORD_LAZY(state) == 1)))
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
 
     unsigned mode = atomic_load_explicit(&JS_FrameOrdinaryLiteralMode, memory_order_relaxed);
     if (!mode || !(mode & 1) || (mode & 16))
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
 
     uint32_t slot =
         (uint32_t)((((uintptr_t)callee >> 4) ^ ((uintptr_t)callee >> 10) ^ ((uintptr_t)b >> 4)) &
@@ -662,9 +729,12 @@ JS_FastConstructCall(JSFrameRegisterState *state)
     FastCtorMeta *m = &fast_ctor_cache[slot];
     JSObject *proto_obj = NULL;
     JSFunctionBytecode *init_b = NULL;
-    if (m->tier != 0 && (is_va_wrapper ? (m->tier >= 3) : (m->tier <= 2)) &&
-        m->callee_id == (uintptr_t)callee && m->bc_id == (uintptr_t)b &&
-        m->callee_shape_id == (uintptr_t)callee->shape && m->epoch == rt->property_ic_epoch) {
+    if (m->rt_id == (uintptr_t)rt && m->tier != 0 &&
+        (is_va_wrapper ? (m->tier >= 3) : (m->tier <= 2)) && m->callee_id == (uintptr_t)callee &&
+        m->bc_id == (uintptr_t)b && m->callee_shape_id == (uintptr_t)callee->shape &&
+        m->epoch == rt->property_ic_epoch && m->proto_slot < (uint32_t)callee->shape->prop_count &&
+        get_shape_prop(callee->shape)[m->proto_slot].atom == JS_ATOM_prototype &&
+        (get_shape_prop(callee->shape)[m->proto_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
         JSValue pval = callee->prop[m->proto_slot].u.value;
         if (JS_IsObject(pval)) {
             JSObject *po = JS_VALUE_GET_OBJ(pval);
@@ -676,18 +746,37 @@ JS_FastConstructCall(JSFrameRegisterState *state)
     }
     if (proto_obj && is_va_wrapper) {
         if (m->tier == 4)
-            return JS_FrameInterpProperty_call_constructor(state);
-        JSValue iv = proto_obj->prop[m->init_slot].u.value;
-        if (JS_IsObject(iv)) {
-            JSObject *ifo = JS_VALUE_GET_OBJ(iv);
-            if ((uintptr_t)ifo == m->init_fn_id && !ifo->is_exotic &&
-                (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&
-                (uintptr_t)ifo->shape->proto == m->fn_proto_id && ifo->shape->proto->is_prototype &&
-                !ifo->shape->proto->is_exotic &&
-                (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id) {
-                JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;
-                if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)
-                    init_b = ifo->u.func.function_bytecode;
+            return fast_ctor_decline(state);
+        JSObject *cur = proto_obj;
+        for (uint8_t d = 1; d < m->init_depth && cur; d++) {
+            if (cur->is_exotic || !cur->is_prototype) {
+                cur = NULL;
+                break;
+            }
+            cur = cur->shape->proto;
+        }
+        if (cur && (uintptr_t)cur == m->init_holder_id && !cur->is_exotic && cur->is_prototype &&
+            (uintptr_t)cur->shape == m->init_holder_shape_id &&
+            m->init_slot < (uint32_t)cur->shape->prop_count &&
+            get_shape_prop(cur->shape)[m->init_slot].atom == get_u32(b->byte_code_buf + 7) &&
+            (get_shape_prop(cur->shape)[m->init_slot].flags & JS_PROP_TMASK) == JS_PROP_NORMAL) {
+            JSValue iv = cur->prop[m->init_slot].u.value;
+            if (JS_IsObject(iv)) {
+                JSObject *ifo = JS_VALUE_GET_OBJ(iv);
+                if ((uintptr_t)ifo == m->init_fn_id &&
+                    ifo->class_id == JS_CLASS_BYTECODE_FUNCTION && !ifo->is_exotic &&
+                    (uintptr_t)ifo->shape == m->init_fn_shape_id && ifo->shape->proto &&
+                    (uintptr_t)ifo->shape->proto == m->fn_proto_id &&
+                    ifo->shape->proto->is_prototype && !ifo->shape->proto->is_exotic &&
+                    (uintptr_t)ifo->shape->proto->shape == m->fn_proto_shape_id &&
+                    m->apply_slot < (uint32_t)ifo->shape->proto->shape->prop_count &&
+                    get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].atom == JS_ATOM_apply &&
+                    (get_shape_prop(ifo->shape->proto->shape)[m->apply_slot].flags &
+                     JS_PROP_TMASK) == JS_PROP_NORMAL) {
+                    JSValue apv = ifo->shape->proto->prop[m->apply_slot].u.value;
+                    if (JS_IsObject(apv) && (uintptr_t)JS_VALUE_GET_OBJ(apv) == m->apply_id)
+                        init_b = ifo->u.func.function_bytecode;
+                }
             }
         }
         if (!init_b)
@@ -697,12 +786,13 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         JSProperty *pr = NULL;
         JSShapeProperty *ps = find_own_property(&pr, callee, JS_ATOM_prototype);
         if (!ps || (ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL || !JS_IsObject(pr->u.value))
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         proto_obj = JS_VALUE_GET_OBJ(pr->u.value);
         if (proto_obj->is_exotic || proto_obj->class_id != JS_CLASS_OBJECT)
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         proto_obj->is_prototype = true;
 
+        m->rt_id = (uintptr_t)rt;
         m->callee_id = (uintptr_t)callee;
         m->bc_id = (uintptr_t)b;
         m->callee_shape_id = (uintptr_t)callee->shape;
@@ -710,6 +800,9 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         m->proto_shape_id = (uintptr_t)proto_obj->shape;
         m->proto_slot = (uint32_t)(pr - callee->prop);
         m->epoch = rt->property_ic_epoch;
+        m->init_holder_id = 0;
+        m->init_holder_shape_id = 0;
+        m->init_depth = 0;
         m->init_fn_id = 0;
         m->init_fn_shape_id = 0;
         m->fn_proto_id = 0;
@@ -734,32 +827,47 @@ JS_FastConstructCall(JSFrameRegisterState *state)
                 buf[11] != OP_get_field2 || get_u32(buf + 12) != JS_ATOM_apply ||
                 buf[16] != OP_get_loc0_loc1 || buf[17] != OP_call_method ||
                 get_u16(buf + 18) != 2 || buf[20] != OP_return_undef) {
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             JSAtom init_atom = get_u32(buf + 7);
+            JSObject *init_holder = proto_obj;
             JSProperty *init_pr = NULL, *own_apply = NULL, *proto_apply = NULL;
-            JSShapeProperty *init_ps = find_own_property(&init_pr, proto_obj, init_atom);
-            if (!init_ps || (init_ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL ||
+            JSShapeProperty *init_ps = NULL;
+            uint8_t init_depth = 0;
+            for (uint8_t d = 0; d < 8 && init_holder; d++) {
+                if (init_holder->is_exotic || (d > 0 && !init_holder->is_prototype)) {
+                    init_holder = NULL;
+                    break;
+                }
+                init_holder->is_prototype = true;
+                init_ps = find_own_property(&init_pr, init_holder, init_atom);
+                if (init_ps) {
+                    init_depth = (uint8_t)(d + 1);
+                    break;
+                }
+                init_holder = init_holder->shape->proto;
+            }
+            if (!init_holder || !init_ps || (init_ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL ||
                 !JS_IsObject(init_pr->u.value)) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             JSObject *init_fn = JS_VALUE_GET_OBJ(init_pr->u.value);
             if (init_fn->class_id != JS_CLASS_BYTECODE_FUNCTION || init_fn->is_exotic ||
                 find_own_property(&own_apply, init_fn, JS_ATOM_apply)) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             JSObject *fn_proto = init_fn->shape->proto;
             if (!fn_proto || fn_proto->is_exotic) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             JSShapeProperty *apply_ps = find_own_property(&proto_apply, fn_proto, JS_ATOM_apply);
             if (!apply_ps || (apply_ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL ||
                 !JS_IsObject(proto_apply->u.value)) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             JSObject *apply_obj = JS_VALUE_GET_OBJ(proto_apply->u.value);
             if (apply_obj->class_id != JS_CLASS_C_FUNCTION ||
@@ -768,12 +876,12 @@ JS_FastConstructCall(JSFrameRegisterState *state)
                 apply_obj->u.cfunc.realm != ctx ||
                 apply_obj->u.cfunc.c_function.generic_magic != js_function_apply) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             init_b = init_fn->u.func.function_bytecode;
             if (FRAME_KIND(init_b) == 0) {
                 m->tier = 0;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             if (init_b->realm != ctx || !(FRAME_KIND(init_b) & 1) ||
                 init_b->func_kind != JS_FUNC_NORMAL || init_b->is_derived_class_constructor ||
@@ -781,15 +889,18 @@ JS_FastConstructCall(JSFrameRegisterState *state)
                 init_b->closure_var_count != 0 || init_b->stack_size > 8 ||
                 init_b->byte_code_len > 128) {
                 m->tier = 4;
-                return JS_FrameInterpProperty_call_constructor(state);
+                return fast_ctor_decline(state);
             }
             fn_proto->is_prototype = true;
+            m->init_holder_id = (uintptr_t)init_holder;
+            m->init_holder_shape_id = (uintptr_t)init_holder->shape;
+            m->init_depth = init_depth;
             m->init_fn_id = (uintptr_t)init_fn;
             m->init_fn_shape_id = (uintptr_t)init_fn->shape;
             m->fn_proto_id = (uintptr_t)fn_proto;
             m->fn_proto_shape_id = (uintptr_t)fn_proto->shape;
             m->apply_id = (uintptr_t)apply_obj;
-            m->init_slot = (uint32_t)(init_pr - proto_obj->prop);
+            m->init_slot = (uint32_t)(init_pr - init_holder->prop);
             m->apply_slot = (uint32_t)(proto_apply - fn_proto->prop);
             m->tier = 3;
             m->n_fields = 0xFF;
@@ -865,7 +976,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
 
     if (is_va_wrapper) {
         if (m->tier != 3 || !init_b)
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         JSAtom out_atoms[16];
         JSValue out_vals[16];
         uint8_t n_f = 0;
@@ -874,7 +985,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
                                  &n_f, &hit_unsup)) {
             if (hit_unsup)
                 m->tier = 4;
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         }
         frame->saved_sp = sp;
         frame->sf.cur_sp = sp;
@@ -887,7 +998,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
             if (!FRAME_CHECKPOINT(frame))
                 frame->sf.cur_sp = NULL;
             js_frame_finish_c(state);
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         }
         if (m->n_fields == 0xFF) {
             m->n_fields = n_f;
@@ -916,9 +1027,11 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         JSValue old_f0 = argv[-2], old_f1 = argv[-1];
         JSValue *new_sp = argv - 1;
         argv[-2] = this_obj;
+        argv[-1] = JS_UNDEFINED;
         state->pc = pc + 3;
         state->sp = new_sp;
         frame->saved_sp = new_sp;
+        frame->sf.cur_sp = new_sp;
         frame->sf.cur_pc = pc + 3;
         if (JS_REF_COUNT(callee) > 2) {
             JS_REF_COUNT(callee) -= 2;
@@ -926,8 +1039,11 @@ JS_FastConstructCall(JSFrameRegisterState *state)
             JS_FreeValue(ctx, old_f0);
             JS_FreeValue(ctx, old_f1);
         }
-        for (int i = 0; i < incoming_argc; i++)
-            JS_FreeValue(ctx, argv[i]);
+        for (int i = 0; i < incoming_argc; i++) {
+            JSValue a = argv[i];
+            argv[i] = JS_UNDEFINED;
+            JS_FreeValue(ctx, a);
+        }
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
@@ -948,7 +1064,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
             if (!FRAME_CHECKPOINT(frame))
                 frame->sf.cur_sp = NULL;
             js_frame_finish_c(state);
-            return JS_FrameInterpProperty_call_constructor(state);
+            return fast_ctor_decline(state);
         }
         JSShape *sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, m->n_fields, m->atoms);
         if (!sh) {
@@ -995,9 +1111,11 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         JSValue old_f0 = argv[-2], old_f1 = argv[-1];
         JSValue *new_sp = argv - 1;
         argv[-2] = this_obj;
+        argv[-1] = JS_UNDEFINED;
         state->pc = pc + 3;
         state->sp = new_sp;
         frame->saved_sp = new_sp;
+        frame->sf.cur_sp = new_sp;
         frame->sf.cur_pc = pc + 3;
         if (JS_REF_COUNT(callee) > 2) {
             JS_REF_COUNT(callee) -= 2;
@@ -1005,8 +1123,11 @@ JS_FastConstructCall(JSFrameRegisterState *state)
             JS_FreeValue(ctx, old_f0);
             JS_FreeValue(ctx, old_f1);
         }
-        for (int i = 0; i < incoming_argc; i++)
-            JS_FreeValue(ctx, argv[i]);
+        for (int i = 0; i < incoming_argc; i++) {
+            JSValue a = argv[i];
+            argv[i] = JS_UNDEFINED;
+            JS_FreeValue(ctx, a);
+        }
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
@@ -1014,14 +1135,14 @@ JS_FastConstructCall(JSFrameRegisterState *state)
     }
 
     if (FRAME_CAPTURED_ARGS(b))
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     uint16_t owned_args = incoming_argc < b->arg_count ? b->arg_count : 0;
     JSFrameSegment *segment = state->segment;
     size_t frame_size = FRAME_HEADER_BYTES +
                         sizeof(JSValue) * (owned_args + b->var_count + b->stack_size) +
                         FRAME_CAPTURE_BYTES(b);
     if (frame_size > segment->capacity - segment->used)
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     frame->saved_sp = sp;
     frame->sf.cur_sp = sp;
     frame->sf.cur_pc = pc + 3;
@@ -1032,14 +1153,14 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     }
     OrdSite *site = ord_ctor_site(state, mode, ((uintptr_t)callee) | 1u, ~((uintptr_t)b));
     if (!site) {
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     }
     JSShape *sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, 0, NULL);
     if (!sh) {
@@ -1053,7 +1174,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     }
     frame->pending = (uint16_t)(incoming_argc + 2);
     JSProperty dummy_prop;
@@ -1072,7 +1193,7 @@ JS_FastConstructCall(JSFrameRegisterState *state)
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
         js_frame_finish_c(state);
-        return JS_FrameInterpProperty_call_constructor(state);
+        return fast_ctor_decline(state);
     }
     ctx->interrupt_counter -= 2;
     assert(JS_REF_COUNT(callee) >= 2);
@@ -1124,3 +1245,17 @@ JS_FastConstructCall(JSFrameRegisterState *state)
     js_frame_finish_c(state);
     return 0;
 }
+
+#ifdef QJS_FAST_CONSTRUCT_TRY_MODE
+__attribute__((visibility("hidden"), section(".text.qjs_frame"),
+               noipa)) int JS_FastConstructTry(JSFrameRegisterState *state)
+{
+    return js_fast_construct_try_impl(state);
+}
+#else
+__attribute__((visibility("hidden"), section(".text.qjs_frame"),
+               noipa)) int JS_FastConstructCall(JSFrameRegisterState *state)
+{
+    return js_fast_construct_try_impl(state);
+}
+#endif

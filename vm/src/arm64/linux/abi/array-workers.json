@@ -8,7 +8,7 @@
     "src/common/kernel/cached-sort.inc": "a25080809ea8cdec102e687c1106c743937a9c9069b3d1e543052e13c6ae07b8",
     "src/common/call/quickjs-interpreter-prepared-entry.inc": "9f059fa55cf0e54b854574a2f69a09b272444dccb5704b55a4b8d9d2822138f3",
     "src/common/linux/interpreter-sort.inc": "e37b38eb02527be5448327baee13bb39d76ed60da47cbd10627b1b169292ff02",
-    "src/common/call/quickjs-interpreter-shared.inc": "c153ad8947da20f3547652f142d34ba7ddf8cfda128241e2451ecd1c8eac7a83"
+    "src/common/call/quickjs-interpreter-shared.inc": "58ca7ba215be884fe92df93affe7b1303aac7cebdee0307568997d834d99a16c"
   },
   "scope": "Complete accepted copy/growth/default radix/cached/prepared C sort;existing dense pop retained;native append OPEN",
   "actual_core_types": true,

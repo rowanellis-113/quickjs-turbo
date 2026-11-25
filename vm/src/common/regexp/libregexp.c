@@ -3147,8 +3147,7 @@ static no_inline int re_scan_search_lookahead(REExecContext *s, const uint8_t *m
 /* Yarr-style character-width specialization. The generic VM remains the
  * only implementation on other compilers/platforms and in dump builds.
  * No regex bytecode or backtracking algorithm changes here. */
-#if defined(__GNUC__) && !defined(__clang__) && defined(_WIN64) &&                                 \
-    defined(QJS_FRAME_REGEXP_PRIVATE_UNICODE) && !defined(DUMP_EXEC)
+#if !defined(DUMP_EXEC) && !defined(QJS_REGEXP_NO_WIDTH8)
 #define FRAME_RE_WIDTH8_ENABLED 1
 #define FRAME_RE_EXEC_NAME lre_exec_backtrack8
 #define FRAME_RE_CBUF_TYPE 0

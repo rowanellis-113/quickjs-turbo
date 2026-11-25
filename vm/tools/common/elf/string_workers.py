@@ -181,6 +181,50 @@ def generate(
         "JSValue JS_FrameLocaleCompare(", "LINUX_STRING_CODE JSValue JS_FrameLocaleCompare(", 1
     )
     policy = source_text(source, "string-linux-boundaries.inc")
+    policy = replace_one(
+        policy,
+        "    result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);",
+        """    if (JS_VALUE_GET_TAG(sp[-2]) == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-2])->len == 0) {
+        JSString *pe = JS_VALUE_GET_STRING(sp[-2]);
+        uint32_t rtag = JS_VALUE_GET_TAG(sp[-1]);
+        if (rtag == JS_TAG_INT) {
+            result = qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(sp[-1]));
+            if (likely(JS_REF_COUNT(pe) > 1))
+                --JS_REF_COUNT(pe);
+            else
+                JS_FreeValue(ctx, sp[-2]);
+        } else if (JS_TAG_IS_FLOAT64(rtag)) {
+            result = js_dtoa2(ctx, JS_VALUE_GET_FLOAT64(sp[-1]), 10, 0, JS_DTOA_FORMAT_FREE);
+            if (likely(JS_REF_COUNT(pe) > 1))
+                --JS_REF_COUNT(pe);
+            else
+                JS_FreeValue(ctx, sp[-2]);
+        } else {
+            result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);
+        }
+    } else if (JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-1])->len == 0) {
+        JSString *pe = JS_VALUE_GET_STRING(sp[-1]);
+        uint32_t ltag = JS_VALUE_GET_TAG(sp[-2]);
+        if (ltag == JS_TAG_INT) {
+            result = qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(sp[-2]));
+            if (likely(JS_REF_COUNT(pe) > 1))
+                --JS_REF_COUNT(pe);
+            else
+                JS_FreeValue(ctx, sp[-1]);
+        } else if (JS_TAG_IS_FLOAT64(ltag)) {
+            result = js_dtoa2(ctx, JS_VALUE_GET_FLOAT64(sp[-2]), 10, 0, JS_DTOA_FORMAT_FREE);
+            if (likely(JS_REF_COUNT(pe) > 1))
+                --JS_REF_COUNT(pe);
+            else
+                JS_FreeValue(ctx, sp[-1]);
+        } else {
+            result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);
+        }
+    } else {
+        result = JS_FrameLinuxSharedConcatSelect(ctx, sp[-2], sp[-1]);
+    }""",
+        "fast empty-string + int/float64 concat",
+    )
     small_path = source_file(source, "string-small-char.c")
     small = small_path.read_text()
     small = replace_one(

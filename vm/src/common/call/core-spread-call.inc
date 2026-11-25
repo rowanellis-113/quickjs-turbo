@@ -16,6 +16,7 @@ static int check_function(JSContext *ctx, JSValueConst obj);
 
 #ifdef CONFIG_ATOMICS
 static _Atomic unsigned char js_core_spread_mode;
+static _Atomic uint32_t js_core_spread_slot_hint;
 static inline bool js_core_spread_enabled(void)
 {
     unsigned char mode = atomic_load_explicit(&js_core_spread_mode, memory_order_relaxed);
@@ -26,6 +27,7 @@ static inline bool js_core_spread_enabled(void)
     return mode == 1;
 }
 #else
+static uint32_t js_core_spread_slot_hint;
 static inline bool js_core_spread_enabled(void)
 {
     return getenv("QJS_DISABLE_CORE_SPREAD_CALL") == NULL;
@@ -60,6 +62,7 @@ static bool js_core_spread_dense(JSContext *ctx, JSValueConst value, JSObject **
     JSValue method, next, length;
     JSCFunctionType create = {.generic_magic = js_create_array_iterator};
     JSCFunctionType advance = {.iterator_next = js_array_iterator_next};
+    uint32_t hint;
     if (!JS_IsObject(value))
         return false;
     array = JS_VALUE_GET_OBJ(value);
@@ -73,6 +76,55 @@ static bool js_core_spread_dense(JSContext *ctx, JSValueConst value, JSObject **
     if (JS_VALUE_GET_TAG(length) != JS_TAG_INT || JS_VALUE_GET_INT(length) < 0 ||
         (uint32_t)JS_VALUE_GET_INT(length) != array->u.array.count)
         return false; /* Holes may require observable prototype reads. */
+#ifdef CONFIG_ATOMICS
+    hint = atomic_load_explicit(&js_core_spread_slot_hint, memory_order_relaxed);
+#else
+    hint = js_core_spread_slot_hint;
+#endif
+    if (hint && array->shape->prop_count == 1) {
+        uint32_t s1 = (hint & 0xffffu) - 1u;
+        uint32_t s2 = (hint >> 16) - 1u;
+        JSObject *ap = array->shape->proto;
+        if (ap &&
+            (ap->class_id == JS_CLASS_ARRAY ||
+             (!ap->is_exotic && ap->class_id == JS_CLASS_OBJECT)) &&
+            s1 < (uint32_t)ap->shape->prop_count) {
+            JSShapeProperty *p1 = &get_shape_prop(ap->shape)[s1];
+            if (p1->atom == JS_ATOM_Symbol_iterator && !(p1->flags & JS_PROP_TMASK)) {
+                method = ap->prop[s1].u.value;
+                if (JS_VALUE_GET_TAG(method) == JS_TAG_OBJECT) {
+                    function = JS_VALUE_GET_OBJ(method);
+                    if (function->class_id == JS_CLASS_C_FUNCTION &&
+                        function->u.cfunc.cproto == JS_CFUNC_generic_magic &&
+                        function->u.cfunc.magic == JS_ITERATOR_KIND_VALUE &&
+                        function->u.cfunc.c_function.generic == create.generic) {
+                        iterator_realm = function->u.cfunc.realm;
+                        JSValue aip = iterator_realm->class_proto[JS_CLASS_ARRAY_ITERATOR];
+                        if (JS_IsObject(aip)) {
+                            JSObject *ip = JS_VALUE_GET_OBJ(aip);
+                            if (!ip->is_exotic && ip->class_id == JS_CLASS_OBJECT &&
+                                s2 < (uint32_t)ip->shape->prop_count) {
+                                JSShapeProperty *p2 = &get_shape_prop(ip->shape)[s2];
+                                if (p2->atom == JS_ATOM_next && !(p2->flags & JS_PROP_TMASK)) {
+                                    next = ip->prop[s2].u.value;
+                                    if (JS_VALUE_GET_TAG(next) == JS_TAG_OBJECT) {
+                                        JSObject *nf = JS_VALUE_GET_OBJ(next);
+                                        if (nf->class_id == JS_CLASS_C_FUNCTION &&
+                                            nf->u.cfunc.cproto == JS_CFUNC_iterator_next &&
+                                            nf->u.cfunc.magic == 0 &&
+                                            nf->u.cfunc.c_function.generic == advance.generic) {
+                                            *array_out = array;
+                                            return true;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
     if (!js_core_spread_data(array, JS_ATOM_Symbol_iterator, &method) ||
         !JS_IsCFunction(ctx, method, create.generic, JS_ITERATOR_KIND_VALUE))
         return false;
@@ -86,6 +138,25 @@ static bool js_core_spread_dense(JSContext *ctx, JSValueConst value, JSObject **
         !JS_IsCFunction(ctx, next, advance.generic, 0) ||
         JS_VALUE_GET_OBJ(next)->u.cfunc.cproto != JS_CFUNC_iterator_next)
         return false;
+    if (array->shape->prop_count == 1 && array->shape->proto) {
+        JSObject *ap = array->shape->proto;
+        JSObject *ip = JS_VALUE_GET_OBJ(iterator_realm->class_proto[JS_CLASS_ARRAY_ITERATOR]);
+        JSProperty *pr1, *pr2;
+        JSShapeProperty *sp1 = find_own_property(&pr1, ap, JS_ATOM_Symbol_iterator);
+        JSShapeProperty *sp2 = find_own_property(&pr2, ip, JS_ATOM_next);
+        if (sp1 && !(sp1->flags & JS_PROP_TMASK) && sp2 && !(sp2->flags & JS_PROP_TMASK)) {
+            uint32_t s1 = (uint32_t)(pr1 - ap->prop);
+            uint32_t s2 = (uint32_t)(pr2 - ip->prop);
+            if (s1 < 0xfffeu && s2 < 0xfffeu) {
+                uint32_t packed = ((s2 + 1u) << 16) | (s1 + 1u);
+#ifdef CONFIG_ATOMICS
+                atomic_store_explicit(&js_core_spread_slot_hint, packed, memory_order_relaxed);
+#else
+                js_core_spread_slot_hint = packed;
+#endif
+            }
+        }
+    }
     *array_out = array;
     return true;
 }

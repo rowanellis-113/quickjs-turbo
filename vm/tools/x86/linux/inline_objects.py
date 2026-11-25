@@ -24,7 +24,7 @@ def core_storage(core, *, property_ic):
     change(
         "    js_trigger_gc(ctx->rt, sizeof(JSObject) + sizeof(JSProperty) * sh->prop_size);\n    p = js_malloc(ctx, sizeof(JSObject));",
         "    /* Reserve extra slots only when the caller supplies a complete payload. */\n"
-        "    size_t inline_bytes = class_id == JS_CLASS_OBJECT\n"
+        "    size_t inline_bytes = (class_id == JS_CLASS_OBJECT || (props && class_id == JS_CLASS_ARRAY))\n"
         "        ? qjs_inline_property_plan(sh, 0, props ? 4u : 0u) : 0;\n"
         "    size_t object_bytes = inline_bytes ? inline_bytes : sizeof(JSObject);\n"
         "    js_trigger_gc(ctx->rt, object_bytes + (inline_bytes ? 0 : sizeof(JSProperty) * sh->prop_size));\n"

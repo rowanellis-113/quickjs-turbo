@@ -86,16 +86,86 @@ def opcode_guard(name):
     )
 
 
+def core_opcode_body(name):
+    if name in ("get_field", "get_field2"):
+        finish = (
+            "JS_FreeValue(ctx, sp[-1]); sp[-1] = value;"
+            if name == "get_field"
+            else "*sp++ = value;"
+        )
+        return (
+            """            { JSObject *_ic_r = JS_VALUE_GET_OBJ(sp[-1]); JSPropertyIC *_ic = b->property_ic;
+                uint32_t _ic_pos = (uint32_t)(pc - 1 - b->byte_code_buf) >> 2;
+                JSPropertyICSite *_ic_s = js_property_ic_is_ptr(_ic) && _ic_pos < _ic->map_count ? _ic->map[_ic_pos] : NULL;
+                JSValue value;
+                if (_ic_s && !_ic_s->megamorphic && _ic_s->primary.shape == _ic_r->shape) {
+                    uint32_t _k = _ic_s->primary.kind;
+                    if (_k == JS_IC_OWN) {
+                        value = js_dup(_ic_r->prop[_ic_s->primary.slot].u.value);
+                        pc += 4;
+                        sf->cur_pc = pc;
+                        """
+            + finish
+            + """
+                        BREAK;
+                    }
+                    if ((_k == JS_IC_PROTO || _k == JS_IC_UNSET) && ctx->rt->property_ic_epoch &&
+                        _ic_s->primary.epoch == ctx->rt->property_ic_epoch) {
+                        value = _k == JS_IC_UNSET ? JS_UNDEFINED
+                                                  : js_dup(_ic_s->primary.holder->prop[_ic_s->primary.slot].u.value);
+                        pc += 4;
+                        sf->cur_pc = pc;
+                        """
+            + finish
+            + """
+                        BREAK;
+                    }
+                }
+                { JSAtom atom = get_u32(pc); pc += 4;
+                    sf->cur_pc = pc;
+                    value = js_property_ic_get(ctx, b, pc - 5, sp[-1], atom);
+                    if (unlikely(JS_IsException(value))) goto exception;
+                    """
+            + finish
+            + """
+                }
+            }
+            BREAK;
+"""
+        )
+    if name == "put_field":
+        return """            { JSObject *_ic_r = JS_VALUE_GET_OBJ(sp[-2]); JSPropertyIC *_ic = b->property_ic;
+                uint32_t _ic_pos = (uint32_t)(pc - 1 - b->byte_code_buf) >> 2;
+                JSPropertyICSite *_ic_s = js_property_ic_is_ptr(_ic) && _ic_pos < _ic->map_count ? _ic->map[_ic_pos] : NULL;
+                if (_ic_s && _ic_s->primary.shape == _ic_r->shape && _ic_s->primary.kind == JS_IC_REPLACE) {
+                    pc += 4;
+                    sf->cur_pc = pc;
+                    set_value(ctx, &_ic_r->prop[_ic_s->primary.slot].u.value, sp[-1]);
+                    JS_FreeValue(ctx, sp[-2]); sp -= 2;
+                    BREAK;
+                }
+                if (!(_ic_s && _ic_s->megamorphic)) {
+                    JSAtom atom = get_u32(pc); int ret; pc += 4;
+                    sf->cur_pc = pc;
+                    ret = js_property_ic_put(ctx, b, pc - 5, sp[-2], atom, sp[-1]);
+                    JS_FreeValue(ctx, sp[-2]); sp -= 2;
+                    if (unlikely(ret < 0)) goto exception;
+                    BREAK;
+                }
+            }
+"""
+    raise ValueError(name)
+
+
 def opcode_with_fallback(name, original, core=False):
     """Leave dictionary/primitive/OFF operations in the original inline body."""
     opening = "\n            {"
     if original.count(opening) != 1:
         raise ValueError("Property opcode opening changed: " + name)
-    fast = opcode_body(name).strip()
     if core:
         # This boundary has no preprocessor statements. Keep every old line ID
         # and original branch body while adding one declared IC eligibility arm.
-        fast = " ".join(fast.splitlines())
+        fast = " ".join(core_opcode_body(name).strip().splitlines())
         return original.replace(
             opening, opening + " if (" + opcode_guard(name) + ") { " + fast + " }", 1
         )

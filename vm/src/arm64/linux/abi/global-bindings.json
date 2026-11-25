@@ -9,7 +9,7 @@
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
     "src/common/property/global-binding-cell.inc": "2218ab0a5831535dacc242ed8c1858a9094045e810a49bfbbc80d4d5ce96d38e",
     "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
-    "src/common/property/property-ic.inc": "807bc88c09686a5c9c6bb78a74b173fa51a2d1827fb895e430e5ff8866906905",
+    "src/common/property/property-ic.inc": "8ff357127665e36492e24956a9001bb561d387997a3ad7537bb52be700df60a2",
     "src/common/property/property-ic-lifetime.inc": "d79ee0d18ee6df7752ddaeb0d029958a0bfd52af077f99584274f194b43026c9",
     "asm/arm64/common/register-global-bindings.inc": "772f7a0632c778b90a0eb361bcf7972dbfaf5ef6fbca86ed2a156283bf4ee96b"
   },

@@ -121,7 +121,8 @@ static CALL_LINK_INLINE JSValue *compound_hash_slot(JSObject *p, JSAtom atom)
 static CALL_LINK_INLINE JSValue *compound_own_slot(JSObject *p, JSAtom atom, JSPropertyICSite *site,
                                                    unsigned *pic)
 {
-    if (site && (uintptr_t)site > 3 && !site->megamorphic && (p->shape->is_hashed & 1)) {
+    if (site && (uintptr_t)site > 4095u && !((uintptr_t)site & 3u) && !site->megamorphic &&
+        (p->shape->is_hashed & 1)) {
         for (unsigned i = 0; i < site->count; i++) {
             JSPropertyICWay *w = i ? &site->secondary[i - 1] : &site->primary;
             if (w->shape == p->shape && w->kind == JS_IC_OWN && w->slot < p->shape->prop_count &&
@@ -182,7 +183,7 @@ static CALL_LINK_INLINE unsigned compound_proof(JSContext *ctx, JSFunctionByteco
     if (x->is_exotic || y->is_exotic)
         return COMPOUND_OBJECT;
     ic = b->property_ic;
-    if ((uintptr_t)ic > 1 && ic->map_count > 3) {
+    if ((uintptr_t)ic > 4095u && !((uintptr_t)ic & 1u) && ic->map_count > 3) {
         s0 = ic->map[0];
         s1 = ic->map[3];
     }

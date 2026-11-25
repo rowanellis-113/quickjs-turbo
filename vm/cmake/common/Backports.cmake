@@ -67,6 +67,8 @@ function(qjs_apply_declared_backports target)
         endif()
         return()
     endif()
+    target_include_directories(${target} BEFORE
+                               PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/generated/backports")
     find_package(Python3 REQUIRED COMPONENTS Interpreter)
     set(backport_launcher
         "${Python3_EXECUTABLE}"
@@ -155,7 +157,9 @@ function(qjs_apply_declared_backports target)
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/memory/hybrid-gc.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/tools/common/backports/keyed_async.py"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/bigint-divrem-fast.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/dtoa-fast.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/value/map-string-keys.inc"
+                 "${CMAKE_CURRENT_SOURCE_DIR}/src/common/property/string-key-lookup.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/promise/async-output.inc"
                  "${CMAKE_CURRENT_SOURCE_DIR}/quickjs-turbo.h"
                  "${CMAKE_CURRENT_SOURCE_DIR}/src/common/internal/turbo-config.h"

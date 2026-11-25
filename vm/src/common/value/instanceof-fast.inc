@@ -1,24 +1,49 @@
 /* Epoch-guarded inline cache for native OP_instanceof fast path. */
+#if defined(_MSC_VER)
+#define QJS_FAST_INSTOF_TLS __declspec(thread)
+#else
+#define QJS_FAST_INSTOF_TLS _Thread_local
+#endif
+
 typedef struct {
     JSObject *ctor;
     JSShape *ctor_shape;
     uint32_t ctor_prop_count;
+    uint32_t holder_prop_count;
     uint64_t epoch;
     JSContext *ctx;
     JSObject *holder;
+    JSShape *holder_shape;
     JSObject *method;
     uint32_t has_inst_slot;
     uint32_t proto_slot;
+    uint8_t holder_depth;
     uint8_t has_proto;
 } FastInstOfEntry;
 
-static FastInstOfEntry fast_instof_cache[16];
+static QJS_FAST_INSTOF_TLS FastInstOfEntry fast_instof_cache[64];
+
+static inline bool fast_instof_holder_live(JSObject *ctor, const JSObject *holder)
+{
+    JSObject *cur = ctor;
+    for (unsigned d = 0; cur && d < 16; d++, cur = cur->shape->proto) {
+        if (cur->is_exotic)
+            return false;
+        if (cur == holder)
+            return true;
+    }
+    return false;
+}
 
 static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue *sp)
 {
+#ifdef QJS_FAST_INSTANCEOF_NO_DIRECT_DATA
+    unsigned mode = 1;
+#else
     unsigned mode = __atomic_load_n(&JS_FrameSlowDirectData.mode, __ATOMIC_RELAXED);
     if ((mode & (3 | 64 | 128)) != 1)
         return 0;
+#endif
     uint64_t epoch = rt->property_ic_epoch;
     if (ctx->interrupt_counter <= 1 || rt->dump_flags || rt->property_ic_mode != 1 || !epoch)
         return 0;
@@ -27,7 +52,8 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
     if (!JS_IsObject(c_val))
         return 0;
     JSObject *ctor = JS_VALUE_GET_OBJ(c_val);
-    if (ctor->class_id != JS_CLASS_BYTECODE_FUNCTION || ctor->is_exotic)
+    if ((ctor->class_id != JS_CLASS_BYTECODE_FUNCTION && ctor->class_id != JS_CLASS_C_FUNCTION) ||
+        ctor->is_exotic)
         return 0;
     int v_has_rc = JS_VALUE_HAS_REF_COUNT(v_val);
     int v_is_obj = JS_IsObject(v_val);
@@ -47,13 +73,27 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
             return 0;
     }
 
-    FastInstOfEntry *e = &fast_instof_cache[(((uintptr_t)ctor >> 4) ^ ((uintptr_t)ctor >> 8) ^
-                                             ((uintptr_t)ctor >> 12)) &
-                                            15u];
+    FastInstOfEntry *e = &fast_instof_cache[(((uintptr_t)ctor >> 4) ^ ((uintptr_t)ctor >> 10) ^
+                                             ((uintptr_t)ctor >> 16)) &
+                                            63u];
     if (unlikely(!(e->ctor == ctor && e->ctor_shape == ctor->shape &&
                    e->ctor_prop_count == (uint32_t)ctor->shape->prop_count && e->epoch == epoch &&
                    e->ctx == ctx && e->holder &&
-                   e->has_inst_slot < (uint32_t)e->holder->shape->prop_size &&
+                   (e->holder_depth == 0u
+                        ? (e->holder == ctor)
+                        : (e->holder_depth == 1u
+                               ? (ctor->shape->proto == e->holder && !e->holder->is_exotic)
+                               : (e->holder_depth == 2u
+                                      ? (ctor->shape->proto && !ctor->shape->proto->is_exotic &&
+                                         ctor->shape->proto->shape->proto == e->holder &&
+                                         !e->holder->is_exotic)
+                                      : fast_instof_holder_live(ctor, e->holder)))) &&
+                   e->holder->shape == e->holder_shape &&
+                   e->holder_prop_count == (uint32_t)e->holder->shape->prop_count &&
+                   e->has_inst_slot < e->holder_prop_count &&
+                   get_shape_prop(e->holder->shape)[e->has_inst_slot].atom ==
+                       JS_ATOM_Symbol_hasInstance &&
+                   !(get_shape_prop(e->holder->shape)[e->has_inst_slot].flags & JS_PROP_TMASK) &&
                    JS_IsObject(e->holder->prop[e->has_inst_slot].u.value) &&
                    JS_VALUE_GET_OBJ(e->holder->prop[e->has_inst_slot].u.value) == e->method))) {
         JSObject *walk = ctor;
@@ -92,6 +132,9 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
         e->epoch = epoch;
         e->ctx = ctx;
         e->holder = walk;
+        e->holder_shape = walk->shape;
+        e->holder_prop_count = (uint32_t)walk->shape->prop_count;
+        e->holder_depth = (uint8_t)depth;
         e->method = method;
         e->has_inst_slot = (uint32_t)(pr_hi - walk->prop);
         e->proto_slot = p_slot;
@@ -100,7 +143,7 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
 
     int result = 0;
     if (v_is_obj) {
-        if (!e->has_proto || e->proto_slot >= (uint32_t)ctor->shape->prop_size ||
+        if (!e->has_proto || e->proto_slot >= e->ctor_prop_count ||
             get_shape_prop(ctor->shape)[e->proto_slot].atom != JS_ATOM_prototype ||
             (get_shape_prop(ctor->shape)[e->proto_slot].flags & JS_PROP_TMASK))
             return 0;
@@ -139,8 +182,12 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
         --JS_REF_COUNT(ctor);
     }
     sp[-2] = JS_MKVAL(JS_TAG_BOOL, result);
+#ifndef QJS_FAST_INSTANCEOF_NO_DIRECT_DATA
     if (mode & 4)
         __atomic_fetch_add(&JS_FrameSlowDirectData.hits, 1, __ATOMIC_RELAXED);
+#else
+    (void)mode;
+#endif
     return 1;
 }
 

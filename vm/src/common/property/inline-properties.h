@@ -24,7 +24,7 @@ static inline size_t qjs_inline_property_plan(JSShape *sh, size_t tail_bytes, ui
     if (tail_bytes > 256u - sizeof(JSObject) - sizeof(QJSInlinePropertyHeader))
         return 0;
     offset = qjs_inline_property_offset(tail_bytes);
-    if (offset > 256u || !sh->prop_size)
+    if (offset > 256u || (!sh->prop_size && !min_cap))
         return 0;
     cap = (uint32_t)sh->prop_size < min_cap ? min_cap : (uint32_t)sh->prop_size;
     if (cap > (256u - offset) / sizeof(JSProperty))
@@ -68,8 +68,14 @@ static inline int qjs_inline_property_current(const JSObject *p)
            (uint8_t *)qjs_inline_property_header(p) + sizeof(QJSInlinePropertyHeader);
 }
 
-static __attribute__((noipa)) JSProperty *qjs_inline_property_realloc(JSContext *ctx, JSObject *p,
-                                                                      size_t bytes)
+#if defined(_MSC_VER)
+#define QJS_INLINE_PROP_NOIPA __declspec(noinline)
+#else
+#define QJS_INLINE_PROP_NOIPA __attribute__((noipa))
+#endif
+
+static QJS_INLINE_PROP_NOIPA JSProperty *qjs_inline_property_realloc(JSContext *ctx, JSObject *p,
+                                                                     size_t bytes)
 {
     QJSInlinePropertyHeader *header;
     JSProperty *prop;
