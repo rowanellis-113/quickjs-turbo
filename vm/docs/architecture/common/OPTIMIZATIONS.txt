@@ -3,19 +3,22 @@ Integrated product components
 
 Use `BUILDING.txt` to build the product configuration on the pinned QuickJS-NG
 `0.17.0` (`7b5f588e0f`) public API. Sources are organized strictly under
-`vm/{src,asm,tools,cmake,tests}/common | arm64 | x86`.
+`vm/{src,asm,tools,cmake,tests}/common | arm64 | x86`. See
+`ABI-AND-BASELINE-JIT.txt` for the pinned register-frame ABI contracts and the
+optional bytecode-driven Baseline JIT architecture roadmap.
 
 Component                          Main owner / documentation
 -----------------------------------------------------------------------------
-Call frames and dispatch           src/common/call, src/x86/win64, tools/x86/{linux,macos,win64}, asm/{x86,arm64}
-Property get/set and method caches src/common/property (PIC-only mode, tagged warmup, JS_PurgePropertyIC)
+Call frames and dispatch           src/common/call ({fast-root-leaf,core-spread-call}.inc), src/x86/win64, tools/x86/{linux,macos,win64}, asm/{x86,arm64}
+Property get/set and method caches src/common/property ({property-ic,property-ic-getter,string-key-lookup}.inc; PIC-only, tagged warmup, JS_PurgePropertyIC)
 Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
 Win64 source-level native ASM VM   tools/x86/win64/, src/x86/win64/internal/win64-native-supplements.inc; x86/win64/WIN-X86-64.txt
 macOS Mach-O native ASM VM         tools/x86/macos/{adapt_macho,macho64,prepare-native}.py; x86/macos/MACOS-X86-64.txt
 Pre-generated assembly bundles     tools/common/export-pregen.py, cmake/common/Pregen.cmake
-Strings & JSArena fast append      src/common/string, asm/arm64/common/register-string-append.inc
-JSON parse/stringify               src/common/json
-RegExp and Unicode                 src/common/regexp, src/common/wire; subsystems/REGEXP.txt
+Strings & JSArena fast append      src/common/string ({locale-compare}.inc), asm/arm64/common/register-string-append.inc
+Fast numeric dtoa / atod           src/common/value/dtoa-fast.inc, tools/common/elf/json_workers.py (`JS_FrameAtod`)
+JSON parse/stringify               src/common/json, tools/common/elf/json_workers.py
+RegExp and Unicode                 src/common/regexp ({exec,regexp-vm}.inc, libregexp.c), src/common/wire; subsystems/REGEXP.txt
 Arrays and sort                    src/common/array; subsystems/ARRAY-SORT.txt
 Async generator & async output     src/common/promise; subsystems/ASYNC-GENERATORS.txt
 Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c; arm64/workers/LINUX-AARCH64-LITERALS.txt
@@ -32,13 +35,15 @@ Hybrid RC & partial cycle GC       common/memory   common/memory   common/memory
 Float32Array / Float64Array VM     tools/arm64     tools/x86/linux eq_code cold-split
 Flat Latin-1 relational compare    eq_code split   eq_code split   shared C
 Epoch IC instanceof leaf           common/value/instanceof-fast.inc (all targets)
+Fast dtoa / atod & JSON number     dtoa-fast + JS_FrameAtod (Linux x86-64 & ARM64); dtoa-fast (Win64)
 Native C for_of_next + if_false8   common/call/fast-for-of-next.inc + Win64 native
 OP_array_from dense leaf           common/kernel/fast-array-from.inc (all targets)
 Inline property storage            common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
+Property IC getter & string keys   common/property/{property-ic-getter,string-key-lookup}.inc (all targets)
 Ordinary literal capacity reserve  common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW/MSVC)
 Map/Set string-key hash & flatten  common/value/map-string-keys.inc (all native & PORTABLE targets)
 Capability-free async & Promise    common/promise/async-output.inc (all native & PORTABLE targets)
-BigInt stack/PM mod & construct    common/value/bigint-divrem-fast.inc (all targets); ARM64 add_loc/short loop
+BigInt stack/PM mod & native ops   common/value/bigint-divrem-fast.inc; ARM64 `OP_push_bigint_i32` / `add_loc` / short loop
 
 Component controls (`QJS_DISABLE_*`, `quickjs-turbo.h`) and automatic `PORTABLE`
 fallbacks support diagnostics, sanitizers, and high-density multi-tenant hosts.

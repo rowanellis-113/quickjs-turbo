@@ -1,38 +1,64 @@
-Linux AArch64 Hardware Benchmarks, 2026-11-24 (v0.17.0-turbo.1 / d0bf4c4)
-=========================================================================
+Linux AArch64 Hardware Benchmarks, 2026-11-25 (v0.17.0-turbo.2)
+===============================================================
 Host: AWS Graviton2 Neoverse-N1 (Ubuntu, GCC 13.4, CPU1 serial, normal ASLR, FramePool 256).
-Comparison baseline: Stock QuickJS-NG `0.17.0` (`7b5f588e0f`), Bellard QuickJS `2026-06-04` (`-O2`),
-and `v0.17.0-turbo.1` (`d0bf4c4` with restored `JSArena` native string append, `add_loc` fast path,
-and short loop branch latch).
+Comparison cohort: Stock QuickJS-NG `0.17.0` (`7b5f588e0f`), Bellard QuickJS `2026-06-04` (`-O2`),
+initial `v0.17.0-turbo.1` (`ref_turbo1`), and Wave 6c (`cand_w6`, with `JSArena` string append,
+`dtoa-fast.inc`, `JS_FrameAtod` JSON worker, getter/string-key Property ICs, and `161` native
+ARM64 opcodes including `OP_push_bigint_i32`).
 
-1. Official V8-v7 (4 interleaved blocks on CPU1, higher is better):
-   Case           Stock 0.17.0  Bellard 26.06  Turbo 0.17  T/Stock  T/Bel
-   Richards             460.04         589.24      737.04    1.60x  1.25x
-   DeltaBlue            480.50         588.81      782.21    1.63x  1.33x
-   Crypto               507.71         582.87      793.63    1.56x  1.36x
-   RayTrace           1,069.36       1,265.43    2,027.86    1.90x  1.60x
-   EarleyBoyer        1,214.81       1,431.05    1,714.35    1.41x  1.20x
-   RegExp               215.33         258.20    1,031.00    4.79x  3.99x
-   Splay              2,072.19       2,357.47    2,736.02    1.32x  1.16x
-   NavierStokes       1,078.85       1,199.74    1,416.97    1.31x  1.18x
-   Overall            717.43         848.01    1,260.12    1.76x  1.49x  (8/8 wins vs both)
-   ex-RegExp            852.01       1,005.04    1,296.77    1.52x  1.29x
+1. Official V8-v7 (4 interleaved blocks on CPU1, median, higher is better):
+   Case           Stock 0.17.0  Bellard 26.06  Turbo W6c  T/Stock  T/Bel
+   Richards             458.47         591.01     738.10    1.61x  1.25x
+   DeltaBlue            475.81         587.35     785.23    1.65x  1.34x
+   Crypto               509.67         584.31     798.70    1.57x  1.37x
+   RayTrace           1,058.47       1,269.78   1,968.44    1.86x  1.55x
+   EarleyBoyer        1,219.66       1,437.51   1,721.04    1.41x  1.20x
+   RegExp               215.05         258.50   1,065.50    4.95x  4.12x
+   Splay              2,043.38       2,323.07   2,693.32    1.32x  1.16x
+   NavierStokes       1,081.24       1,200.54   1,410.14    1.30x  1.17x
+   Overall              714.86         847.79   1,258.52    1.76x  1.48x  (8/8 wins vs both)
+   (Same-session `ref_turbo1` = 1,257.82; hardware PMU `perf` cycles -1.96% vs pre-Wave-6.)
 
-   Block evolution across `0.17.0` migration on the same Graviton2 run:
-   - `old512` (`v0.15.1` reference): `1,239.10` V8-v7
-   - `before-017` (pre-ARM64 fast-path restore): `1,237.12` V8-v7 / `68.87 ns` `micro57`
-   - `after-017` (`d0bf4c4`): `1,260.12` V8-v7 (`+1.86%`) / `65.51 ns` `micro57`
+2. Unified micro57 (57 cases, 4 interleaved blocks on CPU1, ns/op median geomean, lower is better):
+   - Stock NG 0.17.0:  92.761 ns
+   - Bellard 2026:     90.173 ns
+   - `ref_turbo1`:     65.694 ns
+   - Turbo Wave 6c:    61.972 ns  (1.50x / -33.2% vs Stock [44/57 wins] · 1.46x / -31.3% vs Bellard [42/57 wins] · 1.06x / -5.66% vs `ref_turbo1`)
+   Top wins vs Stock NG 0.17.0: `bigint64_arith` 3.97x (`115.94 -> 29.20 ns`),
+   `sort_bench` 3.40x (`3.37 -> 0.99`), `empty_loop` 3.29x (`24.05 -> 7.31 ns`),
+   `string_to_float` 2.95x (`254.00 -> 86.24 ns`), `prop_write` 2.84x (`19.67 -> 6.92 ns`),
+   `string_build1` 2.69x (`142.56 -> 53.05 ns`), `string_to_int` 2.67x (`194.16 -> 72.69 ns`),
+   `prop_create` 2.52x (`115.12 -> 45.70 ns`, `1.66x` vs `ref_turbo1`),
+   `float_to_string` 2.22x (`348.56 -> 157.19 ns`, `2.32x` vs `ref_turbo1`),
+   `array_for_of` 2.20x (`48.38 -> 21.95 ns`).
 
-2. Unified micro57 (57 cases, CPU1, ns/op geomean, lower is better):
-   - Stock NG 0.17.0:  92.75 ns
-   - Bellard 2026:     89.94 ns
-   - Turbo 0.17:       65.51 ns  (1.42x / -29.4% vs Stock [43/57 wins] · 1.37x / -27.2% vs Bellard [37/57 wins])
-   Top wins vs Stock NG 0.17.0: `bigint64_arith` 3.96x (`115.58 -> 29.17 ns`),
-   `empty_loop` 3.28x (`24.02 -> 7.32 ns`), `sort_bench` 3.05x (`2.95 -> 0.97 ns`),
-   `prop_write` 2.85x (`19.74 -> 6.92 ns`), `string_build1` 2.68x (`141.86 -> 52.87 ns`),
-   `array_for_of` 2.22x (`48.43 -> 21.82 ns`).
+3. JetStream-17 (17 real-world JS workloads, 4 interleaved blocks on CPU1, body ms, lower is better):
+   Case                       Stock 0.17  Bellard 26.06  Turbo W6c  T/Stock  T/Bel
+   json-stringify-inspector       184.04         146.08      30.24    6.09x  4.83x
+   json-parse-inspector           118.08         116.89      66.18    1.78x  1.77x
+   acorn-wtb                    3,912.28       3,500.38   2,382.04    1.64x  1.47x
+   FlightPlanner                   87.77          70.58      53.52    1.64x  1.32x
+   delta-blue                     277.12         224.30     169.78    1.63x  1.32x
+   richards                       388.98         301.17     238.88    1.63x  1.26x
+   async-fs                       349.20         482.30     217.84    1.60x  2.21x
+   cdjs                           788.98         672.99     495.68    1.59x  1.36x
+   crypto                         237.94         251.34     151.68    1.57x  1.66x
+   pdfjs                          479.48         435.75     308.60    1.55x  1.41x
+   Babylon                        123.29         102.99      91.10    1.35x  1.13x
+   Air                             97.81          84.43      76.39    1.28x  1.11x
+   js-tokens                      241.31         199.08     199.73    1.21x  1.00x
+   bigint-noble-ed25519           361.92         304.34     311.42    1.16x  0.98x
+   typescript-octane            3,631.75       3,184.04   3,431.25    1.06x  0.93x
+   prettier-wtb                 1,133.66         987.44   1,253.82    0.90x  0.79x
+   lazy-collections               118.41         110.42     133.95    0.88x  0.82x
+   Geomean (body ms)              343.62         306.44     228.95    1.50x  1.34x
+   Geomean (cold ms)              348.43         309.16     226.50    1.54x  1.36x
+   Median RSS KiB                 10,628          9,536     11,086    --     --
+   (Same-session `ref_turbo1` = 230.92 ms body / 233.28 ms cold -> -0.85% body / -2.90% cold faster;
+    `bigint-noble-ed25519` -5.75% vs pre-Wave-6 [`330.43 -> 311.42 ms`, -2.88% cycles];
+    15/17 wins vs Stock NG 0.17.0, 12/17 wins vs Bellard 2026.)
 
-3. Historical 0.15.1 Hardware Notes
+4. Historical 0.15.1 Hardware Notes
    Prior Graviton2 `v0.15.1-turbo.4` measured `1,232.42` V8-v7 (`1.50x` vs Bellard `2026-06-04`),
    `JS_FrameInterp` 64-byte alignment (`check_vm.py`), and `1,266/1,266` CTest. Per-worker ABI
    and codegen records are stored under `workers/LINUX-AARCH64-*.txt`.

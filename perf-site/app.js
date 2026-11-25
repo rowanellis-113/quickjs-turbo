@@ -46,7 +46,7 @@ bash vm/tools/x86/linux/build/product-linux.sh build/linux out/sdk
 # macOS x86-64 (native Mach-O ASM VM)
 bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk
 
-# Linux ARM64 (glibc / musl native ELF ASM VM)
+# Linux ARM64 (glibc / musl native ELF ASM VM, 161 native opcodes)
 bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk
 
 # Windows x86-64 (MSVC / clang-cl / MinGW — AUTO selects WIN_X86_64)
@@ -101,7 +101,7 @@ function renderHero() {
   document.getElementById("hero-cohort").textContent = hero.cohort;
   const maxScore = Math.max(...hero.engines.map((e) => e.score));
   const baseEngine = hero.engines.find((x) => x.role === "baseline");
-  const baseScore = baseEngine ? baseEngine.score : 993.7;
+  const baseScore = baseEngine ? baseEngine.score : 1173.19;
   const container = document.getElementById("hero-bars");
   container.innerHTML = hero.engines
     .map((e) => {
@@ -149,7 +149,7 @@ function renderHistory() {
   const yAt = (v) => padT + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
 
   const refEngine = DATA.heroComparison.engines.find((e) => e.role === "reference");
-  const refScore = Math.round(refEngine ? refEngine.score : 2436);
+  const refScore = Math.round(refEngine ? refEngine.score : 2360);
   const gridVals = [1000, 1500, 2000, refScore];
   const gridSvg = gridVals
     .map((v) => {
@@ -246,7 +246,7 @@ function renderHistory() {
       <button type="button" class="ver-pill ${i === selectedVersionIdx ? "active" : ""}" data-idx="${i}">
         ${d.version}
       </button>
-    `
+    `,
     )
     .join("");
   pills.querySelectorAll(".ver-pill").forEach((btn) => {
@@ -324,7 +324,7 @@ function renderPlatformTabs() {
       <button type="button" class="tab-btn ${key === selectedPlatform ? "active" : ""}" data-platform="${key}">
         ${p.title} <span class="mono" style="opacity:0.7; font-size:11px; margin-left:4px">${p.backend}</span>
       </button>
-    `
+    `,
     )
     .join("");
   wrap.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -334,6 +334,83 @@ function renderPlatformTabs() {
       renderPlatformPanel();
     });
   });
+}
+
+function renderJetStreamCard(js) {
+  if (!js) return "";
+  const s = js.summary;
+  const hasV8 = s.v8BodyMs !== null && s.v8BodyMs !== undefined;
+  const rows = js.cases
+    .map((c) => {
+      const vsStock = c.stock / c.turbo;
+      const vsBel = c.bellard / c.turbo;
+      const vsV8 = hasV8 && c.v8 ? c.v8 / c.turbo : null;
+      return `
+        <tr>
+          <td class="mono">${c.name}</td>
+          <td class="num">${c.stock.toFixed(1)}</td>
+          <td class="num">${c.bellard.toFixed(1)}</td>
+          <td class="num"><strong>${c.turbo.toFixed(1)}</strong></td>
+          ${hasV8 ? `<td class="num">${c.v8 !== null ? c.v8.toFixed(1) : "—"}</td>` : ""}
+          <td class="num">
+            <span class="pill-speed ${vsStock < 1.01 ? "pill-neutral" : ""}">${vsStock.toFixed(2)}×</span>
+          </td>
+          <td class="num">
+            <span class="pill-speed ${vsBel < 1.01 ? "pill-neutral" : ""}">${vsBel.toFixed(2)}×</span>
+          </td>
+          ${
+            hasV8
+              ? `<td class="num"><span class="pill-speed ${vsV8 < 1.0 ? "pill-neutral" : ""}">${vsV8.toFixed(2)}×</span></td>`
+              : ""
+          }
+        </tr>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="panel-card js17-card">
+      <div class="panel-header">
+        <div>
+          <h3 class="panel-title">${js.title}</h3>
+          <p class="panel-subtitle">${js.subtitle}</p>
+        </div>
+        <div class="js17-summary">
+          <span class="badge badge-green">Body ${s.turboBodyMs.toFixed(1)} ms (${s.vsStock.toFixed(2)}× NG · ${s.vsBellard.toFixed(2)}× Bel)</span>
+          <span class="badge">Cold ${s.turboColdMs.toFixed(1)} ms · ${s.rssNote}</span>
+        </div>
+      </div>
+      <div class="table-wrap" style="box-shadow:none">
+        <table>
+          <thead>
+            <tr>
+              <th>Workload (body ms, lower is better)</th>
+              <th class="num">NG 0.17</th>
+              <th class="num">Bellard</th>
+              <th class="num">Turbo</th>
+              ${hasV8 ? `<th class="num">V8 --jitless</th>` : ""}
+              <th class="num">vs NG</th>
+              <th class="num">vs Bel</th>
+              ${hasV8 ? `<th class="num">vs V8</th>` : ""}
+            </tr>
+          </thead>
+          <tbody>
+            ${rows}
+            <tr class="js17-geomean-row">
+              <td><strong>17-Case Geomean (body ms)</strong></td>
+              <td class="num"><strong>${s.stockBodyMs.toFixed(2)}</strong></td>
+              <td class="num"><strong>${s.bellardBodyMs.toFixed(2)}</strong></td>
+              <td class="num"><strong style="color:var(--accent-bright)">${s.turboBodyMs.toFixed(2)}</strong></td>
+              ${hasV8 ? `<td class="num"><strong>${s.v8BodyMs.toFixed(2)}</strong></td>` : ""}
+              <td class="num"><span class="pill-speed">${s.vsStock.toFixed(2)}×</span></td>
+              <td class="num"><span class="pill-speed">${s.vsBellard.toFixed(2)}×</span></td>
+              ${hasV8 ? `<td class="num"><span class="pill-speed pill-neutral">${s.vsV8Pct.toFixed(1)}%</span></td>` : ""}
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 function renderPlatformPanel() {
@@ -347,7 +424,7 @@ function renderPlatformPanel() {
         <div class="kpi-label"><strong>${s.label}</strong></div>
         <div class="kpi-label" style="font-size:11.5px">${s.sub}</div>
       </div>
-    `
+    `,
     )
     .join("");
 
@@ -360,7 +437,7 @@ function renderPlatformPanel() {
         <td class="num"><strong>${r.after}</strong></td>
         <td class="num"><span class="pill-speed">${r.speedup.toFixed(2)}×</span></td>
       </tr>
-    `
+    `,
     )
     .join("");
 
@@ -379,7 +456,7 @@ function renderPlatformPanel() {
           }
         </td>
       </tr>
-    `
+    `,
     )
     .join("");
 
@@ -436,6 +513,8 @@ function renderPlatformPanel() {
       </div>
     </div>
 
+    ${renderJetStreamCard(p.jetstream17)}
+
     ${p.note ? `<div class="cohort-note">${p.note}</div>` : ""}
   `;
 }
@@ -447,7 +526,7 @@ function renderQuickStart() {
       <button type="button" class="tab-btn ${s.id === selectedQs ? "active" : ""}" data-qs="${s.id}">
         ${s.label}
       </button>
-    `
+    `,
   ).join("");
   tabs.querySelectorAll(".tab-btn").forEach((btn) => {
     btn.addEventListener("click", () => {

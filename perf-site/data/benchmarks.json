@@ -1,7 +1,7 @@
 {
   "schema": 1,
-  "updatedAt": "2026-11-24",
-  "latestVersion": "v0.17.0-turbo.1",
+  "updatedAt": "2026-11-25",
+  "latestVersion": "v0.17.0-turbo.2",
   "upstream": {
     "name": "QuickJS-NG",
     "version": "0.17.0",
@@ -15,26 +15,26 @@
       {
         "id": "v8-jitless",
         "label": "V8 --jitless (Node 24.13)",
-        "score": 2400.99,
+        "score": 2359.88,
         "role": "reference"
       },
       {
         "id": "turbo",
-        "label": "QuickJS-Turbo (v0.17.0-turbo.1)",
-        "score": 2076.98,
+        "label": "QuickJS-Turbo (v0.17.0-turbo.2)",
+        "score": 2044.92,
         "role": "turbo",
-        "note": "1.72x vs QuickJS-NG 0.17.0 · 1.39x vs Bellard · 86.5% of V8 --jitless"
+        "note": "1.74× vs QuickJS-NG 0.17.0 · 1.41× vs Bellard · 86.7% of V8 --jitless"
       },
       {
         "id": "bellard",
         "label": "Bellard QuickJS 2026-06-04",
-        "score": 1496.46,
+        "score": 1448.53,
         "role": "peer"
       },
       {
         "id": "quickjs-ng",
         "label": "QuickJS-NG 0.17.0 (Stock)",
-        "score": 1208.46,
+        "score": 1173.19,
         "role": "baseline"
       }
     ]
@@ -158,11 +158,11 @@
       "pool": "FramePool 512",
       "ratioVsNg": 2.09,
       "ratioVsV8": 86.3,
-      "summary": "Unified cross-platform runtime fast paths (.4, Reference Host 2,071.65) followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, Apple Clang 15 macOS fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support — verified at 2,101.40 V8-v7 on the 2026-11-23 4-engine Reference Host cohort.",
+      "summary": "Unified cross-platform runtime fast paths (.4, Reference Host 2,071.65) followed in .5–.8 by high-density PIC-only/warmup/purge controls (quickjs-turbo.h), quickjs-turbo::qjs CMake embedding, source-level MSVC/clang-cl WIN_X86_64 VM, Apple Clang 15 macOS fix, Win64 UTF-8, and Linux musl / GCC 14+ ARM64 support.",
       "highlights": [
         "Reference Host (.8 4-engine rerun): V8-v7 2,101.40 Default / 2,094.06 Density (2.09× vs NG 1,007.04 · 1.42× vs Bellard 1,480.70 · 86.3% of V8 --jitless 2,436.03 at 2.67× lower RSS)",
         "Unified micro57 (57 cases): 1.55× vs Stock NG (50/57 wins) · 1.22× vs Bellard 2026-06-04 (35/57 wins)",
-        "High-density worker mode (tail=OFF, w=16): cuts 500-cold-fn worker heap -49.3% (779.3 → 394.9 KiB, 0 cold IC slabs) while holding 99.7% V8-v7 (2,094.1) & 98.2% micro57 parity"
+        "High-density worker mode (tail=OFF, w=16): cuts 500-cold-fn worker heap -49.3% (779.3 → 394.9 KiB, 0 cold IC slabs)"
       ],
       "baselineSubtests": {
         "Richards": 785.28,
@@ -187,41 +187,41 @@
       "baselineVersion": "0.15.1"
     },
     {
-      "version": "v0.17.0-turbo.1",
-      "shortLabel": "0.17-t.1",
-      "date": "2026-11-24",
+      "version": "v0.17.0-turbo.2",
+      "shortLabel": "0.17-t.2",
+      "date": "2026-11-25",
       "baselineVersion": "0.17.0",
-      "v8Score": 2076.98,
-      "baselineV8Score": 1208.46,
-      "peakRssKiB": 160964,
+      "v8Score": 2044.92,
+      "baselineV8Score": 1173.19,
+      "peakRssKiB": 161214,
       "pool": "FramePool 512",
-      "ratioVsNg": 1.72,
-      "ratioVsV8": 86.5,
-      "summary": "Rebased onto QuickJS-NG 0.17.0 (txiki.js v26.11.0 / BC_VERSION 29) with JSArena native string append, unified MSVC/clang-cl/MinGW WIN_X86_64 VM + Hybrid GC supplements, ARM64 add_loc/short-loop fast paths, and 82,220-case Test262 parity.",
+      "ratioVsNg": 1.74,
+      "ratioVsV8": 86.7,
+      "summary": "Rebased onto QuickJS-NG 0.17.0 (txiki.js v26.11.0 / BC_VERSION 29) and tuned across Waves 1–6c with fast dtoa/atod, JSON JS_FrameAtod, getter/string-key Property ICs, JSArena string append, and 161 native ARM64 opcodes.",
       "highlights": [
-        "Reference Host 5-engine cohort (vs Stock NG 0.17.0 = 1208.5): V8-v7 2077.0 Default / 2033.3 Density (1.72x vs NG · 1.39x vs Bellard 1496.5 · 86.5% of V8 --jitless at 2.96x lower RSS)",
-        "Unified micro57 (57 cases): 1.42x vs Stock NG 0.17 (53/57 wins) · 1.35x vs Bellard 2026-06-04 (44/57 wins) · Density holds 100.3% parity",
-        "txiki.js v26.11.0 (BC_VERSION 29) drop-in & 82,220-case Test262: 0 regressions (40 matched failures across Linux, MSVC, and MinGW); cold-worker heap cut -33.8% (485.3 -> 321.3 KiB) via Density mode"
+        "V8-v7 (6-engine 8-round cohort): 2,044.9 Default / 2,050.7 Density (1.74× vs NG 1,173.2 · 1.41× vs Bellard 1,448.5 · 86.7% of V8 --jitless at 2.94× lower RSS; beats V8 on NavierStokes, Crypto, Richards, Splay)",
+        "micro57 (57 cases): 35.67 ns — surpasses Node 24 V8 --jitless (35.90 ns, 1.01× overall at 21× lower RSS), 1.54× vs NG 0.17 (54/57 wins), 1.46× vs Bellard (46/57 wins)",
+        "JetStream-17: 143.2 ms body / 143.5 ms cold (1.55× vs NG · 1.34× vs Bellard · 8.0× lower RSS than V8); 98.6 KiB empty runtime (zero cold bloat) & 82,220 Test262 (0 regressions)"
       ],
       "baselineSubtests": {
-        "Richards": 717.93,
-        "DeltaBlue": 779.21,
-        "Crypto": 901.11,
-        "RayTrace": 1969.72,
-        "EarleyBoyer": 1993.03,
-        "RegExp": 367.68,
-        "Splay": 3059.92,
-        "NavierStokes": 2042.94
+        "Richards": 740.23,
+        "DeltaBlue": 798.03,
+        "Crypto": 908.1,
+        "RayTrace": 1424.08,
+        "EarleyBoyer": 1935.08,
+        "RegExp": 376.4,
+        "Splay": 3152.13,
+        "NavierStokes": 2061.11
       },
       "subtests": {
-        "Richards": 1369.98,
-        "DeltaBlue": 1293.94,
-        "Crypto": 1469.33,
-        "RayTrace": 2370.6,
-        "EarleyBoyer": 2930.69,
-        "RegExp": 1902.53,
-        "Splay": 3644.24,
-        "NavierStokes": 2760.29
+        "Richards": 1393.73,
+        "DeltaBlue": 1322.36,
+        "Crypto": 1507.35,
+        "RayTrace": 2096.39,
+        "EarleyBoyer": 2860.75,
+        "RegExp": 1781.88,
+        "Splay": 3738.57,
+        "NavierStokes": 2797.22
       }
     }
   ],
@@ -230,155 +230,387 @@
       "title": "Linux x86-64",
       "backend": "LINUX_X86_64",
       "toolchain": "AMD Ryzen 3 3300X · Ubuntu 24.04 (WSL2) · GCC 13.3 · CPU2 serial · FramePool 512",
-      "baselineLabel": "5-Engine Cohort · v0.17.0-turbo.1 (Stock NG 0.17.0 = 1,208.5)",
-      "leftTitle": "Cohort & Subsystem Comparisons",
-      "rightTitle": "Hotspot Wins (vs Stock NG 0.17.0)",
+      "baselineLabel": "6-Engine Cohort · v0.17.0-turbo.2 (Stock NG 0.17.0 = 1,173.2)",
+      "leftTitle": "Cohort & Suite Comparisons",
+      "rightTitle": "micro57 Hotspot Wins (vs Stock NG 0.17.0)",
       "sourceDoc": "vm/docs/architecture/x86/linux/LINUX-FINAL-REVIEW.txt",
       "headlineStats": [
         {
           "label": "V8-v7 (Default / Density)",
-          "value": "2,077 / 2,033",
-          "sub": "1.72× vs NG 0.17 (1,208) · 1.39× vs Bellard (1,496)"
-        },
-        {
-          "label": "vs V8 --jitless (Node 24)",
-          "value": "86.5%",
-          "sub": "2,077 vs 2,401 · 2.96× lower RSS (157 vs 465 MiB)"
+          "value": "2,045 / 2,051",
+          "sub": "1.74× vs NG 0.17 · 1.41× vs Bellard · 86.7% of V8 --jitless"
         },
         {
           "label": "micro57 (57 cases)",
-          "value": "1.42×",
-          "sub": "53/57 vs NG 0.17 · 1.35× vs Bellard (44/57)"
+          "value": "35.67 ns",
+          "sub": "1.01× vs V8 --jitless (35.90 ns) · 1.54× vs NG (54/57)"
         },
         {
-          "label": "Test262 / CTest",
-          "value": "82,220",
-          "sub": "40 stock-matched · 0 new · 963/963 CTest · 218 ASan"
+          "label": "JetStream-17 (17 cases)",
+          "value": "143.2 ms",
+          "sub": "1.55× vs NG · 1.34× vs Bellard · 8.0× lower RSS than V8"
+        },
+        {
+          "label": "Test262 / CTest / Heap",
+          "value": "82,220 / 98.6K",
+          "sub": "0 new Test262 · 963 CTest · 218 ASan · 0 B cold bloat"
         }
       ],
       "targetedSpeedups": [
         {
           "name": "V8-v7 Default vs Stock NG 0.17.0",
-          "before": "1,208.5",
-          "after": "2,077.0",
-          "speedup": 1.72
+          "before": "1,173.2",
+          "after": "2,044.9",
+          "speedup": 1.74
         },
         {
           "name": "V8-v7 Default vs Bellard 2026-06-04 (O2)",
-          "before": "1,496.5",
-          "after": "2,077.0",
-          "speedup": 1.39
+          "before": "1,448.5",
+          "after": "2,044.9",
+          "speedup": 1.41
         },
         {
-          "name": "micro57 (57-case geomean vs Stock NG 0.17)",
-          "before": "56.18 ns",
-          "after": "39.49 ns",
-          "speedup": 1.42
+          "name": "micro57 geomean vs Stock NG 0.17.0 (54/57)",
+          "before": "54.84 ns",
+          "after": "35.67 ns",
+          "speedup": 1.54
         },
         {
-          "name": "micro57 (57-case geomean vs Bellard 26.06)",
-          "before": "53.43 ns",
-          "after": "39.49 ns",
-          "speedup": 1.35
+          "name": "micro57 geomean vs Bellard 26.06 (46/57)",
+          "before": "52.06 ns",
+          "after": "35.67 ns",
+          "speedup": 1.46
+        },
+        {
+          "name": "micro57 geomean vs V8 --jitless (21× less RSS)",
+          "before": "35.90 ns",
+          "after": "35.67 ns",
+          "speedup": 1.01
+        },
+        {
+          "name": "JetStream-17 body geomean vs Stock NG 0.17",
+          "before": "222.29 ms",
+          "after": "143.22 ms",
+          "speedup": 1.55
+        },
+        {
+          "name": "JetStream-17 body geomean vs Bellard 26.06",
+          "before": "192.23 ms",
+          "after": "143.22 ms",
+          "speedup": 1.34
         },
         {
           "name": "V8-v7 NavierStokes vs V8 --jitless",
-          "before": "1,723.9",
-          "after": "2,760.3",
+          "before": "1,744.7",
+          "after": "2,797.2",
           "speedup": 1.6
         },
         {
           "name": "V8-v7 Crypto vs V8 --jitless",
-          "before": "1,124.7",
-          "after": "1,469.3",
-          "speedup": 1.31
+          "before": "1,167.7",
+          "after": "1,507.4",
+          "speedup": 1.29
         },
         {
-          "name": "string_slice1 vs Stock NG 0.17.0",
-          "before": "74.41 ns",
-          "after": "61.83 ns",
-          "speedup": 1.2
-        },
-        {
-          "name": "500-cold-fn heap (Default vs Density)",
-          "before": "485.3 KiB",
-          "after": "321.3 KiB",
-          "speedup": 1.51
+          "name": "500-cold-fn props heap (Default vs Density)",
+          "before": "460.9 KiB",
+          "after": "341.0 KiB",
+          "speedup": 1.35
         }
       ],
       "microHotspots": [
         {
-          "name": "prop_read",
-          "stock": "19.39",
-          "turbo": "5.70",
+          "name": "float_to_string",
+          "stock": "325.12",
+          "turbo": "66.07",
           "unit": "ns/op",
-          "speedup": 3.4
+          "speedup": 4.92
+        },
+        {
+          "name": "float_toString",
+          "stock": "347.13",
+          "turbo": "83.51",
+          "unit": "ns/op",
+          "speedup": 4.16
+        },
+        {
+          "name": "prop_read",
+          "stock": "18.44",
+          "turbo": "5.56",
+          "unit": "ns/op",
+          "speedup": 3.31
         },
         {
           "name": "typed_array_read",
-          "stock": "15.56",
-          "turbo": "5.40",
+          "stock": "15.18",
+          "turbo": "5.35",
           "unit": "ns/op",
-          "speedup": 2.88
+          "speedup": 2.84
+        },
+        {
+          "name": "string_to_int",
+          "stock": "124.69",
+          "turbo": "45.78",
+          "unit": "ns/op",
+          "speedup": 2.72
+        },
+        {
+          "name": "string_to_float",
+          "stock": "153.39",
+          "turbo": "59.37",
+          "unit": "ns/op",
+          "speedup": 2.58
         },
         {
           "name": "typed_array_write",
-          "stock": "12.16",
-          "turbo": "4.84",
+          "stock": "11.86",
+          "turbo": "4.76",
           "unit": "ns/op",
-          "speedup": 2.51
+          "speedup": 2.49
         },
         {
           "name": "string_build1",
-          "stock": "81.96",
-          "turbo": "33.09",
+          "stock": "77.88",
+          "turbo": "31.60",
           "unit": "ns/op",
-          "speedup": 2.48
-        },
-        {
-          "name": "empty_loop",
-          "stock": "12.82",
-          "turbo": "5.37",
-          "unit": "ns/op",
-          "speedup": 2.39
+          "speedup": 2.46
         },
         {
           "name": "sort_bench",
-          "stock": "1.76",
-          "turbo": "0.74",
+          "stock": "1.72",
+          "turbo": "0.70",
           "unit": "sum_us",
-          "speedup": 2.38
-        },
-        {
-          "name": "array_read",
-          "stock": "12.43",
-          "turbo": "5.62",
-          "unit": "ns/op",
-          "speedup": 2.21
-        },
-        {
-          "name": "array_write",
-          "stock": "8.13",
-          "turbo": "4.58",
-          "unit": "ns/op",
-          "speedup": 1.78
-        },
-        {
-          "name": "prop_write",
-          "stock": "12.52",
-          "turbo": "5.79",
-          "unit": "ns/op",
-          "speedup": 2.16
+          "speedup": 2.44
         },
         {
           "name": "RegExp (V8-v7)",
-          "stock": "367.7",
-          "turbo": "1,902.5",
+          "stock": "376.4",
+          "turbo": "1,781.9",
           "unit": "score",
-          "speedup": 5.17
+          "speedup": 4.73
         }
       ],
-      "note": "Measured 2026-11-24 on d0bf4c4 (CPU2, 2 reversed ABBA blocks). Turbo beats V8 --jitless on NavierStokes (1.60×), Crypto (1.31×), typed_array_read (2.58×), typed_array_write (2.45×), array_read (2.44×), array_write (2.40×), float_arith (2.14×), func_call (1.78×), prop_read (1.51×), and empty_loop (1.50×). Compared with Bellard 2026-06-04, Turbo wins V8-v7 (1.39×) and 44/57 micro57 cases (1.35× geomean; 93.0% of V8 --jitless speed with 22/57 wins). Density mode (tail=OFF, w=16) holds 97.9% V8-v7 and 100.3% micro57 parity while cutting 500-cold-fn worker heap from 485.3 → 321.3 KiB (-33.8%, 0 cold IC slabs)."
+      "jetstream17": {
+        "title": "JetStream-17 Real-World Workloads (Linux x86-64)",
+        "subtitle": "17 real-world JS workloads · 2 blocks × 2 iterations · lower ms is better · median RSS 10.0 MiB vs V8 --jitless 80.0 MiB (8.0× lower)",
+        "summary": {
+          "turboBodyMs": 143.22,
+          "turboColdMs": 143.53,
+          "stockBodyMs": 222.29,
+          "bellardBodyMs": 192.23,
+          "v8BodyMs": 117.64,
+          "vsStock": 1.55,
+          "vsBellard": 1.34,
+          "vsV8Pct": 82.1,
+          "rssNote": "10.0 MiB vs 80.0 MiB V8"
+        },
+        "cases": [
+          { "name": "json-stringify-inspector", "stock": 107.41, "bellard": 86.69, "turbo": 19.65, "v8": 25.52 },
+          { "name": "json-parse-inspector", "stock": 74.42, "bellard": 75.6, "turbo": 38.78, "v8": 42.68 },
+          { "name": "richards", "stock": 235.62, "bellard": 167.3, "turbo": 125.93, "v8": 129.32 },
+          { "name": "cdjs", "stock": 493.8, "bellard": 396.42, "turbo": 268.13, "v8": 232.27 },
+          { "name": "crypto", "stock": 134.87, "bellard": 110.49, "turbo": 78.98, "v8": 104.15 },
+          { "name": "delta-blue", "stock": 166.68, "bellard": 132.18, "turbo": 98.28, "v8": 87.06 },
+          { "name": "pdfjs", "stock": 287.4, "bellard": 239.38, "turbo": 169.26, "v8": 130.4 },
+          { "name": "FlightPlanner", "stock": 63.15, "bellard": 51.96, "turbo": 37.28, "v8": 22.72 },
+          { "name": "async-fs", "stock": 223.82, "bellard": 302.26, "turbo": 143.88, "v8": 74.43 },
+          { "name": "acorn-wtb", "stock": 2695.5, "bellard": 2457.31, "turbo": 1798.52, "v8": 1253.28 },
+          { "name": "Babylon", "stock": 96.19, "bellard": 79.41, "turbo": 73.83, "v8": 50.11 },
+          { "name": "Air", "stock": 61.32, "bellard": 52.04, "turbo": 48.04, "v8": 27.8 },
+          { "name": "bigint-noble-ed25519", "stock": 249.12, "bellard": 184.38, "turbo": 204.1, "v8": 193.75 },
+          { "name": "js-tokens", "stock": 166.84, "bellard": 140.72, "turbo": 141.29, "v8": 104.67 },
+          { "name": "typescript-octane", "stock": 2546.93, "bellard": 2213.5, "turbo": 2217.73, "v8": 1538.86 },
+          { "name": "prettier-wtb", "stock": 800.05, "bellard": 737.6, "turbo": 829.99, "v8": 429.12 },
+          { "name": "lazy-collections", "stock": 69.06, "bellard": 65.1, "turbo": 73.12, "v8": 103.46 }
+        ]
+      },
+      "note": "Measured 2026-11-25 on the Reference Linux x86-64 host (6-engine interleaved cohort, CPU2 serial, Wave 6c parity verified). Turbo beats V8 --jitless on 4/8 V8-v7 subtests (NavierStokes 1.60×, Crypto 1.29×, Richards 1.04×, Splay 1.01×), surpasses V8 --jitless overall on micro57 (35.67 vs 35.90 ns, 27/57 wins, 21× lower RSS), and beats V8 --jitless on 5 JetStream-17 workloads (lazy-collections 1.41×, crypto 1.32×, json-stringify-inspector 1.30×, json-parse-inspector 1.10×, richards 1.03×) at 8.0× lower RSS. Density mode (tail=OFF, w=16) scores 2,050.7 V8-v7 (100.3% of Default), 35.70 ns micro57, and 143.28 ms JetStream-17 while cutting 500-cold-fn props heap by 26.0% (0 cold IC slabs) with 98.6 KiB empty runtime."
+    },
+    "linux-arm64": {
+      "title": "Linux ARM64",
+      "backend": "LINUX_AARCH64",
+      "toolchain": "GCC 13.4 (glibc & musl) · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
+      "baselineLabel": "v0.17.0-turbo.2 · Graviton2 (Stock NG 0.17 = 714.9 · Bellard = 847.8)",
+      "leftTitle": "Suite & Hotspot Wins vs Stock NG 0.17.0",
+      "rightTitle": "V8-v7 Subtests (Wave 6c vs Stock NG 0.17.0)",
+      "sourceDoc": "vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
+      "headlineStats": [
+        {
+          "label": "V8-v7 (Graviton2)",
+          "value": "1,258.5",
+          "sub": "1.76× vs Stock 0.17 (8/8) · 1.48× vs Bellard (8/8)"
+        },
+        {
+          "label": "micro57 (57 cases)",
+          "value": "61.97 ns",
+          "sub": "1.50× vs Stock (44/57) · 1.46× vs Bellard (42/57)"
+        },
+        {
+          "label": "JetStream-17 (17 cases)",
+          "value": "228.9 ms",
+          "sub": "1.50× vs Stock (15/17) · 1.34× vs Bellard (12/17)"
+        },
+        {
+          "label": "Native VM & CTest",
+          "value": "161 ops / 1,267",
+          "sub": "Full-FDE PIE NX no-WX · 1,267 Release · 137 pregen"
+        }
+      ],
+      "targetedSpeedups": [
+        {
+          "name": "V8-v7 overall vs Stock NG 0.17.0",
+          "before": "714.9",
+          "after": "1,258.5",
+          "speedup": 1.76
+        },
+        {
+          "name": "V8-v7 overall vs Bellard 2026 (-O2)",
+          "before": "847.8",
+          "after": "1,258.5",
+          "speedup": 1.48
+        },
+        {
+          "name": "micro57 geomean vs Stock NG 0.17.0 (44/57)",
+          "before": "92.76 ns",
+          "after": "61.97 ns",
+          "speedup": 1.5
+        },
+        {
+          "name": "micro57 geomean vs Bellard 2026 (42/57)",
+          "before": "90.17 ns",
+          "after": "61.97 ns",
+          "speedup": 1.46
+        },
+        {
+          "name": "JetStream-17 body geomean vs Stock NG 0.17",
+          "before": "343.62 ms",
+          "after": "228.95 ms",
+          "speedup": 1.5
+        },
+        {
+          "name": "JetStream-17 body geomean vs Bellard 2026",
+          "before": "306.44 ms",
+          "after": "228.95 ms",
+          "speedup": 1.34
+        },
+        {
+          "name": "bigint64_arith vs Stock NG 0.17.0",
+          "before": "115.94 ns",
+          "after": "29.20 ns",
+          "speedup": 3.97
+        },
+        {
+          "name": "string_to_float vs Stock NG 0.17.0",
+          "before": "254.00 ns",
+          "after": "86.24 ns",
+          "speedup": 2.95
+        },
+        {
+          "name": "prop_create vs Stock NG 0.17.0 (1.66× vs t.1)",
+          "before": "115.12 ns",
+          "after": "45.70 ns",
+          "speedup": 2.52
+        },
+        {
+          "name": "float_to_string vs Stock NG 0.17.0 (2.32× vs t.1)",
+          "before": "348.56 ns",
+          "after": "157.19 ns",
+          "speedup": 2.22
+        }
+      ],
+      "microHotspots": [
+        {
+          "name": "Richards",
+          "stock": "458.5",
+          "turbo": "738.1",
+          "unit": "score",
+          "speedup": 1.61
+        },
+        {
+          "name": "DeltaBlue",
+          "stock": "475.8",
+          "turbo": "785.2",
+          "unit": "score",
+          "speedup": 1.65
+        },
+        {
+          "name": "Crypto",
+          "stock": "509.7",
+          "turbo": "798.7",
+          "unit": "score",
+          "speedup": 1.57
+        },
+        {
+          "name": "RayTrace",
+          "stock": "1,058.5",
+          "turbo": "1,968.4",
+          "unit": "score",
+          "speedup": 1.86
+        },
+        {
+          "name": "EarleyBoyer",
+          "stock": "1,219.7",
+          "turbo": "1,721.0",
+          "unit": "score",
+          "speedup": 1.41
+        },
+        {
+          "name": "RegExp",
+          "stock": "215.1",
+          "turbo": "1,065.5",
+          "unit": "score",
+          "speedup": 4.95
+        },
+        {
+          "name": "Splay",
+          "stock": "2,043.4",
+          "turbo": "2,693.3",
+          "unit": "score",
+          "speedup": 1.32
+        },
+        {
+          "name": "NavierStokes",
+          "stock": "1,081.2",
+          "turbo": "1,410.1",
+          "unit": "score",
+          "speedup": 1.3
+        }
+      ],
+      "jetstream17": {
+        "title": "JetStream-17 Real-World Workloads (AWS Graviton2 ARM64)",
+        "subtitle": "17 real-world JS workloads · 4 interleaved blocks on CPU1 · lower ms is better · median RSS 10.8 MiB",
+        "summary": {
+          "turboBodyMs": 228.95,
+          "turboColdMs": 226.5,
+          "stockBodyMs": 343.62,
+          "bellardBodyMs": 306.44,
+          "v8BodyMs": null,
+          "vsStock": 1.5,
+          "vsBellard": 1.34,
+          "vsV8Pct": null,
+          "rssNote": "10.8 MiB median RSS"
+        },
+        "cases": [
+          { "name": "json-stringify-inspector", "stock": 184.04, "bellard": 146.08, "turbo": 30.24, "v8": null },
+          { "name": "json-parse-inspector", "stock": 118.08, "bellard": 116.89, "turbo": 66.18, "v8": null },
+          { "name": "acorn-wtb", "stock": 3912.28, "bellard": 3500.38, "turbo": 2382.04, "v8": null },
+          { "name": "FlightPlanner", "stock": 87.77, "bellard": 70.58, "turbo": 53.52, "v8": null },
+          { "name": "delta-blue", "stock": 277.12, "bellard": 224.3, "turbo": 169.78, "v8": null },
+          { "name": "richards", "stock": 388.98, "bellard": 301.17, "turbo": 238.88, "v8": null },
+          { "name": "async-fs", "stock": 349.2, "bellard": 482.3, "turbo": 217.84, "v8": null },
+          { "name": "cdjs", "stock": 788.98, "bellard": 672.99, "turbo": 495.68, "v8": null },
+          { "name": "crypto", "stock": 237.94, "bellard": 251.34, "turbo": 151.68, "v8": null },
+          { "name": "pdfjs", "stock": 479.48, "bellard": 435.75, "turbo": 308.6, "v8": null },
+          { "name": "Babylon", "stock": 123.29, "bellard": 102.99, "turbo": 91.1, "v8": null },
+          { "name": "Air", "stock": 97.81, "bellard": 84.43, "turbo": 76.39, "v8": null },
+          { "name": "js-tokens", "stock": 241.31, "bellard": 199.08, "turbo": 199.73, "v8": null },
+          { "name": "bigint-noble-ed25519", "stock": 361.92, "bellard": 304.34, "turbo": 311.42, "v8": null },
+          { "name": "typescript-octane", "stock": 3631.75, "bellard": 3184.04, "turbo": 3431.25, "v8": null },
+          { "name": "prettier-wtb", "stock": 1133.66, "bellard": 987.44, "turbo": 1253.82, "v8": null },
+          { "name": "lazy-collections", "stock": 118.41, "bellard": 110.42, "turbo": 133.95, "v8": null }
+        ]
+      },
+      "note": "Measured 2026-11-25 on real AWS Graviton2 Neoverse-N1 hardware (4 interleaved blocks on CPU1, Wave 6c). Adding native OP_push_bigint_i32 (161 native opcodes total), JS_FrameAtod JSON number parsing, fast dtoa/atod, and getter/string-key Property ICs lifted micro57 +6.0% over initial v0.17.0-turbo.1 (65.69 → 61.97 ns; 1.50× vs Stock NG, 1.46× vs Bellard), cut JetStream-17 cold geomean -2.90% (233.3 → 226.5 ms) and bigint-noble-ed25519 -5.75%, while holding V8-v7 at 1,258.5 (8/8 wins vs Stock & Bellard, -1.96% perf cycles). check_vm.py verifies 161 native opcodes, full FDE, PIE, NX, no-WX; QEMU Release (1,267/1,267), Instrumented (184/184), and 137-file pregen bundles all pass."
     },
     "windows-x86_64": {
       "title": "Windows x86-64",
@@ -407,7 +639,7 @@
         {
           "label": "CTest & Test262",
           "value": "222 / 82,220",
-          "sub": "MSVC & MinGW 222/222 CTest · 0 Test262 diff · /MT pure"
+          "sub": "Wave 6c MSVC & MinGW 222/222 · 37 pregen · /MT pure"
         }
       ],
       "targetedSpeedups": [
@@ -530,147 +762,7 @@
           "speedup": 1.48
         }
       ],
-      "note": "Same-session 5-engine Windows CPU2 cohort (2 reversed ABBA blocks): Stock NG 0.17.0 MinGW (1,076.0 / 66.54 ns), Stock NG 0.17.0 MSVC (891.1 / 85.87 ns), Bellard 2026-06-04 (1,432.4 / 61.92 ns), Turbo MinGW WIN_X86_64 (1,969.0 / 46.04 ns), and Turbo MSVC WIN_X86_64 (1,901.4 / 48.76 ns). Both Turbo builds sweep all 8/8 V8-v7 subtests against same-compiler Stock NG 0.17.0 (1.83× MinGW / 2.13× MSVC; ex-RegExp 1.62× / 1.93×) because MSVC lacks computed goto while WIN_X86_64 dispatches uniformly through the native ml64/ASM VM; vs Bellard 2026, MinGW holds 1.37× V8 (1.34× micro57, 43/57 wins) and MSVC holds 1.33× V8 (1.27× micro57, 33/57 wins). MSVC /MT static CRT executables import KERNEL32.dll only, and both toolchains pass 222/222 CTests and all 82,220 Test262 cases (0 regressions)."
-    },
-    "linux-arm64": {
-      "title": "Linux ARM64",
-      "backend": "LINUX_AARCH64",
-      "toolchain": "GCC 13/14+ (glibc & musl) · AWS Graviton2 Neoverse-N1 · CPU1 · FramePool 256",
-      "baselineLabel": "v0.17.0-turbo.1 · Graviton2 (Stock NG 0.17 = 717.4 · Bellard = 848.0)",
-      "leftTitle": "Suite & Hotspot Wins vs Stock NG 0.17.0",
-      "rightTitle": "V8-v7 Subtests (Turbo 0.17 vs Stock NG 0.17.0)",
-      "sourceDoc": "vm/docs/architecture/arm64/LINUX-AARCH64-HARDWARE.txt",
-      "headlineStats": [
-        {
-          "label": "V8-v7 (Graviton2)",
-          "value": "1,260.1",
-          "sub": "1.76× vs Stock 0.17 (717.4, 8/8 wins)"
-        },
-        {
-          "label": "vs Bellard 2026",
-          "value": "1.49×",
-          "sub": "Same Neoverse-N1 host (848.0, 8/8 wins) · ex-RegExp 1.29×"
-        },
-        {
-          "label": "micro57 (57 cases)",
-          "value": "1.42× / 1.37×",
-          "sub": "65.51 ns · 43/57 vs Stock · 37/57 vs Bellard"
-        },
-        {
-          "label": "CTest Qualification",
-          "value": "1,267 / 1,826",
-          "sub": "QEMU Release 1,267 · Instrumented 1,826 · JSArena OK"
-        }
-      ],
-      "targetedSpeedups": [
-        {
-          "name": "V8-v7 overall vs Stock NG 0.17.0",
-          "before": "717.4",
-          "after": "1,260.1",
-          "speedup": 1.76
-        },
-        {
-          "name": "V8-v7 overall vs Bellard 2026 (-O2)",
-          "before": "848.0",
-          "after": "1,260.1",
-          "speedup": 1.49
-        },
-        {
-          "name": "micro57 geomean vs Stock NG 0.17.0",
-          "before": "92.75 ns",
-          "after": "65.51 ns",
-          "speedup": 1.42
-        },
-        {
-          "name": "micro57 geomean vs Bellard 2026",
-          "before": "89.94 ns",
-          "after": "65.51 ns",
-          "speedup": 1.37
-        },
-        {
-          "name": "bigint64_arith vs Stock NG 0.17.0",
-          "before": "115.58 ns",
-          "after": "29.17 ns",
-          "speedup": 3.96
-        },
-        {
-          "name": "empty_loop vs Stock NG 0.17.0",
-          "before": "24.02 ns",
-          "after": "7.32 ns",
-          "speedup": 3.28
-        },
-        {
-          "name": "prop_write vs Stock NG 0.17.0",
-          "before": "19.74 ns",
-          "after": "6.92 ns",
-          "speedup": 2.85
-        },
-        {
-          "name": "string_build1 (JSArena append vs Stock)",
-          "before": "141.86 ns",
-          "after": "52.87 ns",
-          "speedup": 2.68
-        }
-      ],
-      "microHotspots": [
-        {
-          "name": "Richards",
-          "stock": "460.0",
-          "turbo": "737.0",
-          "unit": "score",
-          "speedup": 1.6
-        },
-        {
-          "name": "DeltaBlue",
-          "stock": "480.5",
-          "turbo": "782.2",
-          "unit": "score",
-          "speedup": 1.63
-        },
-        {
-          "name": "Crypto",
-          "stock": "507.7",
-          "turbo": "793.6",
-          "unit": "score",
-          "speedup": 1.56
-        },
-        {
-          "name": "RayTrace",
-          "stock": "1,069.4",
-          "turbo": "2,027.9",
-          "unit": "score",
-          "speedup": 1.9
-        },
-        {
-          "name": "EarleyBoyer",
-          "stock": "1,214.8",
-          "turbo": "1,714.4",
-          "unit": "score",
-          "speedup": 1.41
-        },
-        {
-          "name": "RegExp",
-          "stock": "215.3",
-          "turbo": "1,031.0",
-          "unit": "score",
-          "speedup": 4.79
-        },
-        {
-          "name": "Splay",
-          "stock": "2,072.2",
-          "turbo": "2,736.0",
-          "unit": "score",
-          "speedup": 1.32
-        },
-        {
-          "name": "NavierStokes",
-          "stock": "1,078.8",
-          "turbo": "1,417.0",
-          "unit": "score",
-          "speedup": 1.31
-        }
-      ],
-      "note": "Measured 2026-11-24 on AWS Graviton2 Neoverse-N1 (4 interleaved blocks on CPU1, d0bf4c4). Restoring JSArena native string append, add_loc fast path, and short loop latch lifted V8-v7 to 1,260.1 (8/8 wins vs both Stock NG 0.17.0 and Bellard 2026) and lowered micro57 to 65.51 ns (-29.4% vs Stock, -27.2% vs Bellard). QEMU Release (1,267/1,267), Instrumented (1,826/1,826), and 137-file QJS_USE_PREGEN_ASM bundles all pass on d0bf4c4."
+      "note": "Same-session 5-engine Windows CPU2 cohort (2 reversed ABBA blocks): Stock NG 0.17.0 MinGW (1,076.0 / 66.54 ns), Stock NG 0.17.0 MSVC (891.1 / 85.87 ns), Bellard 2026-06-04 (1,432.4 / 61.92 ns), Turbo MinGW WIN_X86_64 (1,969.0 / 46.04 ns), and Turbo MSVC WIN_X86_64 (1,901.4 / 48.76 ns). Both Turbo builds sweep all 8/8 V8-v7 subtests against same-compiler Stock NG 0.17.0 (1.83× MinGW / 2.13× MSVC; ex-RegExp 1.62× / 1.93×) because MSVC lacks computed goto while WIN_X86_64 dispatches uniformly through the native ml64/ASM VM. Wave 6c passes sequential MSVC (222/222 CTest + 37-file pregen, /MT KERNEL32.dll only) and MinGW (222/222 CTest + 37-file pregen) plus 82,220 Test262 cases (0 regressions)."
     },
     "macos-x86_64": {
       "title": "macOS x86-64",
@@ -791,7 +883,7 @@
           "speedup": null
         }
       ],
-      "note": "Verified on MacBookPro14,1 hardware (i5-7360U, Darwin 22.6, Apple Clang 15) prior to 0.17.0 migration: 1,741.5 V8-v7 (1.45× vs Bellard -O3, 1.47× vs PORTABLE; Stock NG 0.15.1 scores 362.0 due to Apple Clang computed-goto codegen). On v0.17.0-turbo.1 (d0bf4c4), adapt_macho.py ELF->Mach-O checks (35 C/H, 27 includes, 3 ASM) and test_macho_x86.py pass offline; Darwin CI runs via .github/workflows/ci.yml."
+      "note": "Verified on MacBookPro14,1 hardware (i5-7360U, Darwin 22.6, Apple Clang 15) prior to 0.17.0 migration: 1,741.5 V8-v7 (1.45× vs Bellard -O3, 1.47× vs PORTABLE; Stock NG 0.15.1 scores 362.0 due to Apple Clang computed-goto codegen). On 0.17.0, adapt_macho.py ELF->Mach-O checks (35 C/H, 27 includes, 3 ASM) and test_macho_x86.py pass offline; Darwin CI runs via .github/workflows/ci.yml."
     }
   }
 }

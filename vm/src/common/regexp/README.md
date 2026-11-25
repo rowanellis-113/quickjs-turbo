@@ -1,6 +1,6 @@
 # Regular expression implementation
 
-The public sources remain pinned to QuickJS-NG 0.15.1. The owned native worker
+The public sources remain pinned to QuickJS-NG 0.17.0. The owned native worker
 and portable source overlay use `exec.inc`; the generator checks the pinned
 entry body before substitution. Native builtin identity checks recognize that
 worker, while the C overlay retains the original static function identity.

@@ -1,59 +1,72 @@
-QuickJS-Turbo Product Baseline, 2026-11-24 (v0.17.0-turbo.1)
-===============================================================
-Release version: `v0.17.0-turbo.1` (`vm/VERSION`: `0.17.0-turbo.1`, commit `d0bf4c4`).
+QuickJS-Turbo Product Baseline, 2026-11-25 (v0.17.0-turbo.2)
+============================================================
+Release version: `v0.17.0-turbo.2` (`vm/VERSION`: `0.17.0-turbo.2`, Waves 1–6c verified baseline).
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`; all 19 source pins verified).
 Host runtime alignment: verified drop-in on unmodified `txiki.js v26.11.0` (`5133e8a`, `BC_VERSION 29`).
+ABI & JIT roadmap: see `ABI-AND-BASELINE-JIT.txt`.
 
-Key 0.17.0-turbo.1 Capabilities
--------------------------------
+Key 0.17.0 Capabilities
+-----------------------
 - Native register-frame assembly VMs across all four tier-1 desktop/server targets:
-  `LINUX_X86_64`, `MACOS_X86_64`, `WIN_X86_64` (MSVC / `clang-cl` / MinGW), and `LINUX_AARCH64` (`glibc` & `musl`).
+  `LINUX_X86_64`, `MACOS_X86_64`, `WIN_X86_64` (MSVC / `clang-cl` / MinGW), and `LINUX_AARCH64` (`glibc` & `musl`, `161` native opcodes).
 - `PORTABLE` C fallback auto-selected on macOS ARM64, shared libs, Sanitizers, and `FORCE_GC_AT_MALLOC`.
 - `quickjs-turbo.h` + `quickjs-turbo::qjs` CMake target: PIC-only mode (`own_bytecode_tail = QJS_TURBO_OFF`),
   low-bit tagged `property_ic_warmup`, `JS_PurgePropertyIC(rt)`, host LTO isolation, and `QJS_USE_PREGEN_ASM`.
-- Native 0.17.0 fast paths: `JSArena` string append, ARM64 `add_loc` & short loop latch,
+- Native 0.17.0 + Wave 1–6c fast paths: `JSArena` string append, fast `dtoa`/`atod` (`dtoa-fast.inc` + `JS_FrameAtod` JSON worker),
+  getter/string-key Property IC & root-leaf call fast paths, ARM64 `OP_push_bigint_i32` / `add_loc` / short loop latch,
   and Win64 native array length write / iterator / number-to-string / Hybrid GC supplements.
 
-1. Linux x86-64 5-Engine Cohort (Ryzen 3 3300X, GCC 13.3, CPU2, FramePool 512, 2026-11-24)
+1. Linux x86-64 6-Engine Cohort (Ryzen 3 3300X, GCC 13.3, CPU2, FramePool 512, 2026-11-25)
 ------------------------------------------------------------------------------------------
-Official V8-v7 (2 reversed ABBA blocks, higher is better):
-- Node v24.13.0 `--jitless`:               2,400.99  (RSS 476,266 KiB / 465.1 MiB)
-- Turbo v0.17.0-turbo.1 Default:           2,076.98  (1.72x vs NG · 1.39x vs Bellard · 86.5% of Node; RSS 160,964 KiB / 157.2 MiB, 2.96x lower RSS)
-- Turbo v0.17.0-turbo.1 Density (noTail/w16): 2,033.35  (97.9% vs Default · 1.68x vs NG · 1.36x vs Bellard; RSS 160,946 KiB / 157.2 MiB)
-- Bellard QuickJS 2026-06-04 (-O2):        1,496.46  (RSS 150,418 KiB / 146.9 MiB)
-- Stock QuickJS-NG 0.17.0:                 1,208.46  (RSS 159,170 KiB / 155.4 MiB)
+Official V8-v7 (8 rounds Turbo / 4 rounds peers, median, higher is better):
+- Node v24.13.0 `--jitless`:               2,359.88  (RSS 474,288 KiB / 463.2 MiB)
+- Turbo Default (Wave 6c):                 2,044.92  (1.74x vs NG · 1.41x vs Bellard · 86.7% of Node; RSS 161,214 KiB / 157.4 MiB, 2.94x lower RSS)
+- Turbo Density (noTail/w16):              2,050.67  (100.3% vs Default · 1.75x vs NG · 1.42x vs Bellard · 86.9% of Node; RSS 161,124 KiB)
+- Bellard QuickJS 2026-06-04 (-O2):        1,448.53  (RSS 150,424 KiB / 146.9 MiB)
+- Stock QuickJS-NG 0.17.0:                 1,173.19  (RSS 159,108 KiB / 155.4 MiB)
+  (Same-session `ref_turbo1` = 2,044.11; Turbo beats V8 `--jitless` on `NavierStokes` 1.60x, `Crypto` 1.29x, `Richards` 1.04x, and `Splay` 1.01x.)
 
-Unified micro57 (57 cases, 2 reversed ABBA blocks, CPU2, ns/op geomean):
-- Turbo Default:  39.491 ns  (1.42x vs Stock NG 56.179 ns [53/57 wins] · 1.35x vs Bellard 53.434 ns [44/57 wins] · 93.0% vs Node --jitless 36.705 ns [22/57 wins])
-- Turbo Density:  39.375 ns  (100.3% parity vs Default)
-- Hotspots vs Stock NG 0.17.0: `prop_read` 3.40x, `typed_array_read` 2.88x, `typed_array_write` 2.51x,
-  `string_build1` 2.48x, `empty_loop` 2.39x, `sort_bench` 2.38x, `array_read` 2.21x, `prop_write` 2.16x;
-  vs V8 `--jitless`: `NavierStokes` 1.60x, `Crypto` 1.31x, `typed_array_read` 2.58x, `typed_array_write` 2.45x,
-  `array_read` 2.44x, `array_write` 2.40x, `float_arith` 2.14x, `prop_read` 1.51x.
+Unified micro57 (57 cases, 8 rounds, CPU2, ns/op median geomean, lower is better):
+- Turbo Default:  35.673 ns  (1.54x vs Stock NG 54.844 ns [54/57 wins] · 1.46x vs Bellard 52.055 ns [46/57 wins] · 1.006x vs Node --jitless 35.898 ns [27/57 wins, 21x lower RSS] · 1.08x vs `ref_turbo1` 38.574 ns)
+- Turbo Density:  35.697 ns  (99.9% parity vs Default)
+- Top hotspots vs Stock NG 0.17.0: `float_to_string` 4.92x, `float_toString` 4.16x, `prop_read` 3.31x,
+  `typed_array_read` 2.84x, `string_to_int` 2.72x, `string_to_float` 2.58x, `typed_array_write` 2.49x,
+  `string_build1` 2.46x, `sort_bench` 2.44x, `empty_loop` 2.38x.
 
-500-Cold-Called-Function Worker Heap (`JS_ComputeMemoryUsage` + `JS_PurgePropertyIC`):
-- Default (`tail=ON, w=0`):   485.3 KiB (500 IC slabs / 72,000 B; `JS_PurgePropertyIC` -> 407.2 KiB)
-- PIC-only (`tail=OFF, w=0`): 399.4 KiB (500 IC slabs / 72,000 B; `JS_PurgePropertyIC` -> 321.3 KiB)
-- Density (`tail=OFF, w=16`): 321.3 KiB (-33.8%, 0 cold IC slabs)
+JetStream-17 (17 real-world JS workloads, 2 blocks x 2 iters, geomean body / cold ms, lower is better):
+- Node v24.13.0 `--jitless`:               117.64 ms body / 127.11 ms cold  (RSS 81,960 KiB / 80.0 MiB)
+- Turbo Default:                           143.22 ms body / 143.53 ms cold  (1.55x vs NG · 1.34x vs Bellard · 82.1% body / 88.6% cold of Node · RSS 10,268 KiB / 10.0 MiB, 8.0x lower RSS)
+- Turbo Density:                           143.28 ms body / 144.93 ms cold  (99.96% body parity vs Default; RSS 10,048 KiB)
+- Bellard QuickJS 2026-06-04 (-O2):        192.23 ms body / 195.47 ms cold  (RSS 9,362 KiB)
+- Stock QuickJS-NG 0.17.0:                 222.29 ms body / 229.24 ms cold  (RSS 9,706 KiB)
+  (Same-session `ref_turbo1` = 148.64 ms body / 150.25 ms cold -> -3.6% body / -4.5% cold faster;
+   Turbo beats Node `--jitless` on `lazy-collections` 1.41x, `crypto` 1.32x, `json-stringify-inspector` 1.30x, `json-parse-inspector` 1.10x, and `richards` 1.03x.)
 
-2. Cross-Platform Real Hardware Benchmarks (Same-Host Cohorts, 2026-11-24)
---------------------------------------------------------------------------
+Cold-Worker Heap (`cold_heap_probe_w6`, exact zero-bloat verified):
+- Empty runtime malloc:       98.6 KiB (98,600 B — `COLD_HEAP_MATCH_EXACT_ZERO_BLOAT`)
+- 500-cold-fn props (Def):    460.9 KiB (500 IC slabs / 111.9 KiB; `JS_PurgePropertyIC` -> 341.1 KiB)
+- 500-cold-fn props (Dens):   341.0 KiB (-26.0%, 0 cold IC slabs)
+- 500-cold-fn arith (Def/T0): 416.7 KiB -> 328.7 KiB (-21.1% with `own_bytecode_tail = OFF`)
+
+2. Cross-Platform Real Hardware Benchmarks (Same-Host Cohorts)
+--------------------------------------------------------------
+- Linux ARM64 `LINUX_AARCH64` (AWS Graviton2 Neoverse-N1, GCC 13.4, CPU1, 4 blocks, 2026-11-25 Wave 6c):
+  - V8-v7: `1,258.52` (`1.76x` vs Stock NG `0.17.0` `714.86` [`8/8` wins], `1.48x` vs Bellard `847.79` [`8/8` wins], `-1.96%` `perf` cycles vs `ref_turbo1`).
+  - `micro57`: `61.97 ns` (`1.50x` vs Stock `92.76 ns` [`44/57` wins], `1.46x` vs Bellard `90.17 ns` [`42/57` wins], `+6.0%` faster than `ref_turbo1` `65.69 ns`).
+  - `JetStream-17`: `228.95 ms` body / `226.50 ms` cold (`1.50x` body / `1.54x` cold vs Stock `343.62 / 348.43 ms` [`15/17` wins], `1.34x` body / `1.36x` cold vs Bellard `306.44 / 309.16 ms` [`12/17` wins]; `json-stringify-inspector` `6.09x`, `bigint-noble-ed25519` `-5.75%` vs pre-Wave-6).
 - Windows x86-64 `WIN_X86_64` (Ryzen 3 3300X, CPU2, 5-engine cohort):
   - Stock NG `0.17.0` MinGW `1,076.0` / `66.54 ns` · Stock NG MSVC `891.1` / `85.87 ns` · Bellard `2026-06-04` `1,432.4` / `61.92 ns`.
   - MinGW GCC 13.1: V8-v7 `1,969.0` (`1.83x` vs NG `8/8`, `1.37x` vs Bellard `7/8`); `micro57` `46.04 ns` (`1.45x` NG `54/57`, `1.34x` Bellard `43/57`).
   - MSVC 19.50:     V8-v7 `1,901.4` (`2.13x` vs NG `8/8`, `1.33x` vs Bellard `6/8`); `micro57` `48.76 ns` (`1.76x` NG `55/57`, `1.27x` Bellard `33/57`).
-- Linux ARM64 `LINUX_AARCH64` (AWS Graviton2 Neoverse-N1, GCC 13.4, CPU1, 4 blocks):
-  - V8-v7 `1,260.1` (`1.76x` vs Stock `0.17.0` `717.4` [`8/8` wins], `1.49x` vs Bellard `848.0` [`8/8` wins]).
-  - `micro57` `65.51 ns` (`1.42x` vs Stock `92.75 ns` [`43/57` wins], `1.37x` vs Bellard `89.94 ns` [`37/57` wins]).
 - macOS x86-64 `MACOS_X86_64` (`v0.15.1-turbo.6–.8` i5-7360U hardware cohort):
   - V8-v7 `1,741.5` (`1.45x` vs Bellard `-O3` `1,202.0`, `1.47x` vs `PORTABLE` `1,185.0`); JetStream `1.34x` (`13/17`); `microbench.js` `1.17x` (`39/72`).
 
-3. Verification & Contract Qualification (Commit `d0bf4c4`)
------------------------------------------------------------
-- Full Test262 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% matching `stock.json`) across Linux x86-64 (`28.67s`), Windows MSVC (`67.01s`), and Windows MinGW (`69.11s`).
-- CTests: Linux x86-64 Release `963/963` (`22.26s`), Linux `ASan+UBSan` (`PORTABLE`) `218/218` (`157.41s`), Windows MSVC `222/222` (`31.01s`), Windows MinGW `222/222` (`20.52s`), ARM64 QEMU Release `1,267/1,267` (`215.37s`) & Instrumented `1,826/1,826` (`246.86s`, `23/23` native string paths).
-- Static CRT & Bundles: MSVC `/MT` `qjs.exe`/`qjsc.exe` import `KERNEL32.dll` only; `linux_aarch64` pregen (`137` files + `42` smoke); `adapt_macho.py` offline pass (`35` C/H, `27` includes, `3` ASM); all 13 CI contract/ABI/ELF/Mach-O/release scripts + `format/run.py --check` (`511` receipts, `0` stale) pass.
-- `txiki.js v26.11.0` (`5133e8a`): `AUTO` (`LINUX_X86_64`) `467/468` (`test-lookup.js` WSL2 DNS `EAI_AGAIN`), `tests/advanced/` `4/4`, `tjsc -m` `BC_VERSION 29` round-trip, `BUILD_WITH_GC_STRESS=ON` (`466/468` batch + standalone `test-tls-gc-pending-write.js` pass).
+3. Verification & Contract Qualification (Wave 6c, 2026-11-25)
+--------------------------------------------------------------
+- Full Test262 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% identity match with stock `0.17.0`).
+- CTests: Linux x86-64 Release `963/963`, Linux `ASan+UBSan` (`PORTABLE`) `218/218`, Windows MSVC `222/222`, Windows MinGW `222/222`, ARM64 QEMU Release `1,267/1,267`, ARM64 Instrumented `184/184` (`check_vm.py`: `native_opcodes=161 full-FDE PIE NX no-WX`).
+- Pregen & Contracts: `pregen-arm` (`137` files), `pregen-linux` (`102` files), `pregen-mingw` (`37` files), `pregen-msvc` (`37` files) all verified; `contracts.py` (`511` receipts, `0` stale), `test_arch_boundaries.py` (`ARCH_BOUNDARIES_OK`), `cold_heap_probe_w6` (`COLD_HEAP_MATCH_EXACT_ZERO_BLOAT`), and MSVC `/MT` `KERNEL32.dll`-only PE import check pass.
+- `txiki.js v26.11.0` (`5133e8a`): `AUTO` (`LINUX_X86_64`) `467/468` (`test-lookup.js` WSL2 DNS `EAI_AGAIN`), `tests/advanced/` `4/4`, `tjsc -m` `BC_VERSION 29` round-trip, `BUILD_WITH_GC_STRESS=ON` pass.
 
 4. Prior 0.15.1 Milestone Trajectory (Linux x86-64 Reference Host, Historical)
 ------------------------------------------------------------------------------

@@ -3,12 +3,13 @@
 ## Overview
 
 `vm/` contains all **QuickJS-Turbo** optimizations, native register-frame VMs,
-specialized builtins, CMake build rules, tests, and architecture documentation
-layered cleanly over unmodified QuickJS-NG `0.17.0` (`7b5f588e0f`).
+specialized builtins, ABI contracts, CMake build rules, tests, and architecture
+documentation layered cleanly over unmodified QuickJS-NG `0.17.0` (`7b5f588e0f`).
 
 See the repository root [README.md](../README.md) for the project overview,
-cross-platform benchmark comparisons (QuickJS-NG `0.17.0`, Bellard QuickJS `2026-06-04`,
-QuickJS-Turbo, V8 `--jitless`), and embedding quick start.
+cross-platform benchmark comparisons (V8-v7, `micro57`, and `JetStream-17`
+across QuickJS-NG `0.17.0`, Bellard QuickJS `2026-06-04`, QuickJS-Turbo, and
+`V8 --jitless`), ABI & Baseline JIT design summary, and embedding quick start.
 
 ## Getting Started
 
@@ -19,14 +20,15 @@ ASM VM on supported platforms via `-DQJS_FRAME_BACKEND=AUTO`:
 - **Linux `x86-64`** (`LINUX_X86_64`, `glibc` & `musl`, GCC 13/14+)
 - **macOS `x86-64`** (`MACOS_X86_64`, Apple Clang 15+, Mach-O)
 - **Windows `x86-64`** (`WIN_X86_64`, MSVC / `clang-cl` + `ml64` with zero GNU binutils, or MinGW GCC 13+)
-- **Linux `ARM64`** (`LINUX_AARCH64`, `glibc` & `musl`, GCC 13/14+)
+- **Linux `ARM64`** (`LINUX_AARCH64`, `glibc` & `musl`, GCC 13/14+, `161` native opcodes)
 - **`PORTABLE` fallback**: auto-selected on macOS ARM64, shared builds, Sanitizers, and `FORCE_GC_AT_MALLOC`.
 
 Embedders can link `quickjs-turbo::qjs` (with local host-LTO isolation and
 `add_subdirectory()` support), configure density/IC behavior via `quickjs-turbo.h`
 (`JS_PurgePropertyIC`), and export Python-free offline assembly bundles with
-`QJS_USE_PREGEN_ASM`. See [OPTIMIZATIONS.txt](docs/architecture/common/OPTIMIZATIONS.txt)
-and [HYBRID-GC.txt](docs/architecture/common/HYBRID-GC.txt).
+`QJS_USE_PREGEN_ASM`. See [OPTIMIZATIONS.txt](docs/architecture/common/OPTIMIZATIONS.txt),
+[HYBRID-GC.txt](docs/architecture/common/HYBRID-GC.txt), and
+[ABI-AND-BASELINE-JIT.txt](docs/architecture/common/ABI-AND-BASELINE-JIT.txt).
 
 ### Windows x86-64 (`WIN_X86_64`)
 
@@ -70,7 +72,7 @@ See [LINUX-AARCH64-RELEASE.txt](docs/architecture/arm64/LINUX-AARCH64-RELEASE.tx
 
 ## Documentation Index
 
-- [Product Baseline](docs/architecture/common/PRODUCT-BASELINE.txt) · [Build & Embed Guide](docs/architecture/common/BUILDING.txt) · [Directory Layout](docs/architecture/common/DIRECTORY-LAYOUT.txt)
+- [Product Baseline](docs/architecture/common/PRODUCT-BASELINE.txt) · [ABI & Baseline JIT](docs/architecture/common/ABI-AND-BASELINE-JIT.txt) · [Build & Embed Guide](docs/architecture/common/BUILDING.txt) · [Directory Layout](docs/architecture/common/DIRECTORY-LAYOUT.txt)
 - [Documentation Index](docs/architecture/common/README.txt) · [Formatting & Contracts](docs/architecture/common/FORMAT.txt) · [Upstream Manual](../docs/docs/intro.md)
 
 ## Authors

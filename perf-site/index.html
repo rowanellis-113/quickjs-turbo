@@ -3,13 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>QuickJS-Turbo — Near-V8 --jitless Speed, Zero JIT, 100% quickjs.h Drop-In</title>
+    <title>QuickJS-Turbo — Near-V8 --jitless Speed, Zero JIT by Default, 100% quickjs.h ABI</title>
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
     <link rel="shortcut icon" href="./favicon.svg" />
     <meta name="theme-color" content="#080a0f" />
     <meta
       name="description"
-      content="QuickJS-Turbo supercharges QuickJS-NG with native register-frame assembly VMs, adaptive inline caches, and Hybrid RC + Partial Cycle GC. Zero JIT, W^X safe, 100% quickjs.h ABI compatible."
+      content="QuickJS-Turbo supercharges QuickJS-NG 0.17.0 with native register-frame assembly VMs, adaptive inline caches, Hybrid RC + Partial Cycle GC, and a verified ABI substrate ready for an optional bytecode-driven Baseline JIT."
     />
     <script>
       (function () {
@@ -26,12 +26,13 @@
         <a href="#top" class="brand">
           <span class="brand-mark">⚡</span>
           <span>QuickJS-Turbo</span>
-          <span class="brand-ver" id="header-version">v0.17.0-turbo.1</span>
+          <span class="brand-ver" id="header-version">v0.17.0-turbo.2</span>
         </a>
         <nav class="nav-links" aria-label="Primary">
           <a href="#why">Why Turbo</a>
-          <a href="#history">Version History</a>
-          <a href="#platforms">Platform Benchmarks</a>
+          <a href="#abi-jit">ABI &amp; JIT</a>
+          <a href="#history">History</a>
+          <a href="#platforms">Platforms</a>
           <a href="#quickstart">Quick Start</a>
         </nav>
         <div class="header-actions">
@@ -61,28 +62,21 @@
         <div class="container">
           <div class="hero-grid">
             <div>
-              <div class="eyebrow">Zero JIT · W^X Clean · 100% quickjs.h Drop-In</div>
+              <div class="eyebrow">Zero JIT by Default · W^X Clean · 100% quickjs.h ABI Drop-In</div>
               <h1>
                 Near-V8 <span class="mono">--jitless</span> speed in a
                 <span class="accent">QuickJS-sized</span> binary.
               </h1>
               <p class="hero-lead">
                 QuickJS-Turbo supercharges QuickJS-NG 0.17.0 (txiki.js v26.11.0 aligned) with native
-                register-frame assembly VMs, adaptive inline caches, and Hybrid RC + Partial Cycle GC
-                — delivering 1.72×–2.13× V8-v7 throughput over NG 0.17.0 without runtime codegen or
-                RWX memory.
+                register-frame assembly VMs, adaptive inline caches, fast numeric/JSON builtins, and
+                Hybrid RC + Partial Cycle GC — delivering 1.74×–2.13× V8-v7, 1.50×–1.55×
+                JetStream-17, and micro57 parity above V8 --jitless with zero RWX memory.
               </p>
               <div class="hero-cta">
                 <a class="btn btn-primary" href="#quickstart">Quick Start &amp; Embed</a>
-                <a class="btn btn-secondary" href="#history">Explore Benchmarks</a>
-                <a
-                  class="btn btn-secondary"
-                  href="https://github.com/rowanellis-113/quickjs-turbo/releases"
-                  target="_blank"
-                  rel="noopener"
-                >
-                  Prebuilt SDKs
-                </a>
+                <a class="btn btn-secondary" href="#platforms">Explore Benchmarks</a>
+                <a class="btn btn-secondary" href="#abi-jit">ABI &amp; Baseline JIT</a>
               </div>
             </div>
 
@@ -98,7 +92,7 @@
               </div>
               <div class="bar-list" id="hero-bars"></div>
               <div class="bar-footnote">
-                <span>Same-host Linux x86-64 cohort · QuickJS-NG 0.17.0 pinned upstream</span>
+                <span>2026-11-25 6-engine Linux x86-64 cohort · QuickJS-NG 0.17.0 pinned</span>
                 <a
                   href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/vm/docs/architecture/common/PRODUCT-BASELINE.txt"
                   target="_blank"
@@ -112,20 +106,20 @@
 
           <div class="kpi-strip">
             <div class="kpi-card">
-              <div class="kpi-value accent">1.72×</div>
-              <div class="kpi-label">V8-v7 vs NG 0.17.0 · 1.39× vs Bellard 2026</div>
+              <div class="kpi-value accent">1.74×</div>
+              <div class="kpi-label">V8-v7 vs NG 0.17 · 1.41× Bellard · 86.7% V8 --jitless</div>
             </div>
             <div class="kpi-card">
-              <div class="kpi-value">86.5%</div>
-              <div class="kpi-label">of V8 --jitless · 2.96× lower Peak RSS</div>
+              <div class="kpi-value">100.6%</div>
+              <div class="kpi-label">micro57 vs V8 --jitless (35.67 vs 35.90 ns · 21× less RSS)</div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-value">1.55×</div>
+              <div class="kpi-label">JetStream-17 vs NG 0.17 (143.2 ms · 8.0× lower RSS)</div>
             </div>
             <div class="kpi-card">
               <div class="kpi-value">0 RWX</div>
-              <div class="kpi-label">Strict W^X · DWARF CFI &amp; Win64 SEH</div>
-            </div>
-            <div class="kpi-card">
-              <div class="kpi-value">82,220</div>
-              <div class="kpi-label">Test262 cases · 0 regressions · txiki.js v26.11</div>
+              <div class="kpi-label">82,220 Test262 (0 reg) · 98.6 KiB cold · JIT-ready ABI</div>
             </div>
           </div>
         </div>
@@ -139,7 +133,7 @@
             <h2>Why QuickJS-Turbo?</h2>
             <p>
               Built for production hosts that want QuickJS's tiny footprint, instant cold start, and
-              strict security invariants — without leaving 1.7×–5.2× execution speed on the table.
+              strict security invariants — without leaving 1.5×–6.1× execution speed on the table.
             </p>
           </div>
 
@@ -160,24 +154,24 @@
               <h3>Native Dispatch &amp; Adaptive ICs</h3>
               <p>
                 Replaces the indirect C switch loop with register-pinned assembly dispatch,
-                monomorphic/polymorphic Property ICs, and co-allocated inline object properties.
+                getter/string-key Property ICs, and co-allocated inline object properties across
+                x86-64 and ARM64.
               </p>
               <div class="feature-metric">
-                RegExp 5.17× · prop_read 3.40× · typed_array_read 2.88× · typed_array_write 2.51×
-                (vs NG 0.17.0)
+                json-stringify 6.09× · RegExp 4.95× · prop_read 3.31× · typed_array 2.84×
               </div>
             </article>
 
             <article class="feature-card">
-              <span class="feature-tag">03 · RUNTIME FAST PATHS</span>
-              <h3>Objects, Collections &amp; Async</h3>
+              <span class="feature-tag">03 · NUMERIC &amp; RUNTIME FAST PATHS</span>
+              <h3>Fast dtoa/atod, JSON &amp; Strings</h3>
               <p>
-                Shared literal capacity reservation, JSArena linear string-append, unified Map/Set
-                string hashing with short-rope flattening, and capability-free async /
-                Promise.resolve fast paths across all targets.
+                Adds fast float/int conversion (dtoa-fast + JS_FrameAtod JSON worker), JSArena
+                string-append, Map/Set string hashing, and capability-free async across Linux x86-64
+                and Graviton2 ARM64.
               </p>
               <div class="feature-metric">
-                micro57 1.42× vs NG 0.17.0 (53/57) · 1.35× vs Bellard (44/57) · string_build 2.48×
+                float_to_string 4.92× · string_to_float 2.95× · micro57 beats V8 --jitless
               </div>
             </article>
 
@@ -189,20 +183,20 @@
                 partial cycle collection and iterative O(1)-C-stack object reclamation.
               </p>
               <div class="feature-metric">
-                Cycle scans -85.8% · cyclic churn 1.50× · GC slices +10%
+                Cycle scans -85.8% · cyclic churn 1.50× · 2.94×–8.0× lower RSS vs V8
               </div>
             </article>
 
             <article class="feature-card">
               <span class="feature-tag">05 · HIGH-DENSITY CONTROL</span>
-              <h3>Fine-Grained Memory Control</h3>
+              <h3>Zero Cold Bloat &amp; Slab Purge</h3>
               <p>
-                Via quickjs-turbo.h: turn off own_bytecode tails while keeping native Property ICs,
+                Via quickjs-turbo.h: disable own_bytecode tails while keeping native Property ICs,
                 defer IC allocation with tagged warmup (+0 B struct growth), and purge idle worker
                 slabs on demand.
               </p>
               <div class="feature-metric">
-                500-fn worker heap -33.8% (0 IC slabs) · JS_PurgePropertyIC
+                98.6 KiB empty runtime · 500-fn heap -26% (0 IC slabs) · JS_PurgePropertyIC
               </div>
             </article>
 
@@ -212,10 +206,10 @@
               <p>
                 Upstream QuickJS-NG 0.17.0 remains byte-for-byte pristine at repo root. Drop-in
                 compatible with txiki.js v26.11.0 (BC_VERSION 29); quickjs-turbo::qjs isolates host
-                LTO, auto-falls back under Sanitizers, and supports Python-free pregen builds.
+                LTO and supports Python-free pregen builds.
               </p>
               <div class="feature-metric">
-                Unmodified quickjs.h · txiki.js v26.11 · QJS_USE_PREGEN_ASM
+                Unmodified quickjs.h · 511 SHA-256 ABI receipts · QJS_USE_PREGEN_ASM
               </div>
             </article>
           </div>
@@ -235,7 +229,7 @@
                   <td><strong>Linux x86-64</strong></td>
                   <td class="mono">LINUX_X86_64</td>
                   <td>GCC 13/14+ (glibc &amp; musl)</td>
-                  <td>Native ELF ASM VM, inline object properties, PIE + DWARF CFI</td>
+                  <td>Native ELF ASM VM, inline object properties, fast dtoa/atod, PIE + DWARF CFI</td>
                 </tr>
                 <tr>
                   <td><strong>macOS x86-64</strong></td>
@@ -254,8 +248,8 @@
                   <td class="mono">LINUX_AARCH64</td>
                   <td>GCC 13/14+ (glibc &amp; musl)</td>
                   <td>
-                    Native ELF ASM VM, 64B-aligned VM entry, JSArena string append, AUTO-selected on
-                    Linux AArch64
+                    Native ELF ASM VM (161 native opcodes, 64B-aligned entry), JSArena append,
+                    JS_FrameAtod JSON worker
                   </td>
                 </tr>
                 <tr>
@@ -272,6 +266,129 @@
         </div>
       </section>
 
+      <!-- ABI Contract & Optional Baseline JIT -->
+      <section class="section" id="abi-jit">
+        <div class="container">
+          <div class="section-head">
+            <div class="section-kicker">ABI Contract &amp; Execution Roadmap</div>
+            <h2>Verified Register-Frame ABI &amp; Optional Baseline JIT</h2>
+            <p>
+              QuickJS-Turbo separates its immutable public C ABI from an internal register-frame
+              execution ABI — delivering strict zero-RWX safety today while providing ~70% of the
+              runtime substrate for an opt-in, zero-AST Baseline JIT directly over QuickJS bytecode.
+            </p>
+          </div>
+
+          <div class="two-col">
+            <article class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Two-Layer ABI Contract</h3>
+                  <p class="panel-subtitle">
+                    Shipping today across Linux x86-64, ARM64, macOS, and Windows
+                  </p>
+                </div>
+                <span class="badge badge-green">Production Invariant</span>
+              </div>
+              <ul class="inspector-list" style="margin-top: 0">
+                <li>
+                  <strong>100% Drop-In Public C ABI:</strong> Unmodified
+                  <span class="mono">quickjs.h</span>, <span class="mono">16 B JSValue</span>
+                  representation, and <span class="mono">BC_VERSION 29</span> wire format verified
+                  on <span class="mono">txiki.js v26.11.0</span>; all tuning in
+                  <span class="mono">quickjs-turbo.h</span> is strictly additive.
+                </li>
+                <li>
+                  <strong>Pinned Register-Frame ABI:</strong> Callee-saved hardware pinning
+                  (<span class="mono">x19</span> state, <span class="mono">x20</span> PC,
+                  <span class="mono">x21</span> SP, <span class="mono">x22</span> frame,
+                  <span class="mono">x23</span> locals, <span class="mono">x24</span> args on
+                  AArch64; equivalent x86-64 SysV/Mach-O/Win64 contract) over the contiguous
+                  <span class="mono">JSFrame</span> arena.
+                </li>
+                <li>
+                  <strong>Clean/Dirty Lazy Publication:</strong> Fast paths skip
+                  <span class="mono">cur_pc/cur_sp</span> writes until call, GC, exception, or
+                  finalizer safepoints, pre-validated by <span class="mono">FRAME_KIND</span> and a
+                  jump-target <span class="mono">boundaries</span> bitmap.
+                </li>
+                <li>
+                  <strong>Fail-Closed Build Contracts:</strong>
+                  <span class="mono">core-fields.json</span> + <span class="mono">511</span> SHA-256
+                  ABI receipts, full DWARF CFI FDEs, and Win64 SEH
+                  <span class="mono">.pdata/.xdata</span> unwind tables.
+                </li>
+              </ul>
+            </article>
+
+            <article class="panel-card">
+              <div class="panel-header">
+                <div>
+                  <h3 class="panel-title">Optional Bytecode-Driven Baseline JIT</h3>
+                  <p class="panel-subtitle">
+                    Zero AST · Copy-and-Patch Stencils · Strict W^X Opt-In Tier
+                  </p>
+                </div>
+                <span class="badge badge-amber">Architecture Roadmap</span>
+              </div>
+              <p style="margin: 0 0 12px; font-size: 13.5px; color: var(--text-muted)">
+                Hardware PMU profiling shows <span class="mono">JS_FrameInterp</span> still accounts
+                for <strong>53%–98%</strong> of execution cycles (dispatch, operand decode, and
+                <span class="mono">[sp]</span> stack traffic). An opt-in Baseline JIT eliminates
+                that tax directly on the existing ABI — keeping the <span class="mono">0 RWX</span>
+                ASM VM as default:
+              </p>
+              <div class="abi-pipeline">
+                <div class="pipeline-step">
+                  <span class="mono step-num">01</span>
+                  <div>
+                    <strong>Direct Bytecode (No AST):</strong> Compiles
+                    <span class="mono">JSFunctionBytecode</span> linearly — preserving the
+                    <span class="mono">98.6 KiB</span> cold heap, sub-ms parse, and 1:1
+                    <span class="mono">pc</span> mapping for OSR/exceptions.
+                  </div>
+                </div>
+                <div class="pipeline-step">
+                  <span class="mono step-num">02</span>
+                  <div>
+                    <strong>1-Pass Virtual Stack + Copy-and-Patch Stencils:</strong> Offline-verified
+                    stencils + 2–4 reg basic-block TOS cache fold
+                    <span class="mono">get_loc + add + if_false</span> without
+                    <span class="mono">[sp]</span> ping-pong or indirect dispatch.
+                  </div>
+                </div>
+                <div class="pipeline-step">
+                  <span class="mono step-num">03</span>
+                  <div>
+                    <strong>Zero-Bridge ABI &amp; Direct-Baked ICs:</strong> Shares
+                    <span class="mono">JSFrame</span>, Clean/Dirty bailouts, and Hybrid GC; bakes
+                    Property IC slot pointers PC/RIP-relatively and adds Loop OSR.
+                  </div>
+                </div>
+                <div class="pipeline-step">
+                  <span class="mono step-num">04</span>
+                  <div>
+                    <strong>Strict W^X &amp; Hotness Gate:</strong> Hotness threshold (64–128) keeps
+                    cold scripts at <span class="mono">0 B</span> JIT memory; bounded Code Arena
+                    transitions <span class="mono">RW → RX</span> (never simultaneous RWX).
+                  </div>
+                </div>
+              </div>
+              <div class="bar-footnote" style="margin-top: 12px">
+                <span>Phased gates: Phase 0 PoC (≥1.35× loops) → Phase 1 IC/Call → Phase 2 x86/ARM64 + Test262</span>
+                <a
+                  href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/vm/docs/architecture/common/ABI-AND-BASELINE-JIT.txt"
+                  target="_blank"
+                  rel="noopener"
+                  class="mono"
+                  >ABI-AND-BASELINE-JIT.txt ↗</a
+                >
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+
       <!-- Historical Version Benchmarks -->
       <section class="section" id="history">
         <div class="container">
@@ -282,9 +399,8 @@
               All 6 milestone points are measured on the same Reference Linux x86-64 host (AMD Ryzen
               3 3300X, CPU2 serial, normal ASLR), tracking both QuickJS-Turbo and the underlying
               Stock QuickJS-NG baseline as upstream stepped from 0.15.1 (993.7 / 1,007.0) to 0.17.0
-              (1,208.5). Patch releases holding the same plateau are grouped into their active
-              range, while macOS, Windows, and ARM64 cohorts are shown in their dedicated platform
-              tabs below.
+              (1,173.2 in the 2026-11-25 8-round 6-engine cohort). Platform-specific V8-v7, micro57,
+              and JetStream-17 cohorts appear in the dedicated tabs below.
             </p>
           </div>
 
@@ -297,7 +413,7 @@
                     Click any point or version pill below to inspect per-subtest breakdown
                   </p>
                 </div>
-                <span class="badge badge-green" id="history-gain-badge">+71.9% vs Stock NG 0.17.0</span>
+                <span class="badge badge-green" id="history-gain-badge">+74.3% vs Stock NG 0.17.0</span>
               </div>
               <div id="history-chart"></div>
               <div class="version-pills" id="version-pills" role="tablist"></div>
@@ -315,7 +431,7 @@
                   Reference Linux x86-64 host
                 </p>
               </div>
-              <span class="badge" id="subtest-version-badge">v0.17.0-turbo.1</span>
+              <span class="badge" id="subtest-version-badge">v0.17.0-turbo.2</span>
             </div>
             <div class="subtest-grid" id="subtest-grid"></div>
           </div>
@@ -330,8 +446,8 @@
             <h2>Cross-Platform Benchmarks</h2>
             <p>
               Each tab represents a single hardware machine, OS, and compiler cohort with its own
-              same-host baseline — raw scores are never compared or mixed across different CPUs,
-              operating systems, or compilers.
+              same-host baseline (V8-v7, micro57, and full JetStream-17 on Linux x86-64 &amp;
+              Graviton2 ARM64) — raw scores are never mixed across CPUs, OSes, or compilers.
             </p>
           </div>
 
@@ -421,6 +537,12 @@
             target="_blank"
             rel="noopener"
             >Baseline Reports</a
+          >
+          <a
+            href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/vm/docs/architecture/common/ABI-AND-BASELINE-JIT.txt"
+            target="_blank"
+            rel="noopener"
+            >ABI &amp; JIT Doc</a
           >
           <a
             href="https://github.com/rowanellis-113/quickjs-turbo/actions/workflows/test262.yml"

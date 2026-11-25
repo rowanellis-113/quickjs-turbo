@@ -6,7 +6,8 @@ Product documentation
 BUILDING.txt: configuration, native/portable builds, Test262, installation, and embedding.
 DIRECTORY-LAYOUT.txt: owned sources, generators, backends, and test directories under vm/.
 FORMAT.txt: pinned formatters (clang-format, Ruff, cmakelang, Prettier, shfmt, PSScriptAnalyzer, Meson) and frozen input rules.
-PRODUCT-BASELINE.txt: current v0.17.0-turbo.1 cross-platform baseline, verified scores, heap footprint, and v0.15.1 history.
+PRODUCT-BASELINE.txt: current 2026-11-25 cross-platform baseline (V8-v7, micro57, JetStream-17, heap footprint, and v0.15.1 history).
+ABI-AND-BASELINE-JIT.txt: public/internal register-frame ABI contracts and optional bytecode-driven Baseline JIT design.
 OPTIMIZATIONS.txt: integrated cross-architecture optimization components, controls, and boundaries.
 HYBRID-GC.txt: Hybrid Reference Counting, generational partial cycle GC, synchronous Fast RC, and ablation controls.
 
@@ -25,7 +26,7 @@ x86/win64/WIN-X86-64.txt: unified Windows x86-64 native VM (`MSVC` / `clang-cl` 
 x86/macos/MACOS-X86-64.txt: macOS x86-64 native Mach-O ASM VM (`MACOS_X86_64`), Mach-O verification, and hardware cohort.
 x86/linux/LINUX-PORT.txt: Linux x86-64 native port scope, build command, and six completion gates.
 x86/linux/LINUX-RELEASE.txt: Linux x86-64 current qualification, toolchains, and Test262/CTest bindings.
-x86/linux/LINUX-FINAL-REVIEW.txt: Linux x86-64 v0.17.0-turbo.1 5-engine benchmark cohort, hotspots, and historical deltas.
+x86/linux/LINUX-FINAL-REVIEW.txt: Linux x86-64 6-engine benchmark cohort (V8-v7, micro57, JetStream-17), hotspots, and historical deltas.
 x86/linux/LINUX-MECHANISMS.json & LINUX-MECHANISM-COVERAGE.txt: mechanism route inventory and GNU coverage boundaries.
 x86/linux/workers/LINUX-*.txt: 29 per-worker Linux x86-64 bring-up and ABI notes.
 
@@ -33,6 +34,6 @@ x86/linux/workers/LINUX-*.txt: 29 per-worker Linux x86-64 bring-up and ABI notes
 ---------------------------
 arm64/LINUX-AARCH64.txt: Linux AArch64 portable C cross/native build and ABI foundation checks.
 arm64/LINUX-AARCH64-RELEASE.txt: Linux AArch64 native register VM qualification, QEMU CTest/Test262, and toolchain boundaries.
-arm64/LINUX-AARCH64-HARDWARE.txt: AWS Graviton2 (Neoverse-N1) hardware benchmarks (v0.17.0-turbo.1) and historical costs.
+arm64/LINUX-AARCH64-HARDWARE.txt: AWS Graviton2 (Neoverse-N1) hardware benchmarks (V8-v7, micro57, JetStream-17) and historical costs.
 arm64/LINUX-AARCH64-MECHANISMS.json: AArch64 GNU mechanism inventory and test mapping.
 arm64/workers/LINUX-AARCH64-*.txt: 27 per-worker AArch64 ABI and codegen notes.

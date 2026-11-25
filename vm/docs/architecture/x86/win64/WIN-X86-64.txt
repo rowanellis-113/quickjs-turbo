@@ -28,7 +28,8 @@ Build and verification
 - `win64-native-supplements.inc` adds native array length writes, `for..of` /
   array value iterators, fast number-to-string coercion, and Hybrid RC + Partial
   Cycle GC support on `WIN_X86_64`.
-- CTest qualification: MSVC `222/222` (`31.01 s`), MinGW `222/222` (`20.52 s`).
+- CTest & pregen qualification (Wave 6c, 2026-11-25): MSVC `222/222` + `37`-file
+  `pregen-msvc` verified; MinGW `222/222` + `37`-file `pregen-mingw` verified.
 - Full Test262 (`5ef1e5723be9`, `82,220` cases): both MSVC and MinGW record
   `40/82,220` inherited failures (failure identities 100% identical to stock
   QuickJS-NG 0.17.0, `0` new, `0` changed).
