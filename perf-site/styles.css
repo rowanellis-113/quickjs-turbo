@@ -11,7 +11,7 @@
   --border-strong: rgba(255, 255, 255, 0.16);
   --text: #f3f6fc;
   --text-muted: #98a2b3;
-  --text-dim: #667085;
+  --text-dim: #8a95a8;
   --accent: #f59e0b;
   --accent-bright: #fbbf24;
   --accent-soft: rgba(245, 158, 11, 0.14);
@@ -90,10 +90,11 @@ body {
   margin: 0;
   background:
     radial-gradient(900px 460px at 18% -8%, var(--hero-glow-a), transparent 60%),
-    radial-gradient(760px 420px at 85% 4%, var(--hero-glow-b), transparent 60%),
-    var(--bg);
+    radial-gradient(760px 420px at 85% 4%, var(--hero-glow-b), transparent 60%), var(--bg);
   line-height: 1.6;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 a {
@@ -202,7 +203,10 @@ a {
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
 
 .theme-toggle:hover {
@@ -222,7 +226,10 @@ a {
   white-space: nowrap;
   border: 1px solid transparent;
   cursor: pointer;
-  transition: transform 0.12s, background 0.15s, border-color 0.15s;
+  transition:
+    transform 0.12s,
+    background 0.15s,
+    border-color 0.15s;
 }
 
 .btn:hover {
@@ -564,7 +571,9 @@ a {
   flex-direction: column;
   gap: 10px;
   box-shadow: var(--shadow-card);
-  transition: border-color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    background 0.15s;
 }
 
 .feature-card:hover {
@@ -801,6 +810,17 @@ th.num {
   background: var(--cyan-soft);
   border: 1px solid var(--cyan-border);
   font-size: 13px;
+}
+
+.cohort-bar > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.cohort-bar .badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .cohort-note {

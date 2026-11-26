@@ -1,6 +1,6 @@
 macOS x86-64 native Mach-O ASM VM (MACOS_X86_64)
 ==============================================
-Release: v0.17.0-turbo.1 (2026-11-24, pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
+Release: v0.17.0-turbo.3 (2026-11-26, pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
 
 Overview
 --------
@@ -16,10 +16,14 @@ Build and mechanism
 - Source translation: `vm/tools/x86/macos/adapt_macho.py` translates the generated
   Linux x86-64 SysV/ELF runtime and assembly outputs to Mach-O ABI/section directives
   (`_symbol` prefixes, `__TEXT/__DATA` segments, RIP-relative addressing, DWARF EH frames).
-- Offline verification on `d0bf4c4` (`adapt_macho.py`): `35` C/H files, `27` includes,
-  and `3` assembly files adapted cleanly; `test_macho_x86.py` Mach-O contract check passed.
+- Offline verification (`adapt_macho.py`): `35` C/H files, `27` includes, and `3`
+  assembly files adapt cleanly; `test_macho_x86.py` Mach-O contract check passes.
 - Darwin CI contracts verify Mach-O PIE, non-executable stack, `W^X` section hygiene,
   and complete DWARF FDE unwind coverage before packaging `macos-x86_64-sdk.tar.gz`.
+- macOS ARM64 (`macos-arm64-sdk.tar.gz`, `PORTABLE` backend) is cross-compiled on
+  `macos-15-intel` CI with `lipo -archs` architecture verification and downstream
+  CMake consumer link validation; native Apple Silicon runtime execution tests are
+  not yet run in CI.
 
 Verified real-hardware cohort (v0.15.1-turbo.6-.8, i5-7360U)
 ------------------------------------------------------------
@@ -31,4 +35,5 @@ Darwin 22.6, Apple Clang 15.0, FramePool 256) prior to the `0.17.0` port:
   `1.41x` vs `PORTABLE`.
 - `microbench.js` (72 cases): `1.17x` geomean vs Bellard `-O3` (`39/72` wins),
   `1.37x` vs `PORTABLE`.
-- Darwin 0.17.0 CI execution (`macos-x86_64`) runs via `.github/workflows/ci.yml`.
+- Darwin 0.17.0 CI execution (`macos-x86_64` Release CTest + Test262) runs via
+  `.github/workflows/ci.yml` and `.github/workflows/test262.yml`.

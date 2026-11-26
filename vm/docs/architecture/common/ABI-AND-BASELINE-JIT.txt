@@ -1,9 +1,17 @@
-QuickJS-Turbo ABI Contract & Optional Baseline JIT Architecture
+QuickJS-Turbo ABI Contract & Proposed Baseline JIT Architecture
 ===============================================================
-Updated: 2026-11-25 (v0.17.0-turbo.2 / QuickJS-NG 0.17.0 verified baseline)
+Updated: 2026-11-26 (v0.17.0-turbo.3 / QuickJS-NG 0.17.0 verified baseline)
 
-1. Two-Layer ABI Contract (Production Invariant)
-------------------------------------------------
+Status Note
+-----------
+QuickJS-Turbo `v0.17.0-turbo.3` ships exclusively as a **Zero-JIT, `0 RWX`
+register-frame assembly interpreter** (Section 1). Section 2 documents a
+**proposed future roadmap** for an optional, opt-in bytecode-driven Baseline
+JIT built on top of the shipping ABI; no runtime code generation is present in
+`v0.17.0-turbo.3`.
+
+1. Two-Layer ABI Contract (Shipping Production Invariant)
+---------------------------------------------------------
 QuickJS-Turbo enforces a strict separation between the public embedder ABI and
 the internal register-frame execution ABI:
 
@@ -18,7 +26,7 @@ the internal register-frame execution ABI:
   `QJS_SetTurboDefaults`, `JS_SetRuntimeTurboOptions`, `JS_PurgePropertyIC`,
   `QJS_GetTurboInfo`) are strictly additive.
 
-1.2 Internal Native Register-Frame ABI (The Execution Substrate)
+1.2 Internal Native Register-Frame ABI (Shipping Execution Substrate)
 - Pinned hardware register contracts across tier-1 native backends:
   - `LINUX_AARCH64` (`vm/asm/arm64/linux/interpreter.S`):
     `x19` `JSFrameRegisterState*`, `x20` bytecode `pc`, `x21` operand `sp`,
@@ -40,56 +48,58 @@ the internal register-frame execution ABI:
   `test_arch_boundaries.py`, `validate_layout.py`, `check_vm.py`) fail closed
   on any offset or layout drift.
 
-2. Optional Bytecode-Driven Baseline JIT (Architecture Direction)
------------------------------------------------------------------
-Hardware PMU profiling (`perf` on AWS Graviton2 Neoverse-N1 and Linux x86-64)
-shows that pure native interpretation has reached its physical plateau:
-`JS_FrameInterp` accounts for 53%–98% of cycles across compute/object workloads
-(`crypto` 98.5%, `richards` 87.9%, `delta-blue` 77.3%, `acorn-wtb` 76.0%,
-`Babylon` 71.9%, `V8-v7` 69.1%).
-
-The remaining interpreter tax consists of:
+2. Proposed Optional Bytecode-Driven Baseline JIT (Future Roadmap)
+------------------------------------------------------------------
+Symbol-level hardware sampling (`perf` on AWS Graviton2 Neoverse-N1 and Linux
+x86-64) records `53%–98%` of self-samples inside `JS_FrameInterp` across
+compute and object workloads (`crypto`, `richards`, `delta-blue`, `acorn-wtb`,
+`Babylon`). While symbol-level sampling alone does not separate removable
+dispatch/decode overhead from intrinsic object/arithmetic work, an optional
+Baseline JIT tier is designed to directly target three interpreter costs:
 1. Per-opcode indirect branch dispatch (`ldrb + ldrsw + add + br` / `jmp *table`);
 2. Dynamic bytecode operand fetch/decode and `pc` register increments;
 3. Stack-machine `[sp]` memory traffic (`16 B` `JSValue` push/pop & repeated tag
    checks within basic blocks).
 
-2.1 Why No AST Is Needed (and Must Not Be Added)
+2.1 Why No AST Would Be Added
 - QuickJS is a single-pass bytecode compiler (`quickjs.c` -> `JSFunctionBytecode`
-  + `compiler-plan.c` TDZ compaction). Introducing an AST would destroy the
-  `98.6 KiB` empty-worker heap invariant and sub-millisecond parse latency.
+  + `compiler-plan.c` TDZ compaction). Introducing an AST would break the
+  `96.29 KiB` (`98,600 B`) initial runtime+context heap invariant and sub-ms
+  parse latency.
 - Industry Baseline JITs (V8 Sparkplug, JSC Baseline, SpiderMonkey Baseline,
   CPython Copy-and-Patch) compile directly from bytecode: lexical scopes,
   captured `JSVarRef`s, TDZ, jump labels, and exception tables are already
   lowered, and OSR / bailout / `pc2line` / IC indexing all require 1:1 `pc`
   alignment.
 
-2.2 Design Built Directly on the Existing Register-Frame ABI
-- Compilation Backend: Offline-verified Copy-and-Patch machine-code stencils
-  (reusing the `vm/tools/{x86,arm64}` build/verify pipeline) paired with a
-  **1-pass basic-block virtual operand stack** (2–4 register TOS cache + local
-  tag tracking using the existing `boundaries` bitmap to detect block merges).
-- Zero-Bridge ABI Sharing:
-  - JIT frames use the exact `JSFrame` arena and callee-saved register contract
-    of `JS_FrameInterp` (`JIT <-> Interpreter` calls require zero adapter frame).
-  - Frees `pc` (`x20`) and `dispatch_table` (`x25`) inside fast paths; cold
-    bailout stubs materialize the compile-time constant `pc` and jump directly
+2.2 Proposed Architecture Over the Existing Register-Frame ABI
+- Proposed Compilation Backend: Offline-verified Copy-and-Patch machine-code
+  stencils (reusing the `vm/tools/{x86,arm64}` build/verify pipeline) paired
+  with a **1-pass basic-block virtual operand stack** (2–4 register TOS cache +
+  local tag tracking using the existing `boundaries` bitmap to detect block
+  merges).
+- Proposed Zero-Bridge ABI Sharing:
+  - JIT frames would reuse the exact `JSFrame` arena and callee-saved register
+    contract of `JS_FrameInterp` so `JIT <-> Interpreter` calls need no adapter
+    frame.
+  - Fast paths would free `pc` (`x20`) and `dispatch_table` (`x25`); cold
+    bailout stubs would materialize the compile-time constant `pc` and jump
     into existing Clean/Dirty slow paths and C helpers.
-- Direct-Baked Property ICs & Monomorphic Calls:
-  - Eliminates `pc`-keyed IC table hashing by encoding per-site IC slot addresses
-    PC/RIP-relatively inside JIT code, falling back to `fast-get-field.inc` on miss.
+- Proposed Direct-Baked Property ICs & Monomorphic Calls:
+  - Per-site IC slot pointers would be encoded PC/RIP-relatively inside JIT
+    code, falling back to `fast-get-field.inc` on miss.
   - Guarded monomorphic `OP_call` / self-recursion direct branches.
-- Hotness Tier-Up, Loop OSR & Strict `W^X` Governance:
+- Proposed Hotness Tier-Up, Loop OSR & Strict `W^X` Governance:
   - Default production mode remains **Zero JIT / `0 RWX`** (opt-in via compile
     and runtime switches so iOS, consoles, and `no-WX` sandboxes stay unaffected).
   - Per-`JSFunctionBytecode` hotness counter (entry + backedge, e.g. threshold
-    64–128) guarantees `0 B` JIT memory for cold scripts and startup code.
-  - Per-function `{pc_offset -> native_loop_entry}` table enables Loop OSR from
-    the interpreter on long first-run loops.
-  - Bounded per-`JSRuntime` Code Arena (e.g. 8 MiB cap) enforces strict `W^X`
-    (`PROT_READ|PROT_WRITE` during emit -> `PROT_READ|PROT_EXEC` on publish;
-    never simultaneous `RWX`), embeds no untracked `JSObject*` GC roots
-    (compatible with `hybrid-gc.inc`), and safely evicts cold blocks under
+    64–128) keeps cold scripts and startup code at `0 B` JIT memory.
+  - Per-function `{pc_offset -> native_loop_entry}` table would support Loop OSR
+    from the interpreter on long first-run loops.
+  - Bounded per-`JSRuntime` Code Arena (e.g. 8 MiB cap) would enforce strict
+    `W^X` (`PROT_READ|PROT_WRITE` during emit -> `PROT_READ|PROT_EXEC` on
+    publish; never simultaneous `RWX`), embed no untracked `JSObject*` GC roots
+    (compatible with `hybrid-gc.inc`), and safely evict cold blocks under
     memory pressure.
 
 2.3 Phased Validation & Stopping Criteria
@@ -101,5 +111,5 @@ The remaining interpreter tax consists of:
   with `<= 1%` cold/first-iteration regression.
 - Phase 2 (Dual-Arch `LINUX_X86_64` + `LINUX_AARCH64` Alignment & Hardening):
   Architecture DAG check (`test_arch_boundaries.py`), `.eh_frame` / `perf.map`
-  registration, OOM/eviction stress, `98.6 KiB` cold-heap parity, and full
+  registration, OOM/eviction stress, `96.29 KiB` cold-heap parity, and full
   `82,220`-case Test262 (`0` new regressions under forced threshold=1 + eviction).

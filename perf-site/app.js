@@ -101,7 +101,7 @@ function renderHero() {
   document.getElementById("hero-cohort").textContent = hero.cohort;
   const maxScore = Math.max(...hero.engines.map((e) => e.score));
   const baseEngine = hero.engines.find((x) => x.role === "baseline");
-  const baseScore = baseEngine ? baseEngine.score : 1173.19;
+  const baseScore = baseEngine ? baseEngine.score : 1081.56;
   const container = document.getElementById("hero-bars");
   container.innerHTML = hero.engines
     .map((e) => {
@@ -149,7 +149,7 @@ function renderHistory() {
   const yAt = (v) => padT + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
 
   const refEngine = DATA.heroComparison.engines.find((e) => e.role === "reference");
-  const refScore = Math.round(refEngine ? refEngine.score : 2360);
+  const refScore = Math.round(refEngine ? refEngine.score : 2164);
   const gridVals = [1000, 1500, 2000, refScore];
   const gridSvg = gridVals
     .map((v) => {
@@ -339,19 +339,20 @@ function renderPlatformTabs() {
 function renderJetStreamCard(js) {
   if (!js) return "";
   const s = js.summary;
-  const hasV8 = s.v8BodyMs !== null && s.v8BodyMs !== undefined;
+  const hasV8 = Number.isFinite(s.v8BodyMs);
   const rows = js.cases
     .map((c) => {
       const vsStock = c.stock / c.turbo;
       const vsBel = c.bellard / c.turbo;
-      const vsV8 = hasV8 && c.v8 ? c.v8 / c.turbo : null;
+      const rowHasV8 = hasV8 && Number.isFinite(c.v8);
+      const vsV8 = rowHasV8 ? c.v8 / c.turbo : null;
       return `
         <tr>
           <td class="mono">${c.name}</td>
           <td class="num">${c.stock.toFixed(1)}</td>
           <td class="num">${c.bellard.toFixed(1)}</td>
           <td class="num"><strong>${c.turbo.toFixed(1)}</strong></td>
-          ${hasV8 ? `<td class="num">${c.v8 !== null ? c.v8.toFixed(1) : "—"}</td>` : ""}
+          ${hasV8 ? `<td class="num">${rowHasV8 ? c.v8.toFixed(1) : "—"}</td>` : ""}
           <td class="num">
             <span class="pill-speed ${vsStock < 1.01 ? "pill-neutral" : ""}">${vsStock.toFixed(2)}×</span>
           </td>
@@ -360,7 +361,11 @@ function renderJetStreamCard(js) {
           </td>
           ${
             hasV8
-              ? `<td class="num"><span class="pill-speed ${vsV8 < 1.0 ? "pill-neutral" : ""}">${vsV8.toFixed(2)}×</span></td>`
+              ? `<td class="num">${
+                  rowHasV8
+                    ? `<span class="pill-speed ${vsV8 < 1.0 ? "pill-neutral" : ""}">${vsV8.toFixed(2)}×</span>`
+                    : `<span class="pill-speed pill-neutral">—</span>`
+                }</td>`
               : ""
           }
         </tr>
@@ -476,7 +481,7 @@ function renderPlatformPanel() {
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
         <span class="badge">${p.baselineLabel}</span>
         <a class="mono" style="font-size:12px; color:var(--cyan)"
-           href="https://github.com/rowanellis-113/quickjs-turbo/blob/main/${p.sourceDoc}"
+           href="https://github.com/rowanellis-113/quickjs-turbo/blob/${DATA.latestVersion}/${p.sourceDoc}"
            target="_blank" rel="noopener">${p.sourceDoc.split("/").pop()} ↗</a>
       </div>
     </div>

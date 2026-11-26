@@ -1,85 +1,94 @@
-Linux x86-64 6-engine benchmark review, 2026-11-25 (v0.17.0-turbo.2)
+Linux x86-64 6-engine benchmark review, 2026-11-26 (v0.17.0-turbo.3)
 ====================================================================
 Simultaneous 6-engine comparison on the Reference Linux x86-64 Host (AMD Ryzen 3
-3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR, FramePool 512)
-comparing Stock QuickJS-NG 0.17.0 (`7b5f588e0f`), Bellard QuickJS 2026-06-04
-(`-O2`), initial `v0.17.0-turbo.1` (`ref_turbo1`), current Wave 5/6c Turbo
-(Default & Density `tail=OFF, w=16`), and Node.js v24.13.0 `--jitless`.
+3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR) comparing Stock
+QuickJS-NG 0.17.0 (`7b5f588e0f`), Bellard QuickJS 2026-06-04 (`-O2`),
+`v0.17.0-turbo.1` (`ref_turbo1`), `v0.17.0-turbo.3` (Default & Density
+`tail=OFF, w=16`), and Node.js v24.13.0 `--jitless`.
 
-1. Official V8-v7 (8 rounds Turbo / 4 rounds peers, median, higher is better):
+Measured `v0.17.0-turbo.3` Linux binary SHA-256:
+  `d5aeb542a3c54107f2f766f1d8bac9157118329b5234ee08f5db39883a6954ad`
+
+1. Official V8-v7 (4 balanced ABBA rounds across all 6 engines, monotonic-clock
+   recomputed from `performance.now()` on identical iterations to eliminate
+   WSL2 periodic wall-clock backward jumps; higher is better):
    Case          Stock NG 0.17  Bellard 26.06  Turbo Def  Node --jitless  T/NG   T/Bel  T/V8
-   Richards             740.23       1,050.62   1,393.73        1,334.17  1.88x  1.33x  104.5%
-   DeltaBlue            798.03         987.48   1,322.36        1,491.30  1.66x  1.34x   88.7%
-   Crypto               908.10       1,093.88   1,507.35        1,167.71  1.66x  1.38x  129.1%
-   RayTrace           1,424.08       1,759.40   2,096.39        3,381.97  1.47x  1.19x   62.0%
-   EarleyBoyer        1,935.08       2,383.97   2,860.75        5,666.88  1.48x  1.20x   50.5%
-   RegExp               376.40         440.67   1,781.88        3,360.57  4.73x  4.04x   53.0%
-   Splay              3,152.13       3,639.01   3,738.57        3,683.85  1.19x  1.03x  101.5%
-   NavierStokes       2,061.11       2,559.24   2,797.22        1,744.74  1.36x  1.09x  160.3%
-   Overall (Def)      1,173.19       1,448.53   2,044.92        2,359.88  1.74x  1.41x   86.7%
-   Overall (Dens)           --             --   2,050.67              --  1.75x  1.42x   86.9%
-   Peak RSS KiB        159,108        150,424    161,214         474,288  --     --     2.94x lower
-   (Same-session `ref_turbo1` = 2,044.11; Wave 6c parity check `cand_w6c` = 2,028.01 vs `ref_turbo1` = 2,005.70 [+1.11%].)
+   Richards             667.50         960.24   1,177.53        1,243.16  1.76x  1.23x   94.7%
+   DeltaBlue            735.35         925.45   1,154.72        1,399.71  1.57x  1.25x   82.5%
+   Crypto               833.84       1,073.78   1,391.93        1,085.46  1.67x  1.30x  128.2%
+   RayTrace           1,299.03       1,553.04   1,878.69        3,067.26  1.45x  1.21x   61.2%
+   EarleyBoyer        1,823.20       2,196.71   2,579.86        5,136.87  1.42x  1.17x   50.2%
+   RegExp               351.47         402.78   1,643.53        3,050.57  4.68x  4.08x   53.9%
+   Splay              2,905.73       3,353.09   3,502.17        3,328.60  1.21x  1.04x  105.2%
+   NavierStokes       1,893.34       2,408.78   2,632.68        1,622.45  1.39x  1.09x  162.3%
+   Overall (Def)      1,081.56       1,346.64   1,865.85        2,164.37  1.73x  1.39x   86.2%
+   Overall (Dens)           --             --   1,865.71              --  1.73x  1.39x   86.2%
+   Peak RSS KiB        159,038        150,294    161,190         473,648  --     --     2.94x lower
+   (Same-session `ref_turbo1` monotonic = 1,903.58; raw `turbo3_def` monotonic rounds = [1869.90, 1872.26, 1861.80, 1848.98];
+    separate dual-clock cohort vs `v0.15.1-turbo.8` measured 1,907.04 vs 1,912.22 [-0.27% parity].)
 
-2. Unified elapsed-clock micro57 (57 cases, 8 rounds, CPU2, ns/op median geomean):
-   - Stock NG 0.17.0: 54.844 ns  |  Bellard 2026-06-04: 52.055 ns  |  Node --jitless: 35.898 ns (277,124 KiB RSS)
-   - `ref_turbo1`:    38.574 ns
-   - Turbo Default:   35.673 ns  (1.54x vs NG [54/57 wins] · 1.46x vs Bellard [46/57 wins] · 1.006x vs Node [27/57 wins, 21x lower RSS] · 1.08x vs `ref_turbo1`)
-   - Turbo Density:   35.697 ns  (99.9% parity vs Default)
-   (Wave 6c verification spot: `cand_w6c` 35.96 ns vs `ref_turbo1` 39.27 ns [-8.4%].)
+2. micro56 (56 uniform ns/op cases) + sort_bench (sum_us) + dimensionless micro57 index
+   (6 balanced ABBA rounds across all 6 engines, CPU2, lower is better):
+   - Stock NG 0.17.0: 61.756 ns/op (sort 1.805 sum_us · micro57 idx 58.033)
+   - Bellard 2026:    58.498 ns/op (sort 1.925 sum_us · micro57 idx 55.102)
+   - `ref_turbo1`:    43.747 ns/op (sort 0.750 sum_us · micro57 idx 40.729)
+   - Node --jitless:  40.914 ns/op (sort 0.750 sum_us · micro57 idx 38.133)
+   - Turbo Default:   40.329 ns/op (sort 0.730 sum_us · micro57 idx 37.588) — 1.531x vs NG [55/57 wins] · 1.451x vs Bellard [48/57 wins] · 1.085x vs `turbo.1` · 1.015x vs Node [27/57 wins]
+   - Turbo Density:   40.085 ns/op (sort 0.750 sum_us · micro57 idx 37.383) — 1.541x vs NG · 1.021x vs Node
 
-   Selected micro57 hotspots (ns/op, lower is better):
-   Case                Stock NG 0.17  Bellard  Turbo Def  Node --jit   T/NG   T/Bel   T/V8
-   float_to_string            325.12   335.53      66.07      103.42  4.92x   5.08x  1.57x
-   float_toString             347.13   356.11      83.51      112.91  4.16x   4.26x  1.35x
-   prop_read                   18.44     9.91       5.56        8.46  3.31x   1.78x  1.52x
-   typed_array_read            15.18     9.16       5.35       13.75  2.84x   1.71x  2.57x
-   string_to_int              124.69   128.44      45.78       39.04  2.72x   2.81x  0.85x
-   string_to_float            153.39   158.05      59.37       67.38  2.58x   2.66x  1.13x
-   typed_array_write           11.86    10.20       4.76       11.74  2.49x   2.14x  2.47x
-   string_build1               77.88    40.53      31.60       24.39  2.46x   1.28x  0.77x
-   sort_bench                   1.72     1.81       0.70        0.71  2.44x   2.59x  1.01x
-   empty_loop                  12.54    12.82       5.28        7.94  2.38x   2.43x  1.50x
-   array_read                  12.11     6.81       5.50       13.48  2.20x   1.24x  2.45x
-   prop_write                  12.11     9.10       5.67        6.43  2.13x   1.60x  1.13x
-   float_arith                 27.01    20.19      13.46       29.13  2.01x   1.50x  2.16x
-   array_write                  8.02     8.06       4.49       10.79  1.79x   1.80x  2.40x
-   global_write                 5.91     7.83       3.35        5.77  1.76x   2.34x  1.72x
-   func_call                   27.21    25.18      15.59       26.40  1.75x   1.62x  1.69x
-   int_to_string               48.66    46.70      31.97       18.84  1.52x   1.46x  0.59x
-   map_set                    263.69   235.38     186.11      129.46  1.42x   1.26x  0.70x
-   regexp_ascii               315.62   247.56     233.28       77.56  1.35x   1.06x  0.33x
+   Selected micro hotspots (ns/op except `sort_bench` in sum_us, lower is better):
+   Case                Stock NG 0.17  Turbo Def  T/NG
+   float_to_string            350.25      71.55  4.90x
+   float_toString             370.73      88.05  4.21x
+   prop_read                   19.98       6.03  3.32x
+   typed_array_read            16.46       5.80  2.84x
+   string_to_float            160.53      58.06  2.76x
+   string_to_int              126.25      48.15  2.62x
+   string_build1               82.64      32.78  2.52x
+   typed_array_write           12.86       5.14  2.50x
+   sort_bench (sum_us)          1.81       0.73  2.47x
+   empty_loop                  13.38       5.61  2.38x
+   array_read                  13.14       5.96  2.21x
+   prop_write                  13.11       6.14  2.13x
+   string_slice1               78.63      58.19  1.35x
+   string_slice3               71.04      54.45  1.30x
+   string_slice2              140.49     122.49  1.15x
+   prop_delete                108.34     134.79  0.80x  (only notable slower case vs Stock)
 
-3. JetStream-17 (17 real-world JS workloads, 2 blocks x 2 iters, body ms, lower is better):
+3. JetStream-17 (17 real-world JS workloads, 2 reversed blocks x 2 measured iters, body ms, lower is better):
    Case                       Stock NG  Bellard  Turbo Def  Node --jit   T/NG   T/Bel   T/V8
-   json-stringify-inspector     107.41    86.69      19.65       25.52  5.47x   4.41x  1.30x
-   json-parse-inspector          74.42    75.60      38.78       42.68  1.92x   1.95x  1.10x
-   richards                     235.62   167.30     125.93      129.32  1.87x   1.33x  1.03x
-   cdjs                         493.80   396.42     268.13      232.27  1.84x   1.48x  0.87x
-   crypto                       134.87   110.49      78.98      104.15  1.71x   1.40x  1.32x
-   delta-blue                   166.68   132.18      98.28       87.06  1.70x   1.34x  0.89x
-   pdfjs                        287.40   239.38     169.26      130.40  1.70x   1.41x  0.77x
-   FlightPlanner                 63.15    51.96      37.28       22.72  1.69x   1.39x  0.61x
-   async-fs                     223.82   302.26     143.88       74.43  1.56x   2.10x  0.52x
-   acorn-wtb                  2,695.50 2,457.31   1,798.52    1,253.28  1.50x   1.37x  0.70x
-   Babylon                       96.19    79.41      73.83       50.11  1.30x   1.08x  0.68x
-   Air                           61.32    52.04      48.04       27.80  1.28x   1.08x  0.58x
-   bigint-noble-ed25519         249.12   184.38     204.10      193.75  1.22x   0.90x  0.95x
-   js-tokens                    166.84   140.72     141.29      104.67  1.18x   1.00x  0.74x
-   typescript-octane          2,546.93 2,213.50   2,217.73    1,538.86  1.15x   1.00x  0.69x
-   prettier-wtb                 800.05   737.60     829.99      429.12  0.96x   0.89x  0.52x
-   lazy-collections              69.06    65.10      73.12      103.46  0.94x   0.89x  1.41x
-   Geomean (body ms)            222.29   192.23     143.22      117.64  1.55x   1.34x  0.82x
-   Geomean (cold ms)            229.24   195.47     143.53      127.11  1.60x   1.36x  0.89x
-   Median RSS KiB                9,706    9,362     10,268      81,960  --      --     8.0x lower
-   (Same-session `ref_turbo1` = 148.64 ms body / 150.25 ms cold; Turbo Density = 143.28 ms body.)
+   json-stringify-inspector     117.62    93.99      21.47       26.67  5.48x   4.38x  1.24x
+   json-parse-inspector          80.83    86.18      41.96       48.68  1.93x   2.05x  1.16x
+   richards                     252.10   179.70     135.92      139.15  1.85x   1.32x  1.02x
+   cdjs                         526.16   422.50     289.55      251.76  1.82x   1.46x  0.87x
+   crypto                       149.53   112.72      84.63      111.88  1.77x   1.33x  1.32x
+   pdfjs                        318.33   259.03     181.86      142.06  1.75x   1.42x  0.78x
+   FlightPlanner                 67.74    57.64      39.49       24.92  1.72x   1.46x  0.63x
+   delta-blue                   179.68   143.42     107.93       95.08  1.66x   1.33x  0.88x
+   async-fs                     241.57   319.62     153.17       81.78  1.58x   2.09x  0.53x
+   acorn-wtb                  2,875.78 2,604.25   1,929.09    1,354.96  1.49x   1.35x  0.70x
+   Air                           66.96    56.91      50.67       31.11  1.32x   1.12x  0.61x
+   Babylon                      101.78    84.96      77.02       53.90  1.32x   1.10x  0.70x
+   bigint-noble-ed25519         265.51   194.30     222.65      207.08  1.19x   0.87x  0.93x
+   js-tokens                    178.73   151.22     151.86      110.45  1.18x   1.00x  0.73x
+   typescript-octane          2,767.39 2,418.57   2,368.30    1,679.59  1.17x   1.02x  0.71x
+   prettier-wtb                 856.29   755.69     886.80      450.49  0.97x   0.85x  0.51x
+   lazy-collections              74.42    69.95      79.80      110.94  0.93x   0.88x  1.39x
+   Geomean (body ms)            239.94   206.43     153.87      127.36  1.56x   1.34x  0.83x
+   Geomean (cold ms)            247.71   211.93     155.64      137.39  1.59x   1.36x  0.88x
+   Median RSS KiB                9,678    9,490     10,366      81,958  --      --     7.9x lower
+   TypeScript Peak RSS MiB      101.59   128.08     172.83      265.16  --      --     --
+   (Same-session `ref_turbo1` = 160.75 ms body / 162.42 ms cold; Turbo Density = 154.20 ms body, TypeScript 198.26 MiB.)
 
-4. Cold-worker heap (`cold_heap_probe_w6`, `JS_ComputeMemoryUsage` + `JS_PurgePropertyIC`):
-   - Empty runtime malloc: 98.6 KiB (98,600 B — exact zero cold bloat)
-   - 500-cold-fn props: Default 460.9 KiB (500 IC slabs / 111.9 KiB) -> Density (`tail=0, w=16`) 341.0 KiB (-26.0%, 0 cold IC slabs)
-   - 500-cold-fn arith: Default 416.7 KiB -> `tail=0` 328.7 KiB (-21.1%)
+4. Cold-worker heap (`cold_heap_probe_t3rc`, exact KiB = bytes / 1,024):
+   - Initial `JS_NewRuntime` + `JS_NewContext`:       96.29 KiB (98,600 B — zero cold bloat)
+   - 500 once-called props fns (Default / purged):   450.13 KiB (460,936 B; 500 IC slabs = 109.31 KiB) -> 333.07 KiB (341,064 B)
+   - 500 once-called props fns (Density, tail=0/w16): 333.05 KiB (341,048 B; -26.0%, 0 cold IC slabs)
+   - 500 once-called arith fns (Default / tail=0):   406.93 KiB (416,696 B) -> 321.01 KiB (328,712 B; -21.1%)
 
 5. Historical `v0.15.1` reference notes
-   On the same Reference Host with Stock QuickJS-NG 0.15.1 (`1,007.04`), `v0.15.1-turbo.8`
-   scored `2,101.40` (`2.09x` vs NG 0.15.1, `1.42x` vs Bellard `1,480.70`, `86.3%` of Node
-   `2,436.03`). Prior bring-up worker notes live under `workers/LINUX-*.txt`.
+   On the same Reference Host under the original `Date` harness with Stock
+   QuickJS-NG 0.15.1 (`1,007.04`), `v0.15.1-turbo.8` scored `2,101.40`. Dual-clock
+   monotonic comparison on the same host confirms `v0.17.0-turbo.3` (`1,907.04`)
+   and `v0.15.1-turbo.8` (`1,912.22`) are within `-0.27%`. Prior bring-up worker
+   notes live under `workers/LINUX-*.txt`.

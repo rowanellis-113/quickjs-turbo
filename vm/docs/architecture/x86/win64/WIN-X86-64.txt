@@ -1,6 +1,6 @@
 Windows x86-64 native ASM VM (WIN_X86_64)
 =========================================
-Release: v0.17.0-turbo.1 (2026-11-24, pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
+Release: v0.17.0-turbo.3 (2026-11-26, release candidate `ecd84cd3`; pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
 
 Overview
 --------
@@ -23,42 +23,81 @@ Build and verification
 - Pre-generated offline builds: `-DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=<dir>/win_x86_64`
   (zero Python invocation at build time).
 
-0.17.0 performance & compatibility (d0bf4c4, 2026-11-24)
-------------------------------------------------------
-- `win64-native-supplements.inc` adds native array length writes, `for..of` /
-  array value iterators, fast number-to-string coercion, and Hybrid RC + Partial
-  Cycle GC support on `WIN_X86_64`.
-- CTest & pregen qualification (Wave 6c, 2026-11-25): MSVC `222/222` + `37`-file
-  `pregen-msvc` verified; MinGW `222/222` + `37`-file `pregen-mingw` verified.
+v0.17.0-turbo.3 performance & compatibility (2026-11-26, RC `ecd84cd3`)
+-----------------------------------------------------------------------
+- Binary SHA-256 (RC `ecd84cd3` verified): MinGW `042e7d16479e` (normalized
+  `874ab9f02897`), MSVC `/MT` `48f04ee77910` (normalized `ac005a83007a`).
+- Key changes on top of `v0.17.0-turbo.1`/`0.17.0`: `win64-native-supplements.inc`
+  native array/iterator/number-to-string/Hybrid-GC support, fast `dtoa-fast.inc` +
+  `JS_FrameAtod` JSON worker (with long-exponent clamp fix), preserved nested-getter
+  `Error.stack` frames, `slice-native.inc` fast string/int32 slice path, and
+  `_WIN32`-scoped `1.5x` post-full GC threshold in `hybrid-gc.inc` (cutting Win64
+  `typescript-octane` peak working set ~32% to `149.29` / `149.75 MiB`).
+- CTest & pregen qualification (`v0.17.0-turbo.3`): MSVC `222/222` + `37`-file
+  `pregen-msvc` (`/MT`, `KERNEL32.dll` only); MinGW `222/222` + `37`-file
+  `pregen-mingw`; `3,175`-case `slice` differential parity (`hash 1372709702`).
 - Full Test262 (`5ef1e5723be9`, `82,220` cases): both MSVC and MinGW record
   `40/82,220` inherited failures (failure identities 100% identical to stock
   QuickJS-NG 0.17.0, `0` new, `0` changed).
 
-1. Official V8-v7 (5-engine cohort, 2 reversed ABBA blocks on CPU2, higher is better):
+1. Official V8-v7 (7-engine cohort, 4 ABBA rounds on CPU2, native monotonic clock, higher is better):
    Case          NG MinGW  NG MSVC  Bellard 26.06  Turbo MinGW  Turbo MSVC  Tm/NGm  Tv/NGv  Tm/Bel  Tv/Bel
-   Richards         653.2    586.6        1,042.9      1,374.2     1,414.9   2.10x   2.41x   1.32x   1.36x
-   DeltaBlue        640.1    657.9          924.3      1,225.5     1,251.7   1.91x   1.90x   1.33x   1.35x
-   Crypto           864.9    572.9        1,160.0      1,614.4     1,619.7   1.87x   2.83x   1.39x   1.40x
-   RayTrace       1,405.9  1,243.4        1,787.0      2,492.3     2,413.1   1.77x   1.94x   1.39x   1.35x
-   EarleyBoyer    1,807.9  1,603.9        2,319.4      2,368.9     2,152.7   1.31x   1.34x   1.02x   0.93x
-   RegExp           348.5    304.9          428.0      1,471.4     1,304.5   4.22x   4.28x   3.44x   3.05x
-   Splay          2,886.1  2,577.9        3,462.1      3,337.8     3,193.0   1.16x   1.24x   0.96x   0.92x
-   NavierStokes   1,942.9  1,147.3        2,580.2      2,866.2     2,752.9   1.48x   2.40x   1.11x   1.07x
-   Overall       1,075.95   891.12       1,432.38     1,969.04    1,901.42   1.83x   2.13x   1.37x   1.33x
-   ex-RegExp     1,263.95 1,038.67       1,702.15     2,052.72    2,006.57   1.62x   1.93x   1.21x   1.18x
-   (Both Turbo MinGW and Turbo MSVC sweep 8/8 subtests vs same-compiler Stock NG 0.17.0;
-    vs Bellard 2026-06-04: MinGW wins 7/8, MSVC wins 6/8.)
+   Richards         650.0    588.7        1,036.8      1,364.8     1,408.9   2.10x   2.39x   1.32x   1.36x
+   DeltaBlue        632.2    652.3          914.5      1,198.2     1,182.3   1.90x   1.81x   1.31x   1.29x
+   Crypto           865.8    570.3        1,152.7      1,599.0     1,599.0   1.85x   2.80x   1.39x   1.39x
+   RayTrace       1,279.5  1,123.1        1,772.6      2,496.0     2,345.7   1.95x   2.09x   1.41x   1.32x
+   EarleyBoyer    1,774.4  1,572.0        2,266.6      2,592.2     2,675.1   1.46x   1.70x   1.14x   1.18x
+   RegExp           346.8    279.5          427.0      1,499.9     1,337.1   4.32x   4.78x   3.51x   3.13x
+   Splay          2,616.0  2,331.2        3,351.7      3,430.8     3,246.6   1.31x   1.39x   1.02x   0.97x
+   NavierStokes   1,933.6  1,137.2        2,558.6      2,799.3     2,810.5   1.45x   2.47x   1.09x   1.10x
+   Overall       1,042.82   854.80       1,412.74     1,985.57    1,942.25   1.90x   2.27x   1.41x   1.37x
+   ex-RegExp     1,222.73 1,003.51       1,679.26     2,069.34    2,050.68   1.69x   2.04x   1.23x   1.22x
+   (Same-session `v0.17.0-turbo.1` refs: MinGW `1,947.41` [+2.0%], MSVC `1,877.45` [+3.5%].
+    Both Turbo MinGW and Turbo MSVC sweep 8/8 subtests vs same-compiler Stock NG 0.17.0;
+    vs Bellard 2026-06-04: MinGW sweeps 8/8, MSVC wins 7/8.)
 
-2. Unified micro57 (57 cases, 2 reversed ABBA blocks on CPU2, ns/op geomean, lower is better):
-   - Stock NG 0.17.0 (MinGW): 66.540 ns  |  Stock NG 0.17.0 (MSVC): 85.865 ns  |  Bellard 2026: 61.922 ns
-   - Turbo MinGW `WIN_X86_64`: 46.044 ns (1.45x vs Stock MinGW [54/57 wins] · 1.34x vs Bellard [43/57 wins])
-   - Turbo MSVC  `WIN_X86_64`: 48.763 ns (1.76x vs Stock MSVC [55/57 wins] · 1.27x vs Bellard [33/57 wins])
+2. Unified micro56 + sort_bench (7-engine cohort, 6 ABBA rounds on CPU2, lower is better):
+   - Stock NG 0.17.0 (MinGW): 71.100 ns/op (`sort_bench` 1.675 sum_us; `micro57` index 66.575)
+   - Stock NG 0.17.0 (MSVC):  91.600 ns/op (`sort_bench` 2.020 sum_us; `micro57` index 85.666)
+   - Bellard 2026-06-04:      65.901 ns/op (`sort_bench` 1.930 sum_us; `micro57` index 61.943)
+   - `v0.17.0-turbo.1` ref:   48.699 ns/op MinGW / 51.709 ns/op MSVC
+   - Turbo MinGW `WIN_X86_64`: 43.680 ns/op (`sort_bench` 1.720; index 41.271; 1.63x vs Stock MinGW [54/57 wins] · 1.51x vs Bellard [43/57 wins] · 1.12x vs `turbo.1`)
+   - Turbo MSVC  `WIN_X86_64`: 46.728 ns/op (`sort_bench` 1.790; index 44.127; 1.96x vs Stock MSVC [56/57 wins] · 1.41x vs Bellard [38/57 wins] · 1.11x vs `turbo.1`)
    Top hotspots vs same-compiler Stock NG 0.17.0:
-   - MSVC:  `empty_loop` 5.00x (26.26 -> 5.25), `typed_array_write` 4.43x (21.14 -> 4.77),
-     `typed_array_read` 4.26x (22.32 -> 5.24), `array_write` 4.05x (17.76 -> 4.39), `prop_read` 3.96x (25.81 -> 6.52).
-   - MinGW: `typed_array_write` 3.44x (16.45 -> 4.78), `array_read` 3.14x (17.00 -> 5.42),
-     `typed_array_read` 3.07x (16.02 -> 5.22), `global_write` 2.95x (9.88 -> 3.35),
-     `empty_loop` 2.90x (15.23 -> 5.25), `prop_read` 2.84x (18.51 -> 6.52).
+   - MSVC:  `empty_loop` 5.00x (26.27 -> 5.25), `typed_array_write` 4.42x (21.19 -> 4.79),
+     `typed_array_read` 4.24x (22.31 -> 5.26), `array_write` 4.04x (17.76 -> 4.40),
+     `prop_read` 3.94x (25.75 -> 6.53), `float_to_string` 3.67x (359.52 -> 98.09),
+     `string_slice1` 1.22x (117.17 -> 96.14), `string_slice3` 1.27x (110.41 -> 86.88).
+   - MinGW: `float_to_string` 4.55x (324.93 -> 71.48), `float_toString` 3.82x (372.39 -> 97.48),
+     `typed_array_write` 3.46x (16.48 -> 4.76), `array_read` 3.16x (17.16 -> 5.42),
+     `string_to_float` 3.14x (160.17 -> 50.97), `typed_array_read` 3.07x (16.09 -> 5.24),
+     `string_slice1` 1.04x (87.72 -> 84.15), `string_slice3` 1.06x (84.45 -> 79.50).
    Remaining slower cases vs same-compiler Stock NG 0.17.0:
-   - MinGW (3/57): `string_build2` (120.90 -> 133.66 ns), `string_slice1` (87.13 -> 91.32 ns), `sort_bench` (1.67 -> 1.74).
-   - MSVC  (2/57): `object_null` (68.36 -> 70.40 ns), `local_destruct` (62.71 -> 62.82 ns).
+   - MinGW (3/57): `sort_bench` (1.67 -> 1.72 sum_us), `string_slice2` (169.38 -> 174.00 ns), `string_build2` (121.12 -> 129.80 ns).
+   - MSVC  (1/57): `string_slice2` (203.49 -> 214.87 ns).
+
+3. JetStream-17 (17 real-world JS workloads, 2 reversed blocks x 2 iters on CPU2, body ms, lower is better):
+   Case                       NG MinGW  NG MSVC  Bellard 26.06  Turbo MinGW  Turbo MSVC  Tm/NGm  Tv/NGv
+   json-stringify-inspector     115.83   143.30          96.56        22.04       20.45   5.26x   7.01x
+   json-parse-inspector         111.41    99.03          85.79        45.10       50.92   2.47x   1.94x
+   richards                     269.48   291.77         173.98       127.42      124.20   2.11x   2.35x
+   crypto                       140.03   211.43         104.75        73.28       73.70   1.91x   2.87x
+   delta-blue                   206.77   202.22         147.38       109.13      109.17   1.89x   1.85x
+   cdjs                         533.20   620.41         412.10       301.15      308.35   1.77x   2.01x
+   acorn-wtb                  2,880.40 3,326.43       2,503.77     1,815.57    1,892.73   1.59x   1.76x
+   FlightPlanner                 64.57    69.73          51.60        43.36       45.25   1.49x   1.54x
+   bigint-noble-ed25519         259.01   309.16         187.49       192.31      207.49   1.35x   1.49x
+   async-fs                     255.14   291.63         336.56       189.79      229.87   1.34x   1.27x
+   Babylon                      100.08   112.29          80.04        76.32       80.45   1.31x   1.40x
+   typescript-octane          2,784.93 3,043.34       2,232.99     2,253.30    2,324.32   1.24x   1.31x
+   js-tokens                    191.22   216.94         151.09       155.80      189.92   1.23x   1.14x
+   Air                           66.86    79.20          59.67        58.17       65.05   1.15x   1.22x
+   pdfjs                        349.61   418.70         298.06       308.60      321.48   1.13x   1.30x
+   prettier-wtb                 871.92 1,017.25         741.33       854.73      962.60   1.02x   1.06x
+   lazy-collections              76.02   108.32          70.31        84.46      125.15   0.90x   0.87x
+   Geomean (body ms)            249.03   287.39         204.23       160.29      173.53   1.55x   1.66x
+   Geomean (cold ms)            249.80   289.23         205.81       160.19      173.21   1.56x   1.67x
+   Median Peak WS (KiB)         12,164   11,822         11,930       11,906      11,406   --      --
+   TypeScript Peak WS (MiB)     147.15   146.31         120.91       149.29      149.75   --      --
+   (Same-session `v0.17.0-turbo.1` refs: MinGW `195.31 ms` [1.22x faster], MSVC `207.51 ms` [1.20x faster];
+    16/17 wins vs same-compiler Stock NG 0.17.0 on both MinGW and MSVC; 1.27x MinGW / 1.18x MSVC vs Bellard.)

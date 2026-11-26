@@ -1,6 +1,7 @@
-Linux x86-64 Release Qualification, 2026-11-25 (v0.17.0-turbo.2)
+Linux x86-64 Release Qualification, 2026-11-26 (v0.17.0-turbo.3)
 ================================================================
-Current release: `v0.17.0-turbo.2` (Waves 1–6c verified baseline).
+Current release: `v0.17.0-turbo.3` (release candidate `ecd84cd3`; Linux binary
+SHA-256 `d5aeb542a3c54107f2f766f1d8bac9157118329b5234ee08f5db39883a6954ad`).
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`;
 all 19 source pins verified intact).
 
@@ -14,16 +15,20 @@ Build & Toolchain Scope
 - Build & install wrapper:
     bash vm/tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
 
-Verification Matrix (Wave 6c, 2026-11-25)
------------------------------------------
-- Linux x86-64 Release (`LINUX_X86_64`): `963/963` CTests; `pregen-linux` (`102`
-  files) + `api-test`, `lre-test`, `wave3_stress_and_atod_diff.mjs`, `wave12_stress.js` pass.
-- Linux `ASan+UBSan` (`PORTABLE` auto-fallback): `218/218` CTests (0 errors/leaks).
-- Cold-heap zero-bloat gate (`cold_heap_probe_w6`): `COLD_HEAP_MATCH_EXACT_ZERO_BLOAT`
-  (`empty_malloc = 98.6 KiB`).
+Verification Matrix (v0.17.0-turbo.3, 2026-11-26)
+-------------------------------------------------
+- Linux x86-64 Release (`LINUX_X86_64`): `963/963` CTests (including permanent
+  long-exponent `atod` and nested-getter `Error.stack` regressions in
+  `vm/tests/common/test_property_ic.js`); `3,175`-case `Array/String.prototype.slice`
+  differential check (`hash 1372709702`, identical across Linux x86-64, ARM64,
+  Win64 MinGW, and Win64 MSVC) and `1,010,234` dtoa/atod vectors pass.
+- Linux `ASan+UBSan` (`PORTABLE` auto-fallback): `218/218` CTests (`ASAN_OPTIONS=detect_leaks=0`
+  in CI; explicit LSan `detect_leaks=1` also passed locally on `test_property_ic.js`).
+- Cold-heap zero-bloat gate (`cold_heap_probe_t3rc`): `COLD_HEAP_MATCH_EXACT_ZERO_BLOAT`
+  (`empty_malloc = 98,600 B` = `96.29 KiB` exact binary KiB).
 - Full Test262 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures
   (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% matching stock `0.17.0`).
-- `txiki.js v26.11.0` (`5133e8a`) host integration:
+- `txiki.js v26.11.0` (`5133e8a`) host integration (verified on `0.17.0` `BC_VERSION 29` baseline):
   - `AUTO` (`LINUX_X86_64`): `467/468` `tests/` (`1` failure `test-lookup.js` due to
     WSL2 external DNS `EAI_AGAIN`; all FFI tests pass), `4/4` `tests/advanced/`,
     `tjsc -m` `BC_VERSION 29` RegExp compile + `tjs.engine` `deserialize`/`evalBytecode` round-trip.
@@ -32,9 +37,10 @@ Verification Matrix (Wave 6c, 2026-11-25)
     only WSL2 DNS `test-lookup.js` `EAI_AGAIN`).
 - Cross-platform parity: Windows `WIN_X86_64` MSVC (`222/222` CTest, `/MT` `KERNEL32.dll`
   only, `37`-file pregen) and MinGW (`222/222` CTest, `37`-file pregen);
-  Linux ARM64 (`1,267/1,267` Release, `184/184` Instrumented, `137`-file pregen, `161` native
-  opcodes); `contracts.py` (`511` receipts, `0` stale) and `test_arch_boundaries.py` pass.
+  Linux ARM64 (`1,267/1,267` Release, `1,826/1,826` Instrumented, `137`-file pregen, `161` native
+  opcodes); `contracts.py` (`511` receipts, `0` stale), `test_format_contract.py` (`12/12`),
+  `test_arch_boundaries.py`, `validate_layout.py --require-native`, and `release_version.py` pass.
 
 Performance scores and hotspot tables: `LINUX-FINAL-REVIEW.txt` and `PRODUCT-BASELINE.txt`.
-ABI contracts & optional Baseline JIT design: `../../common/ABI-AND-BASELINE-JIT.txt`.
+ABI contracts & proposed Baseline JIT design: `../../common/ABI-AND-BASELINE-JIT.txt`.
 Per-worker bring-up notes: `workers/LINUX-*.txt`.

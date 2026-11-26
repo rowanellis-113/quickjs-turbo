@@ -6,24 +6,24 @@
 [![Benchmarks](https://img.shields.io/badge/benchmarks-perf--site-f59e0b)](https://rowanellis-113.github.io/quickjs-turbo/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-**Near-V8 `--jitless` speed in a QuickJS-sized binary. Zero JIT by default. 100% `quickjs.h` ABI drop-in (`txiki.js v26.11.0` aligned).**
+**Near-V8 `--jitless` speed in a QuickJS-sized binary. Zero JIT. 100% `quickjs.h` ABI drop-in (`txiki.js v26.11.0` aligned).**
 
-QuickJS-Turbo supercharges [QuickJS-NG](https://github.com/quickjs-ng/quickjs) `0.17.0` with native register-frame virtual machines, adaptive inline caches, Hybrid RC + Partial Cycle GC, and specialized numeric/JSON/RegExp builtins — delivering **`1.74×–2.13×` V8-v7**, **`1.45×–1.76×` micro57**, and **`1.50×–1.55×` JetStream-17** over Stock QuickJS-NG `0.17.0` (**`1.33×–1.48×` vs Bellard 2026**) without runtime code generation or `RWX` memory.
+QuickJS-Turbo supercharges [QuickJS-NG](https://github.com/quickjs-ng/quickjs) `0.17.0` with native register-frame assembly VMs, adaptive inline caches, Hybrid RC + Partial Cycle GC, and specialized numeric/string/JSON/RegExp builtins — delivering **`1.73×–2.27×` V8-v7**, **`1.53×–1.96×` `micro56`**, and **`1.50×–1.66×` `JetStream-17`** over same-host Stock QuickJS-NG `0.17.0` (**`1.18×–1.48×` vs Bellard 2026**) with zero runtime code generation and zero `RWX` pages.
 
 ```text
-Reference Linux x86-64 Cohort (Ryzen 3 3300X, GCC 13.3, CPU2 serial, zero JIT, 2026-11-25)
+Reference Linux x86-64 Cohort (v0.17.0-turbo.3, Ryzen 3 3300X, GCC 13.3, CPU2 serial, zero JIT)
 
-V8-v7 Throughput (higher is better)
-V8 --jitless (Node 24)   ████████████████████████  2,360  (463 MiB Peak RSS)
-QuickJS-Turbo (0.17.0)   █████████████████████     2,045  (1.74x vs NG 0.17.0 · 1.41x vs Bellard · 86.7% of V8 --jitless · 157 MiB RSS)
-Bellard QuickJS 2026     ███████████████           1,449  (147 MiB Peak RSS)
-QuickJS-NG 0.17.0        ████████████              1,173  (155 MiB Peak RSS)
+V8-v7 Throughput (monotonic-clock verified, 4 ABBA rounds, higher is better)
+V8 --jitless (Node 24)   ████████████████████████  2,164  (462.5 MiB Peak RSS)
+QuickJS-Turbo (turbo.3)  █████████████████████     1,866  (1.73x NG 0.17 · 1.39x Bellard · 86.2% V8 --jitless · 157.4 MiB RSS)
+Bellard QuickJS 2026     ███████████████           1,347  (146.8 MiB Peak RSS)
+QuickJS-NG 0.17.0        ████████████              1,082  (155.3 MiB Peak RSS)
 
-micro57 Geomean (57 cases, lower is better)         JetStream-17 Body Geomean (17 workloads, lower is better)
-QuickJS-Turbo (0.17.0)   35.67 ns  (1.54x NG · 1.01x V8!)   V8 --jitless (Node 24)   117.6 ms  (80.0 MiB RSS)
-V8 --jitless (Node 24)   35.90 ns  (21x higher RSS)         QuickJS-Turbo (0.17.0)   143.2 ms  (1.55x NG · 1.34x Bel · 10.0 MiB RSS)
-Bellard QuickJS 2026     52.06 ns                           Bellard QuickJS 2026     192.2 ms
-QuickJS-NG 0.17.0        54.84 ns                           QuickJS-NG 0.17.0        222.3 ms
+micro56 Geomean (56 uniform ns/op cases, lower is better)   JetStream-17 Body Geomean (17 workloads, lower is better)
+QuickJS-Turbo (turbo.3)  40.33 ns  (1.53x NG · 1.015x V8!)  V8 --jitless (Node 24)   127.4 ms  (80.0 MiB median RSS)
+V8 --jitless (Node 24)   40.91 ns  (sort: 0.73 vs 0.75 us)  QuickJS-Turbo (turbo.3)  153.9 ms  (1.56x NG · 1.34x Bel · 10.1 MiB RSS)
+Bellard QuickJS 2026     58.50 ns                           Bellard QuickJS 2026     206.4 ms
+QuickJS-NG 0.17.0        61.76 ns                           QuickJS-NG 0.17.0        239.9 ms
 ```
 
 ---
@@ -53,67 +53,69 @@ export default {
 
 ## Why QuickJS-Turbo?
 
-- **Zero JIT by Default, `W^X` Safe**: Ahead-of-time assembly VMs use zero `RWX` memory and ship with full DWARF CFI and Win64 SEH stack unwinding for iOS, consoles, containers, and edge workers.
-- **Register VM, Adaptive ICs & Fast Builtins**: Replaces the C switch loop with register-pinned assembly dispatch, adaptive Property ICs, fast `dtoa`/`atod`, and specialized RegExp/JSON workers — up to **`6.09×`** `json-stringify-inspector`, **`4.95×`** RegExp, **`4.92×`** `float_to_string`, **`3.31×`** `prop_read`, and **`2.84×`** `typed_array_read`.
-- **Deterministic RC + Fewer GC Pauses**: Keeps QuickJS's immediate reference counting while generational partial cycle GC cuts full-heap cycle scans by **`86%`** (**`1.50×`** faster cyclic object churn).
-- **100% `quickjs.h` Drop-In ABI**: Zero header or public struct ABI changes (`82,220` Test262 cases with `0` regressions; `txiki.js v26.11.0` / `BC_VERSION 29` compatible; `98.6 KiB` empty runtime with zero cold bloat), plus optional `quickjs-turbo.h` density controls.
+- **Zero JIT, `W^X` Safe**: Ahead-of-time assembly VMs use zero `RWX` memory and ship with full DWARF CFI and Win64 SEH stack unwinding for iOS, consoles, containers, and edge workers.
+- **Register VM, Adaptive ICs & Fast Builtins**: Replaces the C switch loop with register-pinned assembly dispatch, adaptive Property ICs, fast `dtoa`/`atod`, native string slicing, and specialized RegExp/JSON workers — up to **`7.01×`** `json-stringify-inspector`, **`4.90×`** `float_to_string`, **`4.68×`** RegExp, **`3.94×`** `prop_read`, and **`4.24×`** `typed_array_read`.
+- **Deterministic RC + Fewer GC Pauses**: Keeps QuickJS's immediate reference counting while generational partial cycle GC cuts full-heap cycle scans by **`85.8%`** (**`1.50×`** faster cyclic object churn) and bounds Windows TypeScript peak working set (`~149–150 MiB`, matching Stock NG `147 MiB`).
+- **100% `quickjs.h` Drop-In ABI**: Zero header or public struct ABI changes (`82,220` Test262 cases with `0` regressions; `txiki.js v26.11.0` / `BC_VERSION 29` compatible; **`96.29 KiB`** initial runtime + context heap with zero cold bloat), plus optional `quickjs-turbo.h` density controls.
 
 ### Benchmarks Across Platforms
 
-| Same-Host Cohort | Turbo V8-v7 | `micro57` (57 cases) | `JetStream-17` (17 cases) | vs QuickJS-NG `0.17.0` / Bellard `2026-06-04` |
+| Same-Host Cohort | Turbo V8-v7 | `micro56` (`ns/op`) | `JetStream-17` (body) | vs Same-Host NG `0.17.0` / Bellard `2026-06-04` |
 | :--- | ---: | ---: | ---: | :--- |
-| **Linux `x86-64`** *(Ryzen 3 3300X, GCC 13.3)* | **2,045** *(2,051 Dens)* | **35.67 ns** *(1.01× V8!)* | **143.2 ms** *(10 MiB RSS)* | **1.74× / 1.41×** V8 · **1.54× / 1.46×** micro · **1.55× / 1.34×** JS17 |
-| **Linux `ARM64`** *(AWS Graviton2, GCC 13.4)* | **1,259** *(8/8 wins)* | **61.97 ns** *(44/57 wins)* | **228.9 ms** *(15/17 wins)* | **1.76× / 1.48×** V8 · **1.50× / 1.46×** micro · **1.50× / 1.34×** JS17 |
-| **Windows `x86-64`** *(MinGW / MSVC)* | **1,969 / 1,901** | **46.04 / 48.76 ns** | *—* | **1.83× / 2.13×** V8 vs NG · **1.37× / 1.33×** vs Bellard |
-| **macOS `x86-64`** *(Intel i5, Clang 15)* | **1,742** | *1.17× micro72* | **1.34×** vs Bellard | **1.47×** V8 vs `PORTABLE` · **1.45×** vs Bellard `-O3` |
+| **Linux `x86-64`** *(v0.17.0-turbo.3, Ryzen 3 3300X, GCC 13.3)* | **1,866** *(mono)* | **40.33 ns** *(1.015× V8!)* | **153.9 ms** *(10.1 MiB RSS)* | **1.73× / 1.39×** V8 · **1.53× / 1.45×** `micro56` · **1.56× / 1.34×** JS17 |
+| **Windows `x86-64`** *(v0.17.0-turbo.3, MinGW / MSVC `/MT`)* | **1,986 / 1,942** | **43.68 / 46.73 ns** | **160.3 / 173.5 ms** | **1.90× / 2.27×** V8 · **1.63× / 1.96×** `micro56` · **1.55× / 1.66×** JS17 *(vs NG)* |
+| **Linux `ARM64`** *(v0.17.0-turbo.2 Graviton2 hardware; turbo.3 QEMU verified)* | **1,259** *(8/8 wins)* | *idx 61.97 (44/57)* | **228.9 ms** *(15/17 wins)* | **1.76× / 1.48×** V8 · **1.50× / 1.46×** micro · **1.50× / 1.34×** JS17 |
+| **macOS `x86-64`** *(v0.15.1-turbo.6–.8 Intel i5 hardware)* | **1,742** | *1.17× micro72* | **1.34×** vs Bellard | **1.47×** V8 vs `PORTABLE` · **1.45×** vs Bellard `-O3` |
 
-> On Linux `x86-64`, QuickJS-Turbo reaches **86.7%** of Node 24 `V8 --jitless` V8-v7 throughput (beating `V8 --jitless` on `NavierStokes`, `Crypto`, `Richards`, and `Splay` at **2.94× lower Peak RSS**), **surpasses `V8 --jitless` on `micro57` overall** (`35.67 ns` vs `35.90 ns`, `21×` lower RSS), and runs **JetStream-17 at `8.0×` lower RSS** (`10.0 MiB` vs `80.0 MiB`), beating `V8 --jitless` on `lazy-collections`, `crypto`, `json-stringify-inspector`, `json-parse-inspector`, and `richards`. Explore interactive charts on **[`perf-site` →](https://rowanellis-113.github.io/quickjs-turbo/)**.
+> Notes on measurement integrity: (1) Linux `x86-64` V8-v7 is recomputed from `performance.now()` on identical iterations (eliminating WSL2 periodic wall-clock backward jumps); under monotonic timing, `v0.17.0-turbo.3` reaches **86.2%** of Node 24 `V8 --jitless` (**2.94× lower Peak RSS**), beats `V8 --jitless` on `NavierStokes` (`1.62×`), `Crypto` (`1.28×`), and `Splay` (`1.05×`), **surpasses `V8 --jitless` on `micro56`** (`40.33` vs `40.91 ns/op`, `sort_bench` `0.73` vs `0.75 sum_us`), and runs `JetStream-17` at **7.9× lower median RSS** (`10.1 MiB` vs `80.0 MiB`). (2) `micro56` separates the 56 uniform `ns/op` cases from `sort_bench` (`sum_us`); the legacy 57-case composite is reported separately as a dimensionless `micro57` index. Explore interactive charts on **[`perf-site` →](https://rowanellis-113.github.io/quickjs-turbo/)**.
 
 ### Supported Targets
 
 | Platform | Backend | Toolchains | Notes |
 | :--- | :--- | :--- | :--- |
-| **Linux `x86-64`** | `LINUX_X86_64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, inline object props, PIE + DWARF CFI |
+| **Linux `x86-64`** | `LINUX_X86_64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM, inline object props, fast `dtoa`/`atod`/slice, PIE + DWARF CFI |
 | **macOS `x86-64`** | `MACOS_X86_64` | Apple Clang 15+ | Native Mach-O ASM VM, PIE + DWARF CFI, `AUTO`-selected |
 | **Windows `x86-64`** | `WIN_X86_64` | MSVC / `clang-cl` / MinGW | Unified native ASM VM (zero GNU binutils on MSVC) + SEH unwind |
 | **Linux `ARM64`** | `LINUX_AARCH64` | GCC 13/14+ (`glibc` & `musl`) | Native ELF ASM VM (`161` native opcodes), 64B-aligned entry, `JSArena` append |
-| **macOS `ARM64` & Sanitizers** | `PORTABLE` | Clang / GCC / MSVC | Automatic `AUTO` fallback + ASan / UBSan / TSan / MSan / Fuzz |
+| **macOS `ARM64` & Sanitizers** | `PORTABLE` | Clang / GCC / MSVC | `AUTO` fallback + ASan / UBSan / TSan / MSan / Fuzz *(macOS ARM64 SDK is cross-compiled on Intel CI with `lipo` + consumer link checks; Apple Silicon native runtime validation pending)* |
 
 ---
 
-## ABI Contract & Baseline JIT Architecture
+## ABI Contract & Proposed Baseline JIT Roadmap
 
-QuickJS-Turbo is engineered around a strict **two-layer ABI contract** — preserving 100% drop-in compatibility for embedders today while providing the exact runtime substrate required for an **optional, bytecode-driven Baseline JIT** without rewriting QuickJS's frontend or introducing an AST.
+QuickJS-Turbo ships today as a **strict Zero-JIT, `0 RWX` register-frame interpreter** built on a verified **two-layer ABI contract**. That same internal ABI also provides a clean foundation for a **proposed, opt-in bytecode-driven Baseline JIT** (future roadmap; not shipped in `v0.17.0-turbo.3`).
 
-### 1. Public & Internal ABI Contracts
+### 1. Shipping ABI Contracts (Production Today)
 
-- **100% Drop-In Public C ABI (`quickjs.h`)**: Upstream QuickJS-NG `0.17.0` headers, public struct layouts, and bytecode wire format (`BC_VERSION 29`, verified on unmodified `txiki.js v26.11.0`) remain untouched. All runtime tuning (`quickjs-turbo.h`) is strictly additive.
-- **Pinned Native Register-Frame ABI**: Both `LINUX_AARCH64` (`x19` state, `x20` PC, `x21` SP, `x22` frame, `x23` locals, `x24` args, `x25` dispatch table) and `x86-64` (`LINUX_X86_64` / `MACOS_X86_64` / `WIN_X86_64`) share a bounded `JSFrame` segment arena, pre-validated bytecode admission (`FRAME_KIND` + jump-target `boundaries` bitmap), and **Clean/Dirty lazy stack-frame publication** at call/GC/exception safepoints.
+- **100% Drop-In Public C ABI (`quickjs.h`)**: Upstream QuickJS-NG `0.17.0` headers, public struct layouts (`16 B JSValue`), and bytecode wire format (`BC_VERSION 29`, verified on unmodified `txiki.js v26.11.0`) remain untouched. All runtime tuning (`quickjs-turbo.h`) is strictly additive.
+- **Pinned Native Register-Frame ABI**: Both `LINUX_AARCH64` (`x19` state, `x20` PC, `x21` SP, `x22` frame, `x23` locals, `x24` args, `x25` dispatch table) and `x86-64` (`LINUX_X86_64` / `MACOS_X86_64` / `WIN_X86_64`) execute over a bounded `JSFrame` segment arena, pre-validated bytecode admission (`FRAME_KIND` + jump-target `boundaries` bitmap), and **Clean/Dirty lazy stack-frame publication** at call/GC/exception safepoints.
 - **Verified Binary & Unwind Hygiene**: Every internal struct offset and generated boundary is SHA-256 verified at build time (`core-fields.json` + `511` source receipts), with complete DWARF CFI FDEs (ELF/Mach-O) and Win64 SEH `.pdata`/`.xdata` unwind metadata.
 
-### 2. Optional Bytecode-Driven Baseline JIT (Architecture Direction)
+### 2. Proposed Optional Bytecode-Driven Baseline JIT (Future Roadmap)
 
-Hardware profiling (`perf` on Graviton2 & x86-64) confirms that the native ASM interpreter is near the physical limit of pure interpretation: `JS_FrameInterp` still accounts for **53%–98%** of execution cycles due to indirect dispatch, operand decoding, and `[sp]` stack traffic. Because QuickJS-Turbo's ABI already solves ~70% of a Baseline JIT's runtime problem, an opt-in Baseline JIT tier can layer cleanly on top:
+Symbol-level hardware sampling (`perf` on Graviton2 & x86-64) shows `JS_FrameInterp` accounts for **53%–98%** of CPU samples across compute and object workloads — motivating an optional future tier targeting indirect dispatch, operand decode, and `[sp]` stack traffic without introducing an AST:
 
 ```text
-JSFunctionBytecode (No AST!)
+Proposed Opt-In Tier (Future Roadmap — Not Enabled by Default):
+
+JSFunctionBytecode (No AST)
    │  Single-pass linear scan reusing FRAME_KIND & jump-target boundaries bitmap
    ▼
-1-Pass Virtual Operand Stack (2–4 reg TOS cache) + Copy-and-Patch Stencils
-   │  Eliminates indirect dispatch, bytecode fetch/decode, PC updates, and [sp] ping-pong
+Proposed 1-Pass Virtual Operand Stack (2–4 reg TOS cache) + Copy-and-Patch Stencils
+   │  Targets indirect dispatch, bytecode fetch/decode, PC updates, and [sp] round-trips
    ▼
 Shared Register-Frame ABI (Zero-Bridge Interop with Native ASM VM)
-   ├─ Direct-Baked Property ICs (PC/RIP-relative IC slot pointers, no pc-table lookup)
-   ├─ Monomorphic Call IC + Loop OSR ({pc_offset -> jit_loop_entry})
-   └─ Clean/Dirty Bailout Stubs (materializes constant pc -> reuses existing C/ASM slow paths)
+   ├─ Proposed direct-baked Property ICs (PC/RIP-relative IC slot pointers)
+   ├─ Proposed monomorphic Call IC + Loop OSR ({pc_offset -> jit_loop_entry})
+   └─ Cold bailout stubs reusing existing Clean/Dirty slow paths & Hybrid RC/GC
    ▼
-Strict W^X Code Arena (RW -> RX, never simultaneous RWX · Hotness-gated -> 0 B cold bloat)
+Proposed Strict W^X Code Arena (RW -> RX, never simultaneous RWX · Hotness-gated -> 0 B cold bloat)
 ```
 
-- **Zero AST Required**: Compiles directly from `JSFunctionBytecode` (like V8 Sparkplug, JSC Baseline, and CPython Copy-and-Patch). Scopes, closures (`JSVarRef`), TDZ, and `try/catch` tables are already lowered in bytecode, preserving the **`98.6 KiB`** empty-worker heap and sub-ms parse speed.
-- **Zero-Bridge ABI Sharing & Strict `W^X` Opt-In**: Compiled code shares the exact `JSFrame` layout, register conventions, and Hybrid RC + Partial Cycle GC with the native ASM VM, allowing seamless JIT ↔ Interpreter calls and Loop OSR. The default production build remains **`0 RWX` / Zero JIT**; Baseline JIT is designed as a compile- and runtime-gated opt-in tier for environments that permit `W^X` (`RW → RX`) code pages.
+- **Why No AST**: Compiles directly from `JSFunctionBytecode` (like V8 Sparkplug, JSC Baseline, and CPython Copy-and-Patch) so scopes, closures (`JSVarRef`), TDZ, and `try/catch` tables stay lowered in bytecode, preserving the **`96.29 KiB`** initial runtime + context heap and sub-ms parse speed.
+- **Strict Opt-In Governance**: The default production configuration will remain **`0 RWX` / Zero JIT**; any future Baseline JIT tier will be gated behind explicit compile-time and runtime switches and phased stopping criteria (`Phase 0` PoC → `Phase 2` Test262 gate).
 
-See **[ABI-AND-BASELINE-JIT.txt](vm/docs/architecture/common/ABI-AND-BASELINE-JIT.txt)** for the full register contract, Copy-and-Patch design, and phased stopping criteria (`Phase 0` → `Phase 2`).
+See **[ABI-AND-BASELINE-JIT.txt](vm/docs/architecture/common/ABI-AND-BASELINE-JIT.txt)** for the full register contract, Copy-and-Patch design, and phased stopping criteria.
 
 ---
 

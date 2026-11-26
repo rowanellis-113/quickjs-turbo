@@ -1,6 +1,6 @@
 Linux/glibc & musl AArch64 implementation and release boundaries
 ================================================================
-Current release: `v0.17.0-turbo.2` (Waves 1–6c verified baseline, 2026-11-25).
+Current release: `v0.17.0-turbo.3` (2026-11-26, release candidate `ecd84cd3`).
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`;
 all 19 upstream source pins exact).
 
@@ -16,21 +16,26 @@ Build & Architecture
 - Public `quickjs.h` ABI, installed `quickjs-turbo::qjs` CMake consumers, and
   `QJS_USE_PREGEN_ASM=ON` Python-free builds (`linux_aarch64`: 137 pregen files)
   are fully supported. See `../common/ABI-AND-BASELINE-JIT.txt` for the pinned
-  register-frame ABI contract (`x19..x27`) and optional Baseline JIT design.
+  register-frame ABI contract (`x19..x27`) and proposed optional Baseline JIT design.
 
-Qualification (Wave 6c, 2026-11-25)
------------------------------------
-- QEMU Release CTests: `1,267/1,267` passed; `check_vm.py` reports
+Qualification (v0.17.0-turbo.3, 2026-11-26)
+-------------------------------------------
+- QEMU Release CTests: `1,267/1,267` passed (including long-exponent `atod` and nested-getter
+  `Error.stack` regressions in `test_property_ic.js`); `3,175`-case `Array/String.prototype.slice`
+  differential check (`hash 1372709702`) passes; `check_vm.py` reports
   `AARCH64_VM_ELF_OK native_opcodes=161 full-FDE PIE NX no-WX` (both Release and Instrumented);
   `STRING-WORKERS.json` confirms `native_byte_append_complete = True` (`JSArena`).
-- QEMU Instrumented CTests: `184/184` passed (`api-test`, `lre-test`, `wave3_stress_and_atod_diff.mjs`,
-  `wave12_stress.js` also pass under QEMU `pregen-arm`).
-- Real AWS Graviton2 Neoverse-N1 hardware benchmarks: V8-v7 `1,258.52` (`1.76x` vs Stock NG `0.17.0`,
-  `1.48x` vs Bellard `2026-06-04`), `micro57` `61.97 ns` (`1.50x` vs Stock, `1.46x` vs Bellard),
-  and `JetStream-17` `228.95 ms` body / `226.50 ms` cold (`1.50x` / `1.54x` vs Stock,
-  `1.34x` / `1.36x` vs Bellard) — see `LINUX-AARCH64-HARDWARE.txt`.
-- Contracts & Boundaries: `contracts.py` (`511` receipts, `0` stale) and
-  `test_arch_boundaries.py` (`ARCH_BOUNDARIES_OK`) pass.
+- QEMU Instrumented CTests: `1,826/1,826` passed (`api-test`, `lre-test`,
+  `wave3_stress_and_atod_diff.mjs`, `wave12_stress.js` also pass under QEMU `pregen-arm`).
+- Native Linux ARM64 CI (`ubuntu-24.04-arm`): Release CTest + full Test262 (`82,220` cases)
+  run via `.github/workflows/ci.yml` and `.github/workflows/test262.yml`.
+- Real AWS Graviton2 Neoverse-N1 hardware benchmarks (`v0.17.0-turbo.2` / Wave 6c cohort,
+  2026-11-25): V8-v7 `1,258.52` (`1.76x` vs Stock NG `0.17.0`, `1.48x` vs Bellard `2026-06-04`),
+  `micro57` `61.97` dimensionless index (`1.50x` vs Stock, `1.46x` vs Bellard), and `JetStream-17`
+  `228.95 ms` body / `226.50 ms` cold (`1.50x` / `1.54x` vs Stock, `1.34x` / `1.36x` vs Bellard)
+  — see `LINUX-AARCH64-HARDWARE.txt`.
+- Contracts & Boundaries: `vm/src/arm64/linux/abi/c-entry.json` updated for `slice-native.inc`;
+  `contracts.py` (`511` receipts, `0` stale) and `test_arch_boundaries.py` (`ARCH_BOUNDARIES_OK`) pass.
 - Historical `0.15.1` full Test262 (`81,152` cases, `65` inherited / `31` fixed / `0` new) and
   per-worker ABI contracts are catalogued in `LINUX-AARCH64-MECHANISMS.json` and `workers/LINUX-AARCH64-*.txt`.
 - Portable cross/native fallback guide: `LINUX-AARCH64.txt`.
