@@ -963,8 +963,9 @@ static bool qjs_fast_atod_str8(const uint8_t *s, uint32_t len, bool is_parse_flo
             uint32_t ed = (uint32_t)(s[i] - '0');
             if (ed > 9u)
                 break;
-            if (eacc < 10000)
-                eacc = eacc * 10 + (int32_t)ed;
+            if (unlikely(eacc >= 10000))
+                return false;
+            eacc = eacc * 10 + (int32_t)ed;
             i++;
         }
         exp10 += exp_neg ? -eacc : eacc;

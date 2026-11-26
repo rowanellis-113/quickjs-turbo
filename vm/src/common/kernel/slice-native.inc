@@ -33,24 +33,36 @@ static inline JSValueConst frame_slice_argument(const JSStackFrame *sf, unsigned
 {
     return i < sf->arg_count ? sf->arg_buf[i] : JS_UNDEFINED;
 }
+static inline int frame_slice_index(JSContext *ctx, int *out, JSValueConst value, int len)
+{
+    if (JS_VALUE_GET_TAG(value) == JS_TAG_INT) {
+        int n = JS_VALUE_GET_INT(value);
+        *out = n < 0 ? max_int(n + len, 0) : min_int(n, len);
+        return 0;
+    }
+    return JS_ToInt32Clamp(ctx, out, value, 0, len, len);
+}
+
 NATIVE_SLICE_CODE void JS_FrameStringSliceNative(JSStackFrame *sf, JSValue *out)
 {
     JSContext *ctx = JS_VALUE_GET_OBJ(sf->cur_func)->u.cfunc.realm;
     JSValue str, end_value;
     JSString *p;
     int len, start, end;
-    str = JS_ToStringCheckObject(ctx, sf->var_buf[0]);
+    JSValueConst receiver = sf->var_buf[0];
+    str = JS_VALUE_GET_TAG(receiver) == JS_TAG_STRING ? js_dup(receiver)
+                                                      : JS_ToStringCheckObject(ctx, receiver);
     if (JS_IsException(str)) {
         *out = str;
         return;
     }
     p = JS_VALUE_GET_STRING(str);
     len = p->len;
-    if (JS_ToInt32Clamp(ctx, &start, frame_slice_argument(sf, 0), 0, len, len))
+    if (frame_slice_index(ctx, &start, frame_slice_argument(sf, 0), len))
         goto fail;
     end = len;
     end_value = frame_slice_argument(sf, 1);
-    if (!JS_IsUndefined(end_value) && JS_ToInt32Clamp(ctx, &end, end_value, 0, len, len))
+    if (!JS_IsUndefined(end_value) && frame_slice_index(ctx, &end, end_value, len))
         goto fail;
     *out = js_sub_string(ctx, p, start, max_int(end, start));
     JS_FreeValue(ctx, str);

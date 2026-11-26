@@ -248,5 +248,66 @@ for (let i = 0; i < 1000; ++i) {
   eq(f(o), i);
   if (!(i % 20)) gc();
 }
+{
+  // Nested JS getter -> native C getter must preserve outer JS frame on throw.
+  const gp = {
+    get outer() {
+      return this.box.size;
+    },
+  };
+  const go = Object.create(gp);
+  go.box = new Map();
+  function readOuterGetter(obj) {
+    return obj.outer;
+  }
+  for (let i = 0; i < 30; ++i) eq(readOuterGetter(go), 0);
+  go.box = Object.create(Map.prototype);
+  let stack = "";
+  try {
+    readOuterGetter(go);
+    throw Error("expected TypeError");
+  } catch (e) {
+    eq(e instanceof TypeError, true);
+    stack = String(e.stack);
+  }
+  const iSize = stack.indexOf("get size");
+  const iOuter = stack.indexOf("get outer");
+  const iRead = stack.indexOf("readOuterGetter");
+  eq(iSize >= 0 && iOuter > iSize && iRead > iOuter, true);
+}
+{
+  // Long decimal exponents must never clamp/cancel against fractional digits.
+  const posInf = ["0.", "0".repeat(9999), "1e100000"].join("");
+  const negInf = ["-0.", "0".repeat(9999), "1e100000"].join("");
+  const plusInf = ["0.", "0".repeat(9999), "1e+100000"].join("");
+  const extraZeroInf = ["0.", "0".repeat(10000), "1e100000"].join("");
+  const exactOne = ["0.", "0".repeat(9999), "1e10000"].join("");
+  const exactTenth = ["0.", "0".repeat(10000), "1e10000"].join("");
+  const posZero = ["0.", "0".repeat(9999), "1e-100000"].join("");
+  const negZero = ["-0.", "0".repeat(9999), "1e-100000"].join("");
+  const trailing = ["0.", "0".repeat(9999), "1e100000xyz"].join("");
+  for (const s of [posInf, extraZeroInf]) {
+    eq(Number(s), Infinity);
+    eq(parseFloat(s), Infinity);
+    eq(JSON.parse(s), Infinity);
+  }
+  eq(Number(plusInf), Infinity);
+  eq(parseFloat(plusInf), Infinity);
+  eq(Number(negInf), -Infinity);
+  eq(parseFloat(negInf), -Infinity);
+  eq(JSON.parse(negInf), -Infinity);
+  eq(Number(exactOne), 1);
+  eq(parseFloat(exactOne), 1);
+  eq(JSON.parse(exactOne), 1);
+  eq(Number(exactTenth), 0.1);
+  eq(parseFloat(exactTenth), 0.1);
+  eq(JSON.parse(exactTenth), 0.1);
+  eq(1 / Number(posZero), Infinity);
+  eq(1 / parseFloat(posZero), Infinity);
+  eq(1 / Number(negZero), -Infinity);
+  eq(1 / parseFloat(negZero), -Infinity);
+  eq(Number.isNaN(Number(trailing)), true);
+  eq(parseFloat(trailing), Infinity);
+}
 gc();
 print("PROPERTY_IC_SMOKE", checks, "PASS");

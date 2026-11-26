@@ -299,7 +299,7 @@
       "format_check": true
     },
     "src/common/kernel/slice-native.inc": {
-      "sha256": "931929cf153fb21f003cf1f03c10a240d5de3a0c92b66a8ad45d0580430e09f3",
+      "sha256": "50943c189498d2cb31c8cd9a38cecfea1a7beb73e90902dad53e3db0edf9547e",
       "reason": "handwritten source-text generator input; hash-protected and format-checked",
       "format_check": true
     },

@@ -625,15 +625,20 @@ static no_inline void js_hybrid_trigger_gc_slow(JSRuntime *rt)
         size_t full_cap = base + (base >> 1) + (base >> 2);
         bool near_limit = (lim != 0 && before + (before >> 2) > lim);
         if (rt->hybrid_gc_minor_since_full >= 8 || near_limit || before > full_cap) {
-            size_t after;
             JS_RunGC(rt);
-            after = rt->malloc_state.malloc_size;
+#ifdef _WIN32
+            /* Bound heap growth after a low-yield full collection on Windows. */
+            rt->malloc_gc_threshold =
+                rt->malloc_state.malloc_size + (rt->malloc_state.malloc_size >> 1);
+#else
+            size_t after = rt->malloc_state.malloc_size;
             if (!near_limit && before >= (1024u * 1024u) && after >= before - (before >> 4)) {
                 rt->malloc_gc_threshold = after + after;
                 rt->hybrid_gc_full_malloc = after + (after >> 2);
             } else {
                 rt->malloc_gc_threshold = after + (after >> 1);
             }
+#endif
         } else {
             size_t after;
             js_hybrid_gc_minor(rt);

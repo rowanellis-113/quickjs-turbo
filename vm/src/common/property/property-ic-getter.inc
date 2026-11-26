@@ -106,20 +106,6 @@ static JSValue js_ic_invoke_getter(JSContext *ctx, JSObject *receiver, JSObject 
                                         ctx->interrupt_counter--;
                                         return js_dup(pr3->u.value);
                                     }
-                                    if (tm == JS_PROP_GETSET && pr3->u.getset.getter &&
-                                        pr3->u.getset.getter->class_id == JS_CLASS_C_FUNCTION) {
-                                        int cproto = pr3->u.getset.getter->u.cfunc.cproto;
-                                        if (cproto == JS_CFUNC_getter ||
-                                            cproto == JS_CFUNC_getter_magic) {
-                                            JSValue inner_val, res;
-                                            ctx->interrupt_counter--;
-                                            inner_val = js_dup(JS_MKPTR(JS_TAG_OBJECT, inner));
-                                            res = js_ic_invoke_c_getter(ctx, pr3->u.getset.getter,
-                                                                        inner_val);
-                                            JS_FreeValue(ctx, inner_val);
-                                            return res;
-                                        }
-                                    }
                                     break;
                                 }
                             }
