@@ -62,6 +62,203 @@ static SHARED_INLINE bool win64_host_stack_ok(JSFrameRegisterState *state, JSRun
     return !js_check_stack_overflow(rt, extra + need);
 }
 
+static WIN64_HOST_FAST_CODE int win64_host_direct_extra(JSFrameRegisterState *state, JSValue *argv,
+                                                        int argc, bool method)
+{
+    JSObject *fn = JS_VALUE_GET_OBJ(argv[-1]);
+    uint8_t cproto = fn->u.cfunc.cproto;
+    void *fp = (void *)fn->u.cfunc.c_function.generic;
+
+    if (cproto == JS_CFUNC_generic) {
+        if (method) {
+            if (fp == (void *)js_string_substring && JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_STRING) {
+                int t0 = argc >= 1 ? JS_VALUE_GET_TAG(argv[0]) : JS_TAG_UNDEFINED;
+                int t1 = argc >= 2 ? JS_VALUE_GET_TAG(argv[1]) : JS_TAG_UNDEFINED;
+                if (likely((t0 == JS_TAG_INT || t0 == JS_TAG_UNDEFINED) &&
+                           (t1 == JS_TAG_INT || t1 == JS_TAG_UNDEFINED))) {
+                    JSContext *ctx = state->frame->bytecode->realm;
+                    JSRuntime *rt = state->rt;
+                    if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags &&
+                               fn->u.cfunc.realm == ctx && win64_host_stack_ok(state, rt, 256))) {
+                        JSString *p = JS_VALUE_GET_STRING(argv[-2]);
+                        int len = (int)p->len;
+                        int a = 0;
+                        int b = len;
+                        if (t0 == JS_TAG_INT) {
+                            int n = JS_VALUE_GET_INT(argv[0]);
+                            a = n < 0 ? 0 : (n > len ? len : n);
+                        }
+                        if (t1 == JS_TAG_INT) {
+                            int n = JS_VALUE_GET_INT(argv[1]);
+                            b = n < 0 ? 0 : (n > len ? len : n);
+                        }
+                        int start = a < b ? a : b;
+                        int end = a < b ? b : a;
+                        JSFrame *frame = state->frame;
+                        frame->sf.cur_sp = state->sp;
+                        js_frame_begin_c(state);
+                        JSValue res = js_sub_string(ctx, p, start, end);
+                        if (!FRAME_CHECKPOINT(frame))
+                            frame->sf.cur_sp = NULL;
+                        js_frame_finish_c(state);
+                        ctx->interrupt_counter--;
+                        state->result = res;
+                        state->exception_pending = JS_IsException(res);
+                        return state->exception_pending;
+                    }
+                }
+            } else if (fp == (void *)js_string_substr &&
+                       JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_STRING) {
+                int t0 = argc >= 1 ? JS_VALUE_GET_TAG(argv[0]) : JS_TAG_UNDEFINED;
+                int t1 = argc >= 2 ? JS_VALUE_GET_TAG(argv[1]) : JS_TAG_UNDEFINED;
+                if (likely((t0 == JS_TAG_INT || t0 == JS_TAG_UNDEFINED) &&
+                           (t1 == JS_TAG_INT || t1 == JS_TAG_UNDEFINED))) {
+                    JSContext *ctx = state->frame->bytecode->realm;
+                    JSRuntime *rt = state->rt;
+                    if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags &&
+                               fn->u.cfunc.realm == ctx && win64_host_stack_ok(state, rt, 256))) {
+                        JSString *p = JS_VALUE_GET_STRING(argv[-2]);
+                        int len = (int)p->len;
+                        int a = 0;
+                        if (t0 == JS_TAG_INT) {
+                            int n0 = JS_VALUE_GET_INT(argv[0]);
+                            a = n0 < 0 ? max_int(n0 + len, 0) : min_int(n0, len);
+                        }
+                        int n = len - a;
+                        if (t1 == JS_TAG_INT) {
+                            int m = JS_VALUE_GET_INT(argv[1]);
+                            n = m < 0 ? 0 : (m > len - a ? len - a : m);
+                        }
+                        JSFrame *frame = state->frame;
+                        frame->sf.cur_sp = state->sp;
+                        js_frame_begin_c(state);
+                        JSValue res = js_sub_string(ctx, p, a, a + n);
+                        if (!FRAME_CHECKPOINT(frame))
+                            frame->sf.cur_sp = NULL;
+                        js_frame_finish_c(state);
+                        ctx->interrupt_counter--;
+                        state->result = res;
+                        state->exception_pending = JS_IsException(res);
+                        return state->exception_pending;
+                    }
+                }
+            } else if (fp == (void *)js_regexp_exec && argc >= 1 &&
+                       JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_OBJECT &&
+                       JS_VALUE_GET_TAG(argv[0]) == JS_TAG_STRING) {
+                JSObject *ro = JS_VALUE_GET_OBJ(argv[-2]);
+                if (likely(ro->class_id == JS_CLASS_REGEXP && !ro->is_exotic &&
+                           ro->shape->prop_count >= 1)) {
+                    JSShapeProperty *prs = get_shape_prop(ro->shape);
+                    if (likely(prs[0].atom == JS_ATOM_lastIndex &&
+                               (prs[0].flags & (JS_PROP_TMASK | JS_PROP_WRITABLE)) ==
+                                   JS_PROP_WRITABLE &&
+                               JS_VALUE_GET_TAG(ro->prop[0].u.value) == JS_TAG_INT)) {
+                        JSContext *ctx = state->frame->bytecode->realm;
+                        JSRuntime *rt = state->rt;
+                        if (likely(!rt->interrupt_handler && ctx->interrupt_counter > 2 &&
+                                   !rt->dump_flags && fn->u.cfunc.realm == ctx &&
+                                   win64_host_stack_ok(state, rt, 4096))) {
+                            JSFrame *frame = state->frame;
+                            frame->sf.cur_sp = state->sp;
+                            js_frame_begin_c(state);
+                            JSValue res = js_regexp_exec(ctx, argv[-2], 1, (JSValueConst *)argv);
+                            if (!FRAME_CHECKPOINT(frame))
+                                frame->sf.cur_sp = NULL;
+                            js_frame_finish_c(state);
+                            ctx->interrupt_counter--;
+                            state->result = res;
+                            state->exception_pending = JS_IsException(res);
+                            return state->exception_pending;
+                        }
+                    }
+                }
+            }
+        }
+        if (fp == (void *)js_string_fromCharCode && argc == 1 &&
+            JS_VALUE_GET_TAG(argv[0]) == JS_TAG_INT) {
+            JSContext *ctx = state->frame->bytecode->realm;
+            JSRuntime *rt = state->rt;
+            if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags && fn->u.cfunc.realm == ctx &&
+                       win64_host_stack_ok(state, rt, 256))) {
+                JSFrame *frame = state->frame;
+                frame->sf.cur_sp = state->sp;
+                js_frame_begin_c(state);
+                JSValue res =
+                    JS_FrameSmallCharNew(ctx, (uint16_t)(uint32_t)JS_VALUE_GET_INT(argv[0]));
+                if (!FRAME_CHECKPOINT(frame))
+                    frame->sf.cur_sp = NULL;
+                js_frame_finish_c(state);
+                ctx->interrupt_counter--;
+                state->result = res;
+                state->exception_pending = JS_IsException(res);
+                return state->exception_pending;
+            }
+        } else if (fp == (void *)js_object_create && argc == 1 && JS_IsNull(argv[0])) {
+            JSContext *ctx = state->frame->bytecode->realm;
+            JSRuntime *rt = state->rt;
+            if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags && fn->u.cfunc.realm == ctx &&
+                       win64_host_stack_ok(state, rt, 256))) {
+                JSFrame *frame = state->frame;
+                frame->sf.cur_sp = state->sp;
+                js_frame_begin_c(state);
+                JSValue res = JS_NewObjectProto(ctx, JS_NULL);
+                if (!FRAME_CHECKPOINT(frame))
+                    frame->sf.cur_sp = NULL;
+                js_frame_finish_c(state);
+                ctx->interrupt_counter--;
+                state->result = res;
+                state->exception_pending = JS_IsException(res);
+                return state->exception_pending;
+            }
+        }
+    } else if (method && fp == (void *)js_string_indexOf && fn->u.cfunc.magic == 0 && argc >= 1 &&
+               JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_STRING &&
+               JS_VALUE_GET_TAG(argv[0]) == JS_TAG_STRING &&
+               (argc < 2 || JS_VALUE_GET_TAG(argv[1]) == JS_TAG_INT || JS_IsUndefined(argv[1]))) {
+        JSString *p = JS_VALUE_GET_STRING(argv[-2]);
+        JSString *p1 = JS_VALUE_GET_STRING(argv[0]);
+        if (likely(!p->is_wide_char && !p1->is_wide_char)) {
+            JSContext *ctx = state->frame->bytecode->realm;
+            JSRuntime *rt = state->rt;
+            if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags &&
+                       win64_host_stack_ok(state, rt, 256))) {
+                int len = (int)p->len;
+                int v_len = (int)p1->len;
+                int pos = 0;
+                if (argc >= 2 && JS_VALUE_GET_TAG(argv[1]) == JS_TAG_INT) {
+                    int n = JS_VALUE_GET_INT(argv[1]);
+                    pos = n < 0 ? 0 : (n > len ? len : n);
+                }
+                int ret = -1;
+                if (v_len == 0) {
+                    ret = pos;
+                } else if (pos <= len - v_len) {
+                    const uint8_t *s = str8(p);
+                    const uint8_t *s1 = str8(p1);
+                    uint8_t c0 = s1[0];
+                    const uint8_t *cur = s + pos;
+                    const uint8_t *end = s + (len - v_len) + 1;
+                    while (cur < end) {
+                        const uint8_t *hit = (const uint8_t *)memchr(cur, c0, (size_t)(end - cur));
+                        if (!hit)
+                            break;
+                        if (v_len == 1 || memcmp(hit + 1, s1 + 1, (size_t)(v_len - 1)) == 0) {
+                            ret = (int)(hit - s);
+                            break;
+                        }
+                        cur = hit + 1;
+                    }
+                }
+                ctx->interrupt_counter--;
+                state->result = js_int32(ret);
+                state->exception_pending = false;
+                return 0;
+            }
+        }
+    }
+    return JS_FrameInterpHostDirectShared(state, argv, argc, method);
+}
+
 /* Zero-JSStackFrame fast leaves for Win64 direct C-function dispatch (cproto <= 1):
  * Split immediately by cproto (0 = generic, 1 = generic_magic) so misses fall through
  * with minimal branches while hot builtins skip JSStackFrame push/pop and arg padding. */
@@ -548,7 +745,7 @@ WIN64_HOST_FAST_CODE int JS_Win64HostDirectFast(JSFrameRegisterState *state, JSV
             }
         }
     }
-    return JS_FrameInterpHostDirectShared(state, argv, argc, method);
+    return win64_host_direct_extra(state, argv, argc, method);
 }
 
 /* Zero-JSStackFrame fast lane for pure C math builtins (JS_CFUNC_f_f / JS_CFUNC_f_f_f).

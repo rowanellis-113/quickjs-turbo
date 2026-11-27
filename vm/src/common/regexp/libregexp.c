@@ -27,6 +27,11 @@
 #include <inttypes.h>
 #include <string.h>
 #include <assert.h>
+#if !defined(__TINYC__) && !defined(__EMSCRIPTEN__) && !defined(__wasi__) &&                       \
+    !__STDC_NO_ATOMICS__ && !defined(__DJGPP)
+#include <stdatomic.h>
+#define LRE_HAVE_ATOMICS 1
+#endif
 
 #include "cutils.h"
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
@@ -34,6 +39,24 @@
 #endif
 #include "src/common/regexp/libregexp.h"
 #include "libunicode.h"
+
+static inline bool lre_env_enabled(unsigned slot, const char *name)
+{
+#ifdef LRE_HAVE_ATOMICS
+    static _Atomic uint32_t lre_env_flags;
+    uint32_t shift = slot * 2u;
+    uint32_t state = (atomic_load_explicit(&lre_env_flags, memory_order_relaxed) >> shift) & 3u;
+    if (likely(state != 0))
+        return state == 1u;
+    const char *disabled = getenv(name);
+    uint32_t bit = (!disabled || !strcmp(disabled, "0")) ? 1u : 2u;
+    atomic_fetch_or_explicit(&lre_env_flags, bit << shift, memory_order_relaxed);
+    return bit == 1u;
+#else
+    const char *disabled = getenv(name);
+    return !disabled || !strcmp(disabled, "0");
+#endif
+}
 
 /* ASCII identifier tables, used by lre_js_is_ident_first/next in libregexp.h
    and by quickjs.c. */
@@ -2779,10 +2802,7 @@ uint8_t *lre_compile(int *plen, char *error_msg, int error_msg_size, const char 
     is_sticky = ((re_flags & LRE_FLAG_STICKY) != 0);
     s->ignore_case = ((re_flags & LRE_FLAG_IGNORECASE) != 0);
 #ifdef QJS_FRAME_REGEXP_PRIVATE_UNICODE
-    {
-        const char *disabled = getenv("QJS_DISABLE_REGEXP_CASE_CLOSURE");
-        s->expand_case = !disabled || !strcmp(disabled, "0");
-    }
+    s->expand_case = lre_env_enabled(0, "QJS_DISABLE_REGEXP_CASE_CLOSURE");
 #endif
     s->multi_line = ((re_flags & LRE_FLAG_MULTILINE) != 0);
     s->dotall = ((re_flags & LRE_FLAG_DOTALL) != 0);
@@ -2865,28 +2885,20 @@ uint8_t *lre_compile(int *plen, char *error_msg, int error_msg_size, const char 
     }
 
     if (!literal) {
-        {
-            const char *disabled = getenv("QJS_DISABLE_REGEXP_START_FILTER");
-            if ((!disabled || !strcmp(disabled, "0")) && re_insert_start_filter(s)) {
-                re_parse_out_of_memory(s);
-                goto error;
-            }
+        if (lre_env_enabled(1, "QJS_DISABLE_REGEXP_START_FILTER") && re_insert_start_filter(s)) {
+            re_parse_out_of_memory(s);
+            goto error;
         }
 
-        {
-            const char *disabled = getenv("QJS_DISABLE_REGEXP_LOOKAHEAD");
-            if ((!disabled || !strcmp(disabled, "0")) && re_insert_search_lookahead(s) < 0) {
-                re_parse_out_of_memory(s);
-                goto error;
-            }
+        if (lre_env_enabled(2, "QJS_DISABLE_REGEXP_LOOKAHEAD") &&
+            re_insert_search_lookahead(s) < 0) {
+            re_parse_out_of_memory(s);
+            goto error;
         }
 
-        {
-            const char *disabled = getenv("QJS_DISABLE_REGEXP_WINDOW");
-            if ((!disabled || !strcmp(disabled, "0")) && re_insert_search_window(s) < 0) {
-                re_parse_out_of_memory(s);
-                goto error;
-            }
+        if (lre_env_enabled(3, "QJS_DISABLE_REGEXP_WINDOW") && re_insert_search_window(s) < 0) {
+            re_parse_out_of_memory(s);
+            goto error;
         }
     }
 
@@ -3036,7 +3048,7 @@ typedef struct {
 
     StackElem *stack_buf;
     size_t stack_size;
-    StackElem static_stack_buf[32]; /* static stack to avoid allocation in most cases */
+    StackElem static_stack_buf[96]; /* static stack to avoid allocation in most cases */
 } REExecContext;
 
 static int lre_poll_timeout(REExecContext *s)

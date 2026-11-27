@@ -66,8 +66,7 @@ static int re_insert_literal_hint(REParseState *s, unsigned registers)
         !re_literal_body(body + 11, size - 11, s->re_flags, s->capture_count, registers, &count,
                          &wide, NULL, 0))
         return 0;
-    const char *disabled = getenv("QJS_DISABLE_REGEXP_LITERAL");
-    if (disabled && strcmp(disabled, "0"))
+    if (!lre_env_enabled(4, "QJS_DISABLE_REGEXP_LITERAL"))
         return 0;
     if (dbuf_insert(&s->byte_code, RE_HEADER_LEN + 11, RE_LITERAL_HINT_SIZE))
         return -1;

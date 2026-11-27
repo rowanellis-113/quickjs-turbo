@@ -120,9 +120,12 @@ def _inject_property_ic_win64(masm_lines, gas_lines, build, layout, source):
     assert masm_lines[-1].strip() == "END", "Unexpected MASM trailer"
     masm_lines.pop()
 
+    # GAS short-jumps in PropertyCold/PrimitiveEq widen by +4B each when routed to .qjscold helpers;
+    # pad GAS only so M1/M2/M3/BorrowedField preserve exact 64B alignment (MASM forward jumps are already 6B NEAR).
+    pic_pad = 56 if layout["offsets"].get("JSRuntime.drc_ok") is not None else 60
     masm_pic = [".qjscold SEGMENT ALIGN(16) 'CODE'"]
     masm_pdata = [".pdata$zzqjscold SEGMENT ALIGN(4) READONLY 'DATA'"]
-    gas_pic = ['.section .qjscold,"xr"']
+    gas_pic = ['.section .qjscold,"xr"', f".fill {pic_pad}, 1, 0x90"]
     gas_pdata = ['.section .pdata$zzqjscold,"dr"', ".p2align 2"]
 
     orig_for_entry = {
@@ -303,11 +306,11 @@ def _prepare_win64_admission(source, output_dir, layout):
         case OP_define_method_computed:
         case OP_define_class:
         case OP_define_class_computed:
-            if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL)
+            if (js_win64_admit_flags() & 4u)
                 return false;
             break;
         case OP_special_object:
-            if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL ||
+            if ((js_win64_admit_flags() & 4u) ||
                 (code[pos + 1] != OP_SPECIAL_OBJECT_NULL_PROTO &&
                  code[pos + 1] != OP_SPECIAL_OBJECT_THIS_FUNC &&
                  code[pos + 1] != OP_SPECIAL_OBJECT_HOME_OBJECT &&
@@ -321,15 +324,12 @@ def _prepare_win64_admission(source, output_dir, layout):
         case OP_gosub:
         case OP_ret:
         case OP_nip_catch:
-            if (getenv("QJS_DISABLE_FRAME_ITERATOR") != NULL ||
-                getenv("QJS_DISABLE_WIN64_ITERATOR") != NULL)
+            if (js_win64_admit_flags() & 8u)
                 return false;
             break;
         case OP_append:
         case OP_apply:
-            if (getenv("QJS_DISABLE_FRAME_VARARGS") != NULL ||
-                getenv("QJS_DISABLE_FRAME_ITERATOR") != NULL ||
-                getenv("QJS_DISABLE_WIN64_ITERATOR") != NULL)
+            if (js_win64_admit_flags() & 24u)
                 return false;
             break;
 """
@@ -394,6 +394,29 @@ def _prepare_win64_admission(source, output_dir, layout):
     long_fn = replace_once(long_fn, anchor, anchor + extra_cases, "Win64 long extra opcodes")
     long_fn = replace_once(long_fn, branch_anchor, branch_repl, "Win64 long catch/gosub targets")
     admission_h = (
+        "#include <stdatomic.h>\n"
+        "static _Atomic unsigned char js_win64_admit_policy;\n"
+        "static inline unsigned char js_win64_admit_flags(void)\n"
+        "{\n"
+        "    unsigned char mode = atomic_load_explicit(&js_win64_admit_policy, memory_order_relaxed);\n"
+        "    if (unlikely(!mode)) {\n"
+        "        unsigned char desired = 1u;\n"
+        '        if (getenv("QJS_DISABLE_WIN64_ADMISSION") != NULL)\n'
+        "            desired |= 2u;\n"
+        '        if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL)\n'
+        "            desired |= 4u;\n"
+        '        if (getenv("QJS_DISABLE_FRAME_ITERATOR") != NULL ||\n'
+        '            getenv("QJS_DISABLE_WIN64_ITERATOR") != NULL)\n'
+        "            desired |= 8u;\n"
+        '        if (getenv("QJS_DISABLE_FRAME_VARARGS") != NULL)\n'
+        "            desired |= 16u;\n"
+        "        atomic_compare_exchange_strong_explicit(&js_win64_admit_policy, &mode, desired,\n"
+        "                                                memory_order_relaxed, memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }\n"
+        "    return mode;\n"
+        "}\n\n"
         "#define FRAME_LARGE_CODE_DEFAULT "
         + str(int(bool(layout.get("property_ic"))))
         + "\n"
@@ -405,8 +428,7 @@ def _prepare_win64_admission(source, output_dir, layout):
         "{\n"
         "    if (js_frame_validate(b))\n"
         "        return true;\n"
-        "    if (!js_frame_register_enabled(b->realm->rt) ||\n"
-        '        getenv("QJS_DISABLE_WIN64_ADMISSION") != NULL)\n'
+        "    if (!js_frame_register_enabled(b->realm->rt) || (js_win64_admit_flags() & 2u))\n"
         "        return false;\n"
         "    if (b->byte_code_len <= 4096)\n"
         "        return JS_FrameWin64ShortValidate(b);\n"
@@ -596,6 +618,194 @@ def _prepare_win64_sort(source, output_dir):
         "}\n"
     )
     (output_dir / "quickjs-win64-sort.h").write_text(sort_src, encoding="utf-8", newline="\n")
+
+
+def _prepare_win64_array_copy(source, output_dir):
+    copy_src = (source / "src/common/array/copy-grow.inc").read_text(encoding="utf-8")
+    copy_src = replace_once(
+        copy_src,
+        "#ifdef _MSC_VER\n"
+        "extern unsigned char JS_FrameCallMetaLoadByte(unsigned char *);\n"
+        "extern unsigned char JS_FrameCallMetaInitByte(unsigned char *, unsigned char);\n"
+        '#pragma section(".qjsacm", read, write)\n'
+        '__declspec(allocate(".qjsacm"))\n'
+        "#else\n"
+        '__attribute__((section(".qjsacm"), aligned(1)))\n'
+        "#endif\n"
+        "static unsigned char js_frame_array_copy_mode;",
+        "#include <stdatomic.h>\nstatic _Atomic unsigned char js_frame_array_copy_mode;",
+        "Win64 array-copy control declaration",
+    )
+    copy_src = replace_once(
+        copy_src,
+        "#ifdef _MSC_VER\n"
+        "    mode = JS_FrameCallMetaLoadByte(&js_frame_array_copy_mode);\n"
+        "#else\n"
+        "    mode = __atomic_load_n(&js_frame_array_copy_mode, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_ARRAY_COPY_GROW") ? 2 : 1;\n'
+        "#ifdef _MSC_VER\n"
+        "        mode = JS_FrameCallMetaInitByte(&js_frame_array_copy_mode, desired);\n"
+        "#else\n"
+        "        __atomic_compare_exchange_n(&js_frame_array_copy_mode, &mode, desired, false,\n"
+        "                                    __ATOMIC_RELAXED, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "    mode = atomic_load_explicit(&js_frame_array_copy_mode, memory_order_relaxed);\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_ARRAY_COPY_GROW") ? 2 : 1;\n'
+        "        atomic_compare_exchange_strong_explicit(&js_frame_array_copy_mode, &mode,\n"
+        "                                                desired, memory_order_relaxed,\n"
+        "                                                memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "Win64 array-copy control atomics",
+    )
+    (output_dir / "quickjs-win64-array-copy.h").write_text(copy_src, encoding="utf-8", newline="\n")
+
+
+def _prepare_win64_regexp(source, output_dir, backports_dir):
+    adapter = _load_module(
+        "qjs_win64_obj_adapter", source / "tools/common/c_extract/object_adapter_c.py"
+    )
+    paths_mod = _load_module("qjs_win64_re_paths", source / "tools/common/paths.py")
+    raw = paths_mod.source_file(source, "quickjs.c").read_text(encoding="utf-8")
+
+    # 1. Cached atomic QJS_DISABLE_REGEXP_SPLIT wrapper around portable split.inc
+    split_h = (backports_dir / "quickjs-portable-js_regexp_Symbol_split.h").read_text(
+        encoding="utf-8"
+    )
+    split_h = (
+        "#include <stdatomic.h>\n"
+        "static inline bool js_win64_regexp_split_disabled(void)\n"
+        "{\n"
+        "    static _Atomic unsigned char control;\n"
+        "    unsigned char mode = atomic_load_explicit(&control, memory_order_relaxed);\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_REGEXP_SPLIT") ? 2 : 1;\n'
+        "        atomic_compare_exchange_strong_explicit(&control, &mode, desired,\n"
+        "                                                memory_order_relaxed,\n"
+        "                                                memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }\n"
+        "    return mode != 1;\n"
+        "}\n"
+        + replace_once(
+            split_h,
+            'getenv("QJS_DISABLE_REGEXP_SPLIT")',
+            "js_win64_regexp_split_disabled()",
+            "Win64 cached regexp split disable check",
+        )
+    )
+    (output_dir / "quickjs-win64-split.h").write_text(split_h, encoding="utf-8", newline="\n")
+
+    # 2. Owned RegExp flags + owned callback-argv @@replace (preserving replace-empty.inc fallback)
+    flags_inc = (source / "src/common/kernel/regexp-flags.inc").read_text(encoding="utf-8")
+    flags_inc = replace_once(
+        flags_inc,
+        "#ifdef _MSC_VER\n"
+        "extern unsigned char JS_FrameCallMetaLoadByte(unsigned char *);\n"
+        "extern unsigned char JS_FrameCallMetaInitByte(unsigned char *, unsigned char);\n"
+        '#pragma section(".qjsrfm", read, write)\n'
+        '__declspec(allocate(".qjsrfm"))\n'
+        "#else\n"
+        '__attribute__((section(".qjsrfm")))\n'
+        "#endif\n"
+        "static unsigned char js_frame_regexp_flags_control;",
+        "#include <stdatomic.h>\nstatic _Atomic unsigned char js_frame_regexp_flags_control;",
+        "Win64 regexp flags control declaration",
+    )
+    flags_inc = replace_once(
+        flags_inc,
+        "#ifdef _MSC_VER\n"
+        "    mode = JS_FrameCallMetaLoadByte(&js_frame_regexp_flags_control);\n"
+        "#else\n"
+        "    mode = __atomic_load_n(&js_frame_regexp_flags_control, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "    if (!mode) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_REGEXP_FLAGS_LEAF") ? 2 : 1;\n'
+        '        if (getenv("QJS_DISABLE_REGEXP_FLAGS_BATCH"))\n'
+        "            desired |= 4;\n"
+        "#ifdef _MSC_VER\n"
+        "        mode = JS_FrameCallMetaInitByte(&js_frame_regexp_flags_control, desired);\n"
+        "#else\n"
+        "        __atomic_compare_exchange_n(&js_frame_regexp_flags_control, &mode, desired, false,\n"
+        "                                    __ATOMIC_RELAXED, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "    mode = atomic_load_explicit(&js_frame_regexp_flags_control, memory_order_relaxed);\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_REGEXP_FLAGS_LEAF") ? 2 : 1;\n'
+        '        if (getenv("QJS_DISABLE_REGEXP_FLAGS_BATCH"))\n'
+        "            desired |= 4;\n"
+        "        atomic_compare_exchange_strong_explicit(&js_frame_regexp_flags_control, &mode,\n"
+        "                                                desired, memory_order_relaxed,\n"
+        "                                                memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "Win64 regexp flags control atomics",
+    )
+    flags_fn = next(m[0] for m in adapter.FUNCTION.finditer(raw) if m[2] == "js_regexp_get_flags")
+    flags_fn = flags_fn.replace(
+        "static JSValue js_regexp_get_flags(", "JSValue JS_RegExpOwnedFlags(", 1
+    )
+    flags_fn = flags_fn.replace("JS_GetPropertyStr(", "js_frame_regexp_flag_property_str(")
+    flags_fn = flags_fn.replace("JS_GetProperty(", "js_frame_regexp_flag_property(")
+    flags_fn = replace_once(
+        flags_fn,
+        "    char str[8], *p = str;",
+        """    unsigned char flags_mode = js_frame_regexp_flags_mode();
+    if ((flags_mode & 3) != 1 ||
+        JS_VALUE_GET_TAG(this_val) != JS_TAG_OBJECT ||
+        JS_VALUE_GET_OBJ(this_val)->class_id != JS_CLASS_REGEXP)
+        return js_regexp_get_flags(ctx, this_val);
+    char str[8], *p = str;
+    int flag_bits;
+    if (!(flags_mode & 4) && js_frame_regexp_flags_batch(ctx, this_val, &flag_bits)) {
+        if (flag_bits & LRE_FLAG_INDICES) *p++ = 'd';
+        if (flag_bits & LRE_FLAG_GLOBAL) *p++ = 'g';
+        if (flag_bits & LRE_FLAG_IGNORECASE) *p++ = 'i';
+        if (flag_bits & LRE_FLAG_MULTILINE) *p++ = 'm';
+        if (flag_bits & LRE_FLAG_DOTALL) *p++ = 's';
+        if (flag_bits & LRE_FLAG_UNICODE) *p++ = 'u';
+        if (flag_bits & LRE_FLAG_UNICODE_SETS) *p++ = 'v';
+        if (flag_bits & LRE_FLAG_STICKY) *p++ = 'y';
+        if (p == str) return js_empty_string(ctx->rt);
+        return js_new_string8_len(ctx, str, p - str);
+    }""",
+        "Win64 regexp batch flags entry",
+    )
+
+    replace_inc = (source / "src/common/kernel/regexp-replace.inc").read_text(encoding="utf-8")
+    replace_inc = replace_once(
+        replace_inc,
+        "#ifdef QJS_INTERP_FRAME_INTERNAL_ENTRY\n"
+        "extern JSValue JS_FrameDispatchInternal(JSContext *, JSValueConst, JSValueConst, JSValueConst, int,\n"
+        "                                        JSValueConst *, int);\n"
+        "#endif\n",
+        "",
+        "Win64 same-TU internal selector for regexp replace",
+    )
+    replace_inc = replace_once(
+        replace_inc,
+        "JS_FrameDispatchInternal(",
+        "JS_CallInternal(",
+        "Win64 regexp owned callback dispatch",
+    )
+    re_header = (
+        "#ifndef QJS_INTERP_FRAME_INTERNAL_ENTRY\n"
+        "#define QJS_INTERP_FRAME_INTERNAL_ENTRY 1\n"
+        "#endif\n" + flags_inc + "\n" + flags_fn + "\n" + replace_inc + "\n"
+    )
+    (output_dir / "quickjs-win64-regexp.h").write_text(re_header, encoding="utf-8", newline="\n")
 
 
 def _prepare_win64_small_char(source, output_dir):
@@ -840,6 +1050,10 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
     gobj_off = layout["offsets"]["JSContext.global_obj"]
     mask_off = layout["offsets"]["JSShape.prop_hash_mask"]
     str_len_byte = layout["bits"]["JSString.len"][0][0]
+    str_size = layout["sizes"]["JSString"]
+    str_kind_byte, str_kind_mask = layout["bits"]["JSString.kind"][0]
+    str_kind_mask3 = str_kind_mask * 3
+    drc_off = layout["offsets"].get("JSRuntime.drc_ok")
     html_byte, html_mask = layout["bits"]["JSObject.is_HTMLDDA"][0]
     cproto_off = layout["offsets"]["JSObject.u.cfunc.cproto"]
     cproto_magic = layout["constants"]["JS_CFUNC_generic_magic"]
@@ -875,6 +1089,12 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         "JS_Win64FloatDec PROTO",
         "JS_Win64FloatPostInc PROTO",
         "JS_Win64FloatPostDec PROTO",
+        "JS_Win64StrictEqString PROTO",
+        *(
+            ["EXTERN js_hybrid_drop_string1:PROC", "JS_Win64SlowDropRc1 PROTO"]
+            if drc_off is not None
+            else []
+        ),
     ]
     masm_text_tmp = "\n".join(masm_lines)
     masm_text_tmp = replace_once(
@@ -1024,8 +1244,45 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
                 raise ValueError(f"Review Win64 inc/dec handler shape for {op_lbl}{suffix}")
             lines_ref[idx + off_cmp + 1] = jprefix + target
 
-    # Expose interp_slow:: / interp_reload:: / interp_exit:: in MASM so cold handlers can branch.
-    masm_expose = {"interp_slow", "interp_reload", "interp_exit"}
+    # Route strict_eq/strict_neq non-object fallback -> JS_Win64StrictEqString.
+    for lines_ref, suffix, jprefix in (
+        (masm_lines, "::", "jne NEAR PTR "),
+        (gas_lines, ":", "jne "),
+    ):
+        idx = lines_ref.index("interp_win64_strict_rhs" + suffix)
+        if (
+            lines_ref[idx + 1].strip() != "cmp edx, -1"
+            or lines_ref[idx + 2].strip() != "jne interp_win64_strict_c"
+        ):
+            raise ValueError(f"Review Win64 strict_eq rhs edge ({suffix})")
+        lines_ref[idx + 2] = jprefix + "JS_Win64StrictEqString"
+
+    # Route rc==1 string/rope OP_drop -> JS_Win64SlowDropRc1 (direct js_hybrid_drop_string1 leaf).
+    if drc_off is not None:
+        for lines_ref, jprefix in ((masm_lines, "jle NEAR PTR "), (gas_lines, "jle ")):
+            idx = next(
+                i
+                for i, line in enumerate(lines_ref)
+                if line.strip() in ("interp_property_slow_drop:", "interp_property_slow_drop::")
+            )
+            if (
+                lines_ref[idx + 1].strip() != "mov rax, QWORD PTR [r13-16]"
+                or lines_ref[idx + 2].strip() != f"cmp DWORD PTR [rax{rc_disp}], 1"
+                or lines_ref[idx + 3].strip() != "jle interp_property_slow_drop_c"
+            ):
+                raise ValueError("Review Win64 interp_property_slow_drop shape")
+            lines_ref[idx + 3] = jprefix + "JS_Win64SlowDropRc1"
+
+    # Expose labels in MASM so cold .qjscold handlers can branch back into .text / PropertyCold.
+    masm_expose = {
+        "interp_slow",
+        "interp_reload",
+        "interp_exit",
+        "interp_win64_strict_c",
+        "interp_primitive_eq_store",
+        "interp_primitive_eq_true",
+        "interp_property_slow_drop_c",
+    }
     masm_lines = [
         line.strip()[:-1] + "::"
         if line.strip().endswith(":")
@@ -1655,7 +1912,11 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         gas_lines[gas_tbl + op_idx] = f".quad {fn_name}"
 
     def masm_inst(inst):
-        m = re.match(r"^(j\w+)\s+(interp_slow|interp_exit|interp_reload)$", inst)
+        m = re.match(
+            r"^(j\w+)\s+(interp_slow|interp_exit|interp_reload|interp_win64_strict_c|"
+            r"interp_primitive_eq_store|interp_primitive_eq_true|interp_property_slow_drop_c)$",
+            inst,
+        )
         if m:
             return f"{m.group(1)} NEAR PTR {m.group(2)}"
         return inst
@@ -1778,6 +2039,108 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         ("JS_Win64FloatDec", float_tos_stub("sub eax, 1")),
         ("JS_Win64FloatPostInc", float_post_stub("add eax, 1")),
         ("JS_Win64FloatPostDec", float_post_stub("sub eax, 1")),
+        (
+            "JS_Win64StrictEqString",
+            [
+                "cmp eax, -7",
+                "jne win64_seq_check_rhs",
+                "cmp edx, -7",
+                "jne win64_seq_lhs_str_other",
+                "mov r8, QWORD PTR [r13-32]",
+                "mov r9, QWORD PTR [r13-16]",
+                "cmp r8, r9",
+                "jne win64_seq_str_diff_ptr",
+                f"cmp DWORD PTR [r8{rc_disp}], 2",
+                "jle interp_win64_strict_c",
+                f"sub DWORD PTR [r8{rc_disp}], 2",
+                "jmp interp_primitive_eq_true",
+                "win64_seq_str_diff_ptr:",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_win64_strict_c",
+                f"cmp DWORD PTR [r9{rc_disp}], 1",
+                "jle interp_win64_strict_c",
+                f"mov r10d, DWORD PTR [r8+{str_len_byte}]",
+                f"mov r11d, DWORD PTR [r9+{str_len_byte}]",
+                "mov eax, r10d",
+                "and eax, 2147483647",
+                "mov edx, r11d",
+                "and edx, 2147483647",
+                "cmp eax, edx",
+                "jne win64_seq_str_ne",
+                "or r10d, r11d",
+                "js interp_win64_strict_c",
+                f"test BYTE PTR [r8+{str_kind_byte}], {str_kind_mask3}",
+                "jnz interp_win64_strict_c",
+                f"test BYTE PTR [r9+{str_kind_byte}], {str_kind_mask3}",
+                "jnz interp_win64_strict_c",
+                "test eax, eax",
+                "jz win64_seq_str_eq",
+                "cmp eax, 64",
+                "ja interp_win64_strict_c",
+                "xor r10d, r10d",
+                "win64_seq_str_loop:",
+                f"movzx r11d, BYTE PTR [r8+r10+{str_size}]",
+                f"cmp BYTE PTR [r9+r10+{str_size}], r11b",
+                "jne win64_seq_str_ne",
+                "inc r10d",
+                "cmp r10d, eax",
+                "jb win64_seq_str_loop",
+                "win64_seq_str_eq:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                f"dec DWORD PTR [r9{rc_disp}]",
+                "jmp interp_primitive_eq_true",
+                "win64_seq_str_ne:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                f"dec DWORD PTR [r9{rc_disp}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+                "win64_seq_lhs_str_other:",
+                "test edx, edx",
+                "js interp_win64_strict_c",
+                "mov r8, QWORD PTR [r13-32]",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_win64_strict_c",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+                "win64_seq_check_rhs:",
+                "cmp edx, -7",
+                "jne interp_win64_strict_c",
+                "test eax, eax",
+                "js interp_win64_strict_c",
+                "mov r9, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r9{rc_disp}], 1",
+                "jle interp_win64_strict_c",
+                f"dec DWORD PTR [r9{rc_disp}]",
+                "xor eax, eax",
+                "jmp interp_primitive_eq_store",
+            ],
+        ),
+        *(
+            [
+                (
+                    "JS_Win64SlowDropRc1",
+                    [
+                        "jl interp_property_slow_drop_c",
+                        "mov rcx, QWORD PTR [rbx+56]",
+                        f"cmp BYTE PTR [rcx+{drc_off}], 1",
+                        "jne interp_property_slow_drop_c",
+                        "mov r8d, DWORD PTR [r13-8]",
+                        "sub r8d, -7",
+                        "cmp r8d, 1",
+                        "ja interp_property_slow_drop_c",
+                        "mov rdx, rax",
+                        "call js_hybrid_drop_string1",
+                        "sub r13, 16",
+                        "add r12, 1",
+                        "movzx eax, BYTE PTR [r12]",
+                        "jmp QWORD PTR [rdi+rax*8]",
+                    ],
+                )
+            ]
+            if drc_off is not None
+            else []
+        ),
     ]
 
     assert masm_lines[-1].strip() == "END", "Unexpected MASM trailer"
@@ -1821,6 +2184,8 @@ def _build_foundation_c(core_path, output_dir, layout, source):
     _prepare_win64_json(source, output_dir)
     _prepare_win64_locale(source, output_dir)
     _prepare_win64_sort(source, output_dir)
+    _prepare_win64_array_copy(source, output_dir)
+    _prepare_win64_regexp(source, output_dir, core_path.parent)
     _prepare_win64_small_char(source, output_dir)
     _prepare_win64_slow_host(source, output_dir)
     original = _wire_win64_inline_properties(
@@ -1867,6 +2232,55 @@ def _build_foundation_c(core_path, output_dir, layout, source):
         '#include "quickjs-win64-sort.h"\n'
         "static JSValue js_array_sort(JSContext *ctx, JSValueConst this_val,",
         "Win64 default string radix sort include",
+    )
+    orig_slice_fn = c_match.extract_function(
+        original, "static JSValue js_array_slice(JSContext *ctx, JSValueConst this_val,"
+    )
+    routed_slice_fn = replace_once(
+        orig_slice_fn,
+        "JS_CopySubArray(",
+        "JS_FrameArrayCopySubArray(",
+        "Win64 array splice CopySubArray fast route",
+    )
+    original = replace_once(
+        original,
+        orig_slice_fn,
+        "int JS_FrameArrayCopySubArray(JSContext *, JSValue, int64_t, int64_t, int64_t, int);\n"
+        + routed_slice_fn,
+        "Win64 array splice copy-grow declaration",
+    )
+    original = replace_once(
+        original,
+        '#include "quickjs-portable-js_regexp_Symbol_replace.h"',
+        "JSValue JS_RegExpOwnedFlags(JSContext *, JSValueConst);\n"
+        "JSValue JS_RegExpOwnedReplace(JSContext *, JSValueConst, int, JSValueConst *);\n"
+        "#define JS_FrameRegExpExec js_regexp_exec\n"
+        "#define QJS_REGEXP_EMPTY_NATIVE 1\n"
+        "#define QJS_REGEXP_SPLIT_NATIVE 1\n"
+        '#include "quickjs-portable-js_regexp_Symbol_replace.h"',
+        "Win64 RegExp owned flags/replace declarations and native guard macros",
+    )
+    original = replace_once(
+        original,
+        '#include "quickjs-portable-js_regexp_Symbol_split.h"',
+        '#include "quickjs-win64-split.h"',
+        "Win64 cached regexp split guard include",
+    )
+    re_proto_anchor = "static const JSCFunctionListEntry js_regexp_proto_funcs[] = {"
+    re_a = original.index(re_proto_anchor)
+    re_b = original.index("\n};", re_a) + 3
+    re_tbl = original[re_a:re_b]
+    for old_re, new_re in (
+        ("js_regexp_get_flags", "JS_RegExpOwnedFlags"),
+        ("js_regexp_Symbol_replace", "JS_RegExpOwnedReplace"),
+    ):
+        re_tbl, cnt = re.subn(r"\b" + re.escape(old_re) + r"\b", new_re, re_tbl)
+        if cnt != 1:
+            raise ValueError("Win64 RegExp builtin table route changed: " + old_re)
+    original = (
+        original[:re_a] + re_tbl + "\n#undef QJS_REGEXP_SPLIT_NATIVE\n"
+        "#undef QJS_REGEXP_EMPTY_NATIVE\n"
+        "#undef JS_FrameRegExpExec\n" + original[re_b:]
     )
     for old_api, new_api in (
         ("JS_ParseJSON", "JS_LegacyParseJSON"),
@@ -2006,8 +2420,10 @@ JSValue JS_Call(JSContext *ctx, JSValueConst func_obj, JSValueConst this_obj,
                                      argv, JS_CALL_FLAG_COPY_ARGV);
 }
 
+#include "quickjs-win64-array-copy.h"
 #include "quickjs-win64-json.h"
 #include "quickjs-win64-locale.h"
+#include "quickjs-win64-regexp.h"
 #include "quickjs-win64-small-char.h"
 """
     out_c = output_dir / "quickjs-win64-foundation.c"
