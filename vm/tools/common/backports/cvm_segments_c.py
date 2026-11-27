@@ -184,6 +184,7 @@ def core_overlay(text, raw, root, build):
     for direct_site in (
         "CASE(OP_put_loc8): set_value(ctx, &var_buf[*pc++], *--sp); BREAK;",
         "CASE(OP_set_loc8): set_value(ctx, &var_buf[*pc++], js_dup(sp[-1])); BREAK;",
+        "if (js_iterator_get_value_done(ctx, sp))\n                goto exception;\n            sp += 1;\n            BREAK;",
     ):
         assert loops.count(direct_site) == 1
         loops = loops.replace(

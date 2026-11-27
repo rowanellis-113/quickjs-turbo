@@ -106,6 +106,27 @@ static JSValue js_ic_invoke_getter(JSContext *ctx, JSObject *receiver, JSObject 
                                         ctx->interrupt_counter--;
                                         return js_dup(pr3->u.value);
                                     }
+                                    if (tm == JS_PROP_GETSET && pr3->u.getset.getter &&
+                                        pr3->u.getset.getter->class_id == JS_CLASS_C_FUNCTION &&
+                                        (pr3->u.getset.getter->u.cfunc.cproto == JS_CFUNC_getter ||
+                                         pr3->u.getset.getter->u.cfunc.cproto ==
+                                             JS_CFUNC_getter_magic)) {
+                                        JSStackFrame sf_outer;
+                                        JSValue ogf = js_dup(JS_MKPTR(JS_TAG_OBJECT, getter));
+                                        JSValue iv = js_dup(pr2->u.value);
+                                        JSValue r;
+                                        memset(&sf_outer, 0, sizeof(sf_outer));
+                                        sf_outer.prev_frame = ctx->rt->current_stack_frame;
+                                        sf_outer.cur_func = ogf;
+                                        sf_outer.cur_pc = gb->byte_code_buf + 13;
+                                        ctx->rt->current_stack_frame = &sf_outer;
+                                        ctx->interrupt_counter--;
+                                        r = js_ic_invoke_c_getter(ctx, pr3->u.getset.getter, iv);
+                                        ctx->rt->current_stack_frame = sf_outer.prev_frame;
+                                        JS_FreeValue(ctx, iv);
+                                        JS_FreeValue(ctx, ogf);
+                                        return r;
+                                    }
                                     break;
                                 }
                             }

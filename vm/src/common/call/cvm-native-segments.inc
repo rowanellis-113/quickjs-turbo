@@ -145,7 +145,35 @@ static JSValue JS_CVMResumeEntry(JSContext *caller_ctx, JSValueConst func, JSVal
     if (likely(mode == 1 && !s->throw_flag && caller_ctx->interrupt_counter > 1)) {
         JSStackFrame *sf = &s->frame;
         uint8_t *cur_pc = sf->cur_pc;
-        if (JS_CVMFastEligible[*cur_pc]) {
+        if (*cur_pc == OP_iterator_get_value_done) {
+            JSValue obj = sf->cur_sp[-1];
+            if (likely(JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT)) {
+                JSObject *op_obj = JS_VALUE_GET_OBJ(obj);
+                JSShape *sh = op_obj->shape;
+                if (likely(!op_obj->is_exotic && sh->prop_count == 2)) {
+                    JSShapeProperty *prs = get_shape_prop(sh);
+                    if (likely(prs[0].atom == JS_ATOM_value && !(prs[0].flags & JS_PROP_TMASK) &&
+                               prs[1].atom == JS_ATOM_done && !(prs[1].flags & JS_PROP_TMASK) &&
+                               JS_VALUE_GET_TAG(op_obj->prop[1].u.value) == JS_TAG_BOOL)) {
+                        int done = JS_VALUE_GET_BOOL(op_obj->prop[1].u.value);
+                        JSValue val = js_dup(op_obj->prop[0].u.value);
+                        JSValue *sp = sf->cur_sp;
+                        cur_pc += 1;
+                        sf->cur_pc = cur_pc;
+                        sp[-1] = val;
+                        sp[0] = js_bool(done);
+                        sf->cur_sp = sp + 1;
+                        JS_FreeValue(caller_ctx, obj);
+                        if (done) {
+                            JSValue iter = sp[-4];
+                            sp[-4] = JS_UNDEFINED;
+                            JS_FreeValue(caller_ctx, iter);
+                        }
+                    }
+                }
+            }
+        }
+        if (JS_CVMFastEligible[*cur_pc] && likely(caller_ctx->interrupt_counter > 1)) {
             JSObject *p = JS_VALUE_GET_OBJ(sf->cur_func);
             JSFunctionBytecode *b = p->u.func.function_bytecode;
             JSCVMFastState st;

@@ -1767,6 +1767,12 @@ static void qjs_runtime_drain_fast_pools(JSRuntime *rt)
     if (fp) {
         uint32_t i, l;
         rt->fast_pools = NULL;
+        if (fp->iter_result_shape)
+            js_free_shape(rt, fp->iter_result_shape);
+        for (i = 0; i < fp->job2_count; i++)
+            js_free_rt(rt, fp->job2_pool[i]);
+        for (i = 0; i < fp->promise_data_count; i++)
+            js_free_rt(rt, fp->promise_data_pool[i]);
         for (i = 0; i < 90u; i++) {
             if (fp->small_int_strings[i])
                 JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_STRING, fp->small_int_strings[i]));

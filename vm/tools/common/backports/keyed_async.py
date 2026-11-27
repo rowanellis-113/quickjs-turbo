@@ -235,7 +235,7 @@ def async_output(text):
         "static int js_async_generator_await(JSContext *ctx, JSAsyncGeneratorData *s, JSValue value)\n"
         "{\n"
         "    JSValue promise, resolving_funcs[2], resolving_funcs1[2]; int i, res;\n"
-        "    if (likely(!ctx->rt->promise_hook && !js_check_stack_overflow(ctx->rt, 4096) && JS_IsObject(ctx->promise_ctor))) { JSValueConst _rv = value; bool _ok = false, _dir = false; if (JS_IsObject(value)) { JSObject *_po = JS_VALUE_GET_OBJ(value); if (_po->class_id == JS_CLASS_PROMISE) { if (js_async_promise_try_fulfilled(ctx, value, &_rv)) _ok = true; } else if (ctx->interrupt_counter > 1 && js_async_value_non_thenable(ctx, value)) { _dir = true; _ok = true; } } else if (ctx->interrupt_counter > 1) { _dir = true; _ok = true; } if (_ok) { JSJobEntry *_j = js_malloc(ctx, sizeof(*_j) + 2 * sizeof(JSValue)); if (unlikely(!_j)) return -1; if (unlikely(ctx->rt->promise_hook || (_dir && (ctx->interrupt_counter <= 1 || !js_async_value_non_thenable(ctx, value))) || (!_dir && !js_async_promise_try_fulfilled(ctx, value, &_rv)))) { js_free(ctx, _j); } else { if (_dir) --ctx->interrupt_counter; else js_async_promise_mark_handled(value); _j->ctx = ctx; _j->job_func = js_async_gen_core_resume_job; _j->argc = 2; _j->argv[0] = js_dup(JS_MKPTR(JS_TAG_OBJECT, s->generator)); _j->argv[1] = js_dup(_rv); list_add_tail(&_j->link, &ctx->rt->job_list); return 0; } } }\n"
+        "    if (likely(!ctx->rt->promise_hook && !js_check_stack_overflow(ctx->rt, 4096) && JS_IsObject(ctx->promise_ctor))) { JSValueConst _rv = value; bool _ok = false, _dir = false; if (JS_IsObject(value)) { JSObject *_po = JS_VALUE_GET_OBJ(value); if (_po->class_id == JS_CLASS_PROMISE) { if (js_async_promise_try_fulfilled(ctx, value, &_rv)) _ok = true; } else if (ctx->interrupt_counter > 1 && js_async_value_non_thenable(ctx, value)) { _dir = true; _ok = true; } } else if (ctx->interrupt_counter > 1) { _dir = true; _ok = true; } if (_ok) { JSJobEntry *_j = qjs_job2_alloc_fast(ctx); if (unlikely(!_j)) return -1; if (unlikely(ctx->rt->promise_hook || (_dir && (ctx->interrupt_counter <= 1 || !js_async_value_non_thenable(ctx, value))) || (!_dir && !js_async_promise_try_fulfilled(ctx, value, &_rv)))) { js_free(ctx, _j); } else { if (_dir) --ctx->interrupt_counter; else js_async_promise_mark_handled(value); _j->ctx = ctx; _j->job_func = js_async_gen_core_resume_job; _j->argc = 2; _j->argv[0] = js_dup(JS_MKPTR(JS_TAG_OBJECT, s->generator)); _j->argv[1] = js_dup(_rv); list_add_tail(&_j->link, &ctx->rt->job_list); return 0; } } }\n"
         "    promise = js_promise_resolve(ctx, ctx->promise_ctor, 1, vc(&value), 0);",
     )
     old_resolve_fn = """static JSValue js_promise_resolve_function_call(JSContext *ctx,
@@ -362,8 +362,191 @@ def value_fast_paths(text):
     )
     text = replace_exact_lines(
         text,
-        "\n\nvoid JS_FreeRuntime(JSRuntime *rt)",
-        "\ntypedef struct QJSFastValuePools { JSBigInt *bigint_pool[19][8]; uint8_t bigint_count[19]; JSString *small_int_strings[90]; } QJSFastValuePools; static void qjs_runtime_drain_fast_pools(JSRuntime *rt);\nvoid JS_FreeRuntime(JSRuntime *rt)",
+        "/* return < 0 if exception, 0 if no job pending, 1 if a job was\n"
+        "   executed successfully. the context of the job is stored in '*pctx' */\n"
+        "int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)",
+        "typedef struct QJSFastValuePools { JSBigInt *bigint_pool[19][8]; uint8_t bigint_count[19]; JSString *small_int_strings[90]; void *job2_pool[16]; uint8_t job2_count; void *promise_data_pool[16]; uint8_t promise_data_count; JSShape *iter_result_shape; } QJSFastValuePools; static JSValue js_async_func_fast_resume_job(JSContext *, int, JSValueConst *); static void qjs_runtime_drain_fast_pools(JSRuntime *rt);\n"
+        "static inline JSJobEntry *qjs_job2_alloc_fast(JSContext *ctx) { QJSFastValuePools *fp = ctx->rt->fast_pools; if (likely(fp && fp->job2_count)) return (JSJobEntry *)fp->job2_pool[--fp->job2_count]; return js_malloc(ctx, sizeof(JSJobEntry) + 2 * sizeof(JSValue)); }\n"
+        "int JS_ExecutePendingJob(JSRuntime *rt, JSContext **pctx)",
+    )
+    text = replace_exact_lines(
+        text,
+        "    if (JS_IsException(res))\n"
+        "        ret = -1;\n"
+        "    else\n"
+        "        ret = 1;\n"
+        "    JS_FreeValue(ctx, res);\n"
+        "    js_free(ctx, e);\n"
+        "    *pctx = ctx;\n"
+        "    return ret;",
+        "    ret = JS_IsException(res) ? -1 : 1;\n"
+        "    JS_FreeValue(ctx, res);\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    if (likely(e->argc == 2 && rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit && (rt->fast_pools || (rt->fast_pool_ok >= 8 ? (rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools))) != NULL : (++rt->fast_pool_ok, false))) && rt->fast_pools->job2_count < 16u)) { rt->fast_pools->job2_pool[rt->fast_pools->job2_count++] = e; } else\n"
+        "#endif\n"
+        "    js_free(ctx, e);\n"
+        "    *pctx = ctx;\n"
+        "    return ret;",
+    )
+    text = replace_exact_lines(
+        text,
+        "    list_for_each_safe(el, el1, &rt->job_list) {\n"
+        "        JSJobEntry *e = list_entry(el, JSJobEntry, link);\n"
+        "        for(i = 0; i < e->argc; i++)\n"
+        "            JS_FreeValueRT(rt, e->argv[i]);\n"
+        "        js_free_rt(rt, e);\n"
+        "    }",
+        "    list_for_each_safe(el, el1, &rt->job_list) {\n"
+        "        JSJobEntry *e = list_entry(el, JSJobEntry, link);\n"
+        "        if (e->job_func == js_async_func_fast_resume_job) js_async_function_free(rt, JS_VALUE_GET_PTR(e->argv[0]));\n"
+        "        for(i = 0; i < e->argc; i++) JS_FreeValueRT(rt, e->argv[i]);\n"
+        "        js_free_rt(rt, e);\n"
+        "    }",
+    )
+    text = replace_exact_lines(
+        text,
+        "void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj)\n"
+        "{\n"
+        "    assert(class_id < ctx->rt->class_count);",
+        "void JS_SetClassProto(JSContext *ctx, JSClassID class_id, JSValue obj)\n"
+        "{\n"
+        "    assert(class_id < ctx->rt->class_count); if (unlikely(class_id == JS_CLASS_OBJECT && ctx->rt->fast_pools && ctx->rt->fast_pools->iter_result_shape)) { JSShape *_ish = ctx->rt->fast_pools->iter_result_shape; ctx->rt->fast_pools->iter_result_shape = NULL; js_free_shape(ctx->rt, _ish); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    js_free_modules(ctx, JS_FREE_MODULE_ALL);",
+        "    js_free_modules(ctx, JS_FREE_MODULE_ALL); if (rt->fast_pools && rt->fast_pools->iter_result_shape) { JSShape *_ish = rt->fast_pools->iter_result_shape; rt->fast_pools->iter_result_shape = NULL; js_free_shape(rt, _ish); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "static JSValue JS_IteratorGetCompleteValue(JSContext *ctx, JSValue obj,\n"
+        "                                           int *pdone)\n"
+        "{\n"
+        "    JSValue done_val, value;\n"
+        "    int done;\n"
+        "    done_val = JS_GetProperty(ctx, obj, JS_ATOM_done);",
+        "static JSValue JS_IteratorGetCompleteValue(JSContext *ctx, JSValue obj, int *pdone)\n"
+        "{\n"
+        "    JSValue done_val, value; int done;\n"
+        "    if (likely(JS_VALUE_GET_TAG(obj) == JS_TAG_OBJECT)) { JSObject *_p = JS_VALUE_GET_OBJ(obj); JSShape *_sh = _p->shape; if (likely(!_p->is_exotic && _sh->prop_count == 2)) { JSShapeProperty *_prs = get_shape_prop(_sh); if (likely(_prs[0].atom == JS_ATOM_value && !(_prs[0].flags & JS_PROP_TMASK) && _prs[1].atom == JS_ATOM_done && !(_prs[1].flags & JS_PROP_TMASK))) { JSValue _dv = _p->prop[1].u.value; done = (JS_VALUE_GET_TAG(_dv) == JS_TAG_BOOL) ? JS_VALUE_GET_BOOL(_dv) : JS_ToBool(ctx, _dv); if (unlikely(done < 0)) goto fail; *pdone = done; return js_dup(_p->prop[0].u.value); } } }\n"
+        "    done_val = JS_GetProperty(ctx, obj, JS_ATOM_done);",
+    )
+    text = replace_exact_lines(
+        text,
+        "static JSValue js_create_iterator_result(JSContext *ctx,\n"
+        "                                         JSValue val,\n"
+        "                                         bool done)\n"
+        "{\n"
+        "    JSValue obj;\n"
+        "    obj = JS_NewObject(ctx);\n"
+        "    if (JS_IsException(obj)) {\n"
+        "        JS_FreeValue(ctx, val);\n"
+        "        return obj;\n"
+        "    }\n"
+        "    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_value,\n"
+        "                               val, JS_PROP_C_W_E) < 0) {\n"
+        "        goto fail;\n"
+        "    }\n"
+        "    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_done,\n"
+        "                               js_bool(done), JS_PROP_C_W_E) < 0) {\n"
+        "    fail:\n"
+        "        JS_FreeValue(ctx, obj);\n"
+        "        return JS_EXCEPTION;\n"
+        "    }\n"
+        "    return obj;\n"
+        "}",
+        "static JSValue js_create_iterator_result(JSContext *ctx, JSValue val, bool done)\n"
+        "{\n"
+        "    JSValue obj;\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    { QJSFastValuePools *_fp = ctx->rt->fast_pools; if (likely(_fp && _fp->iter_result_shape && JS_IsObject(ctx->class_proto[JS_CLASS_OBJECT]) && _fp->iter_result_shape->proto == JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_OBJECT]))) { JSProperty _props[2]; _props[0].u.value = val; _props[1].u.value = js_bool(done); return JS_NewObjectFromShape(ctx, js_dup_shape(_fp->iter_result_shape), JS_CLASS_OBJECT, _props); } }\n"
+        "#endif\n"
+        "    obj = JS_NewObject(ctx);\n"
+        "    if (JS_IsException(obj)) { JS_FreeValue(ctx, val); return obj; }\n"
+        "    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_value, val, JS_PROP_C_W_E) < 0) goto fail;\n"
+        "    if (JS_DefinePropertyValue(ctx, obj, JS_ATOM_done, js_bool(done), JS_PROP_C_W_E) < 0) { fail: JS_FreeValue(ctx, obj); return JS_EXCEPTION; }\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    { JSRuntime *_rt = ctx->rt; if (_rt->fast_pool_ok && !_rt->in_free && !_rt->malloc_state.malloc_limit && JS_IsObject(ctx->class_proto[JS_CLASS_OBJECT])) { JSShape *_sh = JS_VALUE_GET_OBJ(obj)->shape; if ((_sh->is_hashed & 1) && _sh->prop_count == 2 && !_sh->deleted_prop_count && _sh->proto == JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_OBJECT]) && get_shape_prop(_sh)[0].atom == JS_ATOM_value && get_shape_prop(_sh)[0].flags == JS_PROP_C_W_E && get_shape_prop(_sh)[1].atom == JS_ATOM_done && get_shape_prop(_sh)[1].flags == JS_PROP_C_W_E) { QJSFastValuePools *_fp = _rt->fast_pools ? _rt->fast_pools : (_rt->fast_pool_ok >= 8 ? (_rt->fast_pools = js_mallocz_rt(_rt, sizeof(QJSFastValuePools))) : (++_rt->fast_pool_ok, (QJSFastValuePools *)NULL)); if (_fp) { JSShape *_old = _fp->iter_result_shape; _fp->iter_result_shape = js_dup_shape(_sh); js_free_shape_null(_rt, _old); } } } }\n"
+        "#endif\n"
+        "    return obj;\n"
+        "}",
+    )
+    text = replace_exact_lines(
+        text,
+        "    for(i = 0; i < 2; i++) {\n"
+        "        list_for_each_safe(el, el1, &s->promise_reactions[i]) {\n"
+        "            JSPromiseReactionData *rd =\n"
+        "                list_entry(el, JSPromiseReactionData, link);\n"
+        "            promise_reaction_data_free(rt, rd);\n"
+        "        }\n"
+        "    }\n"
+        "    JS_FreeValueRT(rt, s->promise_result);\n"
+        "    js_free_rt(rt, s);\n"
+        "}",
+        "    for(i = 0; i < 2; i++) { list_for_each_safe(el, el1, &s->promise_reactions[i]) { promise_reaction_data_free(rt, list_entry(el, JSPromiseReactionData, link)); } }\n"
+        "    JS_FreeValueRT(rt, s->promise_result);\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    if (likely(rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit && (rt->fast_pools || (rt->fast_pool_ok >= 8 ? (rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools))) != NULL : (++rt->fast_pool_ok, false))) && rt->fast_pools->promise_data_count < 16u)) { rt->fast_pools->promise_data_pool[rt->fast_pools->promise_data_count++] = s; return; }\n"
+        "#endif\n"
+        "    js_free_rt(rt, s); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    obj = js_create_from_ctor(ctx, new_target, JS_CLASS_PROMISE);\n"
+        "    if (JS_IsException(obj))\n"
+        "        return JS_EXCEPTION;\n"
+        "    s = js_mallocz(ctx, sizeof(*s));\n"
+        "    if (!s) {\n"
+        "        JS_FreeValue(ctx, obj);\n"
+        "        return JS_EXCEPTION;\n"
+        "    }",
+        "    obj = JS_IsUndefined(new_target) ? JS_NewObjectProtoClass(ctx, ctx->class_proto[JS_CLASS_PROMISE], JS_CLASS_PROMISE) : js_create_from_ctor(ctx, new_target, JS_CLASS_PROMISE);\n"
+        "    if (unlikely(JS_IsException(obj))) return JS_EXCEPTION;\n"
+        "#ifndef FORCE_GC_AT_MALLOC\n"
+        "    if (likely(ctx->rt->fast_pools && ctx->rt->fast_pools->promise_data_count)) { s = (JSPromiseData *)ctx->rt->fast_pools->promise_data_pool[--ctx->rt->fast_pools->promise_data_count]; memset(s, 0, sizeof(*s)); } else\n"
+        "#endif\n"
+        "    { s = js_mallocz(ctx, sizeof(*s));\n"
+        "    if (unlikely(!s)) { JS_FreeValue(ctx, obj); return JS_EXCEPTION; } }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    if (JS_ToIndex(ctx, &pos, argv[0]))\n"
+        "        return JS_EXCEPTION;\n"
+        "    littleEndian = argc > 1 && JS_ToBool(ctx, argv[1]);",
+        "    if (likely(JS_VALUE_GET_TAG(argv[0]) == JS_TAG_INT && JS_VALUE_GET_INT(argv[0]) >= 0)) pos = (uint32_t)JS_VALUE_GET_INT(argv[0]); else if (JS_ToIndex(ctx, &pos, argv[0])) return JS_EXCEPTION;\n"
+        "    littleEndian = argc > 1 && (JS_VALUE_GET_TAG(argv[1]) == JS_TAG_BOOL ? JS_VALUE_GET_BOOL(argv[1]) : JS_ToBool(ctx, argv[1]));",
+    )
+    text = replace_exact_lines(
+        text,
+        "    if (JS_ToIndex(ctx, &pos, argv[0]))\n"
+        "        return JS_EXCEPTION;\n"
+        "    val = argv[1];\n"
+        "    v = 0; /* avoid warning */\n"
+        "    v64 = 0; /* avoid warning */\n"
+        "    if (class_id <= JS_CLASS_UINT32_ARRAY) {\n"
+        "        if (JS_ToUint32(ctx, &v, val))\n"
+        "            return JS_EXCEPTION;\n"
+        "    } else if (class_id <= JS_CLASS_BIG_UINT64_ARRAY) {\n"
+        "        if (JS_ToBigInt64(ctx, (int64_t *)&v64, val))\n"
+        "            return JS_EXCEPTION;\n"
+        "    } else {\n"
+        "        double d;\n"
+        "        if (JS_ToFloat64(ctx, &d, val))\n"
+        "            return JS_EXCEPTION;",
+        "    if (likely(JS_VALUE_GET_TAG(argv[0]) == JS_TAG_INT && JS_VALUE_GET_INT(argv[0]) >= 0)) pos = (uint32_t)JS_VALUE_GET_INT(argv[0]); else if (JS_ToIndex(ctx, &pos, argv[0])) return JS_EXCEPTION;\n"
+        "    val = argv[1]; v = 0; v64 = 0;\n"
+        "    if (class_id <= JS_CLASS_UINT32_ARRAY) {\n"
+        "        if (likely(JS_VALUE_GET_TAG(val) == JS_TAG_INT)) v = (uint32_t)JS_VALUE_GET_INT(val); else if (JS_ToUint32(ctx, &v, val)) return JS_EXCEPTION;\n"
+        "    } else if (class_id <= JS_CLASS_BIG_UINT64_ARRAY) {\n"
+        "        if (JS_ToBigInt64(ctx, (int64_t *)&v64, val)) return JS_EXCEPTION;\n"
+        "    } else {\n"
+        "        double d;\n"
+        "        if (likely(JS_VALUE_GET_TAG(val) == JS_TAG_FLOAT64)) d = JS_VALUE_GET_FLOAT64(val); else if (JS_VALUE_GET_TAG(val) == JS_TAG_INT) d = (double)JS_VALUE_GET_INT(val); else if (JS_ToFloat64(ctx, &d, val)) return JS_EXCEPTION;",
+    )
+    text = replace_exact_lines(
+        text,
+        "    littleEndian = argc > 2 && JS_ToBool(ctx, argv[2]);",
+        "    littleEndian = argc > 2 && (JS_VALUE_GET_TAG(argv[2]) == JS_TAG_BOOL ? JS_VALUE_GET_BOOL(argv[2]) : JS_ToBool(ctx, argv[2]));",
     )
     text = replace_exact_lines(
         text,

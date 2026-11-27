@@ -16,12 +16,32 @@ static inline bool js_async_value_non_thenable(JSContext *ctx, JSValueConst valu
     if (!JS_IsObject(value))
         return true;
     obj = JS_VALUE_GET_OBJ(value);
-    if (obj->class_id != JS_CLASS_OBJECT || obj->is_exotic)
+    if (obj->class_id == JS_CLASS_OBJECT && !obj->is_exotic) {
+        JSShape *sh = obj->shape;
+        if (sh->prop_count == 2) {
+            JSShapeProperty *prs = get_shape_prop(sh);
+            if (prs[0].atom == JS_ATOM_value && prs[1].atom == JS_ATOM_done) {
+                obj = sh->proto;
+                depth = 1;
+            }
+        }
+    } else if ((obj->class_id == JS_CLASS_DATAVIEW || obj->class_id == JS_CLASS_ARRAY_BUFFER ||
+                obj->class_id == JS_CLASS_MAP || obj->class_id == JS_CLASS_SET) &&
+               !obj->is_exotic) {
+        /* non-exotic built-in container; check own + prototype chain */
+    } else if ((obj->class_id == JS_CLASS_ARRAY || is_typed_array(obj->class_id)) &&
+               obj->fast_array) {
+        /* JS_ATOM_then is never a numeric index; fast_array exotic does not intercept it */
+    } else {
         return false;
+    }
     while (obj) {
         JSProperty *prop;
         JSShapeProperty *sp;
-        if (++depth > 8 || obj->class_id != JS_CLASS_OBJECT || obj->is_exotic)
+        if (++depth > 8)
+            return false;
+        if (depth > 1 && !((obj->class_id == JS_CLASS_OBJECT && !obj->is_exotic) ||
+                           (obj->class_id == JS_CLASS_ARRAY && obj->fast_array)))
             return false;
         sp = find_own_property(&prop, obj, JS_ATOM_then);
         if (sp)
@@ -50,26 +70,24 @@ static inline bool js_async_promise_proto_ctor_std(JSContext *ctx)
 
 static JSValue js_async_func_fast_resume_job(JSContext *ctx, int argc, JSValueConst *argv)
 {
-    JSObject *p;
-    JSAsyncFunctionData *s;
+    JSAsyncFunctionData *s = JS_VALUE_GET_PTR(argv[0]);
+    bool ok;
     (void)argc;
-    if (unlikely(js_poll_interrupts(ctx)))
+    if (unlikely(js_poll_interrupts(ctx))) {
+        js_async_function_free(ctx->rt, s);
         return JS_EXCEPTION;
-    p = JS_VALUE_GET_OBJ(argv[0]);
-    s = p->u.async_function_data;
+    }
     s->func_state.throw_flag = false;
     s->func_state.frame.cur_sp[-1] = js_dup(argv[1]);
-    if (!js_async_function_resume(ctx, s))
-        return JS_EXCEPTION;
-    return JS_UNDEFINED;
+    ok = js_async_function_resume(ctx, s);
+    js_async_function_free(ctx->rt, s);
+    return ok ? JS_UNDEFINED : JS_EXCEPTION;
 }
 
 /* 1=enqueued fast, 0=use original await path, -1=allocation error. */
 static int js_async_function_await_fast(JSContext *ctx, JSAsyncFunctionData *s, JSValueConst value)
 {
     JSValueConst resolved_val = value;
-    JSValue resolve_obj;
-    JSObject *ro;
     JSJobEntry *job;
     bool direct = true;
     if (unlikely(ctx->rt->promise_hook || js_check_stack_overflow(ctx->rt, 4096) ||
@@ -87,24 +105,15 @@ static int js_async_function_await_fast(JSContext *ctx, JSAsyncFunctionData *s, 
     } else if (ctx->interrupt_counter <= 1) {
         return 0;
     }
-    resolve_obj = JS_NewObjectProtoClass(ctx, ctx->function_proto, JS_CLASS_ASYNC_FUNCTION_RESOLVE);
-    if (unlikely(JS_IsException(resolve_obj)))
+    job = qjs_job2_alloc_fast(ctx);
+    if (unlikely(!job))
         return -1;
-    ro = JS_VALUE_GET_OBJ(resolve_obj);
-    JS_REF_COUNT(s)++;
-    ro->u.async_function_data = s;
-    job = js_malloc(ctx, sizeof(*job) + 2 * sizeof(JSValue));
-    if (unlikely(!job)) {
-        JS_FreeValue(ctx, resolve_obj);
-        return -1;
-    }
     if (unlikely(
             ctx->rt->promise_hook ||
             (direct && (ctx->interrupt_counter <= 1 || js_check_stack_overflow(ctx->rt, 4096) ||
                         !js_async_value_non_thenable(ctx, value))) ||
             (!direct && !js_async_promise_try_fulfilled(ctx, value, &resolved_val)))) {
         js_free(ctx, job);
-        JS_FreeValue(ctx, resolve_obj);
         return 0;
     }
     assert(!ctx->rt->in_free);
@@ -112,10 +121,12 @@ static int js_async_function_await_fast(JSContext *ctx, JSAsyncFunctionData *s, 
         --ctx->interrupt_counter;
     else
         js_async_promise_mark_handled(value);
+    JS_REF_COUNT(s)++;
     job->ctx = ctx;
     job->job_func = js_async_func_fast_resume_job;
     job->argc = 2;
-    job->argv[0] = resolve_obj; /* transfer ownership */
+    job->argv[0] =
+        JS_MKPTR(JS_TAG_INT, s); /* direct refcount ownership; freed on job run/teardown */
     job->argv[1] = js_dup(resolved_val);
     list_add_tail(&job->link, &ctx->rt->job_list);
     return 1;

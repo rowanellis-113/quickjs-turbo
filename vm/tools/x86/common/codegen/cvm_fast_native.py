@@ -43,7 +43,6 @@ def _build_handlers(
     from abi_layout import constants as abi_constants
 
     fields = abi["offsets"]
-    consts = abi["constants"]
     bits = abi["bits"]
     sizes = abi["sizes"]
     atoms = _load_atoms(source_root, abi)
@@ -301,6 +300,25 @@ def _build_handlers(
         "mov QWORD PTR [r13+24], r9",
         "add r13, 32",
         *dup_if_rc("r8", "r9d", "cvm_dup2_b"),
+        *disp(1),
+    ]
+    handlers["dup3"] = [
+        "mov r8, QWORD PTR [r13-48]",
+        "mov r9, QWORD PTR [r13-40]",
+        "mov QWORD PTR [r13], r8",
+        "mov QWORD PTR [r13+8], r9",
+        *dup_if_rc("r8", "r9d", "cvm_dup3_a"),
+        "mov r8, QWORD PTR [r13-32]",
+        "mov r9, QWORD PTR [r13-24]",
+        "mov QWORD PTR [r13+16], r8",
+        "mov QWORD PTR [r13+24], r9",
+        *dup_if_rc("r8", "r9d", "cvm_dup3_b"),
+        "mov r8, QWORD PTR [r13-16]",
+        "mov r9, QWORD PTR [r13-8]",
+        "mov QWORD PTR [r13+32], r8",
+        "mov QWORD PTR [r13+40], r9",
+        "add r13, 48",
+        *dup_if_rc("r8", "r9d", "cvm_dup3_c"),
         *disp(1),
     ]
     handlers["nip"] = [

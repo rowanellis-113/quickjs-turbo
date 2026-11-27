@@ -62,10 +62,35 @@ static bool js_ready_await_non_thenable(JSValueConst value)
         return false;
     }
     object = JS_VALUE_GET_OBJ(value);
+    if (object->class_id == JS_CLASS_OBJECT && !object->is_exotic) {
+        JSShape *sh = object->shape;
+        if (sh->prop_count == 2) {
+            JSShapeProperty *prs = get_shape_prop(sh);
+            if (prs[0].atom == JS_ATOM_value && prs[1].atom == JS_ATOM_done) {
+                object = sh->proto;
+                depth = 1;
+            }
+        }
+    } else if ((object->class_id == JS_CLASS_DATAVIEW ||
+                object->class_id == JS_CLASS_ARRAY_BUFFER || object->class_id == JS_CLASS_MAP ||
+                object->class_id == JS_CLASS_SET) &&
+               !object->is_exotic) {
+        /* non-exotic built-in container */
+    } else if ((object->class_id == JS_CLASS_ARRAY ||
+                (object->class_id >= JS_CLASS_UINT8C_ARRAY &&
+                 object->class_id <= JS_CLASS_FLOAT64_ARRAY)) &&
+               object->fast_array) {
+        /* JS_ATOM_then is never a numeric index */
+    } else {
+        return false;
+    }
     while (object) {
         JSProperty *property;
         JSShapeProperty *shape_property;
-        if (++depth > 8 || object->class_id != JS_CLASS_OBJECT || object->is_exotic)
+        if (++depth > 8)
+            return false;
+        if (depth > 1 && !((object->class_id == JS_CLASS_OBJECT && !object->is_exotic) ||
+                           (object->class_id == JS_CLASS_ARRAY && object->fast_array)))
             return false;
         shape_property = find_own_property(&property, object, JS_ATOM_then);
         if (shape_property)
