@@ -83,8 +83,10 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
             return JS_EXCEPTION;
     }
 
+    bool borrowed_str = false;
     if (likely(argc >= 1 && JS_VALUE_GET_TAG(argv[0]) == JS_TAG_STRING)) {
-        str_val = js_dup(argv[0]);
+        str_val = argv[0];
+        borrowed_str = true;
     } else {
         str_val = JS_ToString(ctx, argv[0]);
         if (JS_IsException(str_val))
@@ -100,6 +102,10 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     capture = NULL;
 
     if (!js_regexp_fast_read_last_index(this_val, &last_index)) {
+        if (borrowed_str) {
+            str_val = js_dup(str_val);
+            borrowed_str = false;
+        }
         val = JS_GetProperty(ctx, this_val, JS_ATOM_lastIndex);
         if (JS_IsException(val) || JS_ToLengthFree(ctx, &last_index, val))
             goto fail;
@@ -155,9 +161,14 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
     } else {
         if (re_flags & (LRE_FLAG_GLOBAL | LRE_FLAG_STICKY)) {
             int32_t new_li = (int32_t)((capture[1] - str_buf) >> shift);
-            if (!js_regexp_fast_set_last_index(ctx, this_val, new_li) &&
-                JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, js_int32(new_li)) < 0)
-                goto fail;
+            if (!js_regexp_fast_set_last_index(ctx, this_val, new_li)) {
+                if (borrowed_str) {
+                    str_val = js_dup(str_val);
+                    borrowed_str = false;
+                }
+                if (JS_SetProperty(ctx, this_val, JS_ATOM_lastIndex, js_int32(new_li)) < 0)
+                    goto fail;
+            }
         }
         group_name_ptr = lre_get_groupnames(re_bytecode);
         if (group_name_ptr) {
@@ -176,10 +187,11 @@ static JSValue js_regexp_exec(JSContext *ctx, JSValueConst this_val, int argc, J
             }
         }
         index = (capture[0] - str_buf) >> shift;
-        props[0].u.value = js_int32(capture_count); // length
-        props[1].u.value = js_int32(index);         // index
-        props[2].u.value = str_val;                 // input
-        props[3].u.value = js_dup(groups);          // groups
+        props[0].u.value = js_int32(capture_count);                  // length
+        props[1].u.value = js_int32(index);                          // index
+        props[2].u.value = borrowed_str ? js_dup(str_val) : str_val; // input
+        props[3].u.value = js_dup(groups);                           // groups
+        borrowed_str = false;
         str_val = JS_UNDEFINED;
         obj = JS_NewObjectFromShape(ctx, js_dup_shape(ctx->regexp_result_shape), JS_CLASS_ARRAY,
                                     props);
@@ -300,7 +312,8 @@ fail:
     JS_FreeAtom(ctx, group_name);
     JS_FreeValue(ctx, indices_groups);
     JS_FreeValue(ctx, indices);
-    JS_FreeValue(ctx, str_val);
+    if (!borrowed_str)
+        JS_FreeValue(ctx, str_val);
     JS_FreeValue(ctx, groups);
     JS_FreeValue(ctx, obj);
     if (capture != small_capture)

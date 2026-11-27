@@ -247,23 +247,25 @@ static no_inline intptr_t FRAME_RE_EXEC_NAME(REExecContext *s, uint8_t **capture
                 if (cptr < cbuf_end) {
                     PEEK_CHAR(c, cptr, cbuf_end, cbuf_type);
                     if (atom == REOP_range || atom == REOP_range32) {
-                        unsigned n = get_u16(retry + 1), i;
+                        unsigned n = get_u16(retry + 1);
                         const uint8_t *ranges = retry + 3;
-                        for (i = 0; i < n; i++) {
-                            uint32_t low, high;
-                            if (atom == REOP_range) {
-                                low = get_u16(ranges + 4 * i);
-                                high = get_u16(ranges + 4 * i + 2);
-                                if (i + 1 == n && high == 0xffff)
-                                    high = UINT32_MAX;
-                            } else {
-                                low = get_u32(ranges + 8 * i);
-                                high = get_u32(ranges + 8 * i + 4);
-                            }
+                        if (atom == REOP_range && n <= 2) {
+                            uint32_t low = get_u16(ranges);
+                            uint32_t high = get_u16(ranges + 2);
+                            if (n == 1 && high == 0xffff)
+                                high = UINT32_MAX;
                             if (c >= low && c <= high) {
                                 possible = true;
-                                break;
+                            } else if (n == 2) {
+                                low = get_u16(ranges + 4);
+                                high = get_u16(ranges + 6);
+                                if (high == 0xffff)
+                                    high = UINT32_MAX;
+                                possible = c >= low && c <= high;
                             }
+                        } else {
+                            possible =
+                                lre_range_contains_sorted(ranges, n, c, atom == REOP_range32);
                         }
                     } else {
                         uint32_t expected = (atom == REOP_char || atom == REOP_char_i)
@@ -302,35 +304,31 @@ static no_inline intptr_t FRAME_RE_EXEC_NAME(REExecContext *s, uint8_t **capture
                     const uint8_t *probe = (opcode == REOP_split_next_first) ? pc : (pc + (int)val);
                     if (probe + 2 < s->bytecode_end && probe[0] == REOP_save_start)
                         probe += 2;
-                    if (probe < s->bytecode_end) {
-                        uint8_t popc = probe[0];
-                        if (popc == REOP_char && probe + 3 <= s->bytecode_end) {
-                            if (get_u16(probe + 1) != *cptr) {
-                                if (opcode == REOP_split_next_first)
-                                    pc += (int)val;
-                                RE_VM_NEXT();
-                            }
-                        } else if (popc == REOP_range && probe + 3 <= s->bytecode_end) {
-                            unsigned rn = get_u16(probe + 1);
-                            if (rn <= 6 && probe + 3 + 4 * rn <= s->bytecode_end) {
-                                const uint8_t *ranges = probe + 3;
-                                uint8_t ch = *cptr;
-                                bool ok = false;
-                                for (unsigned ri = 0; ri < rn; ri++) {
-                                    uint16_t lo = get_u16(ranges + 4 * ri);
-                                    uint16_t hi = get_u16(ranges + 4 * ri + 2);
-                                    if (ch >= lo && ch <= hi) {
-                                        ok = true;
-                                        break;
-                                    }
-                                }
-                                if (!ok) {
-                                    if (opcode == REOP_split_next_first)
-                                        pc += (int)val;
-                                    RE_VM_NEXT();
-                                }
-                            }
+                    if (probe + 3 <= s->bytecode_end && probe[0] == REOP_char) {
+                        if (get_u16(probe + 1) != *cptr) {
+                            if (opcode == REOP_split_next_first)
+                                pc += (int)val;
+                            RE_VM_NEXT();
                         }
+                    }
+                } else if (opcode == REOP_split_goto_first && (int)val < 0 &&
+                           pc + 3 <= s->bytecode_end && pc[0] == REOP_save_end &&
+                           pc[1] < (uint32_t)s->capture_count && pc[2] == REOP_match) {
+                    const uint8_t *target = pc + (int)val;
+                    int handled = 0;
+                    cptr = lre_greedy_tail_scan8(s, target, pc, cptr, cbuf_end, &handled);
+                    if (handled != 0) {
+                        if (handled < 0)
+                            return handled;
+                        RE_VM_NEXT();
+                    }
+                    if (bp > s->stack_buf && sp == bp && bp[-3].ptr == pc &&
+                        bp[-1].bp.type == RE_EXEC_STATE_SPLIT) {
+                        bp[-2].ptr = (uint8_t *)cptr;
+                        pc = target;
+                        if (lre_poll_timeout(s))
+                            return LRE_RET_TIMEOUT;
+                        RE_VM_NEXT();
                     }
                 }
 #endif
@@ -647,9 +645,26 @@ static no_inline intptr_t FRAME_RE_EXEC_NAME(REExecContext *s, uint8_t **capture
                     goto no_match;
                 }
                 idx_min = 0;
+#if defined(FRAME_RE_CBUF_TYPE) && FRAME_RE_CBUF_TYPE == 0
+                {
+                    int lim = n < 8 ? n : 8;
+                    for (int ri = 0; ri < lim; ri++) {
+                        low = get_u16(pc + ri * 4);
+                        if (c < low)
+                            goto no_match;
+                        high = get_u16(pc + ri * 4 + 2);
+                        if (c <= high)
+                            goto range_match;
+                    }
+                    if (n <= 8)
+                        goto no_match;
+                    idx_min = 8;
+                }
+#else
                 low = get_u16(pc + 0 * 4);
                 if (c < low)
                     goto no_match;
+#endif
                 idx_max = n - 1;
                 high = get_u16(pc + idx_max * 4 + 2);
                 /* 0xffff in for last value means +infinity */
@@ -688,9 +703,26 @@ static no_inline intptr_t FRAME_RE_EXEC_NAME(REExecContext *s, uint8_t **capture
                     c = lre_canonicalize(c, s->is_unicode);
                 }
                 idx_min = 0;
+#if defined(FRAME_RE_CBUF_TYPE) && FRAME_RE_CBUF_TYPE == 0
+                {
+                    int lim = n < 8 ? n : 8;
+                    for (int ri = 0; ri < lim; ri++) {
+                        low = get_u32(pc + ri * 8);
+                        if (c < low)
+                            goto no_match;
+                        high = get_u32(pc + ri * 8 + 4);
+                        if (c <= high)
+                            goto range32_match;
+                    }
+                    if (n <= 8)
+                        goto no_match;
+                    idx_min = 8;
+                }
+#else
                 low = get_u32(pc + 0 * 8);
                 if (c < low)
                     goto no_match;
+#endif
                 idx_max = n - 1;
                 high = get_u32(pc + idx_max * 8 + 4);
                 if (c > high)

@@ -3143,6 +3143,177 @@ static no_inline int re_scan_search_lookahead(REExecContext *s, const uint8_t *m
     }
 }
 
+/* Sorted range membership helper kept out-of-line so the main backtracking
+ * switch retains a small frame and register set on all compilers. */
+static no_inline bool lre_range_contains_sorted(const uint8_t *ranges, unsigned n, uint32_t c,
+                                                bool is_32)
+{
+    unsigned lim = n < 8 ? n : 8;
+    if (!is_32) {
+        for (unsigned i = 0; i < lim; i++) {
+            uint32_t low = get_u16(ranges + 4 * i);
+            uint32_t high = get_u16(ranges + 4 * i + 2);
+            if (i + 1 == n && high == 0xffff)
+                high = UINT32_MAX;
+            if (c < low)
+                return false;
+            if (c <= high)
+                return true;
+        }
+        if (n > 8) {
+            unsigned lo_i = 8, hi_i = n - 1;
+            uint32_t last_hi = get_u16(ranges + 4 * hi_i + 2);
+            if (unlikely(c >= 0xffff) && last_hi == 0xffff)
+                return true;
+            if (c <= last_hi) {
+                while (lo_i <= hi_i) {
+                    unsigned mid = (lo_i + hi_i) >> 1;
+                    uint32_t low = get_u16(ranges + 4 * mid);
+                    uint32_t high = get_u16(ranges + 4 * mid + 2);
+                    if (c < low)
+                        hi_i = mid - 1;
+                    else if (c > high)
+                        lo_i = mid + 1;
+                    else
+                        return true;
+                }
+            }
+        }
+        return false;
+    }
+    for (unsigned i = 0; i < lim; i++) {
+        uint32_t low = get_u32(ranges + 8 * i);
+        if (c < low)
+            return false;
+        if (c <= get_u32(ranges + 8 * i + 4))
+            return true;
+    }
+    if (n > 8) {
+        unsigned lo_i = 8, hi_i = n - 1;
+        if (c <= get_u32(ranges + 8 * hi_i + 4)) {
+            while (lo_i <= hi_i) {
+                unsigned mid = (lo_i + hi_i) >> 1;
+                uint32_t low = get_u32(ranges + 8 * mid);
+                uint32_t high = get_u32(ranges + 8 * mid + 4);
+                if (c < low)
+                    hi_i = mid - 1;
+                else if (c > high)
+                    lo_i = mid + 1;
+                else
+                    return true;
+            }
+        }
+    }
+    return false;
+}
+
+#if !defined(DUMP_EXEC) && !defined(QJS_REGEXP_NO_WIDTH8)
+/* Possessive end-of-pattern greedy tail scan for 8-bit inputs.
+ * Sets *handled = 1 on completion, LRE_RET_TIMEOUT on interrupt, or 0 if
+ * the loop body is not a single REOP_dot/REOP_range/REOP_range32 atom. */
+static no_inline const uint8_t *lre_greedy_tail_scan8(REExecContext *s, const uint8_t *target,
+                                                      const uint8_t *pc, const uint8_t *cptr,
+                                                      const uint8_t *cbuf_end, int *handled)
+{
+    if (target == pc - 6 && target[0] == REOP_dot) {
+        while (cptr < cbuf_end) {
+            const uint8_t *seg_end = cbuf_end;
+            const uint8_t *start_p = cptr;
+            if ((size_t)(seg_end - cptr) > (size_t)s->interrupt_counter)
+                seg_end = cptr + s->interrupt_counter;
+            while (cptr < seg_end && *cptr != '\n' && *cptr != '\r')
+                cptr++;
+            if (cptr < seg_end)
+                break;
+            s->interrupt_counter -= (int)(cptr - start_p);
+            if (s->interrupt_counter <= 0) {
+                s->interrupt_counter = INTERRUPT_COUNTER_INIT;
+                if (lre_check_timeout(s->opaque)) {
+                    *handled = LRE_RET_TIMEOUT;
+                    return cptr;
+                }
+            }
+        }
+        *handled = 1;
+        return cptr;
+    }
+    if (target < pc - 8 && (target[0] == REOP_range || target[0] == REOP_range32)) {
+        unsigned rn = get_u16(target + 1);
+        unsigned stride = target[0] == REOP_range ? 4 : 8;
+        if (rn > 0 && target + 3 + (size_t)rn * stride == pc - 5) {
+            const uint8_t *ranges = target + 3;
+            while (cptr < cbuf_end) {
+                const uint8_t *seg_end = cbuf_end;
+                const uint8_t *start_p = cptr;
+                if ((size_t)(seg_end - cptr) > (size_t)s->interrupt_counter)
+                    seg_end = cptr + s->interrupt_counter;
+                if (stride == 4) {
+                    if (rn <= 2) {
+                        uint16_t lo0 = get_u16(ranges), hi0 = get_u16(ranges + 2);
+                        uint16_t lo1 = rn == 2 ? get_u16(ranges + 4) : 1;
+                        uint16_t hi1 = rn == 2 ? get_u16(ranges + 6) : 0;
+                        while (cptr < seg_end) {
+                            uint8_t ch = *cptr;
+                            if ((ch >= lo0 && ch <= hi0) || (ch >= lo1 && ch <= hi1))
+                                cptr++;
+                            else
+                                goto done;
+                        }
+                    } else {
+                        while (cptr < seg_end) {
+                            uint8_t ch = *cptr;
+                            bool hit = false;
+                            for (unsigned ri = 0; ri < rn; ri++) {
+                                uint16_t lo = get_u16(ranges + 4 * ri);
+                                if (ch < lo)
+                                    break;
+                                if (ch <= get_u16(ranges + 4 * ri + 2)) {
+                                    hit = true;
+                                    break;
+                                }
+                            }
+                            if (!hit)
+                                goto done;
+                            cptr++;
+                        }
+                    }
+                } else {
+                    while (cptr < seg_end) {
+                        uint8_t ch = *cptr;
+                        bool hit = false;
+                        for (unsigned ri = 0; ri < rn; ri++) {
+                            uint32_t lo = get_u32(ranges + 8 * ri);
+                            if (ch < lo)
+                                break;
+                            if (ch <= get_u32(ranges + 8 * ri + 4)) {
+                                hit = true;
+                                break;
+                            }
+                        }
+                        if (!hit)
+                            goto done;
+                        cptr++;
+                    }
+                }
+                s->interrupt_counter -= (int)(cptr - start_p);
+                if (s->interrupt_counter <= 0) {
+                    s->interrupt_counter = INTERRUPT_COUNTER_INIT;
+                    if (lre_check_timeout(s->opaque)) {
+                        *handled = LRE_RET_TIMEOUT;
+                        return cptr;
+                    }
+                }
+            }
+        done:
+            *handled = 1;
+            return cptr;
+        }
+    }
+    *handled = 0;
+    return cptr;
+}
+#endif
+
 /* return 1 if match, 0 if not match or < 0 if error. */
 /* Yarr-style character-width specialization. The generic VM remains the
  * only implementation on other compilers/platforms and in dump builds.
@@ -3170,11 +3341,31 @@ static int lre_exec_registers(uint8_t **capture, const uint8_t *bc_buf, const ui
     int re_flags, i, ret;
     const uint8_t *cptr;
     const uint8_t *entry = bc_buf + RE_HEADER_LEN;
-    const uint8_t *filter, *lookahead = NULL, *tests;
+    const uint8_t *filter = NULL, *lookahead = NULL, *tests;
     size_t body_len = get_u32(bc_buf + RE_HEADER_BYTECODE_LEN), skip = 0;
     int prefix = re_search_prefix_len(entry, body_len);
+    bool sticky_filter_checked = false;
 
     re_flags = lre_get_flags(bc_buf);
+#ifdef FRAME_RE_WIDTH8_ENABLED
+    /* Sticky 8-bit start-filter ultra-fast reject: skip REExecContext setup
+       when the first character at cindex is proven outside the start set. */
+    if (cbuf_type == 0 && prefix == 0 && body_len >= 13 && entry[0] == REOP_lookahead &&
+        (entry[5] == REOP_range || entry[5] == REOP_range32)) {
+        filter = re_start_filter(entry, body_len, &skip);
+        if (filter) {
+            if (cindex >= clen || !re_start_filter_contains(filter, cbuf[cindex])) {
+                int cap2 = bc_buf[RE_HEADER_CAPTURE_COUNT] * 2;
+                for (i = 0; i < cap2; i++)
+                    capture[i] = NULL;
+                return 0;
+            }
+            entry += skip;
+            filter = NULL;
+            sticky_filter_checked = true;
+        }
+    }
+#endif
     s->is_unicode = (re_flags & (LRE_FLAG_UNICODE | LRE_FLAG_UNICODE_SETS)) != 0;
     s->capture_count = bc_buf[RE_HEADER_CAPTURE_COUNT];
     s->cbuf = cbuf;
@@ -3200,17 +3391,19 @@ static int lre_exec_registers(uint8_t **capture, const uint8_t *bc_buf, const ui
         }
     }
 
-    tests = entry + prefix;
-    if (body_len > (size_t)prefix && tests[0] == REOP_search_lookahead) {
-        unsigned length = re_search_lookahead_size(tests, body_len - prefix, false);
-        if (!length)
-            return LRE_RET_BYTECODE_ERROR;
-        lookahead = tests;
-        tests += length;
+    if (!sticky_filter_checked) {
+        tests = entry + prefix;
+        if (body_len > (size_t)prefix && tests[0] == REOP_search_lookahead) {
+            unsigned length = re_search_lookahead_size(tests, body_len - prefix, false);
+            if (!length)
+                return LRE_RET_BYTECODE_ERROR;
+            lookahead = tests;
+            tests += length;
+        }
+        filter = re_start_filter(tests, s->bytecode_end - tests, &skip);
+        if (filter || lookahead)
+            entry = tests + skip;
     }
-    filter = re_start_filter(tests, s->bytecode_end - tests, &skip);
-    if (filter || lookahead)
-        entry = tests + skip;
     /* A first-set miss never enters the backtracking VM or its capture undo
        log. Retain one VM call site for the compiler's normal single-use
        inlining, including expressions which decline the optimization. */

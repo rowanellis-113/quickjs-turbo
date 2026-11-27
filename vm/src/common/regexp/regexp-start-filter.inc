@@ -218,16 +218,39 @@ static bool re_start_filter_contains(const uint8_t *atom, uint32_t c)
     unsigned n = get_u16(atom + 1), i;
     unsigned stride = atom[0] == REOP_range ? 4 : 8;
     const uint8_t *ranges = atom + 3;
+    if (n > 6 && stride == 4) {
+        unsigned lo_i = 0, hi_i = n - 1;
+        uint32_t first_lo = get_u16(ranges);
+        if (c < first_lo)
+            return false;
+        uint32_t last_hi = get_u16(ranges + 4 * hi_i + 2);
+        if (unlikely(c >= 0xffff) && last_hi == 0xffff)
+            return true;
+        if (c > last_hi)
+            return false;
+        while (lo_i <= hi_i) {
+            unsigned mid = (lo_i + hi_i) >> 1;
+            uint32_t low = get_u16(ranges + 4 * mid);
+            uint32_t high = get_u16(ranges + 4 * mid + 2);
+            if (c < low)
+                hi_i = mid - 1;
+            else if (c > high)
+                lo_i = mid + 1;
+            else
+                return true;
+        }
+        return false;
+    }
     for (i = 0; i < n; i++) {
         uint32_t low = stride == 4 ? get_u16(ranges + stride * i) : get_u32(ranges + stride * i);
         uint32_t high =
             stride == 4 ? get_u16(ranges + stride * i + 2) : get_u32(ranges + stride * i + 4);
         if (stride == 4 && i + 1 == n && high == 0xffff)
             high = UINT32_MAX;
-        if (c >= low && c <= high)
-            return true;
         if (c < low)
             return false;
+        if (c <= high)
+            return true;
     }
     return false;
 }
