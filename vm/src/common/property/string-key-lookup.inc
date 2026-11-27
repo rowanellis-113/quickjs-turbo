@@ -28,7 +28,25 @@ typedef struct StrKeySlotCache {
     uint32_t len;
 } StrKeySlotCache;
 
-static _Thread_local StrKeySlotCache js_str_key_cache[256];
+#ifndef QJS_FAST_TLS_ARRAY
+#if defined(_MSC_VER)
+#define QJS_FAST_TLS_ARRAY(type, name, count, bytes)                                               \
+    static __declspec(thread) type name[count];                                                    \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return name;                                                                               \
+    }
+#else
+#define QJS_FAST_TLS_ARRAY(type, name, count, bytes)                                               \
+    static _Thread_local type name[count];                                                         \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return name;                                                                               \
+    }
+#endif
+#endif
+
+QJS_FAST_TLS_ARRAY(StrKeySlotCache, js_str_key_cache, 256, 8192)
 
 static inline bool js_str_eq_fast(JSString *a, JSString *b)
 {
@@ -107,7 +125,7 @@ static inline bool js_str_key_cache_probe(JSRuntime *rt, JSObject *obj, JSString
     uint32_t idx = (uint32_t)((((uintptr_t)sh >> 5) ^ h ^ (h >> 8)) & 255u);
     *out_idx = idx;
     *out_h = h;
-    StrKeySlotCache *e = &js_str_key_cache[idx];
+    StrKeySlotCache *e = &js_str_key_cache_tls_ptr()[idx];
     if (e->rt_id == (uintptr_t)rt && e->shape_id == (uintptr_t)sh && e->hash == h &&
         e->len == str->len && e->slot < (uint32_t)sh->prop_count) {
         JSAtom atom = e->atom;
@@ -190,7 +208,7 @@ static no_inline bool js_try_get_property_string(JSContext *ctx, JSValueConst th
         if (prs) {
             if (likely(!(prs->flags & JS_PROP_TMASK) && !JS_IsUninitialized(pr->u.value))) {
                 if (can_cache && cur == obj) {
-                    StrKeySlotCache *e = &js_str_key_cache[c_idx];
+                    StrKeySlotCache *e = &js_str_key_cache_tls_ptr()[c_idx];
                     e->rt_id = (uintptr_t)rt;
                     e->shape_id = (uintptr_t)obj->shape;
                     e->hash = c_h;
@@ -255,7 +273,7 @@ static no_inline bool js_try_set_property_string(JSContext *ctx, JSValueConst th
     if (likely(prs && (prs->flags & (JS_PROP_TMASK | JS_PROP_WRITABLE | JS_PROP_LENGTH)) ==
                           JS_PROP_WRITABLE)) {
         if (can_cache) {
-            StrKeySlotCache *e = &js_str_key_cache[c_idx];
+            StrKeySlotCache *e = &js_str_key_cache_tls_ptr()[c_idx];
             e->rt_id = (uintptr_t)rt;
             e->shape_id = (uintptr_t)obj->shape;
             e->hash = c_h;

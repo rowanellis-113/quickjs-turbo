@@ -1,8 +1,20 @@
 /* Epoch-guarded inline cache for native OP_instanceof fast path. */
+#ifndef QJS_FAST_TLS_ARRAY
 #if defined(_MSC_VER)
-#define QJS_FAST_INSTOF_TLS __declspec(thread)
+#define QJS_FAST_TLS_ARRAY(type, name, count, bytes)                                               \
+    static __declspec(thread) type name[count];                                                    \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return name;                                                                               \
+    }
 #else
-#define QJS_FAST_INSTOF_TLS _Thread_local
+#define QJS_FAST_TLS_ARRAY(type, name, count, bytes)                                               \
+    static _Thread_local type name[count];                                                         \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return name;                                                                               \
+    }
+#endif
 #endif
 
 typedef struct {
@@ -21,7 +33,7 @@ typedef struct {
 } FastInstOfEntry;
 _Static_assert(sizeof(FastInstOfEntry) == 64, "FastInstOfEntry fits 1 cache line");
 
-static QJS_FAST_INSTOF_TLS FastInstOfEntry fast_instof_cache[64];
+QJS_FAST_TLS_ARRAY(FastInstOfEntry, fast_instof_cache, 64, 4096)
 
 static inline bool fast_instof_holder_live(JSObject *ctor, const JSObject *holder)
 {
@@ -128,9 +140,10 @@ static inline int js_fast_instanceof_impl(JSContext *ctx, JSRuntime *rt, JSValue
     }
 
     JSShape *cshape = ctor->shape;
-    FastInstOfEntry *e = &fast_instof_cache[(((uintptr_t)ctor >> 4) ^ ((uintptr_t)ctor >> 10) ^
-                                             ((uintptr_t)ctor >> 16)) &
-                                            63u];
+    FastInstOfEntry *e =
+        &fast_instof_cache_tls_ptr()[(((uintptr_t)ctor >> 4) ^ ((uintptr_t)ctor >> 10) ^
+                                      ((uintptr_t)ctor >> 16)) &
+                                     63u];
     if (unlikely(!(
             e->ctor == ctor && e->ctor_shape == cshape && e->epoch == epoch && e->ctx == ctx &&
             e->ctor_prop_count == (uint32_t)cshape->prop_count &&

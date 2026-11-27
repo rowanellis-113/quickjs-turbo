@@ -733,7 +733,15 @@ typedef struct Win64FastCtorMeta {
 } Win64FastCtorMeta;
 
 #define WIN64_FAST_CTOR_CACHE_SIZE 256u
+#ifdef QJS_FAST_TLS_ARRAY
+QJS_FAST_TLS_ARRAY(Win64FastCtorMeta, win64_fast_ctor_cache, 256, 73728)
+#else
 static WIN64_THREAD_LOCAL Win64FastCtorMeta win64_fast_ctor_cache[WIN64_FAST_CTOR_CACHE_SIZE];
+static inline Win64FastCtorMeta *win64_fast_ctor_cache_tls_ptr(void)
+{
+    return win64_fast_ctor_cache;
+}
+#endif
 
 static SHARED_INLINE bool win64_ctor_parse_val(JSFunctionBytecode *b, const uint8_t *buf,
                                                uint32_t len, uint32_t *pk, uint8_t *kind,
@@ -1374,7 +1382,7 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
     uint32_t slot =
         (uint32_t)((((uintptr_t)callee >> 4) ^ ((uintptr_t)callee >> 10) ^ ((uintptr_t)b >> 4)) &
                    (WIN64_FAST_CTOR_CACHE_SIZE - 1u));
-    Win64FastCtorMeta *m = &win64_fast_ctor_cache[slot];
+    Win64FastCtorMeta *m = &win64_fast_ctor_cache_tls_ptr()[slot];
     JSObject *proto_obj = NULL;
     JSFunctionBytecode *init_b = NULL;
     if (m->rt_id == (uintptr_t)rt && m->tier != 0 &&

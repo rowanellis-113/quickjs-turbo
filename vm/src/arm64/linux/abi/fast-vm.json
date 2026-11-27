@@ -27,7 +27,7 @@
     "src/common/property/inline-property-ic-storage.inc": "adfed57a9ce83e25c81cc2ab7d6c9921fab82f028a3838ecf238fe6dfa748043",
     "src/common/property/fast-transition-resize.inc": "13308575c0bcc8f2f6012c6b36a6609ab7fd29e59bc053ca523470a74847f9e3",
     "src/common/property/fast-get-field.inc": "84c8ea4068e322c1019ee24eb688049a2450b66490bb21d70619404a1c680a31",
-    "src/common/value/instanceof-fast.inc": "68de562ab5ad235d15d2f1d0bd70dcea914ad7d741dad5b5a3955a77b865f674",
+    "src/common/value/instanceof-fast.inc": "802baf0c4702b7a6e4b2d55600338363e4b50504dba8490a1f4ef1a196c6e141",
     "src/common/value/bigint-divrem-fast.inc": "cb78d696ffbc99ffd588ebc4103bba02023211fbeffab0b85b9699d614b0320b",
     "src/common/call/compound-leaf.inc": "d1b26befd5a6eddab4de78bedd11d1cd88a4b2e024ab0f853e8e1f168d7497db",
     "src/common/call/fast-for-of-next.inc": "dd87940c3bec648d92d950eb6c4bfd0121788bc607987cdc1a232c7cffdaeea7",

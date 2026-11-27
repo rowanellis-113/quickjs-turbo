@@ -1226,7 +1226,34 @@ def _build_foundation_c(core_path, output_dir, layout, source):
     text, count = definition.subn(r"\1JS_LegacyCallInternal\2", text)
     if count != 1:
         raise ValueError("Internal JS_CallInternal definition anchor changed")
-    text = "#define QJS_CVM_USE_LEGACY_CALL_INTERNAL 1\n" + text
+    text = (
+        "#define QJS_CVM_USE_LEGACY_CALL_INTERNAL 1\n"
+        "#if defined(_MSC_VER)\n"
+        "#define QJS_FAST_TLS_ARRAY(type, name, count, bytes) \\\n"
+        "    static __declspec(thread) type name[count]; \\\n"
+        "    static inline type *name##_tls_ptr(void) { return name; }\n"
+        "#define QJS_FAST_TLS_VAR(type, name, bytes) \\\n"
+        "    static __declspec(thread) type name; \\\n"
+        "    static inline type *name##_tls_ptr(void) { return &name; }\n"
+        "#else\n"
+        "#define QJS_FAST_TLS_ARRAY(type, name, count, bytes) \\\n"
+        '    _Static_assert(sizeof(type) * (count) <= (bytes), #name " TLS storage too small"); \\\n'
+        '    __asm__(".section .tls$QJSCACHE,\\"dw\\"\\n.p2align 4\\n" \\\n'
+        '            "QJS_Win64Tls_" #name ": .space " #bytes "\\n.text\\n"); \\\n'
+        "    static inline __attribute__((always_inline)) type *name##_tls_ptr(void) { \\\n"
+        "        type *p; \\\n"
+        '        __asm__("movq %%gs:88, %0\\n\\t" \\\n'
+        '                "movl _tls_index(%%rip), %%ecx\\n\\t" \\\n'
+        '                "movq (%0,%%rcx,8), %0\\n\\t" \\\n'
+        '                "leaq QJS_Win64Tls_" #name "(%%rip), %%rcx\\n\\t" \\\n'
+        '                "leaq _tls_start(%%rip), %%r11\\n\\t" \\\n'
+        '                "subq %%r11, %%rcx\\n\\taddq %%rcx, %0" \\\n'
+        '                : "=&r"(p) : : "rcx", "r11"); \\\n'
+        "        return p; \\\n"
+        "    }\n"
+        "#define QJS_FAST_TLS_VAR(type, name, bytes) QJS_FAST_TLS_ARRAY(type, name, 1, bytes)\n"
+        "#endif\n" + text
+    )
 
     public = re.compile(r"(^JSValue JS_LegacyCall\([^;{}]*\)\s*\{)(.*?^\})", re.M | re.S)
     match = public.search(text)

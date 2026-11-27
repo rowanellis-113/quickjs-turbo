@@ -52,11 +52,25 @@ typedef struct js_regexp_empty_proto_cache {
     uint32_t flag_slots[8];
 } js_regexp_empty_proto_cache_t;
 
+#ifndef QJS_FAST_TLS_VAR
 #if defined(_MSC_VER)
-static __declspec(thread) js_regexp_empty_proto_cache_t js_regexp_empty_cache;
+#define QJS_FAST_TLS_VAR(type, name, bytes)                                                        \
+    static __declspec(thread) type name;                                                           \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return &name;                                                                              \
+    }
 #else
-static _Thread_local js_regexp_empty_proto_cache_t js_regexp_empty_cache;
+#define QJS_FAST_TLS_VAR(type, name, bytes)                                                        \
+    static _Thread_local type name;                                                                \
+    static inline type *name##_tls_ptr(void)                                                       \
+    {                                                                                              \
+        return &name;                                                                              \
+    }
 #endif
+#endif
+
+QJS_FAST_TLS_VAR(js_regexp_empty_proto_cache_t, js_regexp_empty_cache, 96)
 #endif
 
 static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValueConst input,
@@ -104,7 +118,7 @@ static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValue
         uint64_t epoch = ctx->rt->property_ic_epoch;
         JSShape *osh = object->shape;
         JSShape *psh = proto->shape;
-        js_regexp_empty_proto_cache_t *c = &js_regexp_empty_cache;
+        js_regexp_empty_proto_cache_t *c = js_regexp_empty_cache_tls_ptr();
         if (likely(epoch && osh->prop_count == 1 && !osh->deleted_prop_count && !proto->is_exotic &&
                    proto->is_prototype && c->ctx == ctx && c->epoch == epoch && c->proto == proto &&
                    c->proto_shape == psh && c->proto_prop_count == (uint32_t)psh->prop_count &&
@@ -229,7 +243,7 @@ static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValue
                 fslots[i] = (uint32_t)(pf - proto->prop);
             }
             if (all_on_proto) {
-                js_regexp_empty_proto_cache_t *c = &js_regexp_empty_cache;
+                js_regexp_empty_proto_cache_t *c = js_regexp_empty_cache_tls_ptr();
                 proto->is_prototype = true;
                 c->ctx = ctx;
                 c->epoch = ctx->rt->property_ic_epoch;

@@ -7,7 +7,7 @@
     "src/common/regexp/exec.inc": "c7e81753d99b9040550114e02ce8765621048137425c1ce340d28893a1748183",
     "src/common/regexp/test.inc": "64599311c5a0ef357e496a07859e7f9ed0c9dea139557cf796a82201e11070c9",
     "src/common/regexp/split.inc": "fdce7a627939851ad81e617f7ce248534e6d99691e68fa8e4d8985aee7baac29",
-    "src/common/regexp/replace-empty.inc": "c8bdeef61302957a8904dc2cc36b5b3ca31ef60dd1e5c7d7e17860a3dd9ab9f9",
+    "src/common/regexp/replace-empty.inc": "b6a15ba400fc728bcee6f7311ae226d6d79ee312ecf739bf4922770b9c161a34",
     "src/common/regexp/flag-atoms.inc": "2c38453ceb555026ecbf83eacc254cbc03979dce184ef866f042812493f463d0",
     "src/x86/win64/common/quickjs-regexp-replace.inc": "0af0f839daac222a35fb34931d71fedd4f5c034f92e5e59d30f953b04899350e",
     "src/x86/win64/common/quickjs-regexp-flags.inc": "55f1def67125d1be9ff1303e976a26983b71dd5be2fff3de694be2bea276a28f"
