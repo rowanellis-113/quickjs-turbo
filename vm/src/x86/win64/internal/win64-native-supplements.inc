@@ -32,6 +32,25 @@ const char *JS_FrameGetenv(const char *name)
 #define WIN64_HOST_FAST_CODE __attribute__((section(".qjsvm$zzzf"), noipa))
 #endif
 
+static _Atomic unsigned char win64_call_forward_policy;
+
+static SHARED_INLINE unsigned win64_call_forward_mode(void)
+{
+    unsigned char mode = atomic_load_explicit(&win64_call_forward_policy, memory_order_relaxed);
+    if (unlikely(!mode)) {
+        unsigned char desired = 1;
+        if (getenv("QJS_DISABLE_FRAME_CALL_FORWARD"))
+            desired = 2;
+        else if (getenv("QJS_DISABLE_FRAME_APPLY_DIRECT"))
+            desired = 3; /* call enabled, apply direct disabled */
+        atomic_compare_exchange_strong_explicit(&win64_call_forward_policy, &mode, desired,
+                                                memory_order_relaxed, memory_order_relaxed);
+        if (!mode)
+            mode = desired;
+    }
+    return mode;
+}
+
 static SHARED_INLINE bool win64_host_stack_ok(JSFrameRegisterState *state, JSRuntime *rt,
                                               size_t need)
 {
@@ -55,7 +74,72 @@ WIN64_HOST_FAST_CODE int JS_Win64HostDirectFast(JSFrameRegisterState *state, JSV
 
     if (cproto == JS_CFUNC_generic) {
         if (method) {
-            if (fp == (void *)js_string_charCodeAt && JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_STRING) {
+            if (fp == (void *)js_function_call && JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_OBJECT) {
+                JSObject *target_obj = JS_VALUE_GET_OBJ(argv[-2]);
+                if (likely(target_obj->class_id == JS_CLASS_BYTECODE_FUNCTION)) {
+                    JSContext *ctx = state->frame->bytecode->realm;
+                    JSRuntime *rt = state->rt;
+                    JSFunctionBytecode *tb = target_obj->u.func.function_bytecode;
+                    if (likely(tb->func_kind == JS_FUNC_NORMAL && tb->realm == ctx &&
+                               !tb->is_derived_class_constructor && fn->u.cfunc.realm == ctx &&
+                               ctx->interrupt_counter > 2 && !rt->dump_flags &&
+                               js_frame_shared_enabled(rt) && !(FRAME_SHARED_BITS(rt) & 8) &&
+                               FRAME_STATE(rt) == 1 && FRAME_REGISTER_STATE(rt) == 1 &&
+                               win64_call_forward_mode() != 2 &&
+                               win64_host_stack_ok(state, rt, 4096))) {
+                        if (unlikely(!FRAME_KIND(tb)) && !js_frame_win64_admit(tb))
+                            FRAME_KIND(tb) = 2;
+                        if (likely(FRAME_SUPPORTED(tb))) {
+                            JSValue fwd_this = argc >= 1 ? argv[0] : JS_UNDEFINED;
+                            int fwd_argc = argc > 1 ? argc - 1 : 0;
+                            JSValueConst *fwd_argv = argc > 1 ? (JSValueConst *)(argv + 1) : NULL;
+                            JSValue leaf_res;
+                            if (js_try_fast_borrowed_leaf(ctx, argv[-2], fwd_this, fwd_argc,
+                                                          fwd_argv, &leaf_res)) {
+                                ctx->interrupt_counter--;
+                                state->result = leaf_res;
+                                state->exception_pending = false;
+                                return 0;
+                            }
+                            JSFrame *frame = state->frame;
+                            JSStackFrame host_frame;
+                            JSFrameSharedAnchor **slot, anchor;
+                            unsigned char active;
+                            frame->saved_sp = state->sp;
+                            frame->sf.cur_sp = state->sp;
+                            js_frame_begin_c(state);
+                            host_frame.prev_frame = rt->current_stack_frame;
+                            host_frame.cur_func = argv[-1];
+                            host_frame.arg_buf = argv;
+                            host_frame.arg_count = argc;
+                            host_frame.is_strict_mode = false;
+                            FRAME_CLEAR_STACK_AUX(&host_frame);
+                            rt->current_stack_frame = &host_frame;
+                            slot = js_frame_shared_slot();
+                            anchor.prev = *slot;
+                            anchor.state = state;
+                            anchor.kind = 0;
+                            active = FRAME_SHARED_ACTIVE(rt);
+                            FRAME_SHARED_BITS(rt) |= 4;
+                            *slot = &anchor;
+                            ctx->interrupt_counter--;
+                            int fwd_flags = FRAME_READONLY_ARGS(tb) ? 0 : JS_CALL_FLAG_COPY_ARGV;
+                            JSValue res = js_frame_run_shared(ctx, argv[-2], fwd_this, fwd_argc,
+                                                              fwd_argv, fwd_flags, tb, &anchor);
+                            *slot = anchor.prev;
+                            FRAME_SHARED_BITS(rt) = (FRAME_SHARED_BITS(rt) & ~4) | active;
+                            rt->current_stack_frame = host_frame.prev_frame;
+                            if (!FRAME_CHECKPOINT(frame))
+                                frame->sf.cur_sp = NULL;
+                            js_frame_finish_c(state);
+                            state->result = res;
+                            state->exception_pending = JS_IsException(res);
+                            return state->exception_pending;
+                        }
+                    }
+                }
+            } else if (fp == (void *)js_string_charCodeAt &&
+                       JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_STRING) {
                 int t0 = argc >= 1 ? JS_VALUE_GET_TAG(argv[0]) : JS_TAG_UNDEFINED;
                 if (likely(t0 == JS_TAG_INT || t0 == JS_TAG_UNDEFINED)) {
                     JSContext *ctx = state->frame->bytecode->realm;
@@ -162,8 +246,92 @@ WIN64_HOST_FAST_CODE int JS_Win64HostDirectFast(JSFrameRegisterState *state, JSV
         }
     } else if (cproto == JS_CFUNC_generic_magic) {
         if (method) {
-            if (fp == (void *)js_array_push && argc == 1 && fn->u.cfunc.magic == 0 &&
+            if (fp == (void *)js_function_apply && fn->u.cfunc.magic == 0 &&
                 JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_OBJECT) {
+                JSObject *target_obj = JS_VALUE_GET_OBJ(argv[-2]);
+                if (likely(target_obj->class_id == JS_CLASS_BYTECODE_FUNCTION)) {
+                    JSContext *ctx = state->frame->bytecode->realm;
+                    JSRuntime *rt = state->rt;
+                    JSFunctionBytecode *tb = target_obj->u.func.function_bytecode;
+                    if (likely(tb->func_kind == JS_FUNC_NORMAL && tb->realm == ctx &&
+                               !tb->is_derived_class_constructor && fn->u.cfunc.realm == ctx &&
+                               ctx->interrupt_counter > 2 && !rt->dump_flags &&
+                               js_frame_shared_enabled(rt) && !(FRAME_SHARED_BITS(rt) & 8) &&
+                               FRAME_STATE(rt) == 1 && FRAME_REGISTER_STATE(rt) == 1 &&
+                               win64_call_forward_mode() == 1 &&
+                               win64_host_stack_ok(state, rt, 4096))) {
+                        JSValue fwd_this = argc >= 1 ? argv[0] : JS_UNDEFINED;
+                        JSValue list = argc >= 2 ? argv[1] : JS_UNDEFINED;
+                        int fwd_argc = -1;
+                        JSValueConst *fwd_argv = NULL;
+                        if (JS_IsNull(list) || JS_IsUndefined(list)) {
+                            fwd_argc = 0;
+                        } else if (JS_IsObject(list)) {
+                            JSObject *arr = JS_VALUE_GET_OBJ(list);
+                            if ((arr->class_id == JS_CLASS_ARRAY ||
+                                 arr->class_id == JS_CLASS_ARGUMENTS) &&
+                                arr->fast_array && arr->u.array.count <= 32765 &&
+                                arr->shape->prop_count <= 32) {
+                                JSShapeProperty *props = get_shape_prop(arr->shape);
+                                for (int pi = 0; pi < arr->shape->prop_count; pi++) {
+                                    if (props[pi].atom == JS_ATOM_length) {
+                                        JSValue lv = arr->prop[pi].u.value;
+                                        if ((props[pi].flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+                                            JS_VALUE_GET_TAG(lv) == JS_TAG_INT &&
+                                            JS_VALUE_GET_INT(lv) >= 0 &&
+                                            (uint32_t)JS_VALUE_GET_INT(lv) == arr->u.array.count) {
+                                            fwd_argc = (int)arr->u.array.count;
+                                            fwd_argv = (JSValueConst *)arr->u.array.u.values;
+                                        }
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (likely(fwd_argc >= 0)) {
+                            if (unlikely(!FRAME_KIND(tb)) && !js_frame_win64_admit(tb))
+                                FRAME_KIND(tb) = 2;
+                            if (likely(FRAME_SUPPORTED(tb))) {
+                                JSFrame *frame = state->frame;
+                                JSStackFrame host_frame;
+                                JSFrameSharedAnchor **slot, anchor;
+                                unsigned char active;
+                                frame->saved_sp = state->sp;
+                                frame->sf.cur_sp = state->sp;
+                                js_frame_begin_c(state);
+                                host_frame.prev_frame = rt->current_stack_frame;
+                                host_frame.cur_func = argv[-1];
+                                host_frame.arg_buf = argv;
+                                host_frame.arg_count = argc;
+                                host_frame.is_strict_mode = false;
+                                FRAME_CLEAR_STACK_AUX(&host_frame);
+                                rt->current_stack_frame = &host_frame;
+                                slot = js_frame_shared_slot();
+                                anchor.prev = *slot;
+                                anchor.state = state;
+                                anchor.kind = 0;
+                                active = FRAME_SHARED_ACTIVE(rt);
+                                FRAME_SHARED_BITS(rt) |= 4;
+                                *slot = &anchor;
+                                ctx->interrupt_counter--;
+                                JSValue res =
+                                    js_frame_run_shared(ctx, argv[-2], fwd_this, fwd_argc, fwd_argv,
+                                                        JS_CALL_FLAG_COPY_ARGV, tb, &anchor);
+                                *slot = anchor.prev;
+                                FRAME_SHARED_BITS(rt) = (FRAME_SHARED_BITS(rt) & ~4) | active;
+                                rt->current_stack_frame = host_frame.prev_frame;
+                                if (!FRAME_CHECKPOINT(frame))
+                                    frame->sf.cur_sp = NULL;
+                                js_frame_finish_c(state);
+                                state->result = res;
+                                state->exception_pending = JS_IsException(res);
+                                return state->exception_pending;
+                            }
+                        }
+                    }
+                }
+            } else if (fp == (void *)js_array_push && argc == 1 && fn->u.cfunc.magic == 0 &&
+                       JS_VALUE_GET_TAG(argv[-2]) == JS_TAG_OBJECT) {
                 JSContext *ctx = state->frame->bytecode->realm;
                 JSRuntime *rt = state->rt;
                 if (likely(ctx->interrupt_counter > 1 && !rt->dump_flags &&
@@ -435,6 +603,21 @@ static SHARED_INLINE unsigned JS_Win64LocalRopeModeGet(void)
     return mode;
 }
 
+static _Atomic unsigned char win64_shared_concat_policy;
+
+static SHARED_INLINE unsigned char win64_shared_concat_mode(void)
+{
+    unsigned char mode = atomic_load_explicit(&win64_shared_concat_policy, memory_order_relaxed);
+    if (unlikely(!mode)) {
+        unsigned char desired = getenv("QJS_DISABLE_SHARED_CONCAT_ROPE") ? 2 : 1;
+        atomic_compare_exchange_strong_explicit(&win64_shared_concat_policy, &mode, desired,
+                                                memory_order_relaxed, memory_order_relaxed);
+        if (!mode)
+            mode = desired;
+    }
+    return mode;
+}
+
 static WIN64_HOST_FAST_CODE int win64_string_concat_step(JSFrameRegisterState *state)
 {
     JSFrame *frame = state->frame;
@@ -449,7 +632,69 @@ static WIN64_HOST_FAST_CODE int win64_string_concat_step(JSFrameRegisterState *s
     js_frame_begin_c(state);
     sp[-2] = JS_UNDEFINED;
     sp[-1] = JS_UNDEFINED;
-    JSValue res = JS_ConcatString(ctx, left, right);
+    JSValue res;
+    if (JS_VALUE_GET_TAG(left) == JS_TAG_STRING && JS_VALUE_GET_TAG(right) == JS_TAG_STRING) {
+        JSString *p1 = JS_VALUE_GET_STRING(left);
+        JSString *p2 = JS_VALUE_GET_STRING(right);
+        if (p1->len > JS_STRING_ROPE_SHORT_LEN && p1->len <= JS_STRING_ROPE_SHORT2_LEN &&
+            p2->len > 0 && p2->len <= JS_STRING_ROPE_SHORT_LEN && JS_REF_COUNT(p1) > 1 &&
+            win64_shared_concat_mode() == 1) {
+            res = js_new_string_rope(ctx, left, right);
+        } else {
+            res = JS_ConcatString(ctx, left, right);
+        }
+    } else {
+        res = JS_ConcatString(ctx, left, right);
+    }
+    if (unlikely(JS_IsException(res))) {
+        state->sp = sp - 2;
+        state->pc = pc + 1;
+        frame->saved_sp = sp - 2;
+        frame->sf.cur_sp = sp - 2;
+        state->exception_pending = true;
+        js_frame_finish_c(state);
+        return JS_FrameInterpSlow(state);
+    }
+    sp[-2] = res;
+    state->sp = sp - 1;
+    state->pc = pc + 1;
+    if (!FRAME_CHECKPOINT(frame))
+        frame->sf.cur_sp = NULL;
+    js_frame_finish_c(state);
+    return 0;
+}
+
+static WIN64_HOST_FAST_CODE int win64_empty_str_num_step(JSFrameRegisterState *state,
+                                                         JSValue str_val, JSValue num_val)
+{
+    JSFrame *frame = state->frame;
+    JSValue *sp = state->sp;
+    JSContext *ctx = frame->bytecode->realm;
+    uint8_t *pc = state->pc;
+    int ntag = JS_VALUE_GET_TAG(num_val);
+    JSString *pe = JS_VALUE_GET_STRING(str_val);
+    frame->saved_sp = sp;
+    frame->sf.cur_sp = sp;
+    frame->sf.cur_pc = pc + 1;
+    js_frame_begin_c(state);
+    sp[-2] = JS_UNDEFINED;
+    sp[-1] = JS_UNDEFINED;
+    JSValue res;
+    if (ntag == JS_TAG_INT) {
+#ifdef QJS_INT_TO_STRING_FAST_AVAILABLE
+        res = qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(num_val));
+#else
+        char buf[16];
+        int len = (int)i32toa(buf, JS_VALUE_GET_INT(num_val));
+        res = js_new_string8_len(ctx, buf, len);
+#endif
+    } else {
+        res = js_dtoa2(ctx, JS_VALUE_GET_FLOAT64(num_val), 10, 0, JS_DTOA_FORMAT_FREE);
+    }
+    if (likely(JS_REF_COUNT(pe) > 1))
+        --JS_REF_COUNT(pe);
+    else
+        JS_FreeValue(ctx, str_val);
     if (unlikely(JS_IsException(res))) {
         state->sp = sp - 2;
         state->pc = pc + 1;
@@ -480,8 +725,8 @@ static WIN64_HOST_FAST_CODE int win64_string_concat_step(JSFrameRegisterState *s
 #undef LOCAL_STRING_CODE
 #undef FRAME_INLINE
 
-/* Fast Win64 OP_add slow boundary: handles in-place local/arg rope append and
- * direct string/rope concatenation before delegating BigInt/general ops. */
+/* Fast Win64 OP_add slow boundary: handles in-place local/arg rope append,
+ * fast "" + int/float64 conversions, and shared-prefix rope concat. */
 WIN64_HOST_FAST_CODE int JS_Win64AddSlow(JSFrameRegisterState *state)
 {
     JSValue *sp = state->sp;
@@ -497,6 +742,14 @@ WIN64_HOST_FAST_CODE int JS_Win64AddSlow(JSFrameRegisterState *state)
     if ((left == JS_TAG_STRING || left == JS_TAG_STRING_ROPE) &&
         (right == JS_TAG_STRING || right == JS_TAG_STRING_ROPE)) {
         return win64_string_concat_step(state);
+    }
+    if (left == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-2])->len == 0 &&
+        (right == JS_TAG_INT || JS_TAG_IS_FLOAT64(right))) {
+        return win64_empty_str_num_step(state, sp[-2], sp[-1]);
+    }
+    if (right == JS_TAG_STRING && JS_VALUE_GET_STRING(sp[-1])->len == 0 &&
+        (left == JS_TAG_INT || JS_TAG_IS_FLOAT64(left))) {
+        return win64_empty_str_num_step(state, sp[-1], sp[-2]);
     }
     return JS_FrameInterpBig_add(state);
 }
@@ -671,6 +924,407 @@ WIN64_HOST_FAST_CODE int JS_Win64AddLocalString(JSFrameRegisterState *state)
     set_value(ctx, pv, res);
     state->sp = sp - 1;
     state->pc = pc + 2;
+    if (!FRAME_CHECKPOINT(frame))
+        frame->sf.cur_sp = NULL;
+    js_frame_finish_c(state);
+    return 2;
+}
+
+static _Atomic unsigned char win64_str_index_policy;
+static _Atomic unsigned char win64_array_iter_policy;
+
+static SHARED_INLINE unsigned char win64_str_index_mode(void)
+{
+    unsigned char mode = atomic_load_explicit(&win64_str_index_policy, memory_order_relaxed);
+    if (unlikely(!mode)) {
+        unsigned char desired = getenv("QJS_DISABLE_FRAME_STRING_INDEX") ? 2 : 1;
+        atomic_compare_exchange_strong_explicit(&win64_str_index_policy, &mode, desired,
+                                                memory_order_relaxed, memory_order_relaxed);
+        if (!mode)
+            mode = desired;
+    }
+    return mode;
+}
+
+static SHARED_INLINE unsigned char win64_array_iter_mode(void)
+{
+    unsigned char mode = atomic_load_explicit(&win64_array_iter_policy, memory_order_relaxed);
+    if (unlikely(!mode)) {
+        unsigned char desired = getenv("QJS_DISABLE_FRAME_ARRAY_ITERATOR") ? 2 : 1;
+        atomic_compare_exchange_strong_explicit(&win64_array_iter_policy, &mode, desired,
+                                                memory_order_relaxed, memory_order_relaxed);
+        if (!mode)
+            mode = desired;
+    }
+    return mode;
+}
+
+/* Fast Win64 OP_get_array_el / OP_get_array_el2 on JS_TAG_STRING using the
+ * bounded 256-entry single-char cache, returning 2 for fast PC/SP resume. */
+WIN64_HOST_FAST_CODE int JS_Win64StringIndexStep(JSFrameRegisterState *state)
+{
+    if (unlikely(win64_str_index_mode() != 1))
+        return JS_FrameInterpSlow(state);
+    JSFrame *frame = state->frame;
+    JSStackFrame *sf = &frame->sf;
+    JSValue *sp = state->sp;
+    uint8_t *pc = state->pc;
+    unsigned op = *pc;
+    if (unlikely((op != OP_get_array_el && op != OP_get_array_el2) ||
+                 JS_VALUE_GET_TAG(sp[-2]) != JS_TAG_STRING ||
+                 JS_VALUE_GET_TAG(sp[-1]) != JS_TAG_INT))
+        return JS_FrameInterpSlow(state);
+    JSString *str = JS_VALUE_GET_STRING(sp[-2]);
+    uint32_t idx = (uint32_t)JS_VALUE_GET_INT(sp[-1]);
+    if (unlikely(idx >= str->len))
+        return JS_FrameInterpSlow(state);
+    JSContext *ctx = frame->bytecode->realm;
+    uint8_t *next_pc = pc + 1;
+    frame->saved_sp = sp;
+    sf->cur_sp = sp;
+    sf->cur_pc = next_pc;
+    js_frame_begin_c(state);
+    JSValue val = JS_FrameSmallCharNew(ctx, (uint16_t)string_get(str, (int)idx));
+    if (unlikely(JS_IsException(val))) {
+        state->pc = next_pc;
+        state->sp = sp;
+        state->exception_pending = true;
+        js_frame_finish_c(state);
+        return JS_FrameInterpSlow(state);
+    }
+    if (op == OP_get_array_el) {
+        JSValue consumed = sp[-2];
+        sp[-2] = val;
+        sp[-1] = JS_UNDEFINED;
+        sp--;
+        state->sp = sp;
+        state->pc = next_pc;
+        frame->saved_sp = sp;
+        sf->cur_sp = sp;
+        sf->cur_pc = next_pc;
+        if (likely(JS_REF_COUNT(str) > 1))
+            --JS_REF_COUNT(str);
+        else
+            JS_FreeValue(ctx, consumed);
+    } else {
+        sp[-1] = val;
+        state->sp = sp;
+        state->pc = next_pc;
+        frame->saved_sp = sp;
+        sf->cur_sp = sp;
+        sf->cur_pc = next_pc;
+    }
+    if (!FRAME_CHECKPOINT(frame))
+        sf->cur_sp = NULL;
+    js_frame_finish_c(state);
+    return 2;
+}
+
+/* Fast Win64 OP_for_of_next: dense ArrayIterator (zero C-call + branch fusion)
+ * and native C iterator_next (with shared anchor + branch fusion). */
+WIN64_HOST_FAST_CODE int JS_Win64ForOfNext(JSFrameRegisterState *state)
+{
+    JSFrame *frame = state->frame;
+    if (unlikely(state->exception_pending || !frame || FRAME_CHECKPOINT(frame)))
+        return JS_FrameInterpSlow(state);
+    uint8_t *pc = state->pc;
+    JSValue *sp = state->sp;
+    int offset = -3 - (int)pc[1];
+    if (likely(JS_IsObject(sp[offset]) && JS_IsObject(sp[offset + 1]))) {
+        JSObject *it_obj = JS_VALUE_GET_OBJ(sp[offset]);
+        JSObject *method = JS_VALUE_GET_OBJ(sp[offset + 1]);
+        JSContext *ctx = frame->bytecode->realm;
+        if (it_obj->class_id == JS_CLASS_ARRAY_ITERATOR &&
+            method->class_id == JS_CLASS_C_FUNCTION &&
+            method->u.cfunc.cproto == JS_CFUNC_iterator_next &&
+            method->u.cfunc.c_function.iterator_next == js_array_iterator_next &&
+            win64_array_iter_mode() == 1) {
+            JSArrayIteratorData *it = it_obj->u.array_iterator_data;
+            if (likely(it && it->kind == JS_ITERATOR_KIND_VALUE && JS_IsObject(it->obj))) {
+                JSObject *arr = JS_VALUE_GET_OBJ(it->obj);
+                if (likely(arr->class_id == JS_CLASS_ARRAY && arr->fast_array &&
+                           arr->shape->prop_count >= 1)) {
+                    JSShapeProperty *first = get_shape_prop(arr->shape);
+                    if (likely(first->atom == JS_ATOM_length && !(first->flags & JS_PROP_TMASK) &&
+                               (first->flags & JS_PROP_LENGTH))) {
+                        JSValue len_val = arr->prop[0].u.value;
+                        if (likely(JS_VALUE_GET_TAG(len_val) == JS_TAG_INT &&
+                                   JS_VALUE_GET_INT(len_val) >= 0)) {
+                            uint32_t idx = it->idx;
+                            if (likely(idx < (uint32_t)JS_VALUE_GET_INT(len_val) &&
+                                       idx < arr->u.array.count)) {
+                                uint8_t *npc = pc + 2;
+                                it->idx = idx + 1;
+                                sp[0] = js_dup(arr->u.array.u.values[idx]);
+                                sp[1] = JS_FALSE;
+                                sp += 2;
+                                if (npc[0] == OP_if_true8 && ctx->interrupt_counter > 1) {
+                                    sp -= 1;
+                                    ctx->interrupt_counter--;
+                                    npc += 2;
+                                } else if (npc[0] == OP_if_false8 && ctx->interrupt_counter > 1) {
+                                    sp -= 1;
+                                    ctx->interrupt_counter--;
+                                    npc = npc + 1 + (int8_t)npc[1];
+                                }
+                                state->pc = npc;
+                                state->sp = sp;
+                                frame->saved_sp = sp;
+                                frame->sf.cur_pc = npc;
+                                frame->sf.cur_sp = NULL;
+                                return 2;
+                            }
+                        }
+                    }
+                }
+            }
+        } else if (method->class_id == JS_CLASS_C_FUNCTION &&
+                   method->u.cfunc.cproto == JS_CFUNC_iterator_next) {
+            JSRuntime *rt = state->rt;
+            JSFrameSegment *segment = state->segment;
+            JSFrameSharedAnchor anchor, **slot = NULL;
+            unsigned char active = 0;
+            bool pushed = false;
+            uint8_t *npc = pc + 2;
+            frame->saved_sp = sp;
+            frame->sf.cur_sp = sp;
+            frame->sf.cur_pc = npc;
+            js_frame_begin_c(state);
+            if (js_frame_shared_enabled(rt) && !(FRAME_SHARED_BITS(rt) & 8)) {
+                state->pc = npc;
+                state->sp = sp;
+                slot = js_frame_shared_slot();
+                anchor.prev = *slot;
+                anchor.state = state;
+                anchor.kind = 0;
+                active = FRAME_SHARED_ACTIVE(rt);
+                FRAME_SHARED_BITS(rt) |= 4;
+                *slot = &anchor;
+                pushed = true;
+            }
+            int rc = js_for_of_next(ctx, sp, offset);
+            if (pushed) {
+                *slot = anchor.prev;
+                FRAME_SHARED_BITS(rt) = (FRAME_SHARED_BITS(rt) & ~4) | active;
+            }
+            if (unlikely(rc < 0)) {
+                state->pc = npc;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                frame->sf.cur_pc = npc;
+                state->exception_pending = true;
+                js_frame_finish_c(state);
+                return JS_FrameInterpSlow(state);
+            }
+            sp += 2;
+            if (unlikely(state->frame != frame || state->segment != segment)) {
+                state->pc = npc;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                frame->sf.cur_pc = npc;
+                if (state->frame && !FRAME_CHECKPOINT(state->frame))
+                    state->frame->sf.cur_sp = NULL;
+                js_frame_finish_c(state);
+                return 0;
+            }
+            if (npc[0] == OP_if_false8 && JS_VALUE_GET_TAG(sp[-1]) == JS_TAG_BOOL &&
+                ctx->interrupt_counter > 1) {
+                int done = JS_VALUE_GET_BOOL(sp[-1]);
+                sp -= 1;
+                ctx->interrupt_counter--;
+                if (!done)
+                    npc = npc + 1 + (int8_t)npc[1];
+                else
+                    npc += 2;
+            }
+            state->pc = npc;
+            state->sp = sp;
+            frame->saved_sp = sp;
+            frame->sf.cur_pc = npc;
+            if (!FRAME_CHECKPOINT(frame))
+                frame->sf.cur_sp = NULL;
+            js_frame_finish_c(state);
+            return 2;
+        }
+    }
+    return JS_FrameInterpSlow(state);
+}
+
+/* Fast Win64 OP_array_from: direct JS_NewArrayFrom with fast PC/SP resume. */
+WIN64_HOST_FAST_CODE int JS_Win64ArrayFrom(JSFrameRegisterState *state)
+{
+    uint8_t *pc = state->pc;
+    uint16_t argc = get_u16(pc + 1);
+    JSValue *sp = state->sp;
+    JSValue *tab = sp - argc;
+    JSFrame *frame = state->frame;
+    JSContext *ctx = frame->bytecode->realm;
+    uint8_t *next_pc = pc + 3;
+    frame->saved_sp = sp;
+    frame->sf.cur_sp = sp;
+    frame->sf.cur_pc = next_pc;
+    js_frame_begin_c(state);
+    JSValue arr = JS_NewArrayFrom(ctx, argc, tab);
+    if (unlikely(JS_IsException(arr))) {
+        state->pc = next_pc;
+        state->sp = tab;
+        frame->saved_sp = tab;
+        frame->sf.cur_sp = tab;
+        frame->sf.cur_pc = next_pc;
+        state->exception_pending = true;
+        js_frame_finish_c(state);
+        return JS_FrameInterpSlow(state);
+    }
+    tab[0] = arr;
+    state->pc = next_pc;
+    state->sp = tab + 1;
+    frame->saved_sp = tab + 1;
+    frame->sf.cur_pc = next_pc;
+    if (!FRAME_CHECKPOINT(frame))
+        frame->sf.cur_sp = NULL;
+    js_frame_finish_c(state);
+    return 2;
+}
+
+static SHARED_INLINE unsigned win64_literal_val_op_size(uint8_t op)
+{
+    if ((op >= OP_push_minus1 && op <= OP_push_7) || (op >= OP_get_loc0 && op <= OP_get_loc3) ||
+        (op >= OP_get_arg0 && op <= OP_get_arg3) ||
+        (op >= OP_get_var_ref0 && op <= OP_get_var_ref3) || op == OP_undefined || op == OP_null ||
+        op == OP_push_false || op == OP_push_true || op == OP_push_empty_string ||
+        op == OP_push_this)
+        return 1;
+    if (op == OP_push_i8 || op == OP_push_const8 || op == OP_get_loc8)
+        return 2;
+    if (op == OP_push_i16 || op == OP_get_loc || op == OP_get_loc_check || op == OP_get_arg ||
+        op == OP_get_var_ref || op == OP_get_var_ref_check)
+        return 3;
+    if (op == OP_push_i32 || op == OP_push_const || op == OP_push_atom_value)
+        return 5;
+    return 0;
+}
+
+/* Fast Win64 OP_object: reserves 4 inline slots only when >=3 literal fields
+ * follow, keeping 0..2 field literals at the compact 2-slot inline footprint. */
+WIN64_HOST_FAST_CODE int JS_Win64Object(JSFrameRegisterState *state)
+{
+    uint8_t *pc = state->pc;
+    JSValue *sp = state->sp;
+    JSFrame *frame = state->frame;
+    JSContext *ctx = frame->bytecode->realm;
+    JSRuntime *rt = state->rt;
+    uint8_t *next_pc = pc + 1;
+    const uint8_t *scan = next_pc;
+    const uint8_t *end = frame->bytecode->byte_code_buf + frame->bytecode->byte_code_len;
+    unsigned fields = 0;
+    while (fields < 3 && scan < end) {
+        unsigned sz = win64_literal_val_op_size(*scan);
+        if (!sz || end - scan < (ptrdiff_t)(sz + 5u) || scan[sz] != OP_define_field)
+            break;
+        scan += sz + 5u;
+        fields++;
+    }
+    frame->saved_sp = sp;
+    frame->sf.cur_sp = sp;
+    frame->sf.cur_pc = next_pc;
+    js_frame_begin_c(state);
+    JSValue obj;
+    if (likely(JS_IsObject(ctx->class_proto[JS_CLASS_OBJECT]))) {
+        JSObject *proto = JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_OBJECT]);
+        JSShape *sh = find_hashed_shape_proto(rt, proto);
+        sh = sh ? js_dup_shape(sh) : js_new_shape(ctx, proto);
+        if (unlikely(!sh)) {
+            obj = JS_EXCEPTION;
+        } else {
+            JSProperty dummy_prop;
+            dummy_prop.u.value = JS_UNDEFINED;
+            obj = JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, fields >= 3 ? &dummy_prop : NULL);
+        }
+    } else {
+        obj = JS_NewObject(ctx);
+    }
+    if (unlikely(JS_IsException(obj))) {
+        state->pc = next_pc;
+        state->sp = sp;
+        frame->saved_sp = sp;
+        frame->sf.cur_sp = sp;
+        frame->sf.cur_pc = next_pc;
+        state->exception_pending = true;
+        js_frame_finish_c(state);
+        return JS_FrameInterpSlow(state);
+    }
+    sp[0] = obj;
+    state->pc = next_pc;
+    state->sp = sp + 1;
+    frame->saved_sp = sp + 1;
+    frame->sf.cur_pc = next_pc;
+    if (!FRAME_CHECKPOINT(frame))
+        frame->sf.cur_sp = NULL;
+    js_frame_finish_c(state);
+    return 2;
+}
+
+/* Fast Win64 OP_define_field: zero-alloc hashed-shape transition into inline
+ * capacity, with direct JS_DefinePropertyValue fallback and fast PC/SP resume. */
+WIN64_HOST_FAST_CODE int JS_Win64DefineField(JSFrameRegisterState *state)
+{
+    uint8_t *pc = state->pc;
+    JSValue *sp = state->sp;
+    JSFrame *frame = state->frame;
+    JSContext *ctx = frame->bytecode->realm;
+    JSRuntime *rt = state->rt;
+    JSAtom atom = get_u32(pc + 1);
+    uint8_t *next_pc = pc + 5;
+    if (likely(JS_VALUE_GET_TAG(sp[-2]) == JS_TAG_OBJECT)) {
+        JSObject *p = JS_VALUE_GET_OBJ(sp[-2]);
+        JSShape *sh = p->shape;
+        JSProperty *pr;
+        if (likely(p->class_id == JS_CLASS_OBJECT && !p->is_exotic && p->extensible &&
+                   !p->is_prototype && sh->is_hashed && !sh->deleted_prop_count &&
+                   !__JS_AtomIsTaggedInt(atom) && !find_own_property(&pr, p, atom))) {
+            JSShape *next_sh = find_hashed_shape_prop(rt, sh, atom, JS_PROP_C_W_E);
+            if (likely(next_sh != NULL)) {
+                uint32_t cap = qjs_inline_property_current(p)
+                                   ? qjs_inline_property_header(p)->property_capacity
+                                   : (uint32_t)sh->prop_size;
+                if (likely((uint32_t)next_sh->prop_size <= cap)) {
+                    p->prop[sh->prop_count].u.value = sp[-1];
+                    sp[-1] = JS_UNDEFINED;
+                    p->shape = js_dup_shape(next_sh);
+                    js_free_shape(rt, sh);
+                    state->pc = next_pc;
+                    state->sp = sp - 1;
+                    frame->saved_sp = sp - 1;
+                    frame->sf.cur_pc = next_pc;
+                    if (!FRAME_CHECKPOINT(frame))
+                        frame->sf.cur_sp = NULL;
+                    return 2;
+                }
+            }
+        }
+    }
+    JSValue val = sp[-1];
+    sp[-1] = JS_UNDEFINED;
+    state->sp = sp - 1;
+    frame->saved_sp = sp - 1;
+    frame->sf.cur_sp = sp - 1;
+    frame->sf.cur_pc = next_pc;
+    js_frame_begin_c(state);
+    int ret = JS_DefinePropertyValue(ctx, sp[-2], atom, val, JS_PROP_C_W_E | JS_PROP_THROW);
+    if (unlikely(ret < 0)) {
+        state->pc = next_pc;
+        state->sp = sp - 1;
+        frame->saved_sp = sp - 1;
+        frame->sf.cur_sp = sp - 1;
+        frame->sf.cur_pc = next_pc;
+        state->exception_pending = true;
+        js_frame_finish_c(state);
+        return JS_FrameInterpSlow(state);
+    }
+    state->pc = next_pc;
+    state->sp = sp - 1;
+    frame->saved_sp = sp - 1;
+    frame->sf.cur_pc = next_pc;
     if (!FRAME_CHECKPOINT(frame))
         frame->sf.cur_sp = NULL;
     js_frame_finish_c(state);
@@ -1369,7 +2023,7 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
     JSFunctionBytecode *b = callee->u.func.function_bytecode;
     if (b->is_derived_class_constructor || b->func_kind != JS_FUNC_NORMAL || b->realm != ctx)
         return -1;
-    if (!FRAME_KIND(b) && !js_frame_validate(b))
+    if (!FRAME_KIND(b) && !js_frame_win64_admit(b))
         FRAME_KIND(b) = 2;
     bool is_kind1 = FRAME_SUPPORTED(b) != 0;
     bool is_va_wrapper =
@@ -1537,7 +2191,7 @@ int JS_FrameVarargsConstructCall(JSFrameRegisterState *state)
                 return -1;
             }
             init_b = init_fn->u.func.function_bytecode;
-            if (!FRAME_KIND(init_b) && !js_frame_validate(init_b))
+            if (!FRAME_KIND(init_b) && !js_frame_win64_admit(init_b))
                 FRAME_KIND(init_b) = 2;
             if (init_b->realm != ctx || !(FRAME_KIND(init_b) & 1) ||
                 init_b->func_kind != JS_FUNC_NORMAL || init_b->is_derived_class_constructor ||

@@ -295,8 +295,28 @@ def _prepare_win64_admission(source, output_dir, layout):
             if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL)
                 return false;
             break;
+        case OP_for_of_start:
+        case OP_for_of_next:
+        case OP_iterator_close:
+        case OP_catch:
+        case OP_gosub:
+        case OP_ret:
+        case OP_nip_catch:
+            if (getenv("QJS_DISABLE_FRAME_ITERATOR") != NULL ||
+                getenv("QJS_DISABLE_WIN64_ITERATOR") != NULL)
+                return false;
+            break;
+        case OP_append:
+        case OP_apply:
+            if (getenv("QJS_DISABLE_FRAME_VARARGS") != NULL ||
+                getenv("QJS_DISABLE_FRAME_ITERATOR") != NULL ||
+                getenv("QJS_DISABLE_WIN64_ITERATOR") != NULL)
+                return false;
+            break;
 """
     anchor = "#undef FRAME_OP\n            break;\n"
+    branch_anchor = "        case OP_goto:\n        case OP_if_true:\n        case OP_if_false:"
+    branch_repl = "        case OP_catch:\n        case OP_gosub:\n" + branch_anchor
 
     short_fn = replace_once(
         original,
@@ -305,6 +325,7 @@ def _prepare_win64_admission(source, output_dir, layout):
         "Win64 short validator signature",
     )
     short_fn = replace_once(short_fn, anchor, anchor + extra_cases, "Win64 short extra opcodes")
+    short_fn = replace_once(short_fn, branch_anchor, branch_repl, "Win64 short catch/gosub targets")
 
     long_fn = replace_once(
         original,
@@ -334,6 +355,7 @@ def _prepare_win64_admission(source, output_dir, layout):
         "Win64 long validator limit",
     )
     long_fn = replace_once(long_fn, anchor, anchor + extra_cases, "Win64 long extra opcodes")
+    long_fn = replace_once(long_fn, branch_anchor, branch_repl, "Win64 long catch/gosub targets")
     admission_h = (
         "#define FRAME_LARGE_CODE_DEFAULT "
         + str(int(bool(layout.get("property_ic"))))
@@ -539,6 +561,120 @@ def _prepare_win64_sort(source, output_dir):
     (output_dir / "quickjs-win64-sort.h").write_text(sort_src, encoding="utf-8", newline="\n")
 
 
+def _prepare_win64_small_char(source, output_dir):
+    small = (source / "src/common/kernel/small-char.c").read_text(encoding="utf-8")
+    small = replace_once(
+        small,
+        '#include "src/common/call/interpreter-retained-context.inc"\n',
+        "",
+        "Win64 small-char retained-context include",
+    )
+    small = replace_once(
+        small,
+        "extern JSValue qjs_frame_core_js_new_string_char(JSContext *, uint16_t);\n"
+        "extern JSAtom qjs_frame_core___JS_NewAtom(JSRuntime *, JSString *, int);\n",
+        "",
+        "Win64 small-char same-TU static functions",
+    )
+    small = re.sub(
+        r'\s*__attribute__\(\(section\("\.qjzzpm"\),\s*aligned\(\d+\)\)\)',
+        "",
+        small,
+    )
+    small = small.replace("FRAME_INLINE", "WIN64_SC_INLINE")
+    small = small.replace("FRAME_CODE", "no_inline")
+    small = re.sub(r"\bqjs_frame_core_js_new_string_char\b", "js_new_string_char", small)
+    small = re.sub(r"\bqjs_frame_core___JS_NewAtom\b", "__JS_NewAtom", small)
+    header = (
+        "#if defined(_MSC_VER)\n"
+        "#define WIN64_SC_INLINE __forceinline\n"
+        "#else\n"
+        "#define WIN64_SC_INLINE inline __attribute__((always_inline))\n"
+        "#endif\n" + small + "\n#undef WIN64_SC_INLINE\n"
+    )
+    (output_dir / "quickjs-win64-small-char.h").write_text(header, encoding="utf-8", newline="\n")
+
+
+def _prepare_win64_slow_host(source, output_dir):
+    c_match = _load_module(
+        "qjs_win64_host_match", source / "tools/common/backports/c_source_match.py"
+    )
+    owner = (source / "src/common/call/interpreter-slow-host.inc").read_text(encoding="utf-8")
+    template = c_match.extract_function(
+        owner, "static QJS_FRAME_SLOW_HOST_CODE JSValue\njs_frame_slow_host_call("
+    )
+    body = template[template.index("{") :]
+    original = "js_frame_legacy_call(ctx, callee, receiver, argc, argv)"
+    if body.count(original) != 2:
+        raise ValueError("Review Win64 slow-host template consumers")
+    common_decl = (
+        "struct JSFrameRegisterState *state, struct JSFrame *frame, struct JSFrameSegment *segment, "
+        "size_t used, uint8_t *pc, JSValue *sp, JSContext *ctx"
+    )
+    common = (
+        "JSFrameRegisterState *state, JSFrame *frame, JSFrameSegment *segment, "
+        "size_t used, uint8_t *pc, JSValue *sp, JSContext *ctx"
+    )
+    specs = [
+        ("start", "int", ", bool async", "js_for_of_start(ctx, sp, async)"),
+        ("next", "int", ", int offset", "js_for_of_next(ctx, sp, offset)"),
+        (
+            "close",
+            "int",
+            ", JSValueConst object, bool throwing",
+            "JS_IteratorClose(ctx, object, throwing)",
+        ),
+        ("append", "int", "", "js_append_enumerate(ctx, sp)"),
+        (
+            "apply",
+            "JSValue",
+            ", int magic",
+            "js_function_apply(ctx, sp[-3], 2, vc(&sp[-2]), magic)",
+        ),
+        (
+            "set_name_computed",
+            "int",
+            "",
+            "JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE)",
+        ),
+        (
+            "set_proto",
+            "int",
+            ", JSValueConst proto",
+            "JS_SetPrototypeInternal(ctx, sp[-2], proto, true)",
+        ),
+        (
+            "copy_data_properties",
+            "int",
+            ", int mask",
+            "JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)], sp[-1 - ((mask >> 2) & 7)], sp[-1 - ((mask >> 5) & 7)], 0)",
+        ),
+        ("for_in_start", "int", "", "js_for_in_start(ctx, sp)"),
+        ("for_in_next", "int", "", "js_for_in_next(ctx, sp)"),
+    ]
+    decls, defs = [], []
+    for name, result, extra, call in specs:
+        decl_sig = f"static {result} js_win64_slow_host_{name}({common_decl}{extra})"
+        sig = f"static QJS_FRAME_SLOW_HOST_CODE {result} js_win64_slow_host_{name}({common}{extra})"
+        code = body.replace(original, call)
+        if result == "int":
+            code = replace_once(code, "    JSValue result;", "    int result;", "Win64 host int")
+        code = replace_once(
+            code,
+            "    state->sp = sp;",
+            "    state->sp = sp;\n    frame->saved_sp = sp;\n    frame->sf.cur_pc = pc;",
+            "Win64 host cursor publication",
+        )
+        decls.append(decl_sig + ";")
+        defs.append(sig + "\n" + code)
+    (output_dir / "quickjs-win64-slow-host-declare.h").write_text(
+        "\n".join(decls) + "\n", encoding="utf-8", newline="\n"
+    )
+    (output_dir / "quickjs-win64-slow-host.h").write_text(
+        "\n\n".join(defs) + "\n", encoding="utf-8", newline="\n"
+    )
+
+
 def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
     """Inject Win64 zero-exit native opcodes and fast C-host dispatch routing."""
     opcodes = re.findall(
@@ -563,22 +699,51 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
     )
     rc_disp = f"{rc_off:+d}" if rc_off else ""
     rt_atom_off = layout["offsets"]["JSRuntime.atom_array"]
+    rt_csf_off = layout["offsets"]["JSRuntime.current_stack_frame"]
     obj_class_off = layout["offsets"]["JSObject.class_id"]
+    obj_shape_off = layout["offsets"]["JSObject.shape"]
+    obj_prop_off = layout["offsets"]["JSObject.prop"]
+    bc_code_off = layout["offsets"]["JSFunctionBytecode.byte_code_buf"]
+    bc_len_off = layout["offsets"]["JSFunctionBytecode.byte_code_len"]
+    gvar_off = layout["offsets"]["JSContext.global_var_obj"]
+    gobj_off = layout["offsets"]["JSContext.global_obj"]
+    mask_off = layout["offsets"]["JSShape.prop_hash_mask"]
+    str_len_byte = layout["bits"]["JSString.len"][0][0]
     html_byte, html_mask = layout["bits"]["JSObject.is_HTMLDDA"][0]
     cproto_off = layout["offsets"]["JSObject.u.cfunc.cproto"]
     cproto_magic = layout["constants"]["JS_CFUNC_generic_magic"]
     cproto_ff = layout["constants"]["JS_CFUNC_f_f"]
     cproto_fff = layout["constants"]["JS_CFUNC_f_f_f"]
+    flags_mask = (
+        layout["constants"]["JS_PROP_TMASK"]
+        | layout["constants"]["JS_PROP_LENGTH"]
+        | layout["constants"]["JS_PROP_WRITABLE"]
+    )
+    flags_writable = layout["constants"]["JS_PROP_WRITABLE"]
 
     # 1. Wire JS_FrameInterpHostDispatch -> JS_Win64HostDirectFast / JS_Win64HostNumericFast / Shared.
-    # Also route OP_add slow boundary -> JS_Win64AddSlow and OP_add_loc string edges -> JS_Win64AddLocalStringCold.
+    # Also route OP_add slow boundary -> JS_Win64AddSlow, OP_add_loc string edges -> JS_Win64AddLocalStringCold,
+    # OP_get_array_el/el2 string edges -> JS_Win64StringIndexCold, float inc/dec, and caught host exceptions.
     masm_ext_idx = masm_lines.index("EXTERN JS_FrameInterpHostDirectScoped:PROC")
     masm_lines[masm_ext_idx + 1 : masm_ext_idx + 1] = [
         "EXTERN JS_Win64HostDirectFast:PROC",
         "EXTERN JS_Win64HostNumericFast:PROC",
         "EXTERN JS_Win64AddSlow:PROC",
         "EXTERN JS_Win64AddLocalString:PROC",
+        "EXTERN JS_Win64StringIndexStep:PROC",
+        "EXTERN JS_Win64ForOfNext:PROC",
+        "EXTERN JS_Win64ArrayFrom:PROC",
+        "EXTERN JS_Win64Object:PROC",
+        "EXTERN JS_Win64DefineField:PROC",
+        "JS_Win64HostExceptionResume PROTO",
         "JS_Win64AddLocalStringCold PROTO",
+        "JS_Win64StringIndexCold PROTO",
+        "JS_Win64FloatIncLoc PROTO",
+        "JS_Win64FloatDecLoc PROTO",
+        "JS_Win64FloatInc PROTO",
+        "JS_Win64FloatDec PROTO",
+        "JS_Win64FloatPostInc PROTO",
+        "JS_Win64FloatPostDec PROTO",
     ]
     masm_text_tmp = "\n".join(masm_lines)
     masm_text_tmp = replace_once(
@@ -587,6 +752,33 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         "call JS_Win64AddSlow",
         "Win64 MASM OP_add fast string/rope route",
     )
+    masm_text_tmp = replace_once(
+        masm_text_tmp,
+        "interp_host_exception::\n"
+        "mov rcx, rbx\n"
+        "call JS_FrameInterpSlow\n"
+        "mov rbp, QWORD PTR [rbx]\n"
+        "mov r12, QWORD PTR [rbx+16]\n"
+        "mov r13, QWORD PTR [rbx+24]\n"
+        "jmp interp_exit",
+        "interp_host_exception::\n"
+        "mov rcx, rbx\n"
+        "call JS_FrameInterpSlow\n"
+        "mov rbp, QWORD PTR [rbx]\n"
+        "mov r12, QWORD PTR [rbx+16]\n"
+        "mov r13, QWORD PTR [rbx+24]\n"
+        "jmp NEAR PTR JS_Win64HostExceptionResume",
+        "Win64 MASM caught host exception continuation",
+    )
+    for op_arr in ("interp_get_array_el", "interp_get_array_el2"):
+        masm_text_tmp = replace_once(
+            masm_text_tmp,
+            f"{op_arr}::\ncmp DWORD PTR [r13-8], 0\njne interp_slow\n"
+            "cmp DWORD PTR [r13-24], -1\njne interp_slow",
+            f"{op_arr}::\ncmp DWORD PTR [r13-8], 0\njne interp_slow\n"
+            "cmp DWORD PTR [r13-24], -1\njne NEAR PTR JS_Win64StringIndexCold",
+            f"Win64 MASM {op_arr} string-index route",
+        )
     masm_text_tmp = replace_once(
         masm_text_tmp,
         f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
@@ -617,6 +809,33 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         "call JS_Win64AddSlow",
         "Win64 GAS OP_add fast string/rope route",
     )
+    gas_text_tmp = replace_once(
+        gas_text_tmp,
+        "interp_host_exception:\n"
+        "mov rcx, rbx\n"
+        "call JS_FrameInterpSlow\n"
+        "mov rbp, QWORD PTR [rbx]\n"
+        "mov r12, QWORD PTR [rbx+16]\n"
+        "mov r13, QWORD PTR [rbx+24]\n"
+        "jmp interp_exit",
+        "interp_host_exception:\n"
+        "mov rcx, rbx\n"
+        "call JS_FrameInterpSlow\n"
+        "mov rbp, QWORD PTR [rbx]\n"
+        "mov r12, QWORD PTR [rbx+16]\n"
+        "mov r13, QWORD PTR [rbx+24]\n"
+        "jmp JS_Win64HostExceptionResume",
+        "Win64 GAS caught host exception continuation",
+    )
+    for op_arr in ("interp_get_array_el", "interp_get_array_el2"):
+        gas_text_tmp = replace_once(
+            gas_text_tmp,
+            f"{op_arr}:\ncmp DWORD PTR [r13-8], 0\njne interp_slow\n"
+            "cmp DWORD PTR [r13-24], -1\njne interp_slow",
+            f"{op_arr}:\ncmp DWORD PTR [r13-8], 0\njne interp_slow\n"
+            "cmp DWORD PTR [r13-24], -1\njne JS_Win64StringIndexCold",
+            f"Win64 GAS {op_arr} string-index route",
+        )
     gas_text_tmp = replace_once(
         gas_text_tmp,
         f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
@@ -653,9 +872,36 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
         for idx in hits:
             lines_ref[idx] = repl
 
-    # Expose interp_slow:: in MASM so cold handlers in .qjscold can branch to it.
+    # Route cold non-int inc/dec edges -> JS_Win64Float* normalizers.
+    for op_lbl, off_cmp, expected_cmp, target in (
+        ("interp_inc_loc", 4, "cmp DWORD PTR [r8+8], 0", "JS_Win64FloatIncLoc"),
+        ("interp_dec_loc", 4, "cmp DWORD PTR [r8+8], 0", "JS_Win64FloatDecLoc"),
+        ("interp_inc", 1, "cmp DWORD PTR [r13-8], 0", "JS_Win64FloatInc"),
+        ("interp_dec", 1, "cmp DWORD PTR [r13-8], 0", "JS_Win64FloatDec"),
+        ("interp_post_inc", 1, "cmp DWORD PTR [r13-8], 0", "JS_Win64FloatPostInc"),
+        ("interp_post_dec", 1, "cmp DWORD PTR [r13-8], 0", "JS_Win64FloatPostDec"),
+    ):
+        for lines_ref, suffix, jprefix in (
+            (masm_lines, "::", "jne NEAR PTR "),
+            (gas_lines, ":", "jne "),
+        ):
+            idx = lines_ref.index(op_lbl + suffix)
+            if (
+                lines_ref[idx + off_cmp].strip() != expected_cmp
+                or lines_ref[idx + off_cmp + 1].strip() != "jne interp_slow"
+            ):
+                raise ValueError(f"Review Win64 inc/dec handler shape for {op_lbl}{suffix}")
+            lines_ref[idx + off_cmp + 1] = jprefix + target
+
+    # Expose interp_slow:: / interp_reload:: / interp_exit:: in MASM so cold handlers can branch.
+    masm_expose = {"interp_slow", "interp_reload", "interp_exit"}
     masm_lines = [
-        "interp_slow::" if line.strip() == "interp_slow:" else line for line in masm_lines
+        line.strip()[:-1] + "::"
+        if line.strip().endswith(":")
+        and not line.strip().endswith("::")
+        and line.strip()[:-1] in masm_expose
+        else line
+        for line in masm_lines
     ]
 
     # 2. Zero-exit native opcode handlers (Win64 ABI safe: only volatile GPRs & xmm0..xmm3).
@@ -1078,6 +1324,192 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
                 *dispatch,
             ],
         ),
+        (
+            "catch",
+            "JS_Win64Catch",
+            [
+                "movsxd rdx, DWORD PTR [r12+1]",
+                "lea rax, [r12+rdx+1]",
+                "mov rcx, QWORD PTR [rbp+80]",
+                f"sub rax, QWORD PTR [rcx+{bc_code_off}]",
+                "mov QWORD PTR [r13], rax",
+                "mov QWORD PTR [r13+8], 5",
+                "add r13, 16",
+                "add r12, 5",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+        (
+            "nip_catch",
+            "JS_Win64NipCatch",
+            [
+                "cmp DWORD PTR [r13-24], 5",
+                "jne interp_slow",
+                "movdqu xmm0, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-32], xmm0",
+                "sub r13, 16",
+                *dispatch,
+            ],
+        ),
+        (
+            "gosub",
+            "JS_Win64Gosub",
+            [
+                "mov rcx, QWORD PTR [rbp+80]",
+                f"mov r8, QWORD PTR [rcx+{bc_code_off}]",
+                "lea rax, [r12+5]",
+                "sub rax, r8",
+                "mov QWORD PTR [r13], rax",
+                "mov QWORD PTR [r13+8], 0",
+                "add r13, 16",
+                "movsxd rdx, DWORD PTR [r12+1]",
+                "lea r12, [r12+rdx+1]",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+        (
+            "ret",
+            "JS_Win64Ret",
+            [
+                "cmp DWORD PTR [r13-8], 0",
+                "jne interp_slow",
+                "mov eax, DWORD PTR [r13-16]",
+                "mov rcx, QWORD PTR [rbp+80]",
+                f"cmp eax, DWORD PTR [rcx+{bc_len_off}]",
+                "jae interp_slow",
+                "sub r13, 16",
+                f"add rax, QWORD PTR [rcx+{bc_code_off}]",
+                "mov r12, rax",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+    ]
+
+    def put_var_hash(obj_off):
+        if prefix_rc:
+            return [
+                f"mov r8, QWORD PTR [rsi+{obj_off}]",
+                f"mov r10, QWORD PTR [r8+{obj_shape_off}]",
+                "mov eax, r9d",
+                "mov rcx, 7046029254386353131",
+                "imul rax, rcx",
+                "shr rax, 32",
+                f"mov ecx, DWORD PTR [r10+{mask_off}]",
+                f"lea r11, [r10+rcx*4+{layout['offsets']['JSShape.hash_table'] + 4}]",
+                "inc ecx",
+                "imul rax, rcx",
+                "shr rax, 32",
+                "neg rax",
+                "mov ecx, DWORD PTR [r11+rax*4-4]",
+            ]
+        return [
+            f"mov r8, QWORD PTR [rsi+{obj_off}]",
+            f"mov r10, QWORD PTR [r8+{obj_shape_off}]",
+            f"mov ecx, DWORD PTR [r10+{mask_off}]",
+            "mov edx, r9d",
+            "and edx, ecx",
+            "neg rdx",
+            "mov ecx, DWORD PTR [r10+rdx*4-4]",
+            f"lea r11, [r10+{layout['offsets']['JSShape.prop']}]",
+        ]
+
+    def fast_c_op(c_target, tag):
+        return [
+            "mov QWORD PTR [rbx], rbp",
+            "mov QWORD PTR [rbx+16], r12",
+            "mov QWORD PTR [rbx+24], r13",
+            "mov r10, QWORD PTR [rbx+56]",
+            f"mov QWORD PTR [r10+{rt_csf_off}], rbp",
+            "mov rcx, rbx",
+            f"call {c_target}",
+            "cmp eax, 2",
+            f"je win64_{tag}_done",
+            "test eax, eax",
+            "jz interp_reload",
+            "mov rbp, QWORD PTR [rbx]",
+            "mov r12, QWORD PTR [rbx+16]",
+            "mov r13, QWORD PTR [rbx+24]",
+            "jmp interp_exit",
+            f"win64_{tag}_done:",
+            "mov r12, QWORD PTR [rbx+16]",
+            "mov r13, QWORD PTR [rbx+24]",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
+    extra_ops += [
+        (
+            "put_var",
+            "JS_Win64PutVar",
+            [
+                "mov r9d, DWORD PTR [r12+1]",
+                *put_var_hash(gvar_off),
+                "win64_put_var_lex_probe:",
+                "test ecx, ecx",
+                "jz win64_put_var_global",
+                "lea rax, [r11+rcx*8-8]",
+                "cmp DWORD PTR [rax+4], r9d",
+                "je win64_put_var_lex_found",
+                "mov ecx, DWORD PTR [rax]",
+                "and ecx, 67108863",
+                "jmp win64_put_var_lex_probe",
+                "win64_put_var_lex_found:",
+                "mov edx, DWORD PTR [rax]",
+                "shr edx, 26",
+                f"and edx, {flags_mask}",
+                f"cmp edx, {flags_writable}",
+                "jne interp_slow",
+                "dec ecx",
+                "shl rcx, 4",
+                f"mov r10, QWORD PTR [r8+{obj_prop_off}]",
+                "add r10, rcx",
+                "mov edx, DWORD PTR [r10+8]",
+                "cmp edx, 4",
+                "je interp_slow",
+                "test edx, edx",
+                "js interp_slow",
+                "jmp win64_put_var_store",
+                "win64_put_var_global:",
+                *put_var_hash(gobj_off),
+                "win64_put_var_obj_probe:",
+                "test ecx, ecx",
+                "jz interp_slow",
+                "lea rax, [r11+rcx*8-8]",
+                "cmp DWORD PTR [rax+4], r9d",
+                "je win64_put_var_obj_found",
+                "mov ecx, DWORD PTR [rax]",
+                "and ecx, 67108863",
+                "jmp win64_put_var_obj_probe",
+                "win64_put_var_obj_found:",
+                "mov edx, DWORD PTR [rax]",
+                "shr edx, 26",
+                f"and edx, {flags_mask}",
+                f"cmp edx, {flags_writable}",
+                "jne interp_slow",
+                "dec ecx",
+                "shl rcx, 4",
+                f"mov r10, QWORD PTR [r8+{obj_prop_off}]",
+                "add r10, rcx",
+                "cmp DWORD PTR [r10+8], 0",
+                "jl interp_slow",
+                "win64_put_var_store:",
+                "mov rax, QWORD PTR [r13-16]",
+                "mov rdx, QWORD PTR [r13-8]",
+                "mov QWORD PTR [r10], rax",
+                "mov QWORD PTR [r10+8], rdx",
+                "sub r13, 16",
+                "add r12, 5",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+        ("for_of_next", "JS_Win64ForOfNextEntry", fast_c_op("JS_Win64ForOfNext", "forof")),
+        ("array_from", "JS_Win64ArrayFromEntry", fast_c_op("JS_Win64ArrayFrom", "arrfrom")),
+        ("object", "JS_Win64ObjectEntry", fast_c_op("JS_Win64Object", "obj")),
+        ("define_field", "JS_Win64DefineFieldEntry", fast_c_op("JS_Win64DefineField", "deffield")),
     ]
 
     masm_tbl = masm_lines.index("interp_table LABEL QWORD") + 1
@@ -1097,7 +1529,74 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
             return f"{m.group(1)} NEAR PTR {m.group(2)}"
         return inst
 
+    def float_loc_stub(op_instr):
+        return [
+            "cmp DWORD PTR [r8+8], 8",
+            "jne interp_slow",
+            "movsd xmm0, QWORD PTR [r8]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne interp_slow",
+            "jp interp_slow",
+            op_instr,
+            "jo interp_slow",
+            "mov QWORD PTR [r8], rax",
+            "mov QWORD PTR [r8+8], 0",
+            "add r12, 2",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
+    def float_tos_stub(op_instr):
+        return [
+            "cmp DWORD PTR [r13-8], 8",
+            "jne interp_slow",
+            "movsd xmm0, QWORD PTR [r13-16]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne interp_slow",
+            "jp interp_slow",
+            op_instr,
+            "jo interp_slow",
+            "mov QWORD PTR [r13-16], rax",
+            "mov QWORD PTR [r13-8], 0",
+            "add r12, 1",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
+    def float_post_stub(op_instr):
+        return [
+            "cmp DWORD PTR [r13-8], 8",
+            "jne interp_slow",
+            "movsd xmm0, QWORD PTR [r13-16]",
+            "cvttsd2si eax, xmm0",
+            "cvtsi2sd xmm1, eax",
+            "ucomisd xmm0, xmm1",
+            "jne interp_slow",
+            "jp interp_slow",
+            op_instr,
+            "jo interp_slow",
+            "xor edx, edx",
+            "inc r12",
+            "mov QWORD PTR [r13], rax",
+            "mov QWORD PTR [r13+8], rdx",
+            "add r13, 16",
+            "movzx eax, BYTE PTR [r12]",
+            "jmp QWORD PTR [rdi+rax*8]",
+        ]
+
     cold_helpers = [
+        (
+            "JS_Win64HostExceptionResume",
+            [
+                "test eax, eax",
+                "jz interp_reload",
+                "jmp interp_exit",
+            ],
+        ),
         (
             "JS_Win64AddLocalStringCold",
             [
@@ -1117,8 +1616,11 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
                 "cmp eax, 2",
                 "je win64_add_local_done",
                 "test eax, eax",
-                "jne interp_exit",
-                "jmp interp_reload",
+                "jz interp_reload",
+                "mov rbp, QWORD PTR [rbx]",
+                "mov r12, QWORD PTR [rbx+16]",
+                "mov r13, QWORD PTR [rbx+24]",
+                "jmp interp_exit",
                 "win64_add_local_done:",
                 "mov r12, QWORD PTR [rbx+16]",
                 "mov r13, QWORD PTR [rbx+24]",
@@ -1126,6 +1628,25 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
                 "jmp QWORD PTR [rdi+rax*8]",
             ],
         ),
+        (
+            "JS_Win64StringIndexCold",
+            [
+                "cmp DWORD PTR [r13-24], -7",
+                "jne interp_slow",
+                "mov r10, QWORD PTR [r13-32]",
+                f"mov eax, DWORD PTR [r10+{str_len_byte}]",
+                "and eax, 2147483647",
+                "cmp DWORD PTR [r13-16], eax",
+                "jae interp_slow",
+                *fast_c_op("JS_Win64StringIndexStep", "stridx"),
+            ],
+        ),
+        ("JS_Win64FloatIncLoc", float_loc_stub("add eax, 1")),
+        ("JS_Win64FloatDecLoc", float_loc_stub("sub eax, 1")),
+        ("JS_Win64FloatInc", float_tos_stub("add eax, 1")),
+        ("JS_Win64FloatDec", float_tos_stub("sub eax, 1")),
+        ("JS_Win64FloatPostInc", float_post_stub("add eax, 1")),
+        ("JS_Win64FloatPostDec", float_post_stub("sub eax, 1")),
     ]
 
     assert masm_lines[-1].strip() == "END", "Unexpected MASM trailer"
@@ -1162,12 +1683,46 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
 
 
 def _build_foundation_c(core_path, output_dir, layout, source):
+    c_match = _load_module(
+        "qjs_win64_fnd_match", source / "tools/common/backports/c_source_match.py"
+    )
     _prepare_win64_admission(source, output_dir, layout)
     _prepare_win64_json(source, output_dir)
     _prepare_win64_locale(source, output_dir)
     _prepare_win64_sort(source, output_dir)
+    _prepare_win64_small_char(source, output_dir)
+    _prepare_win64_slow_host(source, output_dir)
     original = _wire_win64_inline_properties(
         core_path.read_text(encoding="utf-8"), bool(layout.get("property_ic"))
+    )
+    orig_char_fn = c_match.extract_function(
+        original, "static JSValue js_new_string_char(JSContext *ctx, uint16_t c)"
+    )
+    char_marker = "/* WIN64_OWNED_ORIGINAL_CHAR_CONSTRUCTOR */"
+    original = replace_once(
+        original, orig_char_fn, char_marker, "Win64 retain original js_new_string_char"
+    )
+    if len(re.findall(r"\bjs_new_string_char\(", original)) < 7:
+        raise ValueError("Review Win64 single-character call routes")
+    original = re.sub(r"\bjs_new_string_char\b", "JS_FrameSmallCharNew", original)
+    original = replace_once(
+        original,
+        char_marker,
+        "JSValue JS_FrameSmallCharNew(JSContext *, uint16_t);\n" + orig_char_fn,
+        "Win64 small-char declaration and retained constructor",
+    )
+    free_rt_fn = c_match.extract_function(original, "void JS_FreeRuntime(JSRuntime *rt)")
+    free_rt_clean = replace_once(
+        free_rt_fn,
+        "JS_RunGC(rt);",
+        "JS_FrameSmallCharCleanupGC(rt);",
+        "Win64 small-char runtime cleanup hook",
+    )
+    original = replace_once(
+        original,
+        free_rt_fn,
+        "void JS_FrameSmallCharCleanupGC(JSRuntime *);\n" + free_rt_clean,
+        "Win64 small-char runtime cleanup declaration",
     )
     original = replace_once(
         original,
@@ -1274,6 +1829,7 @@ def _build_foundation_c(core_path, output_dir, layout, source):
 #include "src/common/call/interpreter-bytecode-metadata.inc"
 #include "src/x86/win64/internal/win64-native-compat.inc"
 #include "src/common/call/interpreter-slow-host-declare.inc"
+#include "quickjs-win64-slow-host-declare.h"
 #include "src/common/value/arithmetic.inc"
 #ifdef QJS_PROPERTY_IC
 #define QJS_WIN64_FAST_INSTANCEOF 1
@@ -1287,6 +1843,7 @@ def _build_foundation_c(core_path, output_dir, layout, source):
 #include "quickjs-win64-admission.h"
 #include "src/common/call/quickjs-interpreter-shared.inc"
 #include "src/common/call/interpreter-slow-host.inc"
+#include "quickjs-win64-slow-host.h"
 
 #undef JS_CallInternal
 static JSValue JS_CallInternal(JSContext *ctx, JSValueConst func_obj,
@@ -1320,6 +1877,7 @@ JSValue JS_Call(JSContext *ctx, JSValueConst func_obj, JSValueConst this_obj,
 
 #include "quickjs-win64-json.h"
 #include "quickjs-win64-locale.h"
+#include "quickjs-win64-small-char.h"
 """
     out_c = output_dir / "quickjs-win64-foundation.c"
     out_c.write_text(text, encoding="utf-8", newline="\n")
@@ -1356,10 +1914,24 @@ def main():
         is_gnu=args.gnu,
     )
 
-    # 2. Generate quickjs-interpreter-slow.h (with Win64 fast instanceof op)
+    # 2. Generate quickjs-interpreter-slow.h (with Win64 fast instanceof, iterators, varargs, and exception walk)
     slow_mod = _load_module("qjs_win64_slow", source / "tools/x86/win64/codegen/generate-slow.py")
+    iter_mod = _load_module("qjs_win64_iter", source / "tools/x86/common/codegen/iterator.py")
+    varargs_mod = _load_module("qjs_win64_varargs", source / "tools/x86/common/codegen/varargs.py")
+    iter_bodies, exception_loop = iter_mod.bodies(source)
+    iter_bodies.pop("check_object", None)
+    varargs_bodies = varargs_mod.core_bodies(source)
+
+    loop_src = (source / "src/common/call/quickjs-interpreter-loop.inc").read_text(encoding="utf-8")
+    exc_anchor = "    ret_val = JS_EXCEPTION;\nreturn_frame:"
+    expanded_loop = replace_once(
+        loop_src,
+        exc_anchor,
+        exception_loop + "\n" + exc_anchor,
+        "Win64 catch/iterator-close exception marker walk",
+    )
     slow_path = native_dir / "quickjs-interpreter-slow.h"
-    slow_mod.generate(source, slow_path)
+    slow_mod.generate(source, slow_path, interpreter_text=expanded_loop)
     ops_text = (source / "src/common/call/quickjs-interpreter-ops.inc").read_text(encoding="utf-8")
     ops_anchor = "        CASE(OP_instanceof):\n            sf->cur_pc = pc;"
     ops_text = replace_once(
@@ -1500,8 +2072,12 @@ def main():
                     if (JS_SetPrototypeInternal(ctx, sp[-2], proto, true) < 0)
                         goto exception;
                 }
-                JS_FreeValue(ctx, proto);
                 sp--;
+                *sp = JS_UNDEFINED;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, proto);
             }
             BREAK;
         CASE(OP_copy_data_properties):
@@ -1534,7 +2110,60 @@ def main():
             sp += 2;
             BREAK;
 """
-    ops_text = ops_text + extra_ops
+    ops_text = (
+        ops_text
+        + extra_ops
+        + "\n"
+        + "\n".join(iter_bodies.values())
+        + "\n"
+        + "\n".join(varargs_bodies.values())
+        + "\n"
+    )
+    for old_call, new_call in (
+        (
+            "js_for_of_start(ctx, sp, false)",
+            "js_win64_slow_host_start(state,frame,segment,used_bytes,pc,sp,ctx,false)",
+        ),
+        (
+            "js_for_of_next(ctx, sp, offset)",
+            "js_win64_slow_host_next(state,frame,segment,used_bytes,pc,sp,ctx,offset)",
+        ),
+        (
+            "JS_IteratorClose(ctx, sp[-1], false)",
+            "js_win64_slow_host_close(state,frame,segment,used_bytes,pc,sp,ctx,sp[-1],false)",
+        ),
+        (
+            "js_append_enumerate(ctx, sp)",
+            "js_win64_slow_host_append(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+        (
+            "js_function_apply(ctx, sp[-3], 2, vc(&sp[-2]), magic)",
+            "js_win64_slow_host_apply(state,frame,segment,used_bytes,pc,sp,ctx,magic)",
+        ),
+        (
+            "JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE)",
+            "js_win64_slow_host_set_name_computed(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+        (
+            "JS_SetPrototypeInternal(ctx, sp[-2], proto, true)",
+            "js_win64_slow_host_set_proto(state,frame,segment,used_bytes,pc,sp,ctx,proto)",
+        ),
+        (
+            "JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)],\n"
+            "                                          sp[-1 - ((mask >> 2) & 7)],\n"
+            "                                          sp[-1 - ((mask >> 5) & 7)], 0)",
+            "js_win64_slow_host_copy_data_properties(state,frame,segment,used_bytes,pc,sp,ctx,mask)",
+        ),
+        (
+            "js_for_in_start(ctx, sp)",
+            "js_win64_slow_host_for_in_start(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+        (
+            "js_for_in_next(ctx, sp)",
+            "js_win64_slow_host_for_in_next(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+    ):
+        ops_text = replace_once(ops_text, old_call, new_call, f"Win64 coherent slow op {old_call}")
     (native_dir / "quickjs-win64-ops.inc").write_text(ops_text, encoding="utf-8", newline="\n")
 
     dispatch_text = (source / "src/common/call/quickjs-interpreter-dispatch.inc").read_text(
@@ -1549,6 +2178,15 @@ def main():
         "check_object",
         "for_in_start",
         "for_in_next",
+        "for_of_start",
+        "for_of_next",
+        "iterator_close",
+        "catch",
+        "gosub",
+        "ret",
+        "nip_catch",
+        "append",
+        "apply",
     ):
         dispatch_text = replace_once(
             dispatch_text,
@@ -1580,6 +2218,49 @@ def main():
         "callee, call_this, call_argc, vc(call_argv));",
         "Win64 slow host call TLS bridge",
     )
+    slow_text = replace_once(
+        slow_text,
+        "JS_IteratorClose(ctx, sp[-1], true)",
+        "js_win64_slow_host_close(state,frame,segment,used_bytes,pc,sp,ctx,sp[-1],true)",
+        "Win64 exception iterator close TLS bridge",
+    )
+    for old_rep, new_rep, lbl_rep in (
+        (
+            "            JSValue val = *--sp;\n            JS_FreeValue(ctx, val);",
+            "            JSValue val = *--sp;\n"
+            "            *sp = JS_UNDEFINED;\n"
+            "            state->sp = sp; frame->saved_sp = sp; sf->cur_sp = sp;\n"
+            "            JS_FreeValue(ctx, val);",
+            "Win64 exception unwind pop publication",
+        ),
+        (
+            "                    JS_FreeValue(ctx, sp[-1]); /* drop the next method */\n"
+            "                    sp--;",
+            "                    JSValue consumed = *--sp;\n"
+            "                    *sp = JS_UNDEFINED;\n"
+            "                    state->sp = sp; frame->saved_sp = sp; sf->cur_sp = sp;\n"
+            "                    JS_FreeValue(ctx, consumed);",
+            "Win64 exception iterator drop publication",
+        ),
+        (
+            "                    rt->current_exception = JS_UNINITIALIZED;\n"
+            "                    JS_FreeValueRT(rt, ctx->error_back_trace);",
+            "                    rt->current_exception = JS_UNINITIALIZED;\n"
+            "                    state->sp = sp; frame->saved_sp = sp; sf->cur_sp = sp;\n"
+            "                    JS_FreeValueRT(rt, ctx->error_back_trace);",
+            "Win64 exception backtrace publication",
+        ),
+        (
+            "    for (pval = local_buf; pval < sp; pval++)\n        JS_FreeValue(ctx, *pval);",
+            "    for (pval = local_buf; pval < sp; pval++) {\n"
+            "        JSValue consumed = *pval;\n"
+            "        *pval = JS_UNDEFINED;\n"
+            "        JS_FreeValue(ctx, consumed);\n"
+            "    }",
+            "Win64 return_frame consumed-slot publication",
+        ),
+    ):
+        slow_text = replace_once(slow_text, old_rep, new_rep, lbl_rep)
     slow_path.write_text(slow_text, encoding="utf-8", newline="\n")
 
     # 3. Generate Win64 register VM assembly (MASM + GAS/Clang Intel syntax)
