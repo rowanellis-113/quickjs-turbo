@@ -979,8 +979,7 @@ def generate(
             emit(("setb" if name == "lt" else "setbe") + " al", "setnp dl", "and al, dl")
         else:
             emit(("seta" if name == "gt" else "setae") + " al")
-        emit("mov QWORD PTR [r13-32], rax", "mov QWORD PTR [r13-24], 1", "sub r13, 16")
-        next_()
+        emit("jmp interp_cmp_done")
 
     number_compare_paths = []
     for name, cc in [
@@ -1015,11 +1014,71 @@ def generate(
             "xor eax, eax",
             "cmp ecx, DWORD PTR [r13-16]",
             f"set{cc} al",
-            "mov QWORD PTR [r13-32], rax",
-            "mov QWORD PTR [r13-24], 1",
-            "sub r13, 16",
+            "jmp interp_cmp_done",
         )
-        next_()
+
+    # In-handler compare+branch fusion: skips boolean stack materialization and
+    # the intermediate indirect dispatch when followed by if_false8/if_true8
+    # (inline) or if_false/if_true (cold), retaining exact interrupt poll parity.
+    assert ids["if_true8"] == ids["if_false8"] + 1
+    assert ids["if_true"] == ids["if_false"] + 1
+    assert (
+        ids["lte"] == ids["lt"] + 1 and ids["gt"] == ids["lt"] + 2 and ids["gte"] == ids["lt"] + 3
+    )
+    assert all(ids[f"get_loc{i}"] == ids["get_loc0"] + i for i in range(4))
+    assert all(ids[f"get_arg{i}"] == ids["get_arg0"] + i for i in range(4))
+    assert all(ids[f"set_loc{i}"] == ids["set_loc0"] + i for i in range(4))
+    assert all(ids[f"get_var_ref{i}"] == ids["get_var_ref0"] + i for i in range(4))
+    assert all(ids[f"push_{i}"] == ids["push_0"] + i for i in range(8))
+    assert ids["push_minus1"] == ids["push_0"] - 1
+    label("interp_cmp_done")
+    emit(
+        "movzx edx, BYTE PTR [r12+1]",
+        "mov ecx, edx",
+        f"sub ecx, {ids['if_false8']}",
+        "cmp ecx, 1",
+        "ja interp_cmp_done_wide",
+        f"cmp DWORD PTR [rsi+{ctx_poll}], 1",
+        "jle interp_cmp_store_bool",
+        f"dec DWORD PTR [rsi+{ctx_poll}]",
+        "sub r13, 32",
+        "cmp eax, ecx",
+        "jne interp_cmp_if8_untaken",
+        "movsx rax, BYTE PTR [r12+2]",
+        "lea r12, [r12+rax+2]",
+        "jmp interp_dispatch",
+    )
+    label("interp_cmp_if8_untaken")
+    next_(3)
+    label("interp_cmp_store_bool")
+    emit(
+        "mov QWORD PTR [r13-32], rax",
+        "mov QWORD PTR [r13-24], 1",
+        "sub r13, 16",
+        "add r12, 1",
+        "mov eax, edx",
+        "jmp QWORD PTR [rdi+rax*8]",
+    )
+    saved_code, code = code, cold_stage3
+    label("interp_cmp_done_wide")
+    emit(
+        "mov ecx, edx",
+        f"sub ecx, {ids['if_false']}",
+        "cmp ecx, 1",
+        "ja interp_cmp_store_bool",
+        f"cmp DWORD PTR [rsi+{ctx_poll}], 1",
+        "jle interp_cmp_store_bool",
+        f"dec DWORD PTR [rsi+{ctx_poll}]",
+        "sub r13, 32",
+        "cmp eax, ecx",
+        "jne interp_cmp_if32_untaken",
+        "movsxd rax, DWORD PTR [r12+2]",
+        "lea r12, [r12+rax+2]",
+        "jmp interp_dispatch",
+    )
+    label("interp_cmp_if32_untaken")
+    next_(6)
+    code = saved_code
 
     saved_code, code = code, cold_stage3
     if not numeric_compare:
@@ -1117,11 +1176,8 @@ def generate(
     emit(
         f"dec DWORD PTR [r8{rc:+d}]",
         f"dec DWORD PTR [r9{rc:+d}]",
-        "mov QWORD PTR [r13-32], rax",
-        "mov QWORD PTR [r13-24], 1",
-        "sub r13, 16",
+        "jmp interp_cmp_done",
     )
-    next_()
     label("interp_rel_str_slow")
     emit(
         "cmp r11d, 0",
@@ -1160,8 +1216,219 @@ def generate(
             f"{inst} eax, 1",
             "jo interp_slow",
             "mov QWORD PTR [r8], rax",
+            f"cmp BYTE PTR [r12+2], {ids['goto8']}",
+            "je interp_inc_loop_goto8",
         )
         next_(2)
+    saved_code, code = code, cold_stage3
+    # Universal for-loop backedge superinstruction: fuses inc_loc/dec_loc +
+    # goto8 -> get_loc + bound + lt/lte/gt/gte + if_false8/if_true8/if_false/if_true
+    # with exact 2-poll interrupt_counter parity and zero stack traffic.
+    label("interp_inc_loop_goto8")
+    emit(
+        "movzx r9d, BYTE PTR [r12+1]",
+        "movsx r10, BYTE PTR [r12+3]",
+        "lea r10, [r12+r10+3]",
+        "movzx ecx, BYTE PTR [r10]",
+        "cmp r9d, 3",
+        "ja interp_inc_loop_chk_loc8",
+        "mov edx, ecx",
+        f"sub edx, {ids['get_loc0']}",
+        "cmp edx, r9d",
+        "jne interp_inc_loop_chk_loc8",
+        "lea r11, [r10+1]",
+        "jmp interp_inc_loop_read_bound",
+    )
+    label("interp_inc_loop_chk_loc8")
+    emit(
+        f"cmp ecx, {ids['get_loc8']}",
+        "jne interp_inc_loop_goto_only",
+        "movzx edx, BYTE PTR [r10+1]",
+        "cmp edx, r9d",
+        "jne interp_inc_loop_goto_only",
+        "lea r11, [r10+2]",
+    )
+    label("interp_inc_loop_read_bound")
+    emit(
+        "movzx ecx, BYTE PTR [r11]",
+        "mov edx, ecx",
+        f"sub edx, {ids['get_loc0']}",
+        "cmp edx, 3",
+        "ja interp_inc_loop_bnd_arg",
+        "shl rdx, 4",
+        "cmp DWORD PTR [r14+rdx+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r14+rdx]",
+        "add r11, 1",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_arg")
+    emit(
+        "mov edx, ecx",
+        f"sub edx, {ids['get_arg0']}",
+        "cmp edx, 3",
+        "ja interp_inc_loop_bnd_vref",
+        "shl rdx, 4",
+        "cmp DWORD PTR [r15+rdx+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r15+rdx]",
+        "add r11, 1",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_vref")
+    emit(
+        "mov edx, ecx",
+        f"sub edx, {ids['get_var_ref0']}",
+        "cmp edx, 3",
+        "ja interp_inc_loop_bnd_vref16",
+        "mov r8, QWORD PTR [rbp+8]",
+        f"mov r8, QWORD PTR [r8+{obj_refs}]",
+        "mov r8, QWORD PTR [r8+rdx*8]",
+        f"mov r8, QWORD PTR [r8+{ref_value}]",
+        "cmp DWORD PTR [r8+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r8]",
+        "add r11, 1",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_vref16")
+    emit(
+        f"cmp ecx, {ids['get_var_ref']}",
+        "jne interp_inc_loop_bnd_loc8",
+        "movzx edx, WORD PTR [r11+1]",
+        "mov r8, QWORD PTR [rbp+8]",
+        f"mov r8, QWORD PTR [r8+{obj_refs}]",
+        "mov r8, QWORD PTR [r8+rdx*8]",
+        f"mov r8, QWORD PTR [r8+{ref_value}]",
+        "cmp DWORD PTR [r8+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r8]",
+        "add r11, 3",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_loc8")
+    emit(
+        f"cmp ecx, {ids['get_loc8']}",
+        "jne interp_inc_loop_bnd_small",
+        "movzx edx, BYTE PTR [r11+1]",
+        "shl rdx, 4",
+        "cmp DWORD PTR [r14+rdx+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r14+rdx]",
+        "add r11, 2",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_small")
+    emit(
+        "mov edx, ecx",
+        f"sub edx, {ids['push_minus1']}",
+        "cmp edx, 8",
+        "ja interp_inc_loop_bnd_i8",
+        "sub edx, 1",
+        "add r11, 1",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_i8")
+    emit(
+        f"cmp ecx, {ids['push_i8']}",
+        "jne interp_inc_loop_bnd_i16",
+        "movsx edx, BYTE PTR [r11+1]",
+        "add r11, 2",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_i16")
+    emit(
+        f"cmp ecx, {ids['push_i16']}",
+        "jne interp_inc_loop_bnd_i32",
+        "movsx edx, WORD PTR [r11+1]",
+        "add r11, 3",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_i32")
+    emit(
+        f"cmp ecx, {ids['push_i32']}",
+        "jne interp_inc_loop_bnd_arg16",
+        "mov edx, DWORD PTR [r11+1]",
+        "add r11, 5",
+        "jmp interp_inc_loop_cmp",
+    )
+    label("interp_inc_loop_bnd_arg16")
+    emit(
+        f"cmp ecx, {ids['get_arg']}",
+        "jne interp_inc_loop_goto_only",
+        "movzx edx, WORD PTR [r11+1]",
+        "shl rdx, 4",
+        "cmp DWORD PTR [r15+rdx+8], 0",
+        "jne interp_inc_loop_goto_only",
+        "mov edx, DWORD PTR [r15+rdx]",
+        "add r11, 3",
+    )
+    label("interp_inc_loop_cmp")
+    emit(
+        "movzx ecx, BYTE PTR [r11]",
+        "xor r8d, r8d",
+        f"cmp ecx, {ids['lt']}",
+        "je interp_inc_loop_cc_lt",
+        f"cmp ecx, {ids['lte']}",
+        "je interp_inc_loop_cc_lte",
+        f"cmp ecx, {ids['gte']}",
+        "je interp_inc_loop_cc_gte",
+        f"cmp ecx, {ids['gt']}",
+        "jne interp_inc_loop_goto_only",
+        "cmp eax, edx",
+        "setg r8b",
+        "jmp interp_inc_loop_br",
+    )
+    label("interp_inc_loop_cc_lt")
+    emit("cmp eax, edx", "setl r8b", "jmp interp_inc_loop_br")
+    label("interp_inc_loop_cc_lte")
+    emit("cmp eax, edx", "setle r8b", "jmp interp_inc_loop_br")
+    label("interp_inc_loop_cc_gte")
+    emit("cmp eax, edx", "setge r8b")
+    label("interp_inc_loop_br")
+    emit(
+        "movzx ecx, BYTE PTR [r11+1]",
+        "mov edx, ecx",
+        f"sub edx, {ids['if_false8']}",
+        "cmp edx, 1",
+        "ja interp_inc_loop_br_wide",
+        f"cmp DWORD PTR [rsi+{ctx_poll}], 2",
+        "jle interp_inc_loop_unfused",
+        f"sub DWORD PTR [rsi+{ctx_poll}], 2",
+        "cmp r8d, edx",
+        "je interp_inc_loop_br8_taken",
+        "lea r12, [r11+3]",
+        "jmp interp_dispatch",
+    )
+    label("interp_inc_loop_br8_taken")
+    emit("movsx rax, BYTE PTR [r11+2]", "lea r12, [r11+rax+2]", "jmp interp_dispatch")
+    label("interp_inc_loop_br_wide")
+    emit(
+        "mov edx, ecx",
+        f"sub edx, {ids['if_false']}",
+        "cmp edx, 1",
+        "ja interp_inc_loop_goto_only",
+        f"cmp DWORD PTR [rsi+{ctx_poll}], 2",
+        "jle interp_inc_loop_unfused",
+        f"sub DWORD PTR [rsi+{ctx_poll}], 2",
+        "cmp r8d, edx",
+        "je interp_inc_loop_br32_taken",
+        "lea r12, [r11+6]",
+        "jmp interp_dispatch",
+    )
+    label("interp_inc_loop_br32_taken")
+    emit("movsxd rax, DWORD PTR [r11+2]", "lea r12, [r11+rax+2]", "jmp interp_dispatch")
+    label("interp_inc_loop_goto_only")
+    emit(
+        f"cmp DWORD PTR [rsi+{ctx_poll}], 1",
+        "jle interp_inc_loop_unfused",
+        f"dec DWORD PTR [rsi+{ctx_poll}]",
+        "mov r12, r10",
+        "jmp interp_dispatch",
+    )
+    label("interp_inc_loop_unfused")
+    next_(2)
+    code = saved_code
     for name in ("inc", "dec", "not", "neg"):
         op(name)
         emit("cmp DWORD PTR [r13-8], 0", "jne interp_slow", "mov eax, DWORD PTR [r13-16]")
@@ -1201,8 +1468,7 @@ def generate(
             emit("mov ecx, DWORD PTR [r13-8]", "sub ecx, 2", "cmp ecx, 1", "setbe al")
         else:
             emit(f"cmp DWORD PTR [r13-8], {tag}", "sete al")
-        emit("mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], 1")
-        next_()
+        emit("add r13, 16", "jmp interp_cmp_done")
     for name in ("to_propkey", "to_propkey2"):
         op(name)
         if name == "to_propkey2":
@@ -1225,10 +1491,9 @@ def generate(
         "xor eax, eax",
         "cmp DWORD PTR [r13-16], 0",
         "sete al",
-        "mov QWORD PTR [r13-16], rax",
-        "mov QWORD PTR [r13-8], 1",
+        "add r13, 16",
+        "jmp interp_cmp_done",
     )
-    next_()
 
     # Match the original interrupt polling frequency; an expired counter exits
     # before modifying the instruction so C performs precisely one poll.
@@ -1242,6 +1507,98 @@ def generate(
         ("if_false8", 1),
     ]:
         op(name)
+        if name == "goto8":
+            emit(
+                "movsx rax, BYTE PTR [r12+1]",
+                "lea r10, [r12+rax+1]",
+                "test rax, rax",
+                "jns interp_goto8_normal",
+                f"cmp BYTE PTR [r10], {ids['get_arg']}",
+                "je interp_goto8_back",
+                f"cmp BYTE PTR [r10+1], {ids['dec']}",
+                "je interp_goto8_back",
+            )
+            label("interp_goto8_normal")
+            emit(
+                f"cmp DWORD PTR [rsi+{ctx_poll}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [rsi+{ctx_poll}]",
+                "mov r12, r10",
+                "jmp interp_dispatch",
+            )
+            saved_code, code = code, cold_stage3
+            # Backward goto8 -> while (--n >= 0) 7-opcode loop superinstruction.
+            label("interp_goto8_back")
+            emit(
+                "movzx ecx, BYTE PTR [r10]",
+                f"cmp ecx, {ids['get_arg']}",
+                "je interp_goto8_predec_arg",
+                f"sub ecx, {ids['get_loc0']}",
+                "cmp ecx, 3",
+                "ja interp_goto8_normal",
+                "lea rdx, [r10+6]",
+                "cmp rdx, r12",
+                "ja interp_goto8_normal",
+                f"cmp BYTE PTR [r10+1], {ids['dec']}",
+                "jne interp_goto8_normal",
+                "movzx edx, BYTE PTR [r10+2]",
+                f"sub edx, {ids['set_loc0']}",
+                "cmp edx, ecx",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+3], {ids['push_0']}",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+4], {ids['gte']}",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+5], {ids['if_false8']}",
+                "jne interp_goto8_normal",
+                "shl rcx, 4",
+                "lea r8, [r14+rcx]",
+                "lea r11, [r10+5]",
+                "jmp interp_goto8_predec_exec",
+            )
+            label("interp_goto8_predec_arg")
+            emit(
+                "lea rdx, [r10+10]",
+                "cmp rdx, r12",
+                "ja interp_goto8_normal",
+                f"cmp BYTE PTR [r10+3], {ids['dec']}",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+4], {ids['set_arg']}",
+                "jne interp_goto8_normal",
+                "movzx ecx, WORD PTR [r10+1]",
+                "movzx edx, WORD PTR [r10+5]",
+                "cmp ecx, edx",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+7], {ids['push_0']}",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+8], {ids['gte']}",
+                "jne interp_goto8_normal",
+                f"cmp BYTE PTR [r10+9], {ids['if_false8']}",
+                "jne interp_goto8_normal",
+                "shl rcx, 4",
+                "lea r8, [r15+rcx]",
+                "lea r11, [r10+9]",
+            )
+            label("interp_goto8_predec_exec")
+            emit(
+                "cmp DWORD PTR [r8+8], 0",
+                "jne interp_goto8_normal",
+                "mov eax, DWORD PTR [r8]",
+                "sub eax, 1",
+                "jo interp_goto8_normal",
+                f"cmp DWORD PTR [rsi+{ctx_poll}], 2",
+                "jle interp_goto8_normal",
+                f"sub DWORD PTR [rsi+{ctx_poll}], 2",
+                "mov QWORD PTR [r8], rax",
+                "test eax, eax",
+                "js interp_goto8_predec_exit",
+                "lea r12, [r11+2]",
+                "jmp interp_dispatch",
+            )
+            label("interp_goto8_predec_exit")
+            emit("movsx rax, BYTE PTR [r11+1]", "lea r12, [r11+rax+1]", "jmp interp_dispatch")
+            code = saved_code
+            continue
         emit(f"cmp DWORD PTR [rsi+{ctx_poll}], 1", "jle interp_slow")
         if name.startswith("if"):
             emit(
@@ -2030,8 +2387,7 @@ def generate(
     label("interp_primitive_eq_integer")
     emit("mov edx, DWORD PTR [r13-32]", "xor eax, eax", "cmp edx, DWORD PTR [r13-16]", "sete al")
     label("interp_primitive_eq_store")
-    emit("xor eax, ecx", "mov QWORD PTR [r13-32], rax", "mov QWORD PTR [r13-24], 1", "sub r13, 16")
-    next_()
+    emit("xor eax, ecx", "jmp interp_cmp_done")
     label("interp_primitive_eq_fallback")
     if numeric_compare:
         # Keep the established boolean/null/undefined/short-BigInt equality
@@ -2126,8 +2482,7 @@ def generate(
                     emit("sete al", "setnp dl", "and al, dl")
                 else:
                     emit("setne al", "setp dl", "or al, dl")
-                emit("mov QWORD PTR [r13-32], rax", "mov QWORD PTR [r13-24], 1", "sub r13, 16")
-                next_()
+                emit("jmp interp_cmp_done")
         if win64_native:
             label("interp_win64_loose_eq")
             emit("xor ecx, ecx", "jmp interp_win64_loose_common")
@@ -2401,8 +2756,7 @@ def generate(
 
         label("interp_lnot_cold")
         emit_win64_truthy("interp_win64_lnot_cold", "interp_win64_lnot_cold_done")
-        emit("xor eax, 1", "mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], 1")
-        next_()
+        emit("xor eax, 1", "add r13, 16", "jmp interp_cmp_done")
         for name, width in [("if_true", 4), ("if_false", 4), ("if_true8", 1), ("if_false8", 1)]:
             label("interp_" + name + "_cold")
             emit_win64_truthy(
