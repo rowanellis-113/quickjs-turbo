@@ -2,10 +2,10 @@
   "schema": 1,
   "target": "Linux AArch64 LE LP64/glibc/GCC",
   "source_owners": {
-    "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
-    "src/common/property/property-ic.inc": "8ff357127665e36492e24956a9001bb561d387997a3ad7537bb52be700df60a2",
+    "src/common/property/property-ic.h": "654baa55d00e410d89f899536bba22a5679e430bb2e2c8d0f167a6d6ddbe8fda",
+    "src/common/property/property-ic.inc": "ec36c943ffdfe1fef85530fedd9b6fb28b9a48b84e69453f76d0a1c2c2b1d2a2",
     "src/common/property/property-ic-lifetime.inc": "d79ee0d18ee6df7752ddaeb0d029958a0bfd52af077f99584274f194b43026c9",
-    "asm/arm64/common/register-property-ic.inc": "3e72a13af5436e09b0061a7b0cf8166351dc3aa64c2051fe4edb040556ae704d",
+    "asm/arm64/common/register-property-ic.inc": "296d068c36e2bed5d9af98f9aedf931b2af8236af2017ac8006014af786af997",
     "tools/arm64/workers/properties.py": "85faa4e15910cf9ea4d2433c3eb9fc0f2f1be28ccfe0eb4f231885fb49fd1eed"
   },
   "source_protocol": "Complete primary/three secondary by-id own/proto/unset/get-method/replace/same-capacity transition;original cold learner and cache lifetime",

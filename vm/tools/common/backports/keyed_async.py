@@ -641,5 +641,81 @@ def string_key_lookup(text):
     return text
 
 
+def free_and_generator_fast_paths(text):
+    before_lines = text.count("\n")
+    text = replace_exact_lines(
+        text,
+        "void JS_FreeValue(JSContext *ctx, JSValue v)\n"
+        "{\n"
+        "    JS_FreeValueRT(ctx->rt, v);\n"
+        "}\n\n"
+        "/* garbage collection */",
+        "void JS_FreeValue(JSContext *ctx, JSValue v)\n"
+        "{\n"
+        "    JS_FreeValueRT(ctx->rt, v);\n"
+        "}\n"
+        '#include "src/common/value/free-value-inline.inc"\n'
+        "/* garbage collection */",
+    )
+    text = replace_exact_lines(
+        text,
+        "static bool needs_backtrace(JSValue exc)\n"
+        "{\n"
+        "    return can_store_error_stack(exc) || can_add_backtrace(exc);\n"
+        "}",
+        "static bool needs_backtrace(JSValue exc) { return can_store_error_stack(exc) || can_add_backtrace(exc); }\n"
+        "#define QJS_FREE_INLINE_DEF 1\n"
+        '#include "src/common/value/free-value-inline.inc"\n',
+    )
+    text = replace_exact_lines(
+        text,
+        "\n/* warning: the refcount of the context is not incremented. Return\n"
+        "   NULL in case of exception (case of revoked proxy only) */\n"
+        "static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)",
+        "#define QJS_FREE_INLINE_UNDEF 1\n"
+        '#include "src/common/value/free-value-inline.inc"\n\n'
+        "static JSContext *JS_GetFunctionRealm(JSContext *ctx, JSValueConst func_obj)",
+    )
+    text = replace_exact_lines(
+        text,
+        "/* enum_rec [objs] -> enum_rec [objs] value done. There are 'offset'\n"
+        "   objs. If 'done' is true or in case of exception, 'enum_rec' is set\n"
+        "   to undefined. If 'done' is true, 'value' is always set to\n"
+        "   undefined. */\n"
+        "static __exception int js_for_of_next(JSContext *ctx, JSValue *sp, int offset)\n"
+        "{\n"
+        "    JSValue value = JS_UNDEFINED;\n"
+        "    int done = 1;\n\n"
+        "    if (likely(!JS_IsUndefined(sp[offset]))) {\n"
+        "        value = JS_IteratorNext(ctx, sp[offset], sp[offset + 1], 0, NULL, &done);",
+        "static JSValue js_generator_next(JSContext *ctx, JSValueConst this_val, int argc, JSValueConst *argv, int *pdone, int magic); static int js_generator_for_of_next_fast(JSContext *ctx, JSValue *sp, int offset);\n"
+        "static __exception int js_for_of_next(JSContext *ctx, JSValue *sp, int offset)\n"
+        "{\n"
+        "    JSValue value = JS_UNDEFINED; int done = 1;\n"
+        "    if (likely(!JS_IsUndefined(sp[offset]))) {\n"
+        "        JSValueConst iter_m = sp[offset + 1];\n"
+        "        if (likely(JS_VALUE_GET_TAG(iter_m) == JS_TAG_OBJECT && JS_VALUE_GET_OBJ(iter_m)->class_id == JS_CLASS_C_FUNCTION && JS_VALUE_GET_OBJ(iter_m)->u.cfunc.cproto == JS_CFUNC_iterator_next)) {\n"
+        "            JSObject *mp = JS_VALUE_GET_OBJ(iter_m); JSValueConst arg0 = JS_UNDEFINED;\n"
+        "            if (mp->u.cfunc.c_function.iterator_next == js_generator_next && mp->u.cfunc.magic == 0) { int gres = js_generator_for_of_next_fast(ctx, sp, offset); if (likely(gres <= 0)) return gres; value = js_generator_next(ctx, sp[offset], 0, &arg0, &done, 0); } else { value = mp->u.cfunc.c_function.iterator_next(ctx, sp[offset], 0, &arg0, &done, mp->u.cfunc.magic); }\n"
+        '            if (unlikely(!JS_IsException(value) && done == 2)) { if (!JS_IsObject(value)) { js_free_val_inline(ctx, value); JS_ThrowTypeError(ctx, "iterator must return an object"); value = JS_EXCEPTION; } else { JSValue dv = JS_GetProperty(ctx, value, JS_ATOM_done); if (JS_IsException(dv)) { js_free_val_inline(ctx, value); value = JS_EXCEPTION; } else { done = JS_ToBoolFree(ctx, dv); JSValue nv = done ? JS_UNDEFINED : JS_GetProperty(ctx, value, JS_ATOM_value); js_free_val_inline(ctx, value); value = nv; } } }\n'
+        "        } else { value = JS_IteratorNext(ctx, sp[offset], iter_m, 0, NULL, &done); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    return ret;\n"
+        "}\n\n"
+        "static JSValue js_call_generator_function(JSContext *ctx, JSValueConst func_obj,",
+        "    return ret;\n"
+        "}\n"
+        'static int js_generator_for_of_next_fast(JSContext *ctx, JSValue *sp, int offset) { JSValueConst gv = sp[offset]; if (likely(JS_VALUE_GET_TAG(gv) == JS_TAG_OBJECT)) { JSObject *go = JS_VALUE_GET_OBJ(gv); if (likely(go->class_id == JS_CLASS_GENERATOR)) { JSGeneratorData *s = go->u.generator_data; if (likely(s && s->state == JS_GENERATOR_STATE_SUSPENDED_YIELD)) { JSStackFrame *sf = &s->func_state.frame; JSValue func_ret; sf->cur_sp[-1] = JS_UNDEFINED; sf->cur_sp[0] = JS_MKVAL(JS_TAG_INT, GEN_MAGIC_NEXT); sf->cur_sp++; s->func_state.throw_flag = false; s->state = JS_GENERATOR_STATE_EXECUTING; func_ret = async_func_resume(ctx, &s->func_state); s->state = JS_GENERATOR_STATE_SUSPENDED_YIELD; if (likely(JS_VALUE_GET_TAG(func_ret) == JS_TAG_INT && JS_VALUE_GET_INT(func_ret) == FUNC_RET_YIELD)) { sp[0] = sf->cur_sp[-1]; sf->cur_sp[-1] = JS_UNDEFINED; sp[1] = JS_FALSE; return 0; } if (JS_IsException(func_ret)) { free_generator_stack(ctx, s); JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); return -1; } if (JS_VALUE_GET_TAG(func_ret) == JS_TAG_INT) { JSValue yobj = sf->cur_sp[-1]; sf->cur_sp[-1] = JS_UNDEFINED; s->state = JS_GENERATOR_STATE_SUSPENDED_YIELD_STAR; if (!JS_IsObject(yobj)) { js_free_val_inline(ctx, yobj); JS_ThrowTypeError(ctx, "iterator must return an object"); JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); return -1; } JSValue dv = JS_GetProperty(ctx, yobj, JS_ATOM_done); if (JS_IsException(dv)) { js_free_val_inline(ctx, yobj); JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); return -1; } int done = JS_ToBoolFree(ctx, dv); if (done) { js_free_val_inline(ctx, yobj); JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); sp[0] = JS_UNDEFINED; sp[1] = JS_TRUE; return 0; } JSValue nv = JS_GetProperty(ctx, yobj, JS_ATOM_value); js_free_val_inline(ctx, yobj); if (JS_IsException(nv)) { JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); return -1; } sp[0] = nv; sp[1] = JS_FALSE; return 0; } js_free_val_inline(ctx, sf->cur_sp[-1]); sf->cur_sp[-1] = JS_UNDEFINED; js_free_val_inline(ctx, func_ret); free_generator_stack(ctx, s); JSValue c = sp[offset]; sp[offset] = JS_UNDEFINED; js_free_val_inline(ctx, c); sp[0] = JS_UNDEFINED; sp[1] = JS_TRUE; return 0; } } } return 1; }\n'
+        "static JSValue js_call_generator_function(JSContext *ctx, JSValueConst func_obj,",
+    )
+    if text.count("\n") != before_lines:
+        raise ValueError("free_and_generator_fast_paths overlay changed logical line count")
+    return text
+
+
 def core_overlay(text):
-    return string_key_lookup(value_fast_paths(async_output(map_keys(text))))
+    return free_and_generator_fast_paths(
+        string_key_lookup(value_fast_paths(async_output(map_keys(text))))
+    )

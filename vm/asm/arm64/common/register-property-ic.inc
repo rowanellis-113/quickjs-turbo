@@ -151,7 +151,7 @@
     b .Lproperty_load
 .Lproperty_check_unset:
     cmp w10, #ARM_CONST_JS_IC_UNSET
-    b.ne .Lproperty_pic_slow
+    b.ne .Lproperty_check_getter
 .Lproperty_unset:
     mov x8, #0
     mov x16, #ARM_CONST_JS_TAG_UNDEFINED
@@ -163,6 +163,26 @@
     add x15, x15, #1
     str x15, [x14, #56]
 #endif
+    b .Lproperty_get_commit
+.Lproperty_check_getter:
+    ldr x11, [x22, #ARM_OFF_JSFrame_bytecode]
+    ldr x11, [x11, #ARM_OFF_JSFunctionBytecode_realm]
+    ldr w9, [x11, #ARM_OFF_JSContext_interrupt_counter]
+    cmp w9, #2
+    b.le .Lproperty_pic_slow
+    cmp w10, #7
+    b.ne .Lproperty_check_getter_bool
+    sub w9, w9, #1
+    str w9, [x11, #ARM_OFF_JSContext_interrupt_counter]
+    mov x7, x0
+    b .Lproperty_load
+.Lproperty_check_getter_bool:
+    cmp w10, #8
+    b.ne .Lproperty_pic_slow
+    sub w9, w9, #1
+    str w9, [x11, #ARM_OFF_JSContext_interrupt_counter]
+    ldr w8, [x5, #ARM_OFF_JSPropertyICWay_slot]
+    mov x16, #1
     b .Lproperty_get_commit
 .Lproperty_put:
     ldr w10, [x5, #ARM_OFF_JSPropertyICWay_kind]

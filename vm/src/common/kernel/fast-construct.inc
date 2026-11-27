@@ -1254,13 +1254,20 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
         js_frame_finish_c(state);
         return fast_ctor_decline(state);
     }
-    JSShape *sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, 0, NULL);
-    if (!sh) {
-        frame->pending = (uint16_t)(incoming_argc + 2);
-        state->pc = pc + 3;
-        state->exception_pending = true;
-        js_frame_finish_c(state);
-        return JS_FrameVarargsSlow(state);
+    JSShape *sh = site->new_shape;
+    if (unlikely(!(sh && sh == m->cached_shape && m->cached_shape_epoch == rt->property_ic_epoch &&
+                   sh->proto == proto_obj && sh->is_hashed && !sh->deleted_prop_count &&
+                   sh->prop_count == 0))) {
+        sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, 0, NULL);
+        if (!sh) {
+            frame->pending = (uint16_t)(incoming_argc + 2);
+            state->pc = pc + 3;
+            state->exception_pending = true;
+            js_frame_finish_c(state);
+            return JS_FrameVarargsSlow(state);
+        }
+        m->cached_shape = sh;
+        m->cached_shape_epoch = rt->property_ic_epoch;
     }
     if (unlikely(state->segment != segment || frame_size > segment->capacity - segment->used)) {
         if (!FRAME_CHECKPOINT(frame))

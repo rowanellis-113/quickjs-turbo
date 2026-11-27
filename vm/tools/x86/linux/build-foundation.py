@@ -86,6 +86,7 @@ def main():
         text, count = definition.subn(r"\1JS_LegacyCallInternal\2", text)
         if count != 1:
             raise ValueError("Internal call definition anchor changed")
+        text = "#define QJS_CVM_USE_LEGACY_CALL_INTERNAL 1\n" + text
         public = re.compile(r"(^JSValue JS_LegacyCall\([^;{}]*\)\s*\{)(.*?^\})", re.M | re.S)
         match = public.search(text)
         if not match or match[2].count("JS_CallInternal(") != 1:

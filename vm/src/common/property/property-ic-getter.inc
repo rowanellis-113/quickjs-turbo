@@ -162,3 +162,57 @@ static JSValue js_ic_invoke_getter(JSContext *ctx, JSObject *receiver, JSObject 
     }
     return JS_CallFree(ctx, js_dup(JS_MKPTR(JS_TAG_OBJECT, getter)), this_obj, 0, NULL);
 }
+
+static bool js_ic_classify_getter(JSContext *ctx, JSFunctionBytecode *b, JSObject *receiver,
+                                  JSObject *holder, JSObject *getter, uint32_t holder_slot,
+                                  JSPropertyICWay *fresh)
+{
+    if (receiver->is_exotic || !ctx->rt->property_ic_epoch)
+        return false;
+    if (holder != receiver && receiver != JS_VALUE_GET_OBJ(ctx->global_obj) && b->realm == ctx &&
+        js_ic_inline_getter_enabled() && getter->class_id == JS_CLASS_BYTECODE_FUNCTION) {
+        JSFunctionBytecode *gb = getter->u.func.function_bytecode;
+        if (gb->func_kind == JS_FUNC_NORMAL && !gb->is_derived_class_constructor &&
+            gb->arg_count == 0 && gb->var_ref_count == 0 && gb->closure_var_count == 0 &&
+            gb->realm == ctx) {
+            const uint8_t *code = gb->byte_code_buf;
+            int len = gb->byte_code_len;
+            if (gb->var_count == 1 && len == 9 && code[0] == OP_push_this &&
+                code[1] == OP_put_loc0 && code[2] == OP_get_loc0 && code[3] == OP_get_field &&
+                code[8] == OP_return) {
+                JSProperty *pr2;
+                JSShapeProperty *prs2 = find_own_property(&pr2, receiver, get_u32(code + 4));
+                if (prs2 && !(prs2->flags & JS_PROP_TMASK) && !JS_IsUninitialized(pr2->u.value)) {
+                    fresh->shape = receiver->shape;
+                    fresh->slot = (uint32_t)(pr2 - receiver->prop);
+                    fresh->kind = JS_IC_GETTER_FIELD;
+                    fresh->holder = holder;
+                    fresh->epoch = ctx->rt->property_ic_epoch;
+                    return true;
+                }
+            } else {
+                int off = -1;
+                if (gb->var_count == 1 && len == 5 && code[0] == OP_push_this &&
+                    code[1] == OP_put_loc0)
+                    off = 2;
+                else if (gb->var_count == 0 && len == 2)
+                    off = 0;
+                if (off >= 0 && (code[off] == OP_push_true || code[off] == OP_push_false) &&
+                    code[off + 1] == OP_return) {
+                    fresh->shape = receiver->shape;
+                    fresh->slot = (code[off] == OP_push_true) ? 1u : 0u;
+                    fresh->kind = JS_IC_GETTER_BOOL;
+                    fresh->holder = holder;
+                    fresh->epoch = ctx->rt->property_ic_epoch;
+                    return true;
+                }
+            }
+        }
+    }
+    fresh->shape = receiver->shape;
+    fresh->slot = holder_slot;
+    fresh->kind = JS_IC_GETTER;
+    fresh->holder = holder == receiver ? NULL : holder;
+    fresh->epoch = ctx->rt->property_ic_epoch;
+    return true;
+}

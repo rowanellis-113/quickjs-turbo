@@ -2,7 +2,7 @@
   "schema": 1,
   "owners": {
     "tools/x86/common/codegen/global-binding.py": "34b346d6dc534971cf4f9b42d8e4752b923a1fe90dfc5aa3fd5f540cfdb95fd3",
-    "tools/x86/common/codegen/property_ic_native.py": "9408762f195124769232e03164aa5a9687aee013012fd90b05f86376deb4a967",
+    "tools/x86/common/codegen/property_ic_native.py": "88c21ecc5c17d870ced941f1b49449f96731cb86661f4c4ecd2b0d4429e51b9e",
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
     "tools/x86/common/codegen/own-bytecode.py": "228fb18556d48f7f0413e6ee139da7864691e39de81fd7d45d3f40f8aefda2e0"

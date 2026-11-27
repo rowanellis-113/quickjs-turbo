@@ -247,6 +247,11 @@ def core_overlay(text):
     text = text[:start] + body + text[end:]
     text = replace_once(
         text,
+        "                    pr->u.getset.getter = new_getter;",
+        "                    js_property_ic_invalidate_proto(ctx, p); pr->u.getset.getter = new_getter;",
+    )
+    text = replace_once(
+        text,
         "            int i;\n            for(i = 0; i < b->cpool_count; i++) {",
         "            int i; js_property_ic_mark(rt, b, mark_func);\n            for(i = 0; i < b->cpool_count; i++) {",
     )

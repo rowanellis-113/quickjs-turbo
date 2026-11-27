@@ -6,7 +6,7 @@
     "tools/x86/common/codegen/proto-load.py": "db10a61d319779eefcbcfd12b2bd312706b85bf9d40e42c0b2c529bf1a4c1233",
     "tools/x86/common/codegen/proto-direct.py": "5efc2f8758f9195593571f69fd069cfc3ccf474675cdabed921bb581b1fcf40b",
     "tools/x86/common/codegen/length.py": "38a60d9a40736fdb065ac735038e0389644a5ad5cd4e430c9a069a8969948637",
-    "tools/x86/common/codegen/property_ic_native.py": "9408762f195124769232e03164aa5a9687aee013012fd90b05f86376deb4a967",
+    "tools/x86/common/codegen/property_ic_native.py": "88c21ecc5c17d870ced941f1b49449f96731cb86661f4c4ecd2b0d4429e51b9e",
     "src/x86/win64/common/quickjs-interpreter-number-property.inc": "ebdacc6699d09761299be66726886a29f10469b2e192d8cb6b5e7801610352b9",
     "src/x86/win64/common/quickjs-interpreter-proto-load.inc": "119ac89dda95850091e6026fac3f3e2db6e2c4efcee8f3aca334dd03f94b5797",
     "src/x86/win64/common/quickjs-interpreter-proto-persistent.inc": "9781c26444bfa63b61d08686bee78762bdc620c3a6e30e5ea999905ebe9dcc5b",

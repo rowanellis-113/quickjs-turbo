@@ -224,9 +224,20 @@ static QJS_HYBRID_INLINE void js_hybrid_drop_val_fast(JSRuntime *rt, JSValue v,
             } else if (tag == (uint32_t)JS_TAG_STRING) {
                 JSString *str = (JSString *)r;
 #ifndef ENABLE_DUMPS
-                if (likely(!str->atom_type && str->kind == JS_STRING_KIND_NORMAL)) {
-                    js_hybrid_free_rt_batched(rt, str, stack, freed_count, freed_size);
-                    return;
+                if (likely(!str->atom_type)) {
+                    if (likely(str->kind == JS_STRING_KIND_NORMAL)) {
+                        js_hybrid_free_rt_batched(rt, str, stack, freed_count, freed_size);
+                        return;
+                    }
+                    if (str->kind == JS_STRING_KIND_SLICE) {
+                        JSStringSlice *slice = (JSStringSlice *)&str[1];
+                        JSString *par = slice->parent;
+                        if (likely(JS_REF_COUNT(par) > 1)) {
+                            JS_REF_COUNT(par)--;
+                            js_hybrid_free_rt_batched(rt, str, stack, freed_count, freed_size);
+                            return;
+                        }
+                    }
                 }
 #endif
                 js_hybrid_flush_malloc(rt, freed_count, freed_size);
@@ -280,18 +291,20 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
 #endif
                 obj->free_mark = 1;
                 sh = obj->shape;
-                pr = get_shape_prop(sh);
                 prop = obj->prop;
                 prop_count = (uint32_t)sh->prop_count;
-                for (i = 0; i < prop_count; i++) {
-                    if (unlikely(pr[i].flags & JS_PROP_TMASK)) {
-                        js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
-                        rt->hybrid_free_stack = stack;
-                        free_property(rt, &prop[i], pr[i].flags);
-                        stack = rt->hybrid_free_stack;
-                    } else {
-                        js_hybrid_drop_val_fast(rt, prop[i].u.value, &next_cur, &stack,
-                                                &freed_count, &freed_size);
+                if (prop_count) {
+                    pr = get_shape_prop(sh);
+                    for (i = 0; i < prop_count; i++) {
+                        if (unlikely(pr[i].flags & JS_PROP_TMASK)) {
+                            js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                            rt->hybrid_free_stack = stack;
+                            free_property(rt, &prop[i], pr[i].flags);
+                            stack = rt->hybrid_free_stack;
+                        } else {
+                            js_hybrid_drop_val_fast(rt, prop[i].u.value, &next_cur, &stack,
+                                                    &freed_count, &freed_size);
+                        }
                     }
                 }
 #ifdef QJS_HYBRID_INLINE_PROPERTIES

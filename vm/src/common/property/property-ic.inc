@@ -243,10 +243,36 @@ JSValue js_property_ic_get(JSContext *ctx, JSFunctionBytecode *b, const uint8_t 
     if (way && way->kind != JS_IC_OWN && receiver->is_exotic)
         way = NULL;
     if (way) {
+        if (way->kind == JS_IC_OWN)
+            return js_dup(receiver->prop[way->slot].u.value);
+        if (way->kind == JS_IC_PROTO)
+            return js_dup(way->holder->prop[way->slot].u.value);
         if (way->kind == JS_IC_UNSET)
             return JS_UNDEFINED;
-        p = way->kind == JS_IC_OWN ? receiver : way->holder;
-        return js_dup(p->prop[way->slot].u.value);
+        if (way->kind == JS_IC_GETTER) {
+            JSObject *gh = way->holder ? way->holder : receiver;
+            JSObject *getter = gh->prop[way->slot].u.getset.getter;
+            if (unlikely(!getter))
+                return JS_UNDEFINED;
+            return js_ic_invoke_getter(ctx, receiver, getter, obj);
+        }
+        if ((way->kind == JS_IC_GETTER_FIELD || way->kind == JS_IC_GETTER_BOOL) &&
+            js_ic_inline_getter_enabled() && ctx->interrupt_counter > 2
+#ifdef ENABLE_DUMPS
+            && !ctx->rt->dump_flags
+#endif
+        ) {
+            if (way->kind == JS_IC_GETTER_FIELD) {
+                JSValue v = receiver->prop[way->slot].u.value;
+                if (likely(!JS_IsUninitialized(v))) {
+                    ctx->interrupt_counter--;
+                    return js_dup(v);
+                }
+            } else {
+                ctx->interrupt_counter--;
+                return JS_NewBool(ctx, way->slot != 0);
+            }
+        }
     }
     /* The ordinary inline lookup is also the miss path; never repeat it in
      * the generic getter after finding a plain data slot. */
@@ -263,9 +289,33 @@ JSValue js_property_ic_get(JSContext *ctx, JSFunctionBytecode *b, const uint8_t 
             if (unlikely(prs->flags & JS_PROP_TMASK)) {
                 uint32_t tmask = prs->flags & JS_PROP_TMASK;
                 if (tmask == JS_PROP_GETSET) {
-                    if (unlikely(!pr->u.getset.getter))
+                    JSObject *getter = pr->u.getset.getter;
+                    if (unlikely(!getter))
                         return JS_UNDEFINED;
-                    return js_ic_invoke_getter(ctx, receiver, pr->u.getset.getter, obj);
+                    if (cacheable && js_ic_classify_getter(ctx, b, receiver, p, getter,
+                                                           (uint32_t)(pr - p->prop), &fresh)) {
+                        if (fresh.kind == JS_IC_GETTER_FIELD && ctx->interrupt_counter > 2
+#ifdef ENABLE_DUMPS
+                            && !ctx->rt->dump_flags
+#endif
+                        ) {
+                            JSValue result = js_dup(receiver->prop[fresh.slot].u.value);
+                            ctx->interrupt_counter--;
+                            js_ic_install(ctx, b, site, &fresh);
+                            return result;
+                        }
+                        if (fresh.kind == JS_IC_GETTER_BOOL && ctx->interrupt_counter > 2
+#ifdef ENABLE_DUMPS
+                            && !ctx->rt->dump_flags
+#endif
+                        ) {
+                            ctx->interrupt_counter--;
+                            js_ic_install(ctx, b, site, &fresh);
+                            return JS_NewBool(ctx, fresh.slot != 0);
+                        }
+                        js_ic_install(ctx, b, site, &fresh);
+                    }
+                    return js_ic_invoke_getter(ctx, receiver, getter, obj);
                 }
                 if (tmask == JS_PROP_VARREF) {
                     JSValue val = *pr->u.var_ref->pvalue;
@@ -479,8 +529,11 @@ int js_property_ic_inspect(JSValueConst func, uint32_t counts[7])
     for (i = 0; i < ic->site_count; i++) {
         JSPropertyICSite *site = &ic->sites[i];
         counts[0] += site->megamorphic != 0;
-        for (j = 0; j < site->count; j++)
-            counts[js_ic_way(site, j)->kind & JS_IC_KIND_MASK]++;
+        for (j = 0; j < site->count; j++) {
+            uint32_t kind = js_ic_way(site, j)->kind & JS_IC_KIND_MASK;
+            if (kind < 7)
+                counts[kind]++;
+        }
     }
     return (int)ic->site_count;
 }

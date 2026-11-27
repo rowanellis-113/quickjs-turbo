@@ -215,8 +215,19 @@ def core_overlay(text, raw, root, build):
         "#undef DEFAULT",
         "#undef BREAK",
         "#undef DUMP_BYTECODE_OR_DONT",
+        "#define QJS_FREE_INLINE_DEF 1",
+        '#include "src/common/value/free-value-inline.inc"',
     ]
-    suffix = "\n#undef SWITCH\n#undef CASE\n#undef DEFAULT\n#undef BREAK\n#undef DUMP_BYTECODE_OR_DONT\n#else\n#define JS_CVMResumeEntry JS_CallInternal\n#endif\n"
+    suffix = (
+        '\n#define QJS_FREE_INLINE_UNDEF 1\n#include "src/common/value/free-value-inline.inc"'
+        "\n#undef SWITCH\n#undef CASE\n#undef DEFAULT\n#undef BREAK\n"
+        "#undef DUMP_BYTECODE_OR_DONT\n#else\n"
+        "#ifdef QJS_CVM_USE_LEGACY_CALL_INTERNAL\n"
+        "#define JS_CVMResumeEntry JS_LegacyCallInternal\n"
+        "#else\n"
+        "#define JS_CVMResumeEntry JS_CallInternal\n"
+        "#endif\n#endif\n"
+    )
     content = "\n".join(prefix) + "\n" + declaration + macros + entry + loops + suffix
     target = build.resolve() / "generated/backports/quickjs-coroutine-resume.inc"
     target.parent.mkdir(parents=True, exist_ok=True)

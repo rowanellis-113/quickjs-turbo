@@ -8,8 +8,8 @@
     "src/common/call/reference-config.inc": "cb82244dd9e6840b9d16ffdbc8f379b1053dcfdcc5c39fbed01310b9500f9c78",
     "src/common/call/interpreter-context-types.inc": "d06023f6c75af07582cb92c09c842575fa6e8f5a7d3e0d95f648220ab6078b31",
     "src/common/property/global-binding-cell.inc": "2218ab0a5831535dacc242ed8c1858a9094045e810a49bfbbc80d4d5ce96d38e",
-    "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
-    "src/common/property/property-ic.inc": "8ff357127665e36492e24956a9001bb561d387997a3ad7537bb52be700df60a2",
+    "src/common/property/property-ic.h": "654baa55d00e410d89f899536bba22a5679e430bb2e2c8d0f167a6d6ddbe8fda",
+    "src/common/property/property-ic.inc": "ec36c943ffdfe1fef85530fedd9b6fb28b9a48b84e69453f76d0a1c2c2b1d2a2",
     "src/common/property/property-ic-lifetime.inc": "d79ee0d18ee6df7752ddaeb0d029958a0bfd52af077f99584274f194b43026c9",
     "asm/arm64/common/register-global-bindings.inc": "772f7a0632c778b90a0eb361bcf7972dbfaf5ef6fbca86ed2a156283bf4ee96b"
   },

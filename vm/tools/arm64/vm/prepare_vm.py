@@ -766,6 +766,7 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
     text, count = pattern.subn(r"\1JS_LegacyCallInternal\2", text)
     if count != 1:
         raise ValueError("Original internal call definition changed")
+    text = "#define QJS_CVM_USE_LEGACY_CALL_INTERNAL 1\n" + text
     public = re.search(r"(^JSValue JS_LegacyCall\([^;{}]*\)\s*\{)(.*?^\})", text, re.M | re.S)
     if not public or public[2].count("JS_CallInternal(") != 1:
         raise ValueError("Original public fallback body changed")
