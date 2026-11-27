@@ -787,7 +787,7 @@ static no_inline void js_hybrid_trigger_gc_slow(JSRuntime *rt)
             base = 256u * 1024u;
         size_t full_cap = base + (base >> 1) + (base >> 2);
         bool near_limit = (lim != 0 && before + (before >> 2) > lim);
-        if (rt->hybrid_gc_minor_since_full >= 8 || near_limit || before > full_cap) {
+        if (rt->hybrid_gc_minor_since_full >= 12 || near_limit || before > full_cap) {
             JS_RunGC(rt);
 #ifdef _WIN32
             /* Bound heap growth after a low-yield full collection on Windows. */
@@ -797,7 +797,9 @@ static no_inline void js_hybrid_trigger_gc_slow(JSRuntime *rt)
             size_t after = rt->malloc_state.malloc_size;
             if (!near_limit && before >= (1024u * 1024u) && after >= before - (before >> 4)) {
                 rt->malloc_gc_threshold = after + after;
-                rt->hybrid_gc_full_malloc = after + (after >> 2);
+                rt->hybrid_gc_full_malloc = (after >= (8u * 1024u * 1024u))
+                                                ? (after + (after >> 1))
+                                                : (after + (after >> 2));
             } else {
                 rt->malloc_gc_threshold = after + (after >> 1);
             }
@@ -809,7 +811,14 @@ static no_inline void js_hybrid_trigger_gc_slow(JSRuntime *rt)
             if (after <= base + (base >> 3)) {
                 rt->malloc_gc_threshold = after + (after >> 1);
             } else {
+#ifdef _WIN32
                 size_t next_thresh = after + (after >> 2);
+#else
+                size_t next_thresh =
+                    (!near_limit && before >= (1024u * 1024u) && after >= before - (before >> 4))
+                        ? (after + (after >> 1))
+                        : (after + (after >> 2));
+#endif
                 size_t cap_thresh = full_cap + (base >> 3);
                 size_t min_thresh = after + (after >> 3);
                 if (next_thresh > cap_thresh)

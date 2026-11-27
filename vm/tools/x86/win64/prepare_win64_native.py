@@ -292,7 +292,26 @@ def _prepare_win64_admission(source, output_dir, layout):
         case OP_check_object:
         case OP_for_in_start:
         case OP_for_in_next:
+        case OP_iterator_get_value_done:
+        case OP_iterator_next:
+        case OP_iterator_call:
+        case OP_get_super:
+        case OP_get_super_value:
+        case OP_put_super_value:
+        case OP_set_home_object:
+        case OP_define_method:
+        case OP_define_method_computed:
+        case OP_define_class:
+        case OP_define_class_computed:
             if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL)
+                return false;
+            break;
+        case OP_special_object:
+            if (getenv("QJS_DISABLE_WIN64_EXTRA_OPS") != NULL ||
+                (code[pos + 1] != OP_SPECIAL_OBJECT_NULL_PROTO &&
+                 code[pos + 1] != OP_SPECIAL_OBJECT_THIS_FUNC &&
+                 code[pos + 1] != OP_SPECIAL_OBJECT_HOME_OBJECT &&
+                 code[pos + 1] != OP_SPECIAL_OBJECT_VAR_OBJECT))
                 return false;
             break;
         case OP_for_of_start:
@@ -324,6 +343,15 @@ def _prepare_win64_admission(source, output_dir, layout):
         "static no_inline bool JS_FrameWin64ShortValidate(JSFunctionBytecode *b)",
         "Win64 short validator signature",
     )
+    short_fn = replace_once(
+        short_fn, "b->stack_size > 512", "b->stack_size > 1024", "Win64 short stack limit"
+    )
+    short_fn = replace_once(
+        short_fn,
+        "b->var_count > 128 || b->arg_count > 128",
+        "b->var_count > 512 || b->arg_count > 256",
+        "Win64 short var/arg limit",
+    )
     short_fn = replace_once(short_fn, anchor, anchor + extra_cases, "Win64 short extra opcodes")
     short_fn = replace_once(short_fn, branch_anchor, branch_repl, "Win64 short catch/gosub targets")
 
@@ -332,6 +360,15 @@ def _prepare_win64_admission(source, output_dir, layout):
         signature,
         "static FRAME_LARGE_CODE bool JS_FrameLongValidate(JSFunctionBytecode *b)",
         "Win64 long validator signature",
+    )
+    long_fn = replace_once(
+        long_fn, "b->stack_size > 512", "b->stack_size > 1024", "Win64 long stack limit"
+    )
+    long_fn = replace_once(
+        long_fn,
+        "b->var_count > 128 || b->arg_count > 128",
+        "b->var_count > 512 || b->arg_count > 256",
+        "Win64 long var/arg limit",
     )
     long_fn = replace_once(
         long_fn,
@@ -651,8 +688,102 @@ def _prepare_win64_slow_host(source, output_dir):
         ),
         ("for_in_start", "int", "", "js_for_in_start(ctx, sp)"),
         ("for_in_next", "int", "", "js_for_in_next(ctx, sp)"),
+        ("iter_get_val_done", "int", "", "js_iterator_get_value_done(ctx, sp)"),
+        ("iter_next", "JSValue", "", "JS_Call(ctx, sp[-3], sp[-4], 1, vc(sp - 1))"),
+        (
+            "iter_call",
+            "int",
+            ", int flags, JSValue *out_ret",
+            "js_win64_op_iterator_call(ctx, sp, flags, out_ret)",
+        ),
+        ("get_super", "JSValue", "", "JS_GetPrototype(ctx, sp[-1])"),
+        ("get_super_value", "JSValue", "", "js_win64_op_get_super_value(ctx, sp)"),
+        ("put_super_value", "int", "", "js_win64_op_put_super_value(ctx, sp)"),
+        (
+            "define_method",
+            "int",
+            ", JSAtom atom, int op_flags, bool is_computed",
+            "js_win64_op_define_method(ctx, sp, atom, op_flags, is_computed)",
+        ),
+        (
+            "define_class",
+            "int",
+            ", JSAtom atom, int class_flags, JSVarRef **cur_var_refs, JSStackFrame *cur_sf, bool is_computed",
+            "js_op_define_class(ctx, sp, atom, class_flags, cur_var_refs, cur_sf, is_computed)",
+        ),
     ]
-    decls, defs = [], []
+    helper_defs = """static QJS_FRAME_SLOW_HOST_CODE int js_win64_op_iterator_call(
+    JSContext *ctx, JSValue *sp, int flags, JSValue *out_ret)
+{
+    JSValue method = JS_GetProperty(ctx, sp[-4], (flags & 1) ? JS_ATOM_throw : JS_ATOM_return);
+    if (JS_IsException(method))
+        return -1;
+    if (JS_IsUndefined(method) || JS_IsNull(method))
+        return 1;
+    JSValue ret = (flags & 2) ? JS_CallFree(ctx, method, sp[-4], 0, NULL)
+                              : JS_CallFree(ctx, method, sp[-4], 1, vc(sp - 1));
+    if (JS_IsException(ret))
+        return -1;
+    *out_ret = ret;
+    return 0;
+}
+
+static QJS_FRAME_SLOW_HOST_CODE JSValue js_win64_op_get_super_value(JSContext *ctx, JSValue *sp)
+{
+    JSAtom atom = JS_ValueToAtom(ctx, sp[-1]);
+    if (unlikely(atom == JS_ATOM_NULL))
+        return JS_EXCEPTION;
+    JSValue val = JS_GetPropertyInternal(ctx, sp[-2], atom, sp[-3], false);
+    JS_FreeAtom(ctx, atom);
+    return val;
+}
+
+static QJS_FRAME_SLOW_HOST_CODE int js_win64_op_put_super_value(JSContext *ctx, JSValue *sp)
+{
+    if (JS_VALUE_GET_TAG(sp[-3]) != JS_TAG_OBJECT) {
+        JS_ThrowTypeErrorNotAnObject(ctx);
+        return -1;
+    }
+    JSAtom atom = JS_ValueToAtom(ctx, sp[-2]);
+    if (unlikely(atom == JS_ATOM_NULL))
+        return -1;
+    int ret = JS_SetPropertyInternal2(ctx, sp[-3], atom, js_dup(sp[-1]), sp[-4], JS_PROP_THROW_STRICT);
+    JS_FreeAtom(ctx, atom);
+    return ret;
+}
+
+static QJS_FRAME_SLOW_HOST_CODE int js_win64_op_define_method(
+    JSContext *ctx, JSValue *sp, JSAtom atom, int op_flags, bool is_computed)
+{
+    int flags, ret;
+    JSValue value = JS_UNDEFINED, getter = JS_UNDEFINED, setter = JS_UNDEFINED;
+    if (is_computed) {
+        atom = JS_ValueToAtom(ctx, sp[-2]);
+        if (unlikely(atom == JS_ATOM_NULL))
+            return -1;
+    }
+    flags = JS_PROP_HAS_CONFIGURABLE | JS_PROP_CONFIGURABLE | JS_PROP_HAS_ENUMERABLE | JS_PROP_THROW;
+    if (op_flags & 4)
+        flags |= JS_PROP_ENUMERABLE;
+    if ((op_flags & 3) == 0) {
+        value = sp[-1];
+        flags |= JS_PROP_HAS_VALUE | JS_PROP_HAS_WRITABLE | JS_PROP_WRITABLE;
+    } else if ((op_flags & 3) == 1) {
+        getter = sp[-1];
+        flags |= JS_PROP_HAS_GET;
+    } else {
+        setter = sp[-1];
+        flags |= JS_PROP_HAS_SET;
+    }
+    ret = js_method_set_properties(ctx, sp[-1], atom, flags, sp[-2 - (int)is_computed]);
+    if (ret >= 0)
+        ret = JS_DefineProperty(ctx, sp[-2 - (int)is_computed], atom, value, getter, setter, flags);
+    if (is_computed)
+        JS_FreeAtom(ctx, atom);
+    return ret;
+}
+"""
+    decls, defs = [], [helper_defs]
     for name, result, extra, call in specs:
         decl_sig = f"static {result} js_win64_slow_host_{name}({common_decl}{extra})"
         sig = f"static QJS_FRAME_SLOW_HOST_CODE {result} js_win64_slow_host_{name}({common}{extra})"
@@ -2109,6 +2240,200 @@ def main():
                 goto exception;
             sp += 2;
             BREAK;
+        CASE(OP_iterator_get_value_done):
+            sf->cur_pc = pc;
+            if (js_win64_slow_host_iter_get_val_done(state, frame, segment, used_bytes, pc, sp, ctx))
+                goto exception;
+            sp += 1;
+            BREAK;
+        CASE(OP_iterator_next):
+            {
+                JSValue ret, prev;
+                sf->cur_pc = pc;
+                ret = js_win64_slow_host_iter_next(state, frame, segment, used_bytes, pc, sp, ctx);
+                if (JS_IsException(ret))
+                    goto exception;
+                prev = sp[-1];
+                sp[-1] = ret;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, prev);
+            }
+            BREAK;
+        CASE(OP_iterator_call):
+            {
+                JSValue ret = JS_UNDEFINED, prev;
+                int flags = *pc++;
+                int rc;
+                sf->cur_pc = pc;
+                rc = js_win64_slow_host_iter_call(state, frame, segment, used_bytes, pc, sp, ctx, flags, &ret);
+                if (rc < 0)
+                    goto exception;
+                if (rc == 0) {
+                    prev = sp[-1];
+                    sp[-1] = ret;
+                    state->sp = sp;
+                    frame->saved_sp = sp;
+                    sf->cur_sp = sp;
+                    JS_FreeValue(ctx, prev);
+                }
+                sp[0] = js_bool(rc != 0);
+                sp += 1;
+            }
+            BREAK;
+        CASE(OP_get_super):
+            {
+                JSValue proto, prev;
+                sf->cur_pc = pc;
+                proto = js_win64_slow_host_get_super(state, frame, segment, used_bytes, pc, sp, ctx);
+                if (JS_IsException(proto))
+                    goto exception;
+                prev = sp[-1];
+                sp[-1] = proto;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, prev);
+            }
+            BREAK;
+        CASE(OP_get_super_value):
+            {
+                JSValue val, v1, v2, v3;
+                sf->cur_pc = pc;
+                val = js_win64_slow_host_get_super_value(state, frame, segment, used_bytes, pc, sp, ctx);
+                if (unlikely(JS_IsException(val)))
+                    goto exception;
+                v1 = sp[-1];
+                v2 = sp[-2];
+                v3 = sp[-3];
+                sp[-3] = val;
+                sp[-2] = JS_UNDEFINED;
+                sp[-1] = JS_UNDEFINED;
+                sp -= 2;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, v1);
+                JS_FreeValue(ctx, v2);
+                JS_FreeValue(ctx, v3);
+            }
+            BREAK;
+        CASE(OP_put_super_value):
+            {
+                JSValue v1, v2, v3, v4;
+                int ret;
+                sf->cur_pc = pc;
+                ret = js_win64_slow_host_put_super_value(state, frame, segment, used_bytes, pc, sp, ctx);
+                v1 = sp[-1];
+                v2 = sp[-2];
+                v3 = sp[-3];
+                v4 = sp[-4];
+                sp[-4] = JS_UNDEFINED;
+                sp[-3] = JS_UNDEFINED;
+                sp[-2] = JS_UNDEFINED;
+                sp[-1] = JS_UNDEFINED;
+                sp -= 4;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, v1);
+                JS_FreeValue(ctx, v2);
+                JS_FreeValue(ctx, v3);
+                JS_FreeValue(ctx, v4);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_set_home_object):
+            js_method_set_home_object(ctx, sp[-1], sp[-2]);
+            BREAK;
+        CASE(OP_define_method):
+            {
+                JSAtom atom = get_u32(pc);
+                int op_flags = pc[4];
+                JSValue fn_val;
+                int ret;
+                pc += 5;
+                sf->cur_pc = pc;
+                ret = js_win64_slow_host_define_method(state, frame, segment, used_bytes, pc, sp, ctx, atom, op_flags, false);
+                fn_val = sp[-1];
+                sp[-1] = JS_UNDEFINED;
+                sp -= 1;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, fn_val);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_define_method_computed):
+            {
+                int op_flags = *pc++;
+                JSValue fn_val, key_val;
+                int ret;
+                sf->cur_pc = pc;
+                ret = js_win64_slow_host_define_method(state, frame, segment, used_bytes, pc, sp, ctx, JS_ATOM_NULL, op_flags, true);
+                fn_val = sp[-1];
+                key_val = sp[-2];
+                sp[-2] = JS_UNDEFINED;
+                sp[-1] = JS_UNDEFINED;
+                sp -= 2;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, fn_val);
+                JS_FreeValue(ctx, key_val);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_define_class):
+            {
+                JSAtom atom = get_u32(pc);
+                int class_flags = pc[4];
+                pc += 5;
+                sf->cur_pc = pc;
+                if (js_win64_slow_host_define_class(state, frame, segment, used_bytes, pc, sp, ctx, atom, class_flags, JS_VALUE_GET_OBJ(sf->cur_func)->u.func.var_refs, sf, false) < 0)
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_define_class_computed):
+            {
+                JSAtom atom = get_u32(pc);
+                int class_flags = pc[4];
+                pc += 5;
+                sf->cur_pc = pc;
+                if (js_win64_slow_host_define_class(state, frame, segment, used_bytes, pc, sp, ctx, atom, class_flags, JS_VALUE_GET_OBJ(sf->cur_func)->u.func.var_refs, sf, true) < 0)
+                    goto exception;
+            }
+            BREAK;
+        CASE(OP_special_object):
+            {
+                int arg = *pc++;
+                switch (arg) {
+                case OP_SPECIAL_OBJECT_THIS_FUNC:
+                    *sp++ = js_dup(sf->cur_func);
+                    break;
+                case OP_SPECIAL_OBJECT_HOME_OBJECT: {
+                    JSObject *p1 = JS_VALUE_GET_OBJ(sf->cur_func)->u.func.home_object;
+                    *sp++ = p1 ? js_dup(JS_MKPTR(JS_TAG_OBJECT, p1)) : JS_UNDEFINED;
+                    break;
+                }
+                case OP_SPECIAL_OBJECT_NULL_PROTO:
+                case OP_SPECIAL_OBJECT_VAR_OBJECT:
+                    sf->cur_pc = pc;
+                    *sp++ = JS_NewObjectProto(ctx, JS_NULL);
+                    if (unlikely(JS_IsException(sp[-1])))
+                        goto exception;
+                    break;
+                default:
+                    JS_ThrowInternalError(ctx, "unsupported special object");
+                    goto exception;
+                }
+            }
+            BREAK;
 """
     ops_text = (
         ops_text
@@ -2181,6 +2506,18 @@ def main():
         "for_of_start",
         "for_of_next",
         "iterator_close",
+        "iterator_get_value_done",
+        "iterator_next",
+        "iterator_call",
+        "get_super",
+        "get_super_value",
+        "put_super_value",
+        "set_home_object",
+        "define_method",
+        "define_method_computed",
+        "define_class",
+        "define_class_computed",
+        "special_object",
         "catch",
         "gosub",
         "ret",
