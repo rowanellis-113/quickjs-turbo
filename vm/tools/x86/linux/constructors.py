@@ -47,6 +47,26 @@ def scoped_helpers(source):
             ", JSValueConst ctor",
             "js_create_from_ctor(ctx, ctor, JS_CLASS_OBJECT)",
         ),
+        (
+            "set_name_computed",
+            "int",
+            "",
+            "JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE)",
+        ),
+        (
+            "set_proto",
+            "int",
+            ", JSValueConst proto",
+            "JS_SetPrototypeInternal(ctx, sp[-2], proto, true)",
+        ),
+        (
+            "copy_data_properties",
+            "int",
+            ", int mask",
+            "JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)], sp[-1 - ((mask >> 2) & 7)], sp[-1 - ((mask >> 5) & 7)], 0)",
+        ),
+        ("for_in_start", "int", "", "js_for_in_start(ctx, sp)"),
+        ("for_in_next", "int", "", "js_for_in_next(ctx, sp)"),
     ]
     declarations, definitions = [], []
     for name, result, extra, call in specs:
@@ -76,13 +96,73 @@ def scoped_helpers(source):
     return "\n".join(declarations) + "\n", "\n\n".join(definitions) + "\n"
 
 
+EXTRA_LINUX_OPS = (
+    "set_name_computed",
+    "set_proto",
+    "copy_data_properties",
+    "for_in_start",
+    "for_in_next",
+)
+
+
+def extra_linux_bodies():
+    return {
+        "set_name_computed": """        CASE(OP_set_name_computed):
+            {
+                int ret;
+                sf->cur_pc = pc;
+                ret = JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE);
+                if (unlikely(ret < 0))
+                    goto exception;
+            }
+            BREAK;""",
+        "set_proto": """        CASE(OP_set_proto):
+            {
+                JSValue proto;
+                proto = sp[-1];
+                if (JS_IsObject(proto) || JS_IsNull(proto)) {
+                    sf->cur_pc = pc;
+                    if (JS_SetPrototypeInternal(ctx, sp[-2], proto, true) < 0)
+                        goto exception;
+                }
+                sp--;
+                *sp = JS_UNDEFINED;
+                state->sp = sp;
+                frame->saved_sp = sp;
+                sf->cur_sp = sp;
+                JS_FreeValue(ctx, proto);
+            }
+            BREAK;""",
+        "copy_data_properties": """        CASE(OP_copy_data_properties):
+            {
+                int mask;
+                mask = *pc++;
+                sf->cur_pc = pc;
+                if (JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)], sp[-1 - ((mask >> 2) & 7)], sp[-1 - ((mask >> 5) & 7)], 0))
+                    goto exception;
+            }
+            BREAK;""",
+        "for_in_start": """        CASE(OP_for_in_start):
+            sf->cur_pc = pc;
+            if (js_for_in_start(ctx, sp))
+                goto exception;
+            BREAK;""",
+        "for_in_next": """        CASE(OP_for_in_next):
+            sf->cur_pc = pc;
+            if (js_for_in_next(ctx, sp))
+                goto exception;
+            sp += 2;
+            BREAK;""",
+    }
+
+
 def validator(source, text):
     """Extend only the existing derived short/long admission, not the base."""
     ops = (*module(source, "iterator").OPS, "append", "apply")
     text = replace_one(
         text,
         "    bool captured_args = false;",
-        "    bool captured_args = false;\n    bool extended = false, varargs = false;\n"
+        "    bool captured_args = false;\n    bool extended = false, varargs = false, extra_ops = false;\n"
         "    FRAME_ITERATOR_KIND(b) = 0;",
         "complete slow admission metadata",
     )
@@ -93,6 +173,8 @@ def validator(source, text):
         "            if (op == OP_append || op == OP_apply) varargs = true;\n"
         "            break;\n"
     )
+    extra += "".join("        case OP_" + name + ":\n" for name in EXTRA_LINUX_OPS)
+    extra += "            extra_ops = true;\n            break;\n"
     text = replace_one(text, anchor, anchor + extra, "complete original slow opcode set")
     anchor = "        case OP_goto:\n        case OP_if_true:\n        case OP_if_false:"
     text = replace_one(
@@ -106,7 +188,9 @@ def validator(source, text):
         return false;
     if (varargs && getenv("QJS_DISABLE_FRAME_VARARGS") != NULL)
         return false;
-    FRAME_ITERATOR_KIND(b) = varargs ? 3 : extended ? 1 : 0;
+    if (extra_ops && getenv("QJS_DISABLE_LINUX_EXTRA_OPS") != NULL)
+        return false;
+    FRAME_ITERATOR_KIND(b) = varargs ? 3 : (extended || extra_ops) ? 1 : 0;
     if (varargs) {
         FRAME_VARARGS_DIRECT_MODE(b) = getenv("QJS_DISABLE_FRAME_VARARGS_DIRECT") ? 2 : 1;
         FRAME_VARARGS_FUSION_MODE(b) = getenv("QJS_DISABLE_FRAME_VARARGS_FUSION") ? 2 : 1;
@@ -138,7 +222,9 @@ def generate(source, output, layout, *, loop_override=None):
         if loop_override is None
         else loop_override
     )
-    bodies, exception = iterator.bodies(source)
+    iter_bodies, exception = iterator.bodies(source)
+    bodies = extra_linux_bodies()
+    bodies.update(iter_bodies)
     bodies.update(varargs.core_bodies(source))
     expanded = replace_one(
         original,
@@ -209,6 +295,26 @@ def generate(source, output, layout, *, loop_override=None):
         (
             "js_function_apply(ctx, sp[-3], 2, vc(&sp[-2]), magic)",
             "js_linux_construct_host_apply(state,frame,segment,used_bytes,pc,sp,ctx,magic)",
+        ),
+        (
+            "JS_DefineObjectNameComputed(ctx, sp[-1], sp[-2], JS_PROP_CONFIGURABLE)",
+            "js_linux_construct_host_set_name_computed(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+        (
+            "JS_SetPrototypeInternal(ctx, sp[-2], proto, true)",
+            "js_linux_construct_host_set_proto(state,frame,segment,used_bytes,pc,sp,ctx,proto)",
+        ),
+        (
+            "JS_CopyDataProperties(ctx, sp[-1 - (mask & 3)], sp[-1 - ((mask >> 2) & 7)], sp[-1 - ((mask >> 5) & 7)], 0)",
+            "js_linux_construct_host_copy_data_properties(state,frame,segment,used_bytes,pc,sp,ctx,mask)",
+        ),
+        (
+            "js_for_in_start(ctx, sp)",
+            "js_linux_construct_host_for_in_start(state,frame,segment,used_bytes,pc,sp,ctx)",
+        ),
+        (
+            "js_for_in_next(ctx, sp)",
+            "js_linux_construct_host_for_in_next(state,frame,segment,used_bytes,pc,sp,ctx)",
         ),
     ]
     for old, new in calls:

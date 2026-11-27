@@ -151,18 +151,55 @@ def core_overlay(text, raw, root, build):
     assert macros.count("goto *dispatch_table[opcode = *pc++]") == 1
     marker = "#define SWITCH(pc)      DUMP_BYTECODE_OR_DONT(pc) __extension__ ({ goto *dispatch_table[opcode = *pc++]; });"
     assert macros.count(marker) == 1
+    break_direct = "#define BREAK           SWITCH(pc)"
+    assert macros.count(break_direct) == 1
     switch = "#define SWITCH(pc)      DUMP_BYTECODE_OR_DONT(pc) switch (opcode = *pc++)"
     assert macros.count(switch) == 1
     macros = macros.replace(
         switch,
         "#define SWITCH(pc) DUMP_BYTECODE_OR_DONT(pc) CVM_SEGMENT_TRY() switch (opcode = *pc++)",
     )
-    declaration = """static JSValue JS_CVMResumeInternal(JSContext *caller_ctx, JSValueConst func_obj,
-                                    JSValueConst this_obj, JSValueConst new_target,
-                                    int argc, JSValueConst *argv, int flags)
+    macros = macros.replace(
+        marker,
+        "#define SWITCH_DIRECT(pc) DUMP_BYTECODE_OR_DONT(pc) __extension__ ({ goto *dispatch_table[opcode = *pc++]; });\n"
+        "#define SWITCH(pc) DUMP_BYTECODE_OR_DONT(pc) CVM_SEGMENT_TRY() __extension__ ({ goto *dispatch_table[opcode = *pc++]; });",
+    )
+    macros = macros.replace(
+        break_direct,
+        "#define BREAK SWITCH_DIRECT(pc)",
+    )
+    # Re-enter native fast segments on DIRECT_DISPATCH after calls and rc==1 8-bit local
+    # stores, while keeping every other opcode 100% direct-threaded with zero stack bloat.
+    for call_ret in (
+        "                sp -= call_argc + 1;\n                *sp++ = ret_val;\n            }\n            BREAK;",
+        "                sp -= call_argc + 2;\n                *sp++ = ret_val;\n            }\n            BREAK;",
+    ):
+        assert loops.count(call_ret) >= 1
+        loops = loops.replace(
+            call_ret,
+            call_ret.replace(
+                "            BREAK;", "            CVM_SEGMENT_TRY_DIRECT()\n            BREAK;"
+            ),
+        )
+    for direct_site in (
+        "CASE(OP_put_loc8): set_value(ctx, &var_buf[*pc++], *--sp); BREAK;",
+        "CASE(OP_set_loc8): set_value(ctx, &var_buf[*pc++], js_dup(sp[-1])); BREAK;",
+    ):
+        assert loops.count(direct_site) == 1
+        loops = loops.replace(
+            direct_site,
+            direct_site.replace("BREAK;", "CVM_SEGMENT_TRY_DIRECT() BREAK;"),
+            1,
+        )
+    declaration = """static QJS_CVM_COLD_CODE JSValue JS_CVMResumeInternal(JSContext *caller_ctx,
+                                    JSAsyncFunctionState *s, uint8_t *initial_bail_pc)
 {
     JSRuntime *rt = caller_ctx->rt;
-    JSAsyncFunctionState *s;
+    JSValueConst func_obj = JS_MKPTR(JS_TAG_INT, s);
+    JSValueConst this_obj = s->this_val;
+    JSValueConst new_target = JS_UNDEFINED;
+    int argc = s->argc;
+    JSValueConst *argv = vc(s->frame.arg_buf);
     JSContext *ctx;
     JSObject *p;
     JSFunctionBytecode *b;
@@ -173,16 +210,24 @@ def core_overlay(text, raw, root, build):
     JSVarRef **var_refs;
 #if defined(QJS_CVM_FAST_NATIVE)
     bool use_native;
-    JSCVMFastState fast_state;
+    uint8_t *last_bail_pc = initial_bail_pc;
+    const uint8_t *cvm_bc_end;
 #elif defined(QJS_CVM_NATIVE_OPS)
     bool use_native;
     JSCVMSegmentState native_state;
+    (void)initial_bail_pc;
+#else
+    (void)initial_bail_pc;
 #endif
 """
     entry = """    /* Preserve caller-realm poll before reading/publishing the persistent SF. */
     if (js_poll_interrupts(caller_ctx))
         return JS_EXCEPTION;
-    s = JS_VALUE_GET_PTR(func_obj);
+    (void)func_obj;
+    (void)this_obj;
+    (void)new_target;
+    (void)argc;
+    (void)argv;
     sf = &s->frame;
     p = JS_VALUE_GET_OBJ(sf->cur_func);
     b = p->u.func.function_bytecode;
@@ -198,14 +243,9 @@ def core_overlay(text, raw, root, build):
     rt->current_stack_frame = sf;
 #if defined(QJS_CVM_FAST_NATIVE)
     use_native = js_cvm_segment_mode() == 1;
-    if (use_native) {
-        fast_state.locals = var_buf;
-        fast_state.args = arg_buf;
-        fast_state.refs = var_refs;
-        fast_state.ctx = ctx;
-        fast_state.bc = b;
-        fast_state.rt = rt;
-    }
+    cvm_bc_end = b->byte_code_buf + b->byte_code_len;
+    (void)last_bail_pc;
+    (void)cvm_bc_end;
 #elif defined(QJS_CVM_NATIVE_OPS)
     use_native = js_cvm_segment_mode() == 1;
     if (use_native) {
@@ -224,7 +264,7 @@ def core_overlay(text, raw, root, build):
         "#if defined(QJS_CVM_NATIVE_SEGMENTS) && (!DIRECT_DISPATCH || defined(QJS_CVM_FAST_NATIVE))",
         '#include "src/common/call/cvm-native-segments.inc"',
         "#endif",
-        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && !DIRECT_DISPATCH",
+        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && (!DIRECT_DISPATCH || defined(QJS_CVM_FAST_NATIVE))",
         "#undef SWITCH",
         "#undef CASE",
         "#undef DEFAULT",
@@ -235,7 +275,7 @@ def core_overlay(text, raw, root, build):
     ]
     suffix = (
         '\n#define QJS_FREE_INLINE_UNDEF 1\n#include "src/common/value/free-value-inline.inc"'
-        "\n#undef SWITCH\n#undef CASE\n#undef DEFAULT\n#undef BREAK\n"
+        "\n#undef SWITCH_DIRECT\n#undef SWITCH\n#undef CASE\n#undef DEFAULT\n#undef BREAK\n"
         "#undef DUMP_BYTECODE_OR_DONT\n#elif !defined(QJS_CVM_FAST_NATIVE)\n"
         "#ifdef QJS_CVM_USE_LEGACY_CALL_INTERNAL\n"
         "#define JS_CVMResumeEntry JS_LegacyCallInternal\n"

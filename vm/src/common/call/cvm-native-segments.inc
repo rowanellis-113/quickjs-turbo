@@ -36,6 +36,7 @@ _Static_assert(sizeof(JSCVMFastState) == 64 && offsetof(JSCVMFastState, pc) == 0
                    offsetof(JSCVMFastState, rt) == 56,
                "native coroutine fast segment boundary record");
 extern void JS_CVMRunFastSegment(JSCVMFastState *state);
+extern const uint8_t JS_CVMFastEligible[256];
 #endif
 #ifdef QJS_CVM_NATIVE_OPS
 _Static_assert(sizeof(JSCVMSegmentState) == 48 && offsetof(JSCVMSegmentState, pc) == 0 &&
@@ -58,9 +59,16 @@ _Static_assert(sizeof(JSValue) == 16 && offsetof(JSValue, tag) == 8 && JS_TAG_FI
                "native coroutine reads the pinned value/RC/context/capture contract");
 extern void JS_CVMRunSegment(JSCVMSegmentState *state);
 #endif
-#if !DIRECT_DISPATCH
-static JSValue JS_CVMResumeInternal(JSContext *, JSValueConst, JSValueConst, JSValueConst, int,
-                                    JSValueConst *, int);
+#if defined(_MSC_VER)
+#define QJS_CVM_COLD_CODE __declspec(code_seg(".qjscold")) __declspec(noinline)
+#elif defined(__GNUC__)
+#define QJS_CVM_COLD_CODE __attribute__((section(".text.qjs_cvm_cold"), noinline))
+#else
+#define QJS_CVM_COLD_CODE
+#endif
+#if !DIRECT_DISPATCH || defined(QJS_CVM_FAST_NATIVE)
+static QJS_CVM_COLD_CODE JSValue JS_CVMResumeInternal(JSContext *, JSAsyncFunctionState *,
+                                                      uint8_t *);
 #endif
 
 /* Configuration is process-start policy, like the existing core-spread path.
@@ -97,7 +105,88 @@ static unsigned char js_cvm_segment_mode(void)
     return mode;
 }
 
-#if !DIRECT_DISPATCH
+#if defined(QJS_CVM_FAST_NATIVE)
+static QJS_CVM_COLD_CODE uint8_t *
+js_cvm_reenter_segment(JSAsyncFunctionState *s, JSFunctionBytecode *b, JSRuntime *rt, uint8_t *pc)
+{
+    JSStackFrame *sf = &s->frame;
+    JSObject *p = JS_VALUE_GET_OBJ(sf->cur_func);
+    JSCVMFastState st;
+    st.pc = pc;
+    st.sp = sf->cur_sp;
+    st.locals = sf->var_buf;
+    st.args = sf->arg_buf;
+    st.refs = p->u.func.var_refs;
+    st.ctx = b->realm;
+    st.bc = b;
+    st.rt = rt;
+    JS_CVMRunFastSegment(&st);
+    sf->cur_sp = st.sp;
+    return st.pc;
+}
+
+static JSValue JS_CVMResumeEntry(JSContext *caller_ctx, JSValueConst func, JSValueConst this_val,
+                                 JSValueConst new_target, int argc, JSValueConst *argv, int flags)
+{
+    unsigned char mode = js_cvm_segment_mode();
+#ifdef ENABLE_DUMPS
+    if (check_dump_flag(caller_ctx->rt, JS_DUMP_BYTECODE_STEP))
+        mode = 2;
+#endif
+    if (unlikely(mode == 2)) {
+#ifdef QJS_CVM_USE_LEGACY_CALL_INTERNAL
+        return JS_LegacyCallInternal(caller_ctx, func, this_val, new_target, argc, argv, flags);
+#else
+        return JS_CallInternal(caller_ctx, func, this_val, new_target, argc, argv, flags);
+#endif
+    }
+    uint8_t *initial_bail_pc = NULL;
+    JSAsyncFunctionState *s = JS_VALUE_GET_PTR(func);
+    if (likely(mode == 1 && !s->throw_flag && caller_ctx->interrupt_counter > 1)) {
+        JSStackFrame *sf = &s->frame;
+        uint8_t *cur_pc = sf->cur_pc;
+        if (JS_CVMFastEligible[*cur_pc]) {
+            JSObject *p = JS_VALUE_GET_OBJ(sf->cur_func);
+            JSFunctionBytecode *b = p->u.func.function_bytecode;
+            JSCVMFastState st;
+            st.pc = cur_pc;
+            st.sp = sf->cur_sp;
+            st.locals = sf->var_buf;
+            st.args = sf->arg_buf;
+            st.refs = p->u.func.var_refs;
+            st.ctx = b->realm;
+            st.bc = b;
+            st.rt = caller_ctx->rt;
+            JS_CVMRunFastSegment(&st);
+            uint8_t op = *st.pc;
+            if (op == OP_yield && likely(caller_ctx->interrupt_counter > 1)) {
+                --caller_ctx->interrupt_counter;
+                sf->cur_pc = st.pc + 1;
+                sf->cur_sp = st.sp;
+                return JS_MKVAL(JS_TAG_INT, FUNC_RET_YIELD);
+            }
+            if (op == OP_await && likely(caller_ctx->interrupt_counter > 1)) {
+                --caller_ctx->interrupt_counter;
+                sf->cur_pc = st.pc + 1;
+                sf->cur_sp = st.sp;
+                return JS_MKVAL(JS_TAG_INT, FUNC_RET_AWAIT);
+            }
+            sf->cur_pc = st.pc;
+            sf->cur_sp = st.sp;
+            initial_bail_pc = st.pc;
+        } else if (*cur_pc == OP_yield) {
+            --caller_ctx->interrupt_counter;
+            sf->cur_pc = cur_pc + 1;
+            return JS_MKVAL(JS_TAG_INT, FUNC_RET_YIELD);
+        } else if (*cur_pc == OP_await) {
+            --caller_ctx->interrupt_counter;
+            sf->cur_pc = cur_pc + 1;
+            return JS_MKVAL(JS_TAG_INT, FUNC_RET_AWAIT);
+        }
+    }
+    return JS_CVMResumeInternal(caller_ctx, s, initial_bail_pc);
+}
+#elif !DIRECT_DISPATCH
 JSValue JS_CVMResumeEntry(JSContext *ctx, JSValueConst func, JSValueConst this_val,
                           JSValueConst new_target, int argc, JSValueConst *argv, int flags)
 {
@@ -107,70 +196,47 @@ JSValue JS_CVMResumeEntry(JSContext *ctx, JSValueConst func, JSValueConst this_v
         mode = 2;
 #endif
     if (mode != 2)
-        return JS_CVMResumeInternal(ctx, func, this_val, new_target, argc, argv, flags);
+        return JS_CVMResumeInternal(ctx, JS_VALUE_GET_PTR(func), NULL);
     return JS_CallInternal(ctx, func, this_val, new_target, argc, argv, flags);
-}
-#elif defined(QJS_CVM_FAST_NATIVE)
-static JSValue JS_CVMResumeEntry(JSContext *caller_ctx, JSValueConst func, JSValueConst this_val,
-                                 JSValueConst new_target, int argc, JSValueConst *argv, int flags)
-{
-    JSAsyncFunctionState *s = JS_VALUE_GET_PTR(func);
-    if (likely(!s->throw_flag && caller_ctx->interrupt_counter > 1 && js_cvm_segment_mode() == 1
-#ifdef ENABLE_DUMPS
-               && !check_dump_flag(caller_ctx->rt, JS_DUMP_BYTECODE_STEP)
-#endif
-                   )) {
-        JSStackFrame *sf = &s->frame;
-        JSObject *p = JS_VALUE_GET_OBJ(sf->cur_func);
-        JSFunctionBytecode *b = p->u.func.function_bytecode;
-        JSCVMFastState st;
-        st.pc = sf->cur_pc;
-        st.sp = sf->cur_sp;
-        st.locals = sf->var_buf;
-        st.args = sf->arg_buf;
-        st.refs = p->u.func.var_refs;
-        st.ctx = b->realm;
-        st.bc = b;
-        st.rt = caller_ctx->rt;
-        JS_CVMRunFastSegment(&st);
-        uint8_t op = *st.pc;
-        if (op == OP_yield) {
-            --caller_ctx->interrupt_counter;
-            sf->cur_pc = st.pc + 1;
-            sf->cur_sp = st.sp;
-            return JS_MKVAL(JS_TAG_INT, FUNC_RET_YIELD);
-        }
-        if (op == OP_await) {
-            --caller_ctx->interrupt_counter;
-            sf->cur_pc = st.pc + 1;
-            sf->cur_sp = st.sp;
-            return JS_MKVAL(JS_TAG_INT, FUNC_RET_AWAIT);
-        }
-        sf->cur_pc = st.pc;
-        sf->cur_sp = st.sp;
-    }
-#ifdef QJS_CVM_USE_LEGACY_CALL_INTERNAL
-    return JS_LegacyCallInternal(caller_ctx, func, this_val, new_target, argc, argv, flags);
-#else
-    return JS_CallInternal(caller_ctx, func, this_val, new_target, argc, argv, flags);
-#endif
 }
 #endif
 
-/* Switch-dispatch backends may use native segments. The direct-threaded
- * backend retains its complete inherited dispatch loop without this boundary.
+/* Switch-dispatch and QJS_CVM_FAST_NATIVE backends re-enter native segments
+ * across slow opcodes via a single eligible-opcode check before dispatch.
  */
-#if defined(QJS_CVM_FAST_NATIVE) && !DIRECT_DISPATCH
-#define CVM_SEGMENT_TRY()                                                                          \
+#if defined(QJS_CVM_FAST_NATIVE) && DIRECT_DISPATCH
+#define CVM_SEGMENT_TRY()
+#define CVM_SEGMENT_TRY_DIRECT()                                                                   \
     do {                                                                                           \
-        if (use_native) {                                                                          \
-            fast_state.pc = pc;                                                                    \
-            fast_state.sp = sp;                                                                    \
-            JS_CVMRunFastSegment(&fast_state);                                                     \
-            pc = fast_state.pc;                                                                    \
-            sp = fast_state.sp;                                                                    \
+        uint8_t cvm_s0_, cvm_s1_;                                                                  \
+        if (unlikely(use_native && pc + 10 < cvm_bc_end &&                                         \
+                     (unsigned)((cvm_s0_ = JS_CVMFastEligible[*pc]) - 1u) < 254u &&                \
+                     (unsigned)((cvm_s1_ = JS_CVMFastEligible[pc[cvm_s0_]]) - 1u) < 254u &&        \
+                     JS_CVMFastEligible[pc[cvm_s0_ + cvm_s1_]] != 0)) {                            \
+            sf->cur_sp = sp;                                                                       \
+            pc = js_cvm_reenter_segment(s, b, rt, pc);                                             \
+            sp = sf->cur_sp;                                                                       \
+            sf->cur_sp = NULL;                                                                     \
         }                                                                                          \
     } while (0);
+#elif defined(QJS_CVM_FAST_NATIVE)
+#define CVM_SEGMENT_TRY()                                                                          \
+    do {                                                                                           \
+        if (use_native && JS_CVMFastEligible[*pc]) {                                               \
+            if (likely(pc != last_bail_pc)) {                                                      \
+                sf->cur_sp = sp;                                                                   \
+                pc = js_cvm_reenter_segment(s, b, rt, pc);                                         \
+                sp = sf->cur_sp;                                                                   \
+                sf->cur_sp = NULL;                                                                 \
+                last_bail_pc = pc;                                                                 \
+            } else {                                                                               \
+                last_bail_pc = NULL;                                                               \
+            }                                                                                      \
+        } else {                                                                                   \
+            last_bail_pc = NULL;                                                                   \
+        }                                                                                          \
+    } while (0);
+#define CVM_SEGMENT_TRY_DIRECT()
 #elif defined(QJS_CVM_NATIVE_OPS)
 #include "src/common/call/cvm-native-segment-opcodes.inc"
 #define CVM_SEGMENT_TRY()                                                                          \
@@ -183,7 +249,8 @@ static JSValue JS_CVMResumeEntry(JSContext *caller_ctx, JSValueConst func, JSVal
             sp = native_state.sp;                                                                  \
         }                                                                                          \
     } while (0);
-
+#define CVM_SEGMENT_TRY_DIRECT()
 #else
 #define CVM_SEGMENT_TRY()
+#define CVM_SEGMENT_TRY_DIRECT()
 #endif
