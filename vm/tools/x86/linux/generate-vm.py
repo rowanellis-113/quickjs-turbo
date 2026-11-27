@@ -1554,6 +1554,9 @@ def main():
             from slot_store import readonly as slot_readonly
 
             lines += slot_readonly()
+        from x86.common.codegen.cvm_fast_native import emit_linux_elf as emit_cvm_fast_linux
+
+        lines += emit_cvm_fast_linux(source, layout, bool(layout.get("property_ic")), cet=cet)
         lines += [*property_note(cet), '.section .note.GNU-stack,"",@progbits']
         for target in sorted(mapping.values()):
             if target.startswith("qjs_linux_bridge_"):

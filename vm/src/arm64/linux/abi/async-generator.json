@@ -22,7 +22,7 @@
   "source_owners": {
     "tools/common/elf/c_workers.py": "940ab7ac0b5105daef04449fe41d97052c81f1bb2adf576952a9370aeeb34ac4",
     "tools/common/c_extract/generator_capability_c.py": "f8e07c3b5f8d2a48e9a5cc280bda5872466a9171ef746083fc43b6ec56b27fbe",
-    "src/common/promise/generator-capability.inc": "b88f5c22036b994813478e44c621c12bf20031bc5a2bcca2a58187fdea6d4aad"
+    "src/common/promise/generator-capability.inc": "d03f09f6255bcd3c4a8df91ab1d6f912e1f712dbb7b02b9a53fdbd745c6cdf1b"
   },
   "ownership": "Complete settlement,original/owned parent,next,recovery reaction and queue owner in same actual core TU",
   "architecture": "Source-only typed C;original jobs/contexts/FIFO/interrupts/GC/hooks and fresh CData recovery functions;no object adapter or private compiler clone ABI",

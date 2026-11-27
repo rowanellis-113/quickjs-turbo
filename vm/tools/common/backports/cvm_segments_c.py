@@ -171,7 +171,10 @@ def core_overlay(text, raw, root, build):
     int opcode, i;
     JSValue *local_buf, *stack_buf, *var_buf, *arg_buf, *sp, ret_val, *pval;
     JSVarRef **var_refs;
-#ifdef QJS_CVM_NATIVE_OPS
+#if defined(QJS_CVM_FAST_NATIVE)
+    bool use_native;
+    JSCVMFastState fast_state;
+#elif defined(QJS_CVM_NATIVE_OPS)
     bool use_native;
     JSCVMSegmentState native_state;
 #endif
@@ -193,7 +196,17 @@ def core_overlay(text, raw, root, build):
     pc = sf->cur_pc;
     sf->prev_frame = rt->current_stack_frame;
     rt->current_stack_frame = sf;
-#ifdef QJS_CVM_NATIVE_OPS
+#if defined(QJS_CVM_FAST_NATIVE)
+    use_native = js_cvm_segment_mode() == 1;
+    if (use_native) {
+        fast_state.locals = var_buf;
+        fast_state.args = arg_buf;
+        fast_state.refs = var_refs;
+        fast_state.ctx = ctx;
+        fast_state.bc = b;
+        fast_state.rt = rt;
+    }
+#elif defined(QJS_CVM_NATIVE_OPS)
     use_native = js_cvm_segment_mode() == 1;
     if (use_native) {
         native_state.locals = var_buf;
@@ -208,8 +221,10 @@ def core_overlay(text, raw, root, build):
 """
     prefix = [
         "/* Generated from this build's fully declared JS_CallInternal loop. MIT. */",
-        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && !DIRECT_DISPATCH",
+        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && (!DIRECT_DISPATCH || defined(QJS_CVM_FAST_NATIVE))",
         '#include "src/common/call/cvm-native-segments.inc"',
+        "#endif",
+        "#if defined(QJS_CVM_NATIVE_SEGMENTS) && !DIRECT_DISPATCH",
         "#undef SWITCH",
         "#undef CASE",
         "#undef DEFAULT",
@@ -221,7 +236,7 @@ def core_overlay(text, raw, root, build):
     suffix = (
         '\n#define QJS_FREE_INLINE_UNDEF 1\n#include "src/common/value/free-value-inline.inc"'
         "\n#undef SWITCH\n#undef CASE\n#undef DEFAULT\n#undef BREAK\n"
-        "#undef DUMP_BYTECODE_OR_DONT\n#else\n"
+        "#undef DUMP_BYTECODE_OR_DONT\n#elif !defined(QJS_CVM_FAST_NATIVE)\n"
         "#ifdef QJS_CVM_USE_LEGACY_CALL_INTERNAL\n"
         "#define JS_CVMResumeEntry JS_LegacyCallInternal\n"
         "#else\n"

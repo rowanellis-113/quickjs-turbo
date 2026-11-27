@@ -208,6 +208,36 @@ def async_output(text):
         "    promise = JS_NewPromiseCapability(ctx, s->resolving_funcs);",
         "    if (unlikely(ctx->rt->promise_hook)) { promise = JS_NewPromiseCapability(ctx, s->resolving_funcs); } else { promise = js_promise_new(ctx, JS_UNDEFINED, NULL); if (!JS_IsException(promise)) s->resolving_funcs[0] = js_dup(promise); }",
     )
+    text = replace_exact_lines(
+        text,
+        "            /* await */\n"
+        "            JS_FreeValue(ctx, func_ret); /* not used */\n"
+        "            promise = js_promise_resolve(ctx, ctx->promise_ctor,\n"
+        "                                         1, vc(&value), 0);\n"
+        "            JS_FreeValue(ctx, value);",
+        "            /* await */\n"
+        "            JS_FreeValue(ctx, func_ret); /* not used */\n"
+        "            { int _af = js_async_function_await_fast(ctx, s, value); if (likely(_af != 0)) { JS_FreeValue(ctx, value); if (_af < 0) goto fail; return is_success; } }\n"
+        "            promise = js_promise_resolve(ctx, ctx->promise_ctor, 1, vc(&value), 0);\n"
+        "            JS_FreeValue(ctx, value);",
+    )
+    text = replace_exact_lines(
+        text,
+        "static int js_async_generator_await(JSContext *ctx,\n"
+        "                                    JSAsyncGeneratorData *s,\n"
+        "                                    JSValue value)\n"
+        "{\n"
+        "    JSValue promise, resolving_funcs[2], resolving_funcs1[2];\n"
+        "    int i, res;\n\n"
+        "    promise = js_promise_resolve(ctx, ctx->promise_ctor,\n"
+        "                                 1, vc(&value), 0);",
+        "static JSValue js_async_gen_core_resume_job(JSContext *ctx, int argc, JSValueConst *argv) { (void)argc; if (unlikely(js_poll_interrupts(ctx))) return JS_EXCEPTION; if (unlikely(!JS_GetOpaque(argv[0], JS_CLASS_ASYNC_GENERATOR))) return JS_UNDEFINED; return js_async_generator_resolve_function(ctx, JS_UNDEFINED, 1, &argv[1], 0, &argv[0]); }\n"
+        "static int js_async_generator_await(JSContext *ctx, JSAsyncGeneratorData *s, JSValue value)\n"
+        "{\n"
+        "    JSValue promise, resolving_funcs[2], resolving_funcs1[2]; int i, res;\n"
+        "    if (likely(!ctx->rt->promise_hook && !js_check_stack_overflow(ctx->rt, 4096) && JS_IsObject(ctx->promise_ctor))) { JSValueConst _rv = value; bool _ok = false, _dir = false; if (JS_IsObject(value)) { JSObject *_po = JS_VALUE_GET_OBJ(value); if (_po->class_id == JS_CLASS_PROMISE) { if (js_async_promise_try_fulfilled(ctx, value, &_rv)) _ok = true; } else if (ctx->interrupt_counter > 1 && js_async_value_non_thenable(ctx, value)) { _dir = true; _ok = true; } } else if (ctx->interrupt_counter > 1) { _dir = true; _ok = true; } if (_ok) { JSJobEntry *_j = js_malloc(ctx, sizeof(*_j) + 2 * sizeof(JSValue)); if (unlikely(!_j)) return -1; if (unlikely(ctx->rt->promise_hook || (_dir && (ctx->interrupt_counter <= 1 || !js_async_value_non_thenable(ctx, value))) || (!_dir && !js_async_promise_try_fulfilled(ctx, value, &_rv)))) { js_free(ctx, _j); } else { if (_dir) --ctx->interrupt_counter; else js_async_promise_mark_handled(value); _j->ctx = ctx; _j->job_func = js_async_gen_core_resume_job; _j->argc = 2; _j->argv[0] = js_dup(JS_MKPTR(JS_TAG_OBJECT, s->generator)); _j->argv[1] = js_dup(_rv); list_add_tail(&_j->link, &ctx->rt->job_list); return 0; } } }\n"
+        "    promise = js_promise_resolve(ctx, ctx->promise_ctor, 1, vc(&value), 0);",
+    )
     old_resolve_fn = """static JSValue js_promise_resolve_function_call(JSContext *ctx,
                                                 JSValueConst func_obj,
                                                 JSValueConst this_val,
@@ -263,11 +293,23 @@ def async_output(text):
     }
     return JS_UNDEFINED;
 }"""
-    new_resolve_fn = """static JSValue js_promise_settle(JSContext *ctx, JSValueConst promise, JSValueConst resolution, bool is_reject)
+    new_resolve_fn = """static int js_async_promise_try_fulfilled(JSContext *ctx, JSValueConst promise, JSValueConst *out_res)
+{
+    JSObject *po = JS_VALUE_GET_OBJ(promise); JSPromiseData *d = po->u.promise_data;
+    if (!d || d->promise_state != JS_PROMISE_FULFILLED || po->is_exotic || po->shape->prop_count != 0 || po->shape->proto != JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_PROMISE]) || !js_async_promise_proto_ctor_std(ctx)) return 0;
+    *out_res = d->promise_result; return 1;
+}
+static void js_async_promise_mark_handled(JSValueConst promise)
+{
+    JSPromiseData *d = JS_GetOpaque(promise, JS_CLASS_PROMISE);
+    if (likely(d)) d->is_handled = true;
+}
+static JSValue js_promise_settle(JSContext *ctx, JSValueConst promise, JSValueConst resolution, bool is_reject)
 {
     JSValueConst args[3]; JSValue then;
     if (is_reject || !JS_IsObject(resolution)) { goto done; }
     else if (js_same_value(ctx, resolution, promise)) { JS_ThrowTypeError(ctx, "promise self resolution"); goto fail_reject; }
+    if (js_async_value_non_thenable(ctx, resolution)) goto done;
     then = JS_GetProperty(ctx, resolution, JS_ATOM_then);
     if (JS_IsException(then)) { JSValue error; fail_reject: error = JS_GetException(ctx); fulfill_or_reject_promise(ctx, promise, error, true); JS_FreeValue(ctx, error); }
     else if (!JS_IsFunction(ctx, then)) { JS_FreeValue(ctx, then); done: fulfill_or_reject_promise(ctx, promise, resolution, is_reject); }

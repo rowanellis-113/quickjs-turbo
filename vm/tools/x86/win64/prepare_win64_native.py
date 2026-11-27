@@ -1228,6 +1228,7 @@ def _build_foundation_c(core_path, output_dir, layout, source):
         raise ValueError("Internal JS_CallInternal definition anchor changed")
     text = (
         "#define QJS_CVM_USE_LEGACY_CALL_INTERNAL 1\n"
+        "#define QJS_CVM_FAST_NATIVE 1\n"
         "#if defined(_MSC_VER)\n"
         "#define QJS_FAST_TLS_ARRAY(type, name, count, bytes) \\\n"
         "    static __declspec(thread) type name[count]; \\\n"
@@ -1623,6 +1624,19 @@ def main():
             masm_lines, gas_lines, build, layout, source
         )
     masm_lines, gas_lines = _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout)
+
+    # 4b. Append native x86-64 coroutine fast-segment executor (JS_CVMRunFastSegment)
+    cvm_mod = _load_module(
+        "qjs_cvm_fast_native", source / "tools/x86/common/codegen/cvm_fast_native.py"
+    )
+    cvm_masm, cvm_gas, _cvm_ops = cvm_mod.emit_win64(
+        source, layout, bool(layout.get("property_ic"))
+    )
+    if masm_lines and masm_lines[-1].strip() == "END":
+        masm_lines = masm_lines[:-1] + cvm_masm + ["END"]
+    else:
+        masm_lines += cvm_masm
+    gas_lines += cvm_gas
 
     masm_text = "\n".join(masm_lines) + "\n"
     gas_text = "\n".join(gas_lines) + "\n"

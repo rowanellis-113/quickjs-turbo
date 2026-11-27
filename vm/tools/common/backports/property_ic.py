@@ -98,27 +98,50 @@ def core_opcode_body(name):
                 uint32_t _ic_pos = (uint32_t)(pc - 1 - b->byte_code_buf) >> 2;
                 JSPropertyICSite *_ic_s = js_property_ic_is_ptr(_ic) && _ic_pos < _ic->map_count ? _ic->map[_ic_pos] : NULL;
                 JSValue value;
-                if (_ic_s && !_ic_s->megamorphic && _ic_s->primary.shape == _ic_r->shape) {
-                    uint32_t _k = _ic_s->primary.kind;
-                    if (_k == JS_IC_OWN) {
-                        value = js_dup(_ic_r->prop[_ic_s->primary.slot].u.value);
-                        pc += 4;
-                        sf->cur_pc = pc;
-                        """
-            + finish
-            + """
-                        BREAK;
+                if (_ic_s && !_ic_s->megamorphic) {
+                    JSPropertyICWay *_ic_w = NULL;
+                    if (_ic_s->primary.shape == _ic_r->shape) {
+                        _ic_w = &_ic_s->primary;
+                    } else if (_ic_s->count > 1 && _ic_s->secondary) {
+                        if (_ic_s->secondary[0].shape == _ic_r->shape)
+                            _ic_w = &_ic_s->secondary[0];
+                        else if (_ic_s->count > 2 && _ic_s->secondary[1].shape == _ic_r->shape)
+                            _ic_w = &_ic_s->secondary[1];
                     }
-                    if ((_k == JS_IC_PROTO || _k == JS_IC_UNSET) && ctx->rt->property_ic_epoch &&
-                        _ic_s->primary.epoch == ctx->rt->property_ic_epoch) {
-                        value = _k == JS_IC_UNSET ? JS_UNDEFINED
-                                                  : js_dup(_ic_s->primary.holder->prop[_ic_s->primary.slot].u.value);
-                        pc += 4;
-                        sf->cur_pc = pc;
-                        """
+                    if (_ic_w) {
+                        uint32_t _k = _ic_w->kind;
+                        if (_k == JS_IC_OWN) {
+                            value = js_dup(_ic_r->prop[_ic_w->slot].u.value);
+                            pc += 4;
+                            sf->cur_pc = pc;
+                            """
             + finish
             + """
-                        BREAK;
+                            BREAK;
+                        }
+                        if (ctx->rt->property_ic_epoch && _ic_w->epoch == ctx->rt->property_ic_epoch) {
+                            if (_k == JS_IC_PROTO || _k == JS_IC_UNSET) {
+                                value = _k == JS_IC_UNSET ? JS_UNDEFINED
+                                                          : js_dup(_ic_w->holder->prop[_ic_w->slot].u.value);
+                                pc += 4;
+                                sf->cur_pc = pc;
+                                """
+            + finish
+            + """
+                                BREAK;
+                            }
+                            if ((_k == JS_IC_GETTER_FIELD || _k == JS_IC_GETTER_BOOL) && ctx->interrupt_counter > 2) {
+                                ctx->interrupt_counter--;
+                                value = _k == JS_IC_GETTER_BOOL ? JS_MKVAL(JS_TAG_BOOL, _ic_w->slot)
+                                                                : js_dup(_ic_r->prop[_ic_w->slot].u.value);
+                                pc += 4;
+                                sf->cur_pc = pc;
+                                """
+            + finish
+            + """
+                                BREAK;
+                            }
+                        }
                     }
                 }
                 { JSAtom atom = get_u32(pc); pc += 4;
