@@ -6,7 +6,19 @@
 
 #if defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64)
 unsigned __int64 _umul128(unsigned __int64, unsigned __int64, unsigned __int64 *);
+unsigned char _addcarry_u64(unsigned char, unsigned __int64, unsigned __int64, unsigned __int64 *);
 #pragma intrinsic(_umul128)
+#pragma intrinsic(_addcarry_u64)
+#endif
+
+#if defined(_MSC_VER) && !defined(__clang__)
+#define QJS_BIGINT_COLD_CODE __declspec(noinline) __declspec(code_seg(".text$zz_qjs_bigint"))
+#elif defined(__GNUC__) && (defined(_WIN32) || defined(__MINGW32__))
+#define QJS_BIGINT_COLD_CODE __attribute__((section(".text$zz_qjs_bigint"), noinline))
+#elif defined(__GNUC__) && !defined(__APPLE__)
+#define QJS_BIGINT_COLD_CODE __attribute__((section(".text.qjs_bigint"), noinline))
+#else
+#define QJS_BIGINT_COLD_CODE no_inline
 #endif
 
 static inline int32_t qjs_ashr64(int64_t x, int shift)
@@ -1102,7 +1114,7 @@ static JSBigInt *js_bigint_new(JSContext *ctx, int len);
 static inline JSBigInt *qjs_bigint_pool_get(JSContext *ctx, int len)
 {
 #ifndef FORCE_GC_AT_MALLOC
-    if (((uint32_t)len - 1u) < 8u && ctx->rt->fast_pools &&
+    if (((uint32_t)len - 1u) < 18u && ctx->rt->fast_pools &&
         ctx->rt->fast_pools->bigint_count[len] > 0u) {
         JSBigInt *r =
             ctx->rt->fast_pools->bigint_pool[len][--ctx->rt->fast_pools->bigint_count[len]];
@@ -1117,32 +1129,588 @@ static inline JSBigInt *qjs_bigint_pool_get(JSContext *ctx, int len)
     return NULL;
 }
 
-static inline int qjs_bigint_mul_fast(JSContext *ctx, const JSBigInt *a, const JSBigInt *b,
-                                      JSBigInt **out)
+static inline JSBigInt *qjs_bigint_alloc_fast(JSContext *ctx, int len)
+{
+    JSBigInt *r = qjs_bigint_pool_get(ctx, len);
+    return likely(r != NULL) ? r : js_bigint_new(ctx, len);
+}
+
+static QJS_BIGINT_COLD_CODE void qjs_bigint_pool_put_slow(JSRuntime *rt, JSBigInt *p)
+{
+#ifndef FORCE_GC_AT_MALLOC
+    uint32_t l = (uint32_t)p->len;
+    if ((l - 1u) < 18u && rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit) {
+        QJSFastValuePools *fp = rt->fast_pools;
+        if (!fp)
+            fp = rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools));
+        if (likely(fp != NULL) && fp->bigint_count[l] < 8u) {
+            fp->bigint_pool[l][fp->bigint_count[l]++] = p;
+            return;
+        }
+    }
+#endif
+    js_free_rt(rt, p);
+}
+
+static inline void qjs_bigint_pool_put(JSRuntime *rt, JSBigInt *p)
+{
+#ifndef FORCE_GC_AT_MALLOC
+    uint32_t l = (uint32_t)p->len;
+    QJSFastValuePools *fp = rt->fast_pools;
+    if (likely((l - 1u) < 18u && fp != NULL && rt->fast_pool_ok && !rt->in_free &&
+               !rt->malloc_state.malloc_limit && fp->bigint_count[l] < 8u)) {
+        fp->bigint_pool[l][fp->bigint_count[l]++] = p;
+        return;
+    }
+#endif
+    qjs_bigint_pool_put_slow(rt, p);
+}
+
+static inline uint32_t qjs_bigint_limbs_to_u64_abs(uint64_t *dst, const js_limb_t *src, uint32_t n,
+                                                   int is_neg)
+{
+    uint32_t w = (n + 1u) >> 1;
+    if (!is_neg) {
+        for (uint32_t i = 0; i < w; i++) {
+            uint64_t lo = src[2u * i];
+            uint64_t hi = (2u * i + 1u < n) ? (uint64_t)src[2u * i + 1u] : 0u;
+            dst[i] = lo | (hi << 32);
+        }
+    } else {
+        uint64_t borrow = 0;
+        for (uint32_t i = 0; i < w; i++) {
+            uint64_t lo = src[2u * i];
+            uint64_t hi = (2u * i + 1u < n) ? (uint64_t)src[2u * i + 1u] : UINT64_C(0xffffffff);
+            uint64_t v = lo | (hi << 32);
+            uint64_t neg = (uint64_t)0 - v - borrow;
+            borrow = (v | borrow) != 0u ? 1u : 0u;
+            dst[i] = neg;
+        }
+    }
+    while (w > 1u && dst[w - 1u] == 0u)
+        w--;
+    return w;
+}
+
+static inline uint32_t qjs_bigint_u64_pos_len(const uint64_t *w, uint32_t nw)
+{
+    while (nw > 1u && w[nw - 1u] == 0u)
+        nw--;
+    uint64_t top = w[nw - 1u];
+    uint32_t l;
+    if (top >> 32) {
+        l = nw * 2u;
+        if (top >> 63)
+            l++;
+    } else {
+        l = nw * 2u - 1u;
+        if ((uint32_t)top >> 31)
+            l++;
+    }
+    return l;
+}
+
+static inline void qjs_bigint_store_u64_pos(js_limb_t *dst, const uint64_t *w, uint32_t l)
+{
+    uint32_t i = 0;
+    for (; i + 1u < l; i += 2u) {
+        uint64_t v = w[i >> 1];
+        dst[i] = (js_limb_t)v;
+        dst[i + 1u] = (js_limb_t)(v >> 32);
+    }
+    if (i < l)
+        dst[i] = (js_limb_t)w[i >> 1];
+}
+
+static QJS_BIGINT_COLD_CODE int qjs_bigint_mul_u256(JSContext *ctx, const JSBigInt *a,
+                                                    const JSBigInt *b, JSBigInt **out)
 {
     uint32_t na = (uint32_t)a->len, nb = (uint32_t)b->len;
-    if (na >= 1u && na <= 4u && nb >= 1u && nb <= 4u &&
-        ((a->tab[na - 1u] | b->tab[nb - 1u]) >> 31) == 0u) {
-        js_limb_t prod[8] = {0};
-        for (uint32_t i = 0; i < na; i++) {
-            uint64_t ai = a->tab[i];
-            uint64_t c = 0;
-            for (uint32_t j = 0; j < nb; j++) {
-                uint64_t t = (uint64_t)prod[i + j] + ai * (uint64_t)b->tab[j] + c;
-                prod[i + j] = (js_limb_t)t;
-                c = t >> 32;
-            }
-            prod[i + nb] = (js_limb_t)c;
+    int a_neg = (int)(a->tab[na - 1u] >> 31);
+    int b_neg = (int)(b->tab[nb - 1u] >> 31);
+    uint32_t aext = a_neg ? UINT32_MAX : 0u;
+    uint64_t a0 = (uint64_t)a->tab[0] | ((uint64_t)(na > 1u ? a->tab[1] : aext) << 32);
+    uint64_t a1 =
+        (uint64_t)(na > 2u ? a->tab[2] : aext) | ((uint64_t)(na > 3u ? a->tab[3] : aext) << 32);
+    uint64_t a2 =
+        (uint64_t)(na > 4u ? a->tab[4] : aext) | ((uint64_t)(na > 5u ? a->tab[5] : aext) << 32);
+    uint64_t a3 =
+        (uint64_t)(na > 6u ? a->tab[6] : aext) | ((uint64_t)(na > 7u ? a->tab[7] : aext) << 32);
+    if (a_neg) {
+        a0 = ~a0 + 1u;
+        uint64_t c = (a0 == 0u);
+        a1 = ~a1 + c;
+        c &= (a1 == 0u);
+        a2 = ~a2 + c;
+        c &= (a2 == 0u);
+        a3 = ~a3 + c;
+        if (unlikely(c && a3 == 0u))
+            return 0;
+    }
+    uint64_t r[9];
+#if defined(__SIZEOF_INT128__)
+    if (a == b) {
+        __uint128_t t;
+        t = (__uint128_t)a0 * a1;
+        uint64_t x1 = (uint64_t)t;
+        t = (__uint128_t)a0 * a2 + (uint64_t)(t >> 64);
+        uint64_t x2 = (uint64_t)t;
+        t = (__uint128_t)a0 * a3 + (uint64_t)(t >> 64);
+        uint64_t x3 = (uint64_t)t;
+        uint64_t x4 = (uint64_t)(t >> 64);
+
+        t = (__uint128_t)a1 * a2 + x3;
+        x3 = (uint64_t)t;
+        t = (__uint128_t)a1 * a3 + x4 + (uint64_t)(t >> 64);
+        x4 = (uint64_t)t;
+        uint64_t x5 = (uint64_t)(t >> 64);
+
+        t = (__uint128_t)a2 * a3 + x5;
+        x5 = (uint64_t)t;
+        uint64_t x6 = (uint64_t)(t >> 64);
+
+        uint64_t x7 = x6 >> 63;
+        x6 = (x6 << 1) | (x5 >> 63);
+        x5 = (x5 << 1) | (x4 >> 63);
+        x4 = (x4 << 1) | (x3 >> 63);
+        x3 = (x3 << 1) | (x2 >> 63);
+        x2 = (x2 << 1) | (x1 >> 63);
+        x1 = x1 << 1;
+
+        t = (__uint128_t)a0 * a0;
+        r[0] = (uint64_t)t;
+        t = (__uint128_t)x1 + (uint64_t)(t >> 64);
+        r[1] = (uint64_t)t;
+        t = (__uint128_t)a1 * a1 + x2 + (uint64_t)(t >> 64);
+        r[2] = (uint64_t)t;
+        t = (__uint128_t)x3 + (uint64_t)(t >> 64);
+        r[3] = (uint64_t)t;
+        t = (__uint128_t)a2 * a2 + x4 + (uint64_t)(t >> 64);
+        r[4] = (uint64_t)t;
+        t = (__uint128_t)x5 + (uint64_t)(t >> 64);
+        r[5] = (uint64_t)t;
+        t = (__uint128_t)a3 * a3 + x6 + (uint64_t)(t >> 64);
+        r[6] = (uint64_t)t;
+        r[7] = x7 + (uint64_t)(t >> 64);
+    } else {
+        uint32_t bext = b_neg ? UINT32_MAX : 0u;
+        uint64_t b0 = (uint64_t)b->tab[0] | ((uint64_t)(nb > 1u ? b->tab[1] : bext) << 32);
+        uint64_t b1 =
+            (uint64_t)(nb > 2u ? b->tab[2] : bext) | ((uint64_t)(nb > 3u ? b->tab[3] : bext) << 32);
+        uint64_t b2 =
+            (uint64_t)(nb > 4u ? b->tab[4] : bext) | ((uint64_t)(nb > 5u ? b->tab[5] : bext) << 32);
+        uint64_t b3 =
+            (uint64_t)(nb > 6u ? b->tab[6] : bext) | ((uint64_t)(nb > 7u ? b->tab[7] : bext) << 32);
+        if (b_neg) {
+            b0 = ~b0 + 1u;
+            uint64_t c = (b0 == 0u);
+            b1 = ~b1 + c;
+            c &= (b1 == 0u);
+            b2 = ~b2 + c;
+            c &= (b2 == 0u);
+            b3 = ~b3 + c;
+            if (unlikely(c && b3 == 0u))
+                return 0;
         }
-        uint32_t l = na + nb;
-        while (l > 1u && prod[l - 1u] == 0u && (prod[l - 2u] >> 31) == 0u)
-            l--;
-        JSBigInt *r = js_bigint_new(ctx, (int)l);
-        if (r)
-            memcpy(r->tab, prod, (size_t)l * sizeof(js_limb_t));
-        *out = r;
+        __uint128_t t;
+        t = (__uint128_t)a0 * b0;
+        r[0] = (uint64_t)t;
+        t = (__uint128_t)a0 * b1 + (uint64_t)(t >> 64);
+        r[1] = (uint64_t)t;
+        t = (__uint128_t)a0 * b2 + (uint64_t)(t >> 64);
+        r[2] = (uint64_t)t;
+        t = (__uint128_t)a0 * b3 + (uint64_t)(t >> 64);
+        r[3] = (uint64_t)t;
+        r[4] = (uint64_t)(t >> 64);
+
+        t = (__uint128_t)a1 * b0 + r[1];
+        r[1] = (uint64_t)t;
+        t = (__uint128_t)a1 * b1 + r[2] + (uint64_t)(t >> 64);
+        r[2] = (uint64_t)t;
+        t = (__uint128_t)a1 * b2 + r[3] + (uint64_t)(t >> 64);
+        r[3] = (uint64_t)t;
+        t = (__uint128_t)a1 * b3 + r[4] + (uint64_t)(t >> 64);
+        r[4] = (uint64_t)t;
+        r[5] = (uint64_t)(t >> 64);
+
+        t = (__uint128_t)a2 * b0 + r[2];
+        r[2] = (uint64_t)t;
+        t = (__uint128_t)a2 * b1 + r[3] + (uint64_t)(t >> 64);
+        r[3] = (uint64_t)t;
+        t = (__uint128_t)a2 * b2 + r[4] + (uint64_t)(t >> 64);
+        r[4] = (uint64_t)t;
+        t = (__uint128_t)a2 * b3 + r[5] + (uint64_t)(t >> 64);
+        r[5] = (uint64_t)t;
+        r[6] = (uint64_t)(t >> 64);
+
+        t = (__uint128_t)a3 * b0 + r[3];
+        r[3] = (uint64_t)t;
+        t = (__uint128_t)a3 * b1 + r[4] + (uint64_t)(t >> 64);
+        r[4] = (uint64_t)t;
+        t = (__uint128_t)a3 * b2 + r[5] + (uint64_t)(t >> 64);
+        r[5] = (uint64_t)t;
+        t = (__uint128_t)a3 * b3 + r[6] + (uint64_t)(t >> 64);
+        r[6] = (uint64_t)t;
+        r[7] = (uint64_t)(t >> 64);
+    }
+#elif defined(_MSC_VER) && defined(_M_X64)
+    {
+        uint32_t bext = b_neg ? UINT32_MAX : 0u;
+        uint64_t b0 = (uint64_t)b->tab[0] | ((uint64_t)(nb > 1u ? b->tab[1] : bext) << 32);
+        uint64_t b1 =
+            (uint64_t)(nb > 2u ? b->tab[2] : bext) | ((uint64_t)(nb > 3u ? b->tab[3] : bext) << 32);
+        uint64_t b2 =
+            (uint64_t)(nb > 4u ? b->tab[4] : bext) | ((uint64_t)(nb > 5u ? b->tab[5] : bext) << 32);
+        uint64_t b3 =
+            (uint64_t)(nb > 6u ? b->tab[6] : bext) | ((uint64_t)(nb > 7u ? b->tab[7] : bext) << 32);
+        if (b_neg) {
+            b0 = ~b0 + 1u;
+            uint64_t c = (b0 == 0u);
+            b1 = ~b1 + c;
+            c &= (b1 == 0u);
+            b2 = ~b2 + c;
+            c &= (b2 == 0u);
+            b3 = ~b3 + c;
+            if (unlikely(c && b3 == 0u))
+                return 0;
+        }
+        uint64_t ua[4] = {a0, a1, a2, a3};
+        uint64_t ub[4] = {b0, b1, b2, b3};
+        r[0] = r[1] = r[2] = r[3] = r[4] = r[5] = r[6] = r[7] = 0;
+        for (uint32_t i = 0; i < 4u; i++) {
+            uint64_t ai = ua[i], carry = 0;
+            for (uint32_t j = 0; j < 4u; j++) {
+                uint64_t hi, lo = _umul128(ai, ub[j], &hi);
+                unsigned char c1 = _addcarry_u64(0, lo, r[i + j], &lo);
+                unsigned char c2 = _addcarry_u64(0, lo, carry, &lo);
+                r[i + j] = lo;
+                carry = hi + (uint64_t)c1 + (uint64_t)c2;
+            }
+            r[i + 4u] = carry;
+        }
+    }
+#else
+    (void)a0;
+    (void)a1;
+    (void)a2;
+    (void)a3;
+    return 0;
+#endif
+    if (unlikely(a_neg ^ b_neg)) {
+        uint64_t borrow = 0;
+        for (uint32_t k = 0; k < 8u; k++) {
+            uint64_t v = r[k];
+            r[k] = (uint64_t)0 - v - borrow;
+            borrow = (v | borrow) != 0u ? 1u : 0u;
+        }
+        if (unlikely(!borrow)) {
+            JSBigInt *res = qjs_bigint_alloc_fast(ctx, 1);
+            if (res)
+                res->tab[0] = 0;
+            *out = res;
+            return 1;
+        }
+        r[8] = UINT64_MAX;
+        uint32_t nw = 8u;
+        while (nw > 1u && r[nw - 1u] == UINT64_MAX)
+            nw--;
+        uint64_t top = r[nw - 1u];
+        uint32_t l;
+        if ((uint32_t)(top >> 32) != UINT32_MAX) {
+            l = nw * 2u + ((top >> 63) == 0u ? 1u : 0u);
+        } else {
+            l = nw * 2u - 1u + (((uint32_t)top >> 31) == 0u ? 1u : 0u);
+        }
+        JSBigInt *res = qjs_bigint_alloc_fast(ctx, (int)l);
+        if (likely(res != NULL))
+            qjs_bigint_store_u64_pos(res->tab, r, l);
+        *out = res;
         return 1;
     }
+    r[8] = 0;
+    uint32_t l = qjs_bigint_u64_pos_len(r, 8u);
+    JSBigInt *res = qjs_bigint_alloc_fast(ctx, (int)l);
+    if (likely(res != NULL))
+        qjs_bigint_store_u64_pos(res->tab, r, l);
+    *out = res;
+    return 1;
+}
+
+static QJS_BIGINT_COLD_CODE JSBigInt *qjs_bigint_add_sub_u256(JSContext *ctx, const JSBigInt *a,
+                                                              const JSBigInt *b, int is_sub)
+{
+    uint32_t na = (uint32_t)a->len, nb = (uint32_t)b->len;
+    uint32_t aext = (a->tab[na - 1u] >> 31) ? UINT32_MAX : 0u;
+    uint32_t bext = (b->tab[nb - 1u] >> 31) ? UINT32_MAX : 0u;
+    uint64_t a0 = (uint64_t)a->tab[0] | ((uint64_t)(na > 1u ? a->tab[1] : aext) << 32);
+    uint64_t a1 =
+        (uint64_t)(na > 2u ? a->tab[2] : aext) | ((uint64_t)(na > 3u ? a->tab[3] : aext) << 32);
+    uint64_t a2 =
+        (uint64_t)(na > 4u ? a->tab[4] : aext) | ((uint64_t)(na > 5u ? a->tab[5] : aext) << 32);
+    uint64_t a3 =
+        (uint64_t)(na > 6u ? a->tab[6] : aext) | ((uint64_t)(na > 7u ? a->tab[7] : aext) << 32);
+    uint64_t a4 = (uint64_t)(na > 8u ? a->tab[8] : aext) | ((uint64_t)aext << 32);
+    uint64_t b0 = (uint64_t)b->tab[0] | ((uint64_t)(nb > 1u ? b->tab[1] : bext) << 32);
+    uint64_t b1 =
+        (uint64_t)(nb > 2u ? b->tab[2] : bext) | ((uint64_t)(nb > 3u ? b->tab[3] : bext) << 32);
+    uint64_t b2 =
+        (uint64_t)(nb > 4u ? b->tab[4] : bext) | ((uint64_t)(nb > 5u ? b->tab[5] : bext) << 32);
+    uint64_t b3 =
+        (uint64_t)(nb > 6u ? b->tab[6] : bext) | ((uint64_t)(nb > 7u ? b->tab[7] : bext) << 32);
+    uint64_t b4 = (uint64_t)(nb > 8u ? b->tab[8] : bext) | ((uint64_t)bext << 32);
+    uint64_t s[5];
+    if (!is_sub) {
+        uint64_t r0 = a0 + b0, c0 = (r0 < a0);
+        uint64_t t1 = a1 + b1, r1 = t1 + c0, c1 = (t1 < a1) | (r1 < t1);
+        uint64_t t2 = a2 + b2, r2 = t2 + c1, c2 = (t2 < a2) | (r2 < t2);
+        uint64_t t3 = a3 + b3, r3 = t3 + c2, c3 = (t3 < a3) | (r3 < t3);
+        s[0] = r0;
+        s[1] = r1;
+        s[2] = r2;
+        s[3] = r3;
+        s[4] = a4 + b4 + c3;
+    } else {
+        uint64_t r0 = a0 - b0, bw0 = (a0 < b0);
+        uint64_t t1 = a1 - b1, r1 = t1 - bw0, bw1 = (a1 < b1) | (t1 < bw0);
+        uint64_t t2 = a2 - b2, r2 = t2 - bw1, bw2 = (a2 < b2) | (t2 < bw1);
+        uint64_t t3 = a3 - b3, r3 = t3 - bw2, bw3 = (a3 < b3) | (t3 < bw2);
+        s[0] = r0;
+        s[1] = r1;
+        s[2] = r2;
+        s[3] = r3;
+        s[4] = a4 - b4 - bw3;
+    }
+    uint32_t l;
+    if ((s[4] >> 63) == 0u) {
+        uint32_t nw = 5u;
+        while (nw > 1u && s[nw - 1u] == 0u)
+            nw--;
+        uint64_t top = s[nw - 1u];
+        if (top >> 32)
+            l = nw * 2u + (uint32_t)(top >> 63);
+        else
+            l = nw * 2u - 1u + (uint32_t)((uint32_t)top >> 31);
+    } else {
+        uint32_t nw = 5u;
+        while (nw > 1u && s[nw - 1u] == UINT64_MAX)
+            nw--;
+        uint64_t top = s[nw - 1u];
+        if ((uint32_t)(top >> 32) != UINT32_MAX)
+            l = nw * 2u + ((top >> 63) == 0u ? 1u : 0u);
+        else
+            l = nw * 2u - 1u + (((uint32_t)top >> 31) == 0u ? 1u : 0u);
+    }
+    JSBigInt *res = qjs_bigint_alloc_fast(ctx, (int)l);
+    if (likely(res != NULL))
+        qjs_bigint_store_u64_pos(res->tab, s, l);
+    return res;
+}
+
+static QJS_BIGINT_COLD_CODE JSBigInt *qjs_bigint_shr_small(JSContext *ctx, const JSBigInt *a,
+                                                           uint32_t shift)
+{
+    uint32_t na = (uint32_t)a->len;
+    uint32_t rshift = 32u - shift;
+    uint32_t top = a->tab[na - 1u] >> shift;
+    uint32_t l;
+    if (na == 1u) {
+        l = 1u;
+    } else if (top != 0u) {
+        l = na;
+    } else {
+        uint32_t prev = (a->tab[na - 2u] >> shift) | (a->tab[na - 1u] << rshift);
+        l = (prev >> 31) ? na : (na - 1u);
+    }
+    JSBigInt *res = qjs_bigint_alloc_fast(ctx, (int)l);
+    if (unlikely(!res))
+        return NULL;
+    for (uint32_t i = 0; i + 1u < na && i < l; i++)
+        res->tab[i] = (a->tab[i] >> shift) | (a->tab[i + 1u] << rshift);
+    if (l == na)
+        res->tab[na - 1u] = top;
+    return res;
+}
+
+static QJS_BIGINT_COLD_CODE int qjs_bigint_mul_general(JSContext *ctx, const JSBigInt *a,
+                                                       const JSBigInt *b, JSBigInt **out)
+{
+    uint32_t na = (uint32_t)a->len, nb = (uint32_t)b->len;
+    int a_neg = (int)(a->tab[na - 1u] >> 31);
+    int b_neg = (int)(b->tab[nb - 1u] >> 31);
+    uint64_t ua[8], ub[8], prod64[16];
+    uint32_t wa = qjs_bigint_limbs_to_u64_abs(ua, a->tab, na, a_neg);
+    uint32_t wb = qjs_bigint_limbs_to_u64_abs(ub, b->tab, nb, b_neg);
+    uint32_t wp = wa + wb;
+    for (uint32_t k = 0; k < wp; k++)
+        prod64[k] = 0;
+#if defined(__SIZEOF_INT128__)
+    for (uint32_t i = 0; i < wa; i++) {
+        __uint128_t ai = ua[i];
+        uint64_t carry = 0;
+        for (uint32_t j = 0; j < wb; j++) {
+            __uint128_t t = ai * (__uint128_t)ub[j] + prod64[i + j] + carry;
+            prod64[i + j] = (uint64_t)t;
+            carry = (uint64_t)(t >> 64);
+        }
+        prod64[i + wb] = carry;
+    }
+#elif defined(_MSC_VER) && defined(_M_X64)
+    for (uint32_t i = 0; i < wa; i++) {
+        uint64_t ai = ua[i];
+        uint64_t carry = 0;
+        for (uint32_t j = 0; j < wb; j++) {
+            uint64_t hi, lo = _umul128(ai, ub[j], &hi);
+            unsigned char c1 = _addcarry_u64(0, lo, prod64[i + j], &lo);
+            unsigned char c2 = _addcarry_u64(0, lo, carry, &lo);
+            prod64[i + j] = lo;
+            carry = hi + (uint64_t)c1 + (uint64_t)c2;
+        }
+        prod64[i + wb] = carry;
+    }
+#else
+    return 0;
+#endif
+    js_limb_t prod[33];
+    uint32_t l = wp * 2u;
+    for (uint32_t k = 0; k < wp; k++) {
+        prod[2u * k] = (js_limb_t)prod64[k];
+        prod[2u * k + 1u] = (js_limb_t)(prod64[k] >> 32);
+    }
+    prod[l++] = 0;
+    if (a_neg ^ b_neg) {
+        uint64_t borrow = 0;
+        for (uint32_t k = 0; k < l; k++) {
+            uint64_t v = (uint64_t)prod[k];
+            uint64_t d = (uint64_t)0 - v - borrow;
+            prod[k] = (js_limb_t)d;
+            borrow = (v | borrow) != 0u ? 1u : 0u;
+        }
+        while (l > 1u && prod[l - 1u] == (js_limb_t)-1 && (prod[l - 2u] >> 31) == 1u)
+            l--;
+        while (l > 1u && prod[l - 1u] == 0u && (prod[l - 2u] >> 31) == 0u)
+            l--;
+    } else {
+        while (l > 1u && prod[l - 1u] == 0u && (prod[l - 2u] >> 31) == 0u)
+            l--;
+    }
+    JSBigInt *r = js_bigint_new(ctx, (int)l);
+    if (r)
+        memcpy(r->tab, prod, (size_t)l * sizeof(js_limb_t));
+    *out = r;
+    return 1;
+}
+
+static QJS_BIGINT_COLD_CODE int qjs_bigint_mul_fast(JSContext *ctx, const JSBigInt *a,
+                                                    const JSBigInt *b, JSBigInt **out)
+{
+#if defined(__SIZEOF_INT128__) || (defined(_MSC_VER) && defined(_M_X64))
+    uint32_t na = (uint32_t)a->len, nb = (uint32_t)b->len;
+    if (likely(na <= 4u && nb <= 4u && (a->tab[na - 1u] >> 31) == 0u &&
+               (b->tab[nb - 1u] >> 31) == 0u)) {
+        uint64_t a0 = (uint64_t)a->tab[0] | (na > 1u ? ((uint64_t)a->tab[1] << 32) : 0u);
+        uint64_t a1 =
+            (na > 2u ? (uint64_t)a->tab[2] : 0u) | (na > 3u ? ((uint64_t)a->tab[3] << 32) : 0u);
+        uint64_t r0, r1, r2, r3;
+#if defined(__SIZEOF_INT128__)
+        if (a == b) {
+            __uint128_t p00 = (__uint128_t)a0 * a0;
+            __uint128_t p01 = (__uint128_t)a0 * a1;
+            __uint128_t p11 = (__uint128_t)a1 * a1;
+            r0 = (uint64_t)p00;
+            uint64_t x1 = (uint64_t)p01;
+            uint64_t x2 = (uint64_t)(p01 >> 64);
+            uint64_t x3 = x2 >> 63;
+            x2 = (x2 << 1) | (x1 >> 63);
+            x1 = x1 << 1;
+            __uint128_t t = (__uint128_t)x1 + (uint64_t)(p00 >> 64);
+            r1 = (uint64_t)t;
+            t = (__uint128_t)(uint64_t)p11 + x2 + (uint64_t)(t >> 64);
+            r2 = (uint64_t)t;
+            r3 = (uint64_t)(p11 >> 64) + x3 + (uint64_t)(t >> 64);
+        } else {
+            uint64_t b0 = (uint64_t)b->tab[0] | (nb > 1u ? ((uint64_t)b->tab[1] << 32) : 0u);
+            uint64_t b1 =
+                (nb > 2u ? (uint64_t)b->tab[2] : 0u) | (nb > 3u ? ((uint64_t)b->tab[3] << 32) : 0u);
+            __uint128_t t = (__uint128_t)a0 * b0;
+            r0 = (uint64_t)t;
+            t = (__uint128_t)a0 * b1 + (uint64_t)(t >> 64);
+            uint64_t m1 = (uint64_t)t;
+            uint64_t m2 = (uint64_t)(t >> 64);
+            t = (__uint128_t)a1 * b0 + m1;
+            r1 = (uint64_t)t;
+            t = (__uint128_t)a1 * b1 + m2 + (uint64_t)(t >> 64);
+            r2 = (uint64_t)t;
+            r3 = (uint64_t)(t >> 64);
+        }
+#else
+        uint64_t b0 = (uint64_t)b->tab[0] | (nb > 1u ? ((uint64_t)b->tab[1] << 32) : 0u);
+        uint64_t b1 =
+            (nb > 2u ? (uint64_t)b->tab[2] : 0u) | (nb > 3u ? ((uint64_t)b->tab[3] << 32) : 0u);
+        uint64_t h00, h01, h10, h11, m1, m2;
+        r0 = _umul128(a0, b0, &h00);
+        uint64_t l01 = _umul128(a0, b1, &h01);
+        unsigned char c = _addcarry_u64(0, l01, h00, &m1);
+        m2 = h01 + c;
+        uint64_t l10 = _umul128(a1, b0, &h10);
+        c = _addcarry_u64(0, l10, m1, &r1);
+        uint64_t l11 = _umul128(a1, b1, &h11);
+        unsigned char c1 = _addcarry_u64(0, l11, m2, &r2);
+        unsigned char c2 = _addcarry_u64(0, r2, h10 + c, &r2);
+        r3 = h11 + c1 + c2;
+#endif
+        uint64_t top;
+        uint32_t nw;
+        if (r3) {
+            nw = 4u;
+            top = r3;
+        } else if (r2) {
+            nw = 3u;
+            top = r2;
+        } else if (r1) {
+            nw = 2u;
+            top = r1;
+        } else {
+            nw = 1u;
+            top = r0;
+        }
+        uint32_t l = (top >> 32) ? (nw * 2u + (uint32_t)(top >> 63))
+                                 : (nw * 2u - 1u + (uint32_t)((uint32_t)top >> 31));
+        JSBigInt *res = qjs_bigint_alloc_fast(ctx, (int)l);
+        if (likely(res != NULL)) {
+            res->tab[0] = (js_limb_t)r0;
+            if (l > 1u)
+                res->tab[1] = (js_limb_t)(r0 >> 32);
+            if (l > 2u)
+                res->tab[2] = (js_limb_t)r1;
+            if (l > 3u)
+                res->tab[3] = (js_limb_t)(r1 >> 32);
+            if (l > 4u)
+                res->tab[4] = (js_limb_t)r2;
+            if (l > 5u)
+                res->tab[5] = (js_limb_t)(r2 >> 32);
+            if (l > 6u)
+                res->tab[6] = (js_limb_t)r3;
+            if (l > 7u)
+                res->tab[7] = (js_limb_t)(r3 >> 32);
+            if (l > 8u)
+                res->tab[8] = 0;
+        }
+        *out = res;
+        return 1;
+    }
+    if (na <= 9u && nb <= 9u && (na < 9u || a->tab[8] == 0u || a->tab[8] == UINT32_MAX) &&
+        (nb < 9u || b->tab[8] == 0u || b->tab[8] == UINT32_MAX)) {
+        if (qjs_bigint_mul_u256(ctx, a, b, out))
+            return 1;
+    }
+    if (na >= 1u && na <= 16u && nb >= 1u && nb <= 16u)
+        return qjs_bigint_mul_general(ctx, a, b, out);
+#else
+    (void)ctx;
+    (void)a;
+    (void)b;
+    (void)out;
+#endif
     return 0;
 }
 
@@ -1169,6 +1737,7 @@ static no_inline JSValue qjs_int_to_string_populate(JSContext *ctx, int32_t v)
     return js_new_string8_len(ctx, qjs_digit_pairs + (size_t)v * 2u, 2);
 }
 
+#define QJS_INT_TO_STRING_FAST_AVAILABLE 1
 static inline JSValue qjs_int_to_string_fast(JSContext *ctx, int32_t v)
 {
     if (likely((uint32_t)v < 10u))
@@ -1202,7 +1771,7 @@ static void qjs_runtime_drain_fast_pools(JSRuntime *rt)
             if (fp->small_int_strings[i])
                 JS_FreeValueRT(rt, JS_MKPTR(JS_TAG_STRING, fp->small_int_strings[i]));
         }
-        for (l = 1u; l <= 8u; l++) {
+        for (l = 1u; l <= 18u; l++) {
             uint8_t cnt = fp->bigint_count[l];
             for (i = 0; i < cnt; i++) {
                 js_free_rt(rt, fp->bigint_pool[l][i]);

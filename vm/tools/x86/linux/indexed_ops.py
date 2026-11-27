@@ -359,6 +359,11 @@ def generate(
     instof_inc = source_file(source, "src/common/value/instanceof-fast.inc").read_text(
         encoding="utf-8"
     )
+    leaf = leaf.replace(
+        "static int js_frame_instance_leaf_try(",
+        "static no_inline int js_frame_instance_leaf_try(",
+        1,
+    )
     leaf = replace_one(
         leaf,
         "FRAME_CODE int JS_FrameSlowDirectTryInstanceOfLeaf(JSContext *ctx, JSValue *sp)\n{",
@@ -367,12 +372,22 @@ def generate(
         + instof_inc.rstrip()
         + "\n#undef QJS_FAST_INSTANCEOF_CTX_ENTRY\n"
         "#endif\n"
+        "static no_inline int JS_FrameSlowDirectTryInstanceOfLeafSlow(JSContext *ctx, JSValue *sp)\n"
+        "{",
+        "shared instanceof fast leaf slow split",
+    )
+    leaf = replace_one(
+        leaf,
+        "    sp[-2] = JS_MKVAL(JS_TAG_BOOL, result);\n    return 1;\n}\n",
+        "    sp[-2] = JS_MKVAL(JS_TAG_BOOL, result);\n    return 1;\n}\n"
         "FRAME_CODE int JS_FrameSlowDirectTryInstanceOfLeaf(JSContext *ctx, JSValue *sp)\n"
         "{\n"
         "#ifdef QJS_PROPERTY_IC\n"
-        "    if (JS_FastInstanceOfContext(ctx, sp))\n"
+        "    if (likely(JS_FastInstanceOfContext(ctx, sp)))\n"
         "        return 1;\n"
-        "#endif",
+        "#endif\n"
+        "    return JS_FrameSlowDirectTryInstanceOfLeafSlow(ctx, sp);\n"
+        "}\n",
         "shared instanceof fast leaf entry",
     )
     wrapper = """

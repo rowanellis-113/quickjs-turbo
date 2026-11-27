@@ -2,7 +2,7 @@
   "schema": 1,
   "owners": {
     "tools/x86/common/codegen/slow-direct.py": "01d5c85f2a0fe82499baa001b450a3f562addbcd24be6c94df5a58eb3680159b",
-    "tools/x86/common/codegen/indexed_own_native.py": "9caa685022f9c37629f411e8051a7b0de8dac4200bd90dd9188e9635adcbe177",
+    "tools/x86/common/codegen/indexed_own_native.py": "fbd7d10c4da119b346d78f0ba0d695e68d397dc5d210255e333aba6b7e66f98e",
     "tools/x86/common/codegen/publish-boundary.py": "ed231c0aaf80a406deb3f360402134b55e4747d0548e23dd82ad63d4cc93923c",
     "src/common/value/instanceof.c": "b6436a90383e0c799ce2621296ea5873f5173d7e90dff4f477ba95d219736b8b",
     "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",

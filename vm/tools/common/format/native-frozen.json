@@ -79,7 +79,7 @@
       "reason": "pinned upstream source"
     },
     "src/common/call/quickjs-interpreter-bigint.inc": {
-      "sha256": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
+      "sha256": "f54dcb598b6339481a10d1a85d2572583881dfcf6bdb67d040d067f1b78492aa",
       "reason": "source-text generator input; formatting changes exact extraction contracts"
     },
     "src/common/call/quickjs-interpreter-dispatch.inc": {

@@ -8,7 +8,7 @@
     "tools/common/c_extract/publish_boundary_c.py": "e1d8f1d7e91ae80ba8af1f34b4a92f69d5f1549b45c3c8d09e8683da69277fc9",
     "src/common/value/instanceof.c": "b6436a90383e0c799ce2621296ea5873f5173d7e90dff4f477ba95d219736b8b",
     "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
-    "asm/arm64/common/register-indexed.inc": "23f9c322ab756c82873eaea40d1658fc077a3306953aea5b4786c48dd91dd37e",
+    "asm/arm64/common/register-indexed.inc": "2ec355a9faae316c77566b27c47977c64bb1f002b42d79ae1fc8e99ab249addc",
     "src/arm64/linux/interpreter-indexed.inc": "017c39a81204425f9afd13a8cd41623cd27802bce468281b5a59a7883c79c311"
   },
   "protocol": "Original dense/integer typed/sparse own leaves,capacity append,complete narrow C steps and pure instanceof proof;actual AAPCS64",

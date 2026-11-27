@@ -34,6 +34,23 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
     exotic_byte, exotic_mask = abi["bits"]["JSObject.is_exotic"][0]
     proto_byte, proto_mask = abi["bits"]["JSObject.is_prototype"][0]
     ext_byte, ext_mask = abi["bits"]["JSObject.extensible"][0]
+    from pathlib import Path
+    import re
+    from common.paths import source_file
+
+    opcodes = re.findall(
+        r"^\s*DEF\(\s*(\w+)",
+        source_file(Path(__file__).resolve().parents[4], "quickjs-opcode.h").read_text(
+            encoding="utf-8"
+        ),
+        re.M,
+    )
+    get_field_op = opcodes.index("get_field")
+    get_field2_op = opcodes.index("get_field2")
+    call_method_op = opcodes.index("call_method")
+    win64_m2_direct_call = bool(
+        generation.get("borrowed_field") and "P" not in generation["aliases"]
+    )
     entries, external, contracts = [], {"JS_FrameInterpPropertyCold_unwind"}, []
     for family in generation["aliases"]:
         original_prefix = "" if family == "M" else "dirty_"
@@ -60,19 +77,19 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 f"test BYTE PTR [r8+{exotic_byte}], {exotic_mask}",
                 "jnz " + legacy,
                 "mov r11, QWORD PTR [rbp+80]",
-                f"mov r10, QWORD PTR [r11+{bc_extra}]",
-                "cmp r10, 4095",
+                f"mov r9, QWORD PTR [r11+{bc_extra}]",
+                "cmp r9, 4095",
                 "jbe " + p + "_ic_unready",
-                # Code buffers are4-aligned. Compute the relative index
-                # independently of the IC slab load,then address its map
-                # directly; no extra storage or change to cache ownership.
+                # Code buffers are 4-aligned. Hoist obj->shape in parallel with
+                # the IC map index and slot load to hide memory latency.
+                *([] if kind != 2 else [p + "_probe:"]),
+                f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
                 "mov rcx, r12",
                 f"sub rcx, QWORD PTR [r11+{fields['JSFunctionBytecode.byte_code_buf']}]",
                 "shr rcx, 2",
-                "mov r11, QWORD PTR [r10+rcx*8+56]",
+                "mov r11, QWORD PTR [r9+rcx*8+56]",
                 "test r11, r11",
                 "jz " + legacy,
-                f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]",
                 "cmp QWORD PTR [r11], r10",
                 "jne " + p + "_site_miss",
                 p + "_matched:",
@@ -80,13 +97,41 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
             if kind == 3:
                 g += [
                     "cmp DWORD PTR [r11+12], 4",
-                    "je " + p + "_replace",
+                    "jne " + p + "_transition",
+                    "mov ecx, DWORD PTR [r11+8]",
+                    "shl rcx, 4",
+                    f"add rcx, QWORD PTR [r8+{fields['JSObject.prop']}]",
+                    "cmp DWORD PTR [rcx+8], 0",
+                    "jge " + p + "_store_at",
+                    "mov rax, QWORD PTR [rcx]",
+                    f"cmp DWORD PTR [rax{rc:+d}], 1",
+                    "jle " + slow,
+                    # Replacing obj.value===obj also consumes the receiver
+                    # operand. Two references would BOTH be released here;
+                    # defer the final release to the published C boundary.
+                    "cmp rax, r8",
+                    "je " + p + "_self_alias",
+                    p + "_old_ref_safe:",
+                    f"dec DWORD PTR [rax{rc:+d}]",
+                    p + "_store_at:",
+                    "mov rax, QWORD PTR [r13-16]",
+                    "mov rdx, QWORD PTR [r13-8]",
+                    "mov QWORD PTR [rcx], rax",
+                    "mov QWORD PTR [rcx+8], rdx",
+                    f"dec DWORD PTR [r8{rc:+d}]",
+                    "sub r13, 32",
+                    "add r12, 5",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    p + "_self_alias:",
+                    f"cmp DWORD PTR [rax{rc:+d}], 2",
+                    "jle " + slow,
+                    "jmp " + p + "_old_ref_safe",
+                    p + "_transition:",
                     "cmp DWORD PTR [r11+12], 5",
                     "jne " + miss,
                     f"test BYTE PTR [r8+{ext_byte}], {ext_mask}",
                     "jz " + slow,
-                    f"test BYTE PTR [r8+{exotic_byte}], {exotic_mask}",
-                    "jnz " + slow,
                     f"test BYTE PTR [r8+{proto_byte}], {proto_mask}",
                     "jnz " + slow,
                     "mov rdx, QWORD PTR [rbx+56]",
@@ -118,85 +163,105 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                     # Successor owns the same prototype before this decref;
                     # it cannot be a last release or require a C boundary.
                     f"dec DWORD PTR [rcx{rc:+d}]",
-                    "jmp " + p + "_store",
-                    p + "_replace:",
-                    "mov ecx, DWORD PTR [r11+8]",
-                    "shl rcx, 4",
-                    f"add rcx, QWORD PTR [r8+{fields['JSObject.prop']}]",
-                    "cmp DWORD PTR [rcx+8], 0",
-                    "jge " + p + "_store_at",
-                    "mov rax, QWORD PTR [rcx]",
-                    f"cmp DWORD PTR [rax{rc:+d}], 1",
-                    "jle " + slow,
-                    # Replacing obj.value===obj also consumes the receiver
-                    # operand. Two references would BOTH be released here;
-                    # defer the final release to the published C boundary.
-                    "cmp rax, r8",
-                    "jne " + p + "_old_ref_safe",
-                    f"cmp DWORD PTR [rax{rc:+d}], 2",
-                    "jle " + slow,
-                    p + "_old_ref_safe:",
-                    f"dec DWORD PTR [rax{rc:+d}]",
-                    "jmp " + p + "_store_at",
                     p + "_store:",
                     "mov ecx, DWORD PTR [r11+8]",
                     "shl rcx, 4",
                     f"add rcx, QWORD PTR [r8+{fields['JSObject.prop']}]",
-                    p + "_store_at:",
-                    "mov rax, QWORD PTR [r13-16]",
-                    "mov rdx, QWORD PTR [r13-8]",
-                    "mov QWORD PTR [rcx], rax",
-                    "mov QWORD PTR [rcx+8], rdx",
+                    "jmp " + p + "_store_at",
+                ]
+            elif kind == 1:
+                g += [
+                    "cmp DWORD PTR [r11+12], 1",
+                    "jne " + p + "_non_own",
+                    "mov ecx, DWORD PTR [r11+8]",
+                    "shl rcx, 4",
+                    f"mov rdx, QWORD PTR [r8+{fields['JSObject.prop']}]",
+                    p + "_load:",
+                    "mov rax, QWORD PTR [rdx+rcx]",
+                    "mov rdx, QWORD PTR [rdx+rcx+8]",
+                    "test edx, edx",
+                    "jns " + ready,
+                    f"inc DWORD PTR [rax{rc:+d}]",
+                    ready + ":",
                     f"dec DWORD PTR [r8{rc:+d}]",
-                    "sub r13, 32",
+                    "mov QWORD PTR [r13-16], rax",
+                    "mov QWORD PTR [r13-8], rdx",
                     "add r12, 5",
                     "movzx eax, BYTE PTR [r12]",
                     "jmp QWORD PTR [rdi+rax*8]",
-                ]
-            else:
-                g += [
-                    "cmp DWORD PTR [r11+12], 1",
-                    "je " + p + "_own",
-                    f"test BYTE PTR [r8+{exotic_byte}], {exotic_mask}",
-                    "jnz " + legacy,
+                    p + "_non_own:",
                     "mov rax, QWORD PTR [rbx+56]",
                     f"mov rax, QWORD PTR [rax+{rt_extra}]",
                     "test rax, rax",
                     "jz " + miss,
                     "cmp QWORD PTR [r11+24], rax",
                     "jne " + miss,
-                    "cmp DWORD PTR [r11+12], 3",
-                    "je " + p + "_unset",
                     "cmp DWORD PTR [r11+12], 2",
-                    "jne " + miss,
+                    "jne " + p + "_check_unset",
                     "mov r10, QWORD PTR [r11+16]",
-                    "jmp " + p + "_load",
-                    p + "_own:",
-                    "mov r10, r8",
-                    p + "_load:",
                     "mov ecx, DWORD PTR [r11+8]",
                     "shl rcx, 4",
-                    f"add rcx, QWORD PTR [r10+{fields['JSObject.prop']}]",
-                    "mov rax, QWORD PTR [rcx]",
-                    "mov rdx, QWORD PTR [rcx+8]",
+                    f"mov rdx, QWORD PTR [r10+{fields['JSObject.prop']}]",
+                    "jmp " + p + "_load",
+                    p + "_check_unset:",
+                    "cmp DWORD PTR [r11+12], 3",
+                    "jne " + miss,
+                    "xor eax, eax",
+                    "mov edx, 3",
+                    "jmp " + ready,
+                ]
+            else:
+                g += [
+                    "cmp DWORD PTR [r11+12], 2",
+                    "jne " + p + "_non_proto",
+                    "mov rax, QWORD PTR [rbx+56]",
+                    f"mov rax, QWORD PTR [rax+{rt_extra}]",
+                    "test rax, rax",
+                    "jz " + miss,
+                    "cmp QWORD PTR [r11+24], rax",
+                    "jne " + miss,
+                    "mov r10, QWORD PTR [r11+16]",
+                    "mov ecx, DWORD PTR [r11+8]",
+                    "shl rcx, 4",
+                    f"mov rdx, QWORD PTR [r10+{fields['JSObject.prop']}]",
+                    p + "_load:",
+                    "mov rax, QWORD PTR [rdx+rcx]",
+                    "mov rdx, QWORD PTR [rdx+rcx+8]",
                     "test edx, edx",
                     "jns " + ready,
                     f"inc DWORD PTR [rax{rc:+d}]",
-                    "jmp " + ready,
-                    p + "_unset:",
+                    ready + ":",
+                    "mov QWORD PTR [r13], rax",
+                    "mov QWORD PTR [r13+8], rdx",
+                    "add r13, 16",
+                    "add r12, 5",
+                    "movzx eax, BYTE PTR [r12]",
+                    *(
+                        [f"cmp al, {call_method_op}", "je interp_call_method"]
+                        if win64_m2_direct_call
+                        else []
+                    ),
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    p + "_non_proto:",
+                    "cmp DWORD PTR [r11+12], 1",
+                    "jne " + p + "_check_unset",
+                    "mov ecx, DWORD PTR [r11+8]",
+                    "shl rcx, 4",
+                    f"mov rdx, QWORD PTR [r8+{fields['JSObject.prop']}]",
+                    "jmp " + p + "_load",
+                    p + "_check_unset:",
+                    "cmp DWORD PTR [r11+12], 3",
+                    "jne " + miss,
+                    "mov rax, QWORD PTR [rbx+56]",
+                    f"mov rax, QWORD PTR [rax+{rt_extra}]",
+                    "test rax, rax",
+                    "jz " + miss,
+                    "cmp QWORD PTR [r11+24], rax",
+                    "jne " + miss,
                     "xor eax, eax",
                     "mov edx, 3",
-                    ready + ":",
+                    "jmp " + ready,
                 ]
-                if kind == 1:
-                    g += [
-                        f"dec DWORD PTR [r8{rc:+d}]",
-                        "mov QWORD PTR [r13-16], rax",
-                        "mov QWORD PTR [r13-8], rdx",
-                    ]
-                else:
-                    g += ["mov QWORD PTR [r13], rax", "mov QWORD PTR [r13+8], rdx", "add r13, 16"]
-                g += ["add r12, 5", "movzx eax, BYTE PTR [r12]", "jmp QWORD PTR [rdi+rax*8]"]
             # All four ways are native hits. Merely promoting a secondary
             # through C would turn alternating shapes into a C call on EVERY
             # access, losing the parent's cross-shape slot-hint coverage.
@@ -248,7 +313,7 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 p + "_primitive:",
                 "jmp " + original,
                 p + "_ic_unready:",
-                "cmp r10, 1",
+                "cmp r9, 1",
                 "je " + legacy,
                 "jmp " + miss,
             ]
@@ -319,19 +384,22 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
                 status="isolated candidate, not qualified",
             )
         )
-    # Whole-suite net supports the GNU backend; omit both the hot checks
-    # and unused helper on MSVC, rather than merely switching its hits off.
-    if "P" not in generation["aliases"]:
+    # Whole-suite net supports the GNU backend and Win64 source-level native VM.
+    if "P" not in generation["aliases"] and not generation.get("borrowed_field"):
         return entries, external, generation, contracts
     # A live local/argument/closure slot already owns the receiver. Between
     # this load and a proven data-property hit there is no call or safepoint.
     # Reuse exactly the ordinary PIC proof, but materialize only its result.
+    # Chained object loads (a.b.c) stay borrowed across consecutive OP_get_field
+    # instructions without intermediate refcount traffic or operand pushes.
     # Any unsupported/missing proof first reconstructs the original owned
     # operand and dispatches the unchanged get_field at the unchanged PC.
     ordinary = next(body for name, body in entries if name == "JS_FrameOwnBytecodeM1")
     start = ordinary.index("mov r11, QWORD PTR [rbp+80]")
     stop = ordinary.index("property_ic_M1_miss:")
     fallback = "property_ic_borrowed_fallback"
+    shape_load = f"mov r10, QWORD PTR [r8+{fields['JSObject.shape']}]"
+    inc_line = f"inc DWORD PTR [rax{rc:+d}]"
     body = [
         "mov r8, rax",
         "cmp BYTE PTR [rip+JS_FrameOwnBytecodeData+3], 1",
@@ -345,18 +413,50 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
         "property_ic_M1_ic_unready": fallback,
         "interp_property_slow_get_field": fallback,
     }
-    import re
 
     for line in ordinary[start:stop]:
         line = re.sub(r"\b\w+\b", lambda m: replacements.get(m[0], m[0]), line)
         line = line.replace("property_ic_M1_", "property_ic_borrowed_")
         if line == f"dec DWORD PTR [r8{rc:+d}]":
             continue
+        if line == shape_load:
+            body.append("property_ic_borrowed_probe:")
+        if line == inc_line:
+            body += [
+                "cmp edx, -1",
+                "jne property_ic_borrowed_inc",
+                "movzx ecx, BYTE PTR [r12+5]",
+                f"cmp cl, {get_field_op}",
+                "je property_ic_borrowed_chain_step",
+                f"cmp cl, {get_field2_op}",
+                "je property_ic_borrowed_to_m2",
+                "property_ic_borrowed_inc:",
+            ]
         line = line.replace("[r13-16]", "[r13]").replace("[r13-8]", "[r13+8]")
         if line == "add r12, 5":
             body.append("add r13, 16")
         body.append(line)
     body += [
+        "property_ic_borrowed_chain_step:",
+        "add r12, 5",
+        "mov r8, rax",
+        f"test BYTE PTR [r8+{exotic_byte}], {exotic_mask}",
+        "jnz " + fallback,
+        "mov r11, QWORD PTR [rbp+80]",
+        "jmp property_ic_borrowed_probe",
+        "property_ic_borrowed_to_m2:",
+        "cmp BYTE PTR [rip+JS_FrameOwnBytecodeData+5], 1",
+        "jne property_ic_borrowed_inc",
+        f"inc DWORD PTR [rax{rc:+d}]",
+        "mov QWORD PTR [r13], rax",
+        "mov QWORD PTR [r13+8], rdx",
+        "add r13, 16",
+        "add r12, 5",
+        "mov r8, rax",
+        f"test BYTE PTR [r8+{exotic_byte}], {exotic_mask}",
+        "jnz property_ic_M2_legacy",
+        "mov r11, QWORD PTR [rbp+80]",
+        "jmp property_ic_M2_probe",
         fallback + ":",
         f"inc DWORD PTR [r8{rc:+d}]",
         "mov QWORD PTR [r13], r8",
@@ -366,17 +466,19 @@ def blocks(build, abi, generation, fallbacks=None, method_learning=False):
         "jmp QWORD PTR [rdi+rax*8]",
     ]
     local = {line[:-1] for line in body if line.endswith(":")}
+    allowed_external = {"property_ic_M2_probe", "property_ic_M2_legacy"}
     assert all(
         not line.startswith(("call ", "ret", "push ", "pop ")) and "rsp" not in line
         for line in body
     )
     assert all(
-        line.split(" ", 1)[1] in local or line.startswith("jmp QWORD ")
+        line.split(" ", 1)[1] in (local | allowed_external) or line.startswith("jmp QWORD ")
         for line in body
         if line.startswith("j")
     )
     entries.append(("JS_FrameBorrowedField", body))
     external.add("JS_FrameOwnBytecodeData")
+    external.update(allowed_external)
     contracts.append(
         dict(
             entry="JS_FrameBorrowedField",

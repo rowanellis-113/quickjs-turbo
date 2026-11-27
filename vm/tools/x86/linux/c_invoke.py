@@ -22,8 +22,15 @@ def render(source, layout, mapping):
     ):
         raise ValueError("Review dense-pop property descriptor encoding")
     fast, ext = layout["bits"]["JSObject.fast_array"], layout["bits"]["JSObject.extensible"]
-    if len(fast) != 1 or len(ext) != 1 or fast[0][0] != ext[0][0]:
-        raise ValueError("Review dense-pop live object flags")
+    std_proto = layout["bits"]["JSContext.std_array_prototype"]
+    if len(fast) != 1 or len(ext) != 1 or fast[0][0] != ext[0][0] or len(std_proto) != 1:
+        raise ValueError("Review dense-pop/push live object/context flags")
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        offsets["JSMallocBlockHeader.ref_count"] - offsets["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else offsets["JSGCObjectHeader.ref_count"]
+    )
     values = dict(
         INIT_BRIDGE=mapping["JS_LinuxCInvokeInit"],
         FALLBACK_BRIDGE=mapping["JS_FrameInterpHostDirect"],
@@ -33,6 +40,9 @@ def render(source, layout, mapping):
     values.update(
         OBJ_ARRAY_FLAGS=fast[0][0],
         OBJ_ARRAY_FLAG_MASK=fast[0][1] | ext[0][1],
+        CTX_STD_ARR_BYTE=std_proto[0][0],
+        CTX_STD_ARR_MASK=std_proto[0][1],
+        RC_DISP=f"{rc_off:+d}" if rc_off else "",
         SHAPE_FLAGS_SHIFT=26,
         LENGTH_FLAGS=constants["JS_PROP_WRITABLE"] | constants["JS_PROP_LENGTH"],
     )
@@ -48,6 +58,7 @@ def render(source, layout, mapping):
         RT_TOP="JSRuntime.stack_top",
         CTX_INTERRUPT="JSContext.interrupt_counter",
         CTX_RT="JSContext.rt",
+        CTX_CLASS_PROTO="JSContext.class_proto",
         SF_PREV="JSStackFrame.prev_frame",
         SF_FUNC="JSStackFrame.cur_func",
         SF_ARGV="JSStackFrame.arg_buf",
@@ -57,9 +68,11 @@ def render(source, layout, mapping):
         SF_GC_OBJ="JSStackFrame.cur_gc_obj",
         OBJ_SHAPE="JSObject.shape",
         OBJ_PROPERTIES="JSObject.prop",
+        SHAPE_PROTO="JSShape.proto",
         SHAPE_HASH_MASK="JSShape.prop_hash_mask",
         SHAPE_ATOM="JSShapeProperty.atom",
         ARRAY_COUNT="JSObject.u.array.count",
+        ARRAY_SIZE="JSObject.u.array.u1",
         ARRAY_VALUES="JSObject.u.array.u.values",
     ).items():
         values[name] = offsets[field]

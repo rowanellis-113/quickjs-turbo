@@ -7,7 +7,7 @@
     "src/common/kernel/proto-load.inc": "0a413d22e9a0dd9c8fb1a2609671d05b11d89d81cf73c57e3010ec2cb9c446aa",
     "src/common/call/quickjs-interpreter-ops.inc": "5fb020fbb4bbcae548c005295f8254bb697fbafc67beefe45c8e98e72b4df02c",
     "asm/arm64/common/register-property-primitives.inc": "07dc1654b796720574ceae0e7eaf4d54d0bc32b39b2ccda9013611781e36a5b7",
-    "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9",
+    "asm/arm64/common/register-property-ic.inc": "3e72a13af5436e09b0061a7b0cf8166351dc3aa64c2051fe4edb040556ae704d",
     "tools/arm64/workers/property_primitives.py": "f1366bc9543a5637b08012ef8693ab0c011da2256c04753709c7071c2c97b8f2"
   },
   "native": "Flat-string/fast-array logical length;primitive String/Number live own-data methods;ordinary/Array legacy own/live prototype method walk",

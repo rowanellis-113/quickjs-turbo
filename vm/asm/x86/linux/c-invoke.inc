@@ -76,7 +76,7 @@ linux_c_invoke_guard:
     cmp WORD PTR [rax+@OBJ_LENGTH@], 2
     je linux_c_builtin_slice
     cmp WORD PTR [rax+@OBJ_LENGTH@], 257
-    jne linux_c_builtin_miss
+    jne linux_c_minmax_check
     test r8d, r8d
     jnz linux_c_builtin_miss
     cmp WORD PTR [rax+@OBJ_MAGIC@], 0
@@ -85,11 +85,47 @@ linux_c_invoke_guard:
     jnz linux_c_builtin_miss
     mov r11, QWORD PTR [rip+JS_LinuxBuiltinTargets+8]
     jmp linux_c_builtin_identity
+linux_c_minmax_check:
+    cmp WORD PTR [rax+@OBJ_LENGTH@], 258
+    jne linux_c_builtin_miss
+    cmp r8d, 2
+    jne linux_c_builtin_miss
+    lea r11, [rip+qjs_linux_core_js_math_min_max]
+    cmp QWORD PTR [rax+@OBJ_FUNCTION@], r11
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [rdx+8], @TAG_INT@
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [rdx+24], @TAG_INT@
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [r10+@RT_LIMIT@], 0
+    je qjs_linux_math_minmax_private
+    lea r11, [rsp-368]
+    cmp r11, QWORD PTR [r10+@RT_LIMIT@]
+    jae qjs_linux_math_minmax_private
+    jmp linux_c_builtin_miss
 linux_c_builtin_slice:
     mov r11, QWORD PTR [rip+JS_LinuxBuiltinTargets]
+    cmp QWORD PTR [rax+@OBJ_FUNCTION@], r11
+    je linux_c_builtin_matched
+    cmp r8d, 2
+    jne linux_c_builtin_miss
+    lea r11, [rip+qjs_linux_core_js_math_imul]
+    cmp QWORD PTR [rax+@OBJ_FUNCTION@], r11
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [rdx+8], @TAG_INT@
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [rdx+24], @TAG_INT@
+    jne linux_c_builtin_miss
+    cmp QWORD PTR [r10+@RT_LIMIT@], 0
+    je qjs_linux_math_imul_private
+    lea r11, [rsp-368]
+    cmp r11, QWORD PTR [r10+@RT_LIMIT@]
+    jae qjs_linux_math_imul_private
+    jmp linux_c_builtin_miss
 linux_c_builtin_identity:
     cmp QWORD PTR [rax+@OBJ_FUNCTION@], r11
     jne linux_c_builtin_miss
+linux_c_builtin_matched:
     movzx r11d, BYTE PTR [rip+JS_LinuxBuiltinControl]
     and r11d, 7
     cmp r11d, 2
@@ -120,12 +156,12 @@ linux_c_builtin_admit:
     jmp qjs_linux_builtin_window_private
 linux_c_builtin_miss:
     mov rax, QWORD PTR [rdx-16]
-/* Exact dense-pop descriptor, actual method receiver and initialized policy.
+/* Exact dense-pop (argc==0) and dense-push (argc==1) method leaves.
 * Every rejection remains the same generic/magic native C invocation. */
-    test r8d, r8d
-    jnz linux_c_invoke_ordinary
     test r9d, r9d
     jz linux_c_invoke_ordinary
+    test r8d, r8d
+    jnz linux_c_dense_push_check
     cmp WORD PTR [rax+@OBJ_LENGTH@], 256
     jne linux_c_invoke_ordinary
     cmp WORD PTR [rax+@OBJ_MAGIC@], 0
@@ -170,6 +206,60 @@ linux_c_builtin_miss:
     lea r11, [rsp-368]
     cmp r11, QWORD PTR [r10+@RT_LIMIT@]
     jae qjs_linux_dense_pop_private
+    jmp linux_c_invoke_restore_method
+linux_c_dense_push_check:
+    cmp r8d, 1
+    jne linux_c_invoke_ordinary
+    cmp WORD PTR [rax+@OBJ_LENGTH@], 257
+    jne linux_c_invoke_ordinary
+    cmp WORD PTR [rax+@OBJ_MAGIC@], 0
+    jne linux_c_invoke_ordinary
+    lea r10, [rip+qjs_linux_core_js_array_push]
+    cmp QWORD PTR [rax+@OBJ_FUNCTION@], r10
+    jne linux_c_invoke_ordinary
+    cmp QWORD PTR [rax+@OBJ_REALM@], rsi
+    jne linux_c_invoke_ordinary
+    cmp QWORD PTR [rdx-24], @TAG_OBJECT@
+    jne linux_c_invoke_ordinary
+    mov r10, QWORD PTR [rdx-32]
+    cmp WORD PTR [r10+@OBJ_CLASS@], @CLASS_ARRAY@
+    jne linux_c_invoke_ordinary
+    movzx r11d, BYTE PTR [r10+@OBJ_ARRAY_FLAGS@]
+    and r11d, @OBJ_ARRAY_FLAG_MASK@
+    cmp r11d, @OBJ_ARRAY_FLAG_MASK@
+    jne linux_c_invoke_ordinary
+    test BYTE PTR [rsi+@CTX_STD_ARR_BYTE@], @CTX_STD_ARR_MASK@
+    jz linux_c_invoke_ordinary
+    mov r11, QWORD PTR [r10+@OBJ_SHAPE@]
+    mov rax, QWORD PTR [rsi+@CTX_CLASS_PROTO@]
+    mov r9, QWORD PTR [r11+@SHAPE_PROTO@]
+    cmp r9, QWORD PTR [rax+32]
+    jne linux_c_invoke_restore_method
+    mov eax, DWORD PTR [r11+@SHAPE_HASH_MASK@]
+    lea r11, [r11+rax*4+@SHAPE_PROP_BASE@]
+    cmp DWORD PTR [r11+@SHAPE_ATOM@], @ATOM_LENGTH@
+    jne linux_c_invoke_restore_method
+    mov r11d, DWORD PTR [r11]
+    shr r11d, @SHAPE_FLAGS_SHIFT@
+    cmp r11d, @LENGTH_FLAGS@
+    jne linux_c_invoke_restore_method
+    mov r11, QWORD PTR [r10+@OBJ_PROPERTIES@]
+    cmp QWORD PTR [r11+8], @TAG_INT@
+    jne linux_c_invoke_restore_method
+    mov r9d, DWORD PTR [r10+@ARRAY_COUNT@]
+    cmp DWORD PTR [r11], r9d
+    jne linux_c_invoke_restore_method
+    cmp r9d, 2147483647
+    jae linux_c_invoke_restore_method
+    cmp r9d, DWORD PTR [r10+@ARRAY_SIZE@]
+    jae linux_c_invoke_restore_method
+    movq xmm4, r10
+    mov r10, QWORD PTR [rbx+56]
+    cmp QWORD PTR [r10+@RT_LIMIT@], 0
+    je qjs_linux_dense_push_private
+    lea r11, [rsp-368]
+    cmp r11, QWORD PTR [r10+@RT_LIMIT@]
+    jae qjs_linux_dense_push_private
 linux_c_invoke_restore_method:
     mov r9d, 1
 linux_c_invoke_ordinary:

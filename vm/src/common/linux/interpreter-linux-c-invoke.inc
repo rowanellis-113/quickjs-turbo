@@ -43,6 +43,18 @@ _Static_assert(__builtin_types_compatible_p(__typeof__(((JSCFunctionType *)0)->f
                    __builtin_types_compatible_p(__typeof__(((JSCFunctionType *)0)->f_f_f),
                                                 JSLinuxBinaryC),
                "Actual primitive numeric SysV C function types");
+_Static_assert(__builtin_types_compatible_p(__typeof__(&js_array_push), JSLinuxMagicC),
+               "Dense push identity is the actual original magic function");
+extern __typeof__(js_array_push) qjs_linux_core_js_array_push
+    __attribute__((alias("js_array_push"), visibility("hidden")));
+_Static_assert(__builtin_types_compatible_p(__typeof__(&js_math_imul), JSLinuxGenericC),
+               "Math.imul identity is the actual original generic function");
+extern __typeof__(js_math_imul) qjs_linux_core_js_math_imul
+    __attribute__((alias("js_math_imul"), visibility("hidden")));
+_Static_assert(__builtin_types_compatible_p(__typeof__(&js_math_min_max), JSLinuxMagicC),
+               "Math.min/max identity is the actual original magic function");
+extern __typeof__(js_math_min_max) qjs_linux_core_js_math_min_max
+    __attribute__((alias("js_math_min_max"), visibility("hidden")));
 
 /* The slower primitive trampoline is an independent component control. Its
  * caller has checked exact prototypes and INT/FLOAT arguments before commit;

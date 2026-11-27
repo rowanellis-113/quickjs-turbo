@@ -102,6 +102,8 @@ def main():
         text += "\n#define QJS_LINUX_NATIVE_ENTRIES 1\n"
     if vm and vm.get("native_construct"):
         text += "\n#define QJS_LINUX_CONSTRUCT_CONTINUATION 1\n"
+    if vm and vm.get("native_literals") and vm.get("native_construct"):
+        text += "\n#ifndef QJS_LINUX_FAST_CONSTRUCT\n#define QJS_LINUX_FAST_CONSTRUCT 1\n#endif\n"
     if vm and vm.get("native_admission"):
         from admission import generate as generate_admission
 

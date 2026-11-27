@@ -3,14 +3,14 @@
   "pinned_core_sha256": "51b1d3919ffe812d0e01793f85d347bcea48c924c11262c5c5f00df1e4759d74",
   "owners": {
     "tools/x86/common/codegen/free-boundary.py": "38c94a0c3ee6fa61b8d09451f7400ffa3ad6318b211b1cb831d5bd30e0e8f7ac",
-    "tools/x86/common/codegen/add-local.py": "a74346ecee3b9e27b04c4b8ab3b966889e2edb17b77150cb334e156a9e297193",
-    "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
+    "tools/x86/common/codegen/add-local.py": "d3046823b07f9e14622ee96fd90141cbfb82fbcf5ce46602cc6405356316d610",
+    "src/common/call/quickjs-interpreter-bigint.inc": "f54dcb598b6339481a10d1a85d2572583881dfcf6bdb67d040d067f1b78492aa",
     "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"
   },
   "accepted_windows_owners": {
     "tools/x86/common/codegen/free-boundary.py": "38c94a0c3ee6fa61b8d09451f7400ffa3ad6318b211b1cb831d5bd30e0e8f7ac",
-    "tools/x86/common/codegen/add-local.py": "a74346ecee3b9e27b04c4b8ab3b966889e2edb17b77150cb334e156a9e297193",
-    "src/common/call/quickjs-interpreter-bigint.inc": "1b424d14bd71d4a5b808bb2b38464568e74dc295c6ab4d362a33f079e23f6c58",
+    "tools/x86/common/codegen/add-local.py": "d3046823b07f9e14622ee96fd90141cbfb82fbcf5ce46602cc6405356316d610",
+    "src/common/call/quickjs-interpreter-bigint.inc": "f54dcb598b6339481a10d1a85d2572583881dfcf6bdb67d040d067f1b78492aa",
     "src/x86/common/string-to-number.c": "fb04516c17269489a9e6df88fd6cefd95448370bdef50f3fdc0c529b01b8ea26"
   },
   "source_normalizations": {},

@@ -513,6 +513,433 @@ def apply_regression_fast_paths(stream, handlers, layout, slot_blocks=()):
                     "jmp QWORD PTR [rdi+rax*8]",
                     "slot_store_last_bridge:",
                 ]
+    # 8. Native zero-exit handlers for catch / nip_catch / gosub / ret / check_object
+    # (eliminates VM-exit + TLS-anchor + full-reload overhead in try/catch/finally & for..of).
+    bc_code_off = offs["JSFunctionBytecode.byte_code_buf"]
+    bc_len_off = offs["JSFunctionBytecode.byte_code_len"]
+    if handlers.get("catch") == "JS_LinuxIteratorOpcode_catch":
+        extra_blocks.append(
+            (
+                "JS_LinuxCatch",
+                [
+                    "movsxd rdx, DWORD PTR [r12+1]",
+                    "lea rax, [r12+rdx+1]",
+                    "mov rcx, QWORD PTR [rbp+80]",
+                    f"sub rax, QWORD PTR [rcx+{bc_code_off}]",
+                    "mov QWORD PTR [r13], rax",
+                    "mov QWORD PTR [r13+8], 5",
+                    "add r13, 16",
+                    "add r12, 5",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["catch"] = "JS_LinuxCatch"
+    if handlers.get("nip_catch") == "JS_LinuxIteratorOpcode_nip_catch":
+        extra_blocks.append(
+            (
+                "JS_LinuxNipCatch",
+                [
+                    "cmp DWORD PTR [r13-24], 5",
+                    "jne linux_iter_native_slow",
+                    "movdqu xmm0, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-32], xmm0",
+                    "sub r13, 16",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["nip_catch"] = "JS_LinuxNipCatch"
+    if handlers.get("gosub") == "JS_LinuxIteratorOpcode_gosub":
+        extra_blocks.append(
+            (
+                "JS_LinuxGosub",
+                [
+                    "mov rcx, QWORD PTR [rbp+80]",
+                    f"mov r8, QWORD PTR [rcx+{bc_code_off}]",
+                    "lea rax, [r12+5]",
+                    "sub rax, r8",
+                    "mov QWORD PTR [r13], rax",
+                    "mov QWORD PTR [r13+8], 0",
+                    "add r13, 16",
+                    "movsxd rdx, DWORD PTR [r12+1]",
+                    "lea r12, [r12+rdx+1]",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["gosub"] = "JS_LinuxGosub"
+    if handlers.get("ret") == "JS_LinuxIteratorOpcode_ret":
+        extra_blocks.append(
+            (
+                "JS_LinuxRet",
+                [
+                    "cmp DWORD PTR [r13-8], 0",
+                    "jne linux_iter_native_slow",
+                    "mov eax, DWORD PTR [r13-16]",
+                    "mov rcx, QWORD PTR [rbp+80]",
+                    f"cmp eax, DWORD PTR [rcx+{bc_len_off}]",
+                    "jae linux_iter_native_slow",
+                    "sub r13, 16",
+                    f"add rax, QWORD PTR [rcx+{bc_code_off}]",
+                    "mov r12, rax",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["ret"] = "JS_LinuxRet"
+    if handlers.get("check_object") == "JS_LinuxIteratorOpcode_check_object":
+        extra_blocks.append(
+            (
+                "JS_LinuxCheckObject",
+                [
+                    "cmp DWORD PTR [r13-8], -1",
+                    "jne linux_iter_native_slow",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    "linux_iter_native_slow:",
+                    "lea rax, [rip+JS_FramePublishDirtyTable]",
+                    "cmp rdi, rax",
+                    "je dirty_interp_slow",
+                    "jmp interp_slow",
+                ],
+            )
+        )
+        handlers["check_object"] = "JS_LinuxCheckObject"
+
+    # 9. Native zero-exit handlers for to_object, plus, and stack permute/dup/nip opcodes
+    # (eliminates VM-exit + TLS-anchor + reload overhead in ES6 destructuring, for..of, and compound ops).
+    rc_disp = f"{rc_off:+d}" if rc_off else ""
+    if handlers.get("to_object", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxToObject",
+                [
+                    "cmp DWORD PTR [r13-8], -1",
+                    "jne linux_stack_native_slow",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                    "linux_stack_native_slow:",
+                    "lea rax, [rip+JS_FramePublishDirtyTable]",
+                    "cmp rdi, rax",
+                    "je dirty_interp_slow",
+                    "jmp interp_slow",
+                ],
+            )
+        )
+        handlers["to_object"] = "JS_LinuxToObject"
+    if handlers.get("plus", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxPlus",
+                [
+                    "mov eax, DWORD PTR [r13-8]",
+                    "test eax, eax",
+                    "jz linux_plus_ok",
+                    "cmp eax, 8",
+                    "jne linux_stack_native_slow",
+                    "linux_plus_ok:",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["plus"] = "JS_LinuxPlus"
+    if handlers.get("nip", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxNip",
+                [
+                    "cmp DWORD PTR [r13-24], 0",
+                    "jge linux_nip_move",
+                    "mov rax, QWORD PTR [r13-32]",
+                    f"cmp DWORD PTR [rax{rc_disp}], 1",
+                    "jle linux_stack_native_slow",
+                    f"dec DWORD PTR [rax{rc_disp}]",
+                    "linux_nip_move:",
+                    "movdqu xmm0, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-32], xmm0",
+                    "sub r13, 16",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["nip"] = "JS_LinuxNip"
+    if handlers.get("nip1", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxNip1",
+                [
+                    "cmp DWORD PTR [r13-40], 0",
+                    "jge linux_nip1_move",
+                    "mov rax, QWORD PTR [r13-48]",
+                    f"cmp DWORD PTR [rax{rc_disp}], 1",
+                    "jle linux_stack_native_slow",
+                    f"dec DWORD PTR [rax{rc_disp}]",
+                    "linux_nip1_move:",
+                    "movdqu xmm0, XMMWORD PTR [r13-32]",
+                    "movdqu xmm1, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-48], xmm0",
+                    "movdqu XMMWORD PTR [r13-32], xmm1",
+                    "sub r13, 16",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["nip1"] = "JS_LinuxNip1"
+    if handlers.get("dup1", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxDup1",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13], xmm0",
+                    "mov rax, QWORD PTR [r13-32]",
+                    "mov rdx, QWORD PTR [r13-24]",
+                    "test edx, edx",
+                    "jns linux_dup1_done",
+                    f"inc DWORD PTR [rax{rc_disp}]",
+                    "linux_dup1_done:",
+                    "mov QWORD PTR [r13-16], rax",
+                    "mov QWORD PTR [r13-8], rdx",
+                    "add r13, 16",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["dup1"] = "JS_LinuxDup1"
+    if handlers.get("dup3", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxDup3",
+                [
+                    "mov rax, QWORD PTR [r13-48]",
+                    "mov rdx, QWORD PTR [r13-40]",
+                    "test edx, edx",
+                    "jns linux_dup3_1",
+                    f"inc DWORD PTR [rax{rc_disp}]",
+                    "linux_dup3_1:",
+                    "mov QWORD PTR [r13], rax",
+                    "mov QWORD PTR [r13+8], rdx",
+                    "mov rax, QWORD PTR [r13-32]",
+                    "mov rdx, QWORD PTR [r13-24]",
+                    "test edx, edx",
+                    "jns linux_dup3_2",
+                    f"inc DWORD PTR [rax{rc_disp}]",
+                    "linux_dup3_2:",
+                    "mov QWORD PTR [r13+16], rax",
+                    "mov QWORD PTR [r13+24], rdx",
+                    "mov rax, QWORD PTR [r13-16]",
+                    "mov rdx, QWORD PTR [r13-8]",
+                    "test edx, edx",
+                    "jns linux_dup3_3",
+                    f"inc DWORD PTR [rax{rc_disp}]",
+                    "linux_dup3_3:",
+                    "mov QWORD PTR [r13+32], rax",
+                    "mov QWORD PTR [r13+40], rdx",
+                    "add r13, 48",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["dup3"] = "JS_LinuxDup3"
+    if handlers.get("insert4", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxInsert4",
+                [
+                    "mov rax, QWORD PTR [r13-16]",
+                    "mov rdx, QWORD PTR [r13-8]",
+                    "mov QWORD PTR [r13], rax",
+                    "mov QWORD PTR [r13+8], rdx",
+                    "movdqu xmm0, XMMWORD PTR [r13-32]",
+                    "movdqu XMMWORD PTR [r13-16], xmm0",
+                    "movdqu xmm0, XMMWORD PTR [r13-48]",
+                    "movdqu XMMWORD PTR [r13-32], xmm0",
+                    "movdqu xmm0, XMMWORD PTR [r13-64]",
+                    "movdqu XMMWORD PTR [r13-48], xmm0",
+                    "test edx, edx",
+                    "jns linux_ins4_done",
+                    f"inc DWORD PTR [rax{rc_disp}]",
+                    "linux_ins4_done:",
+                    "mov QWORD PTR [r13-64], rax",
+                    "mov QWORD PTR [r13-56], rdx",
+                    "add r13, 16",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["insert4"] = "JS_LinuxInsert4"
+    if handlers.get("perm3", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxPerm3",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-32]",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu XMMWORD PTR [r13-48], xmm0",
+                    "movdqu XMMWORD PTR [r13-32], xmm1",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["perm3"] = "JS_LinuxPerm3"
+    if handlers.get("perm4", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxPerm4",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-32]",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu xmm2, XMMWORD PTR [r13-64]",
+                    "movdqu XMMWORD PTR [r13-32], xmm1",
+                    "movdqu XMMWORD PTR [r13-48], xmm2",
+                    "movdqu XMMWORD PTR [r13-64], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["perm4"] = "JS_LinuxPerm4"
+    if handlers.get("perm5", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxPerm5",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-32]",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu XMMWORD PTR [r13-32], xmm1",
+                    "movdqu xmm1, XMMWORD PTR [r13-64]",
+                    "movdqu XMMWORD PTR [r13-48], xmm1",
+                    "movdqu xmm1, XMMWORD PTR [r13-80]",
+                    "movdqu XMMWORD PTR [r13-64], xmm1",
+                    "movdqu XMMWORD PTR [r13-80], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["perm5"] = "JS_LinuxPerm5"
+    if handlers.get("swap2", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxSwap2",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-64]",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu xmm2, XMMWORD PTR [r13-32]",
+                    "movdqu xmm3, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-64], xmm2",
+                    "movdqu XMMWORD PTR [r13-48], xmm3",
+                    "movdqu XMMWORD PTR [r13-32], xmm0",
+                    "movdqu XMMWORD PTR [r13-16], xmm1",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["swap2"] = "JS_LinuxSwap2"
+    if handlers.get("rot3l", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxRot3l",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-48]",
+                    "movdqu xmm1, XMMWORD PTR [r13-32]",
+                    "movdqu xmm2, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-48], xmm1",
+                    "movdqu XMMWORD PTR [r13-32], xmm2",
+                    "movdqu XMMWORD PTR [r13-16], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["rot3l"] = "JS_LinuxRot3l"
+    if handlers.get("rot3r", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxRot3r",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-16]",
+                    "movdqu xmm1, XMMWORD PTR [r13-32]",
+                    "movdqu xmm2, XMMWORD PTR [r13-48]",
+                    "movdqu XMMWORD PTR [r13-16], xmm1",
+                    "movdqu XMMWORD PTR [r13-32], xmm2",
+                    "movdqu XMMWORD PTR [r13-48], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["rot3r"] = "JS_LinuxRot3r"
+    if handlers.get("rot4l", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxRot4l",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-64]",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu xmm2, XMMWORD PTR [r13-32]",
+                    "movdqu xmm3, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-64], xmm1",
+                    "movdqu XMMWORD PTR [r13-48], xmm2",
+                    "movdqu XMMWORD PTR [r13-32], xmm3",
+                    "movdqu XMMWORD PTR [r13-16], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["rot4l"] = "JS_LinuxRot4l"
+    if handlers.get("rot5l", "interp_slow") == "interp_slow":
+        extra_blocks.append(
+            (
+                "JS_LinuxRot5l",
+                [
+                    "movdqu xmm0, XMMWORD PTR [r13-80]",
+                    "movdqu xmm1, XMMWORD PTR [r13-64]",
+                    "movdqu XMMWORD PTR [r13-80], xmm1",
+                    "movdqu xmm1, XMMWORD PTR [r13-48]",
+                    "movdqu XMMWORD PTR [r13-64], xmm1",
+                    "movdqu xmm1, XMMWORD PTR [r13-32]",
+                    "movdqu XMMWORD PTR [r13-48], xmm1",
+                    "movdqu xmm1, XMMWORD PTR [r13-16]",
+                    "movdqu XMMWORD PTR [r13-32], xmm1",
+                    "movdqu XMMWORD PTR [r13-16], xmm0",
+                    "inc r12",
+                    "movzx eax, BYTE PTR [r12]",
+                    "jmp QWORD PTR [rdi+rax*8]",
+                ],
+            )
+        )
+        handlers["rot5l"] = "JS_LinuxRot5l"
     return extra_blocks
 
 
@@ -1187,6 +1614,9 @@ def main():
                 "qjs_linux_c_invoke_private",
                 "qjs_linux_numeric_invoke_private",
                 "qjs_linux_dense_pop_private",
+                "qjs_linux_dense_push_private",
+                "qjs_linux_math_imul_private",
+                "qjs_linux_math_minmax_private",
                 "qjs_linux_builtin_prepare_private",
                 "qjs_linux_builtin_window_private",
                 "qjs_linux_builtin_stack_private",

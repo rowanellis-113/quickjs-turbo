@@ -2,6 +2,22 @@
 #define QJS_HYBRID_GC_OVERLAY 1
 #include "src/common/internal/turbo-config.h"
 
+#if defined(_MSC_VER)
+#define QJS_HYBRID_INLINE __forceinline
+#elif defined(__GNUC__) || defined(__clang__)
+#define QJS_HYBRID_INLINE inline __attribute__((always_inline))
+#else
+#define QJS_HYBRID_INLINE inline
+#endif
+
+#ifndef QJS_HYBRID_PREFETCH
+#if defined(__GNUC__) || defined(__clang__)
+#define QJS_HYBRID_PREFETCH(p) __builtin_prefetch((p), 0, 1)
+#else
+#define QJS_HYBRID_PREFETCH(p) ((void)(p))
+#endif
+#endif
+
 _Static_assert(offsetof(JSObject, header) == 0 && offsetof(JSFunctionBytecode, header) == 0 &&
                    offsetof(JSShape, header) == 0 &&
                    (uint32_t)(JS_TAG_OBJECT - JS_TAG_FUNCTION_BYTECODE) == 1u,
@@ -143,11 +159,97 @@ void js_hybrid_drop_string1(JSRuntime *rt, void *ptr, uint32_t is_rope)
     }
 }
 
+static QJS_HYBRID_INLINE void js_hybrid_flush_malloc(JSRuntime *rt, size_t *freed_count,
+                                                     size_t *freed_size)
+{
+    if (*freed_count) {
+        JSMallocState *s = &rt->malloc_state;
+        s->malloc_count -= *freed_count;
+        if (likely(*freed_size <= s->malloc_size))
+            s->malloc_size -= *freed_size;
+        *freed_count = 0;
+        *freed_size = 0;
+    }
+}
+
+static QJS_HYBRID_INLINE void js_hybrid_free_rt_batched(JSRuntime *rt, void *ptr,
+                                                        JSGCObjectHeader **stack,
+                                                        size_t *freed_count, size_t *freed_size)
+{
+    if (likely(ptr != NULL)) {
+        JSMallocBlockHeader *b = container_of(ptr, JSMallocBlockHeader, user_data);
+        if (likely(b->u.block_idx != JS_ARENA_FREE_NIL)) {
+            unsigned int block_idx = b->u.block_idx;
+            unsigned int block_size_idx = b->block_size_idx;
+            unsigned int block_size = arena_block_sizes[block_size_idx];
+            size_t free_size = (size_t)block_size - sizeof(JSMallocBlockHeader) + MALLOC_OVERHEAD;
+            JSArena *ar =
+                (JSArena *)((uint8_t *)b - (size_t)block_size * block_idx - sizeof(JSArena));
+            if (likely(ar->n_used_blocks > 1)) {
+                b->u.free_next = ar->first_free_block;
+                ar->first_free_block = block_idx;
+                if (unlikely(ar->n_used_blocks == ar->n_blocks))
+                    list_add(&ar->free_link, &rt->arena_state.free_arena_list[block_size_idx]);
+                ar->n_used_blocks--;
+                (*freed_count)++;
+                (*freed_size) += free_size;
+                return;
+            }
+        }
+    }
+    js_hybrid_flush_malloc(rt, freed_count, freed_size);
+    rt->hybrid_free_stack = *stack;
+    js_free_rt(rt, ptr);
+    *stack = rt->hybrid_free_stack;
+}
+
+static QJS_HYBRID_INLINE void js_hybrid_drop_val_fast(JSRuntime *rt, JSValue v,
+                                                      JSGCObjectHeader **next_cur,
+                                                      JSGCObjectHeader **stack, size_t *freed_count,
+                                                      size_t *freed_size)
+{
+    if (JS_VALUE_HAS_REF_COUNT(v)) {
+        void *r = JS_VALUE_GET_PTR(v);
+        if (--JS_REF_COUNT(r) <= 0) {
+            uint32_t tag = (uint32_t)JS_VALUE_GET_TAG(v);
+            if (likely(tag == (uint32_t)JS_TAG_OBJECT)) {
+                JSGCObjectHeader *ch = (JSGCObjectHeader *)r;
+                list_del(&ch->link);
+                if (*next_cur == NULL) {
+                    *next_cur = ch;
+                } else {
+                    ch->link.next = (struct list_head *)(*stack);
+                    *stack = ch;
+                }
+            } else if (tag == (uint32_t)JS_TAG_STRING) {
+                JSString *str = (JSString *)r;
+#ifndef ENABLE_DUMPS
+                if (likely(!str->atom_type && str->kind == JS_STRING_KIND_NORMAL)) {
+                    js_hybrid_free_rt_batched(rt, str, stack, freed_count, freed_size);
+                    return;
+                }
+#endif
+                js_hybrid_flush_malloc(rt, freed_count, freed_size);
+                rt->hybrid_free_stack = *stack;
+                js_free_string0(rt, str);
+                *stack = rt->hybrid_free_stack;
+            } else {
+                js_hybrid_flush_malloc(rt, freed_count, freed_size);
+                rt->hybrid_free_stack = *stack;
+                js_free_value_rt(rt, v);
+                *stack = rt->hybrid_free_stack;
+            }
+        }
+    }
+}
+
 /* Iterative O(1)-C-stack synchronous LIFO destruction using link.next after unlink. */
 static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader *root)
 {
-    JSGCObjectHeader *cur;
+    JSGCObjectHeader *cur, *stack = NULL;
+    size_t freed_count = 0, freed_size = 0;
     uint64_t fast_frees = 0;
+    const uint8_t report = rt->hybrid_gc_report;
 
     assert(rt->hybrid_free_stack == NULL);
     list_del(&root->link);
@@ -157,6 +259,7 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
     cur = root;
 
     for (;;) {
+        JSGCObjectHeader *next_cur = NULL;
         if (likely(JS_GC_TYPE(cur) == JS_GC_OBJ_TYPE_JS_OBJECT)) {
             JSObject *obj = (JSObject *)cur;
             uint16_t cid = obj->class_id;
@@ -168,8 +271,12 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
                 uint32_t i, prop_count;
 
 #ifdef QJS_PROPERTY_IC
-                if (unlikely(obj->is_prototype))
+                if (unlikely(obj->is_prototype)) {
+                    js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                    rt->hybrid_free_stack = stack;
                     js_property_ic_prototype_free(rt, obj);
+                    stack = rt->hybrid_free_stack;
+                }
 #endif
                 obj->free_mark = 1;
                 sh = obj->shape;
@@ -178,51 +285,92 @@ static no_inline void js_hybrid_free_object_root(JSRuntime *rt, JSGCObjectHeader
                 prop_count = (uint32_t)sh->prop_count;
                 for (i = 0; i < prop_count; i++) {
                     if (unlikely(pr[i].flags & JS_PROP_TMASK)) {
+                        js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                        rt->hybrid_free_stack = stack;
                         free_property(rt, &prop[i], pr[i].flags);
+                        stack = rt->hybrid_free_stack;
                     } else {
-                        js_hybrid_drop_val(rt, prop[i].u.value);
+                        js_hybrid_drop_val_fast(rt, prop[i].u.value, &next_cur, &stack,
+                                                &freed_count, &freed_size);
                     }
                 }
 #ifdef QJS_HYBRID_INLINE_PROPERTIES
                 if (prop && !qjs_inline_property_current(obj))
-                    js_hybrid_free_rt_fast(rt, prop);
+                    js_hybrid_free_rt_batched(rt, prop, &stack, &freed_count, &freed_size);
 #else
                 if (prop)
-                    js_hybrid_free_rt_fast(rt, prop);
+                    js_hybrid_free_rt_batched(rt, prop, &stack, &freed_count, &freed_size);
 #endif
-                js_free_shape(rt, sh);
+#ifdef QJS_PROPERTY_IC
+                {
+                    int32_t sh_rc = --JS_REF_COUNT(sh);
+                    if (unlikely(sh_rc <= (int32_t)js_property_ic_shape_refs(sh))) {
+                        js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                        rt->hybrid_free_stack = stack;
+                        if (sh_rc <= 0)
+                            js_free_shape0(rt, sh);
+                        else if ((uint32_t)sh_rc == js_property_ic_shape_refs(sh))
+                            js_property_ic_shape_released(rt, sh);
+                        stack = rt->hybrid_free_stack;
+                    }
+                }
+#else
+                if (unlikely(--JS_REF_COUNT(sh) <= 0)) {
+                    js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                    rt->hybrid_free_stack = stack;
+                    js_free_shape0(rt, sh);
+                    stack = rt->hybrid_free_stack;
+                }
+#endif
 
                 if (cid == JS_CLASS_ARRAY) {
                     uint32_t j, acount = obj->u.array.count;
                     JSValue *vals = obj->u.array.u.values;
                     for (j = 0; j < acount; j++) {
-                        js_hybrid_drop_val(rt, vals[j]);
+                        js_hybrid_drop_val_fast(rt, vals[j], &next_cur, &stack, &freed_count,
+                                                &freed_size);
                     }
                     if (vals)
-                        js_hybrid_free_rt_fast(rt, vals);
+                        js_hybrid_free_rt_batched(rt, vals, &stack, &freed_count, &freed_size);
                 }
 
-                js_hybrid_free_rt_fast(rt, obj);
-                fast_frees++;
+                js_hybrid_free_rt_batched(rt, obj, &stack, &freed_count, &freed_size);
+                if (unlikely(report))
+                    fast_frees++;
             } else {
+                js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+                rt->hybrid_free_stack = stack;
                 init_list_head(&cur->link);
                 free_gc_object(rt, cur);
+                stack = rt->hybrid_free_stack;
             }
         } else {
+            js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
+            rt->hybrid_free_stack = stack;
             init_list_head(&cur->link);
             free_gc_object(rt, cur);
+            stack = rt->hybrid_free_stack;
         }
 
-        cur = rt->hybrid_free_stack;
-        if (!cur)
-            break;
-        rt->hybrid_free_stack = (JSGCObjectHeader *)cur->link.next;
+        if (next_cur) {
+            cur = next_cur;
+            if (stack)
+                QJS_HYBRID_PREFETCH(stack);
+        } else {
+            cur = stack;
+            if (!cur)
+                break;
+            stack = (JSGCObjectHeader *)cur->link.next;
+            if (stack)
+                QJS_HYBRID_PREFETCH(stack);
+        }
     }
 
+    js_hybrid_flush_malloc(rt, &freed_count, &freed_size);
     rt->hybrid_free_stack = NULL;
     rt->hybrid_free_active = 0;
     rt->gc_phase = JS_GC_PHASE_NONE;
-    if (unlikely(rt->hybrid_gc_report))
+    if (unlikely(report))
         rt->hybrid_gc_fast_frees += fast_frees;
 }
 
@@ -387,6 +535,7 @@ static no_inline void js_hybrid_full_decref(JSRuntime *rt)
     init_list_head(&rt->tmp_obj_list);
     list_for_each_safe(el, el1, &rt->gc_obj_list)
     {
+        QJS_HYBRID_PREFETCH(el1);
         p = list_entry(el, JSGCObjectHeader, link);
         assert(JS_GC_MARK(p) == 0);
         js_hybrid_walk_full_decref(rt, p);
@@ -411,6 +560,7 @@ static no_inline void js_hybrid_full_scan(JSRuntime *rt)
 #endif
     list_for_each(el, &rt->gc_obj_list)
     {
+        QJS_HYBRID_PREFETCH(el->next);
         p = list_entry(el, JSGCObjectHeader, link);
         assert(JS_REF_COUNT(p) > 0);
         JS_GC_MARK(p) = 0;

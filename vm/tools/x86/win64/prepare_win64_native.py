@@ -65,7 +65,11 @@ def _inject_property_ic_win64(masm_lines, gas_lines, build, layout, source):
         "qjs_pic_native", source / "tools/x86/common/codegen/property_ic_native.py"
     )
     entries, _external, _gen, _contracts = pic_mod.blocks(
-        build, layout, {"aliases": ["M"]}, fallbacks=None, method_learning=False
+        build,
+        layout,
+        {"aliases": ["M"], "borrowed_field": True},
+        fallbacks=None,
+        method_learning=False,
     )
 
     # Expose target labels inside JS_FrameInterp PROC for MASM cross-section jumps.
@@ -73,6 +77,7 @@ def _inject_property_ic_win64(masm_lines, gas_lines, build, layout, source):
         "interp_get_field",
         "interp_get_field2",
         "interp_put_field",
+        "interp_call_method",
         "interp_property_slow_get_field",
         "interp_property_slow_get_field2",
         "interp_property_slow_put_field",
@@ -125,26 +130,34 @@ def _inject_property_ic_win64(masm_lines, gas_lines, build, layout, source):
         "JS_FrameOwnBytecodeM2": "interp_get_field2",
         "JS_FrameOwnBytecodeM3": "interp_put_field",
     }
-    text_targets = set(orig_for_entry.values())
+    text_targets = set(orig_for_entry.values()) | {"interp_call_method"}
+    pic_exposed_labels = {"property_ic_M2_probe", "property_ic_M2_legacy"}
 
     def masm_inst(inst):
         out = re.sub(r"\[rip\+([^\]]+)\]", r"[\1]", inst)
+        if out.endswith(":") and not out.endswith("::") and out[:-1] in pic_exposed_labels:
+            return out[:-1] + "::"
         m = re.match(r"^(j\w+)\s+(\w+)$", out)
         if m and m.group(2) in text_targets:
             return f"{m.group(1)} NEAR PTR {m.group(2)}"
         return out
 
     for name, body in entries:
-        orig = orig_for_entry[name]
-        # Runtime gate checking JS_FrameOwnBytecodeData.reserved[3] (offset +5).
-        masm_gate = [
-            "cmp BYTE PTR [JS_FrameOwnBytecodeData+5], 1",
-            f"jne NEAR PTR {orig}",
-        ]
-        gas_gate = [
-            "cmp BYTE PTR [rip+JS_FrameOwnBytecodeData+5], 1",
-            f"jne {orig}",
-        ]
+        orig = orig_for_entry.get(name)
+        if orig is not None:
+            # Runtime gate checking JS_FrameOwnBytecodeData.reserved[3] (offset +5).
+            masm_gate = [
+                "cmp BYTE PTR [JS_FrameOwnBytecodeData+5], 1",
+                f"jne NEAR PTR {orig}",
+            ]
+            gas_gate = [
+                "cmp BYTE PTR [rip+JS_FrameOwnBytecodeData+5], 1",
+                f"jne {orig}",
+            ]
+        else:
+            # JS_FrameBorrowedField already gates itself via JS_FrameOwnBytecodeData+3.
+            masm_gate = []
+            gas_gate = []
         masm_body = [masm_inst(inst) for inst in body]
         masm_pic += [
             f"PUBLIC {name}",
@@ -470,57 +483,681 @@ def _prepare_win64_locale(source, output_dir):
     (output_dir / "quickjs-win64-locale.h").write_text(locale, encoding="utf-8", newline="\n")
 
 
-def _inject_push_bigint_i32_win64(masm_lines, gas_lines, upstream):
+def _prepare_win64_sort(source, output_dir):
+    sort_src = (source / "src/common/array/default-string-sort.inc").read_text(encoding="utf-8")
+    boundary = "#ifdef _MSC_VER\nextern void qjs_default_string_sort_original"
+    if sort_src.count(boundary) != 1:
+        raise ValueError("Review Win64 default-string-sort boundary")
+    sort_src = sort_src[: sort_src.index(boundary)]
+    sort_src = replace_once(
+        sort_src,
+        "#ifdef _MSC_VER\n"
+        "extern unsigned char JS_FrameCallMetaLoadByte(unsigned char *);\n"
+        "extern unsigned char JS_FrameCallMetaInitByte(unsigned char *, unsigned char);\n"
+        "#endif\n"
+        "static unsigned char js_default_string_sort_mode;",
+        "#include <stdatomic.h>\nstatic _Atomic unsigned char js_default_string_sort_mode;",
+        "Win64 default-string-sort control declaration",
+    )
+    sort_src = replace_once(
+        sort_src,
+        "#ifdef _MSC_VER\n"
+        "    mode = JS_FrameCallMetaLoadByte(&js_default_string_sort_mode);\n"
+        "#else\n"
+        "    mode = __atomic_load_n(&js_default_string_sort_mode, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_DEFAULT_STRING_RADIX") ? 2 : 1;\n'
+        "#ifdef _MSC_VER\n"
+        "        mode = JS_FrameCallMetaInitByte(&js_default_string_sort_mode, desired);\n"
+        "#else\n"
+        "        __atomic_compare_exchange_n(&js_default_string_sort_mode, &mode, desired, false,\n"
+        "                                    __ATOMIC_RELAXED, __ATOMIC_RELAXED);\n"
+        "#endif\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "    mode = atomic_load_explicit(&js_default_string_sort_mode, memory_order_relaxed);\n"
+        "    if (unlikely(!mode)) {\n"
+        '        unsigned char desired = getenv("QJS_DISABLE_DEFAULT_STRING_RADIX") ? 2 : 1;\n'
+        "        atomic_compare_exchange_strong_explicit(&js_default_string_sort_mode, &mode,\n"
+        "                                                desired, memory_order_relaxed,\n"
+        "                                                memory_order_relaxed);\n"
+        "        if (!mode)\n"
+        "            mode = desired;\n"
+        "    }",
+        "Win64 default-string-sort control atomics",
+    )
+    sort_src += (
+        "\nstatic void JS_ArrayDefaultStringSortDispatch(\n"
+        "    void *base, size_t count, size_t size, cmp_f compare, void *opaque)\n"
+        "{\n"
+        "    if (size != sizeof(ValueSlot) || !js_default_string_sort_try(base, count, opaque))\n"
+        "        rqsort(base, count, size, compare, opaque);\n"
+        "}\n"
+    )
+    (output_dir / "quickjs-win64-sort.h").write_text(sort_src, encoding="utf-8", newline="\n")
+
+
+def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
+    """Inject Win64 zero-exit native opcodes and fast C-host dispatch routing."""
     opcodes = re.findall(
         r"^DEF\(\s*(\w+)\s*,", (upstream / "quickjs-opcode.h").read_text(encoding="utf-8"), re.M
     )
-    op_idx = opcodes.index("push_bigint_i32")
-    masm_slot = masm_lines.index("interp_table LABEL QWORD") + 1 + op_idx
-    if masm_lines[masm_slot].strip() != "DQ interp_slow":
-        raise ValueError(f"Unexpected MASM push_bigint_i32 slot: {masm_lines[masm_slot]}")
-    masm_lines[masm_slot] = "DQ JS_Win64PushBigIntI32"
+    atoms = re.findall(
+        r"^DEF\(\s*(\w+)\s*,", (upstream / "quickjs-atom.h").read_text(encoding="utf-8"), re.M
+    )
+    atom_id = {name: i + 1 for i, name in enumerate(atoms)}
+    if (
+        atom_id["length"] != layout["constants"]["JS_ATOM_length"]
+        or atom_id["bigint"] != layout["constants"]["JS_ATOM_bigint"]
+    ):
+        raise ValueError("Win64 quickjs-atom.h enum mismatch against measured layout constants")
 
-    gas_slot = gas_lines.index("interp_table:") + 1 + op_idx
-    if gas_lines[gas_slot].strip() != ".quad interp_slow":
-        raise ValueError(f"Unexpected GAS push_bigint_i32 slot: {gas_lines[gas_slot]}")
-    gas_lines[gas_slot] = ".quad JS_Win64PushBigIntI32"
+    prefix_rc = layout["reference_count_model"] == "allocator-prefix"
+    rc_off = (
+        layout["offsets"]["JSMallocBlockHeader.ref_count"]
+        - layout["offsets"]["JSMallocBlockHeader.user_data"]
+        if prefix_rc
+        else layout["offsets"]["JSGCObjectHeader.ref_count"]
+    )
+    rc_disp = f"{rc_off:+d}" if rc_off else ""
+    rt_atom_off = layout["offsets"]["JSRuntime.atom_array"]
+    obj_class_off = layout["offsets"]["JSObject.class_id"]
+    html_byte, html_mask = layout["bits"]["JSObject.is_HTMLDDA"][0]
+    cproto_off = layout["offsets"]["JSObject.u.cfunc.cproto"]
+    cproto_magic = layout["constants"]["JS_CFUNC_generic_magic"]
+    cproto_ff = layout["constants"]["JS_CFUNC_f_f"]
+    cproto_fff = layout["constants"]["JS_CFUNC_f_f_f"]
 
-    body = [
-        "mov eax, DWORD PTR [r12+1]",
-        "mov QWORD PTR [r13], rax",
-        "mov QWORD PTR [r13+8], 7",
-        "add r13, 16",
-        "add r12, 5",
+    # 1. Wire JS_FrameInterpHostDispatch -> JS_Win64HostDirectFast / JS_Win64HostNumericFast / Shared.
+    # Also route OP_add slow boundary -> JS_Win64AddSlow and OP_add_loc string edges -> JS_Win64AddLocalStringCold.
+    masm_ext_idx = masm_lines.index("EXTERN JS_FrameInterpHostDirectScoped:PROC")
+    masm_lines[masm_ext_idx + 1 : masm_ext_idx + 1] = [
+        "EXTERN JS_Win64HostDirectFast:PROC",
+        "EXTERN JS_Win64HostNumericFast:PROC",
+        "EXTERN JS_Win64AddSlow:PROC",
+        "EXTERN JS_Win64AddLocalString:PROC",
+        "JS_Win64AddLocalStringCold PROTO",
+    ]
+    masm_text_tmp = "\n".join(masm_lines)
+    masm_text_tmp = replace_once(
+        masm_text_tmp,
+        "call JS_FrameInterpBig_add",
+        "call JS_Win64AddSlow",
+        "Win64 MASM OP_add fast string/rope route",
+    )
+    masm_text_tmp = replace_once(
+        masm_text_tmp,
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
+        "ja interp_host_dispatch_legacy\n"
+        "jmp JS_FrameInterpHostDirectScoped\n"
+        "interp_host_dispatch_legacy::\n"
+        "jmp JS_FrameInterpHostScoped",
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
+        "jbe interp_host_dispatch_direct\n"
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_ff}\n"
+        "je interp_host_dispatch_numeric\n"
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_fff}\n"
+        "jne interp_host_dispatch_legacy\n"
+        "interp_host_dispatch_numeric::\n"
+        "jmp JS_Win64HostNumericFast\n"
+        "interp_host_dispatch_direct::\n"
+        "jmp JS_Win64HostDirectFast\n"
+        "interp_host_dispatch_legacy::\n"
+        "jmp JS_FrameInterpHostShared",
+        "Win64 MASM fast host dispatch",
+    )
+    masm_lines = masm_text_tmp.splitlines()
+
+    gas_text_tmp = "\n".join(gas_lines)
+    gas_text_tmp = replace_once(
+        gas_text_tmp,
+        "call JS_FrameInterpBig_add",
+        "call JS_Win64AddSlow",
+        "Win64 GAS OP_add fast string/rope route",
+    )
+    gas_text_tmp = replace_once(
+        gas_text_tmp,
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
+        "ja interp_host_dispatch_legacy\n"
+        "jmp JS_FrameInterpHostDirectScoped\n"
+        "interp_host_dispatch_legacy:\n"
+        "jmp JS_FrameInterpHostScoped",
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_magic}\n"
+        "jbe interp_host_dispatch_direct\n"
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_ff}\n"
+        "je interp_host_dispatch_numeric\n"
+        f"cmp BYTE PTR [rax+{cproto_off}], {cproto_fff}\n"
+        "jne interp_host_dispatch_legacy\n"
+        "interp_host_dispatch_numeric:\n"
+        "jmp JS_Win64HostNumericFast\n"
+        "interp_host_dispatch_direct:\n"
+        "jmp JS_Win64HostDirectFast\n"
+        "interp_host_dispatch_legacy:\n"
+        "jmp JS_FrameInterpHostShared",
+        "Win64 GAS fast host dispatch",
+    )
+    gas_lines = gas_text_tmp.splitlines()
+
+    # Route the two numeric rejection edges in interp_add_loc_mixed -> JS_Win64AddLocalStringCold.
+    for lines_ref, lbl, repl in (
+        (masm_lines, "interp_add_loc_mixed::", "jne NEAR PTR JS_Win64AddLocalStringCold"),
+        (gas_lines, "interp_add_loc_mixed:", "jne JS_Win64AddLocalStringCold"),
+    ):
+        begin = lines_ref.index(lbl)
+        end = lines_ref.index("jmp QWORD PTR [rdi+rax*8]", begin) + 1
+        hits = [i for i in range(begin, end) if lines_ref[i].strip() == "jne interp_slow"]
+        if len(hits) != 2:
+            raise ValueError(f"Review Win64 add_loc rejection edges ({lbl}: {len(hits)})")
+        for idx in hits:
+            lines_ref[idx] = repl
+
+    # Expose interp_slow:: in MASM so cold handlers in .qjscold can branch to it.
+    masm_lines = [
+        "interp_slow::" if line.strip() == "interp_slow:" else line for line in masm_lines
+    ]
+
+    # 2. Zero-exit native opcode handlers (Win64 ABI safe: only volatile GPRs & xmm0..xmm3).
+    dispatch = [
+        "inc r12",
         "movzx eax, BYTE PTR [r12]",
         "jmp QWORD PTR [rdi+rax*8]",
     ]
+    extra_ops = [
+        (
+            "push_bigint_i32",
+            "JS_Win64PushBigIntI32",
+            [
+                "mov eax, DWORD PTR [r12+1]",
+                "mov QWORD PTR [r13], rax",
+                "mov QWORD PTR [r13+8], 7",
+                "add r13, 16",
+                "add r12, 5",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+        (
+            "check_object",
+            "JS_Win64CheckObject",
+            [
+                "cmp DWORD PTR [r13-8], -1",
+                "jne interp_slow",
+                *dispatch,
+            ],
+        ),
+        (
+            "to_object",
+            "JS_Win64ToObject",
+            [
+                "cmp DWORD PTR [r13-8], -1",
+                "jne interp_slow",
+                *dispatch,
+            ],
+        ),
+        (
+            "plus",
+            "JS_Win64Plus",
+            [
+                "mov eax, DWORD PTR [r13-8]",
+                "test eax, eax",
+                "jz win64_plus_ok",
+                "cmp eax, 8",
+                "jne interp_slow",
+                "win64_plus_ok:",
+                *dispatch,
+            ],
+        ),
+        (
+            "nip1",
+            "JS_Win64Nip1",
+            [
+                "cmp DWORD PTR [r13-40], 0",
+                "jge win64_nip1_move",
+                "mov rax, QWORD PTR [r13-48]",
+                f"cmp DWORD PTR [rax{rc_disp}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [rax{rc_disp}]",
+                "win64_nip1_move:",
+                "movdqu xmm0, XMMWORD PTR [r13-32]",
+                "movdqu xmm1, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-48], xmm0",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "sub r13, 16",
+                *dispatch,
+            ],
+        ),
+        (
+            "dup3",
+            "JS_Win64Dup3",
+            [
+                "mov rax, QWORD PTR [r13-48]",
+                "mov rdx, QWORD PTR [r13-40]",
+                "test edx, edx",
+                "jns win64_dup3_1",
+                f"inc DWORD PTR [rax{rc_disp}]",
+                "win64_dup3_1:",
+                "mov QWORD PTR [r13], rax",
+                "mov QWORD PTR [r13+8], rdx",
+                "mov rax, QWORD PTR [r13-32]",
+                "mov rdx, QWORD PTR [r13-24]",
+                "test edx, edx",
+                "jns win64_dup3_2",
+                f"inc DWORD PTR [rax{rc_disp}]",
+                "win64_dup3_2:",
+                "mov QWORD PTR [r13+16], rax",
+                "mov QWORD PTR [r13+24], rdx",
+                "mov rax, QWORD PTR [r13-16]",
+                "mov rdx, QWORD PTR [r13-8]",
+                "test edx, edx",
+                "jns win64_dup3_3",
+                f"inc DWORD PTR [rax{rc_disp}]",
+                "win64_dup3_3:",
+                "mov QWORD PTR [r13+32], rax",
+                "mov QWORD PTR [r13+40], rdx",
+                "add r13, 48",
+                *dispatch,
+            ],
+        ),
+        (
+            "insert4",
+            "JS_Win64Insert4",
+            [
+                "mov rax, QWORD PTR [r13-16]",
+                "mov rdx, QWORD PTR [r13-8]",
+                "mov QWORD PTR [r13], rax",
+                "mov QWORD PTR [r13+8], rdx",
+                "movdqu xmm0, XMMWORD PTR [r13-32]",
+                "movdqu XMMWORD PTR [r13-16], xmm0",
+                "movdqu xmm0, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-32], xmm0",
+                "movdqu xmm0, XMMWORD PTR [r13-64]",
+                "movdqu XMMWORD PTR [r13-48], xmm0",
+                "test edx, edx",
+                "jns win64_ins4_done",
+                f"inc DWORD PTR [rax{rc_disp}]",
+                "win64_ins4_done:",
+                "mov QWORD PTR [r13-64], rax",
+                "mov QWORD PTR [r13-56], rdx",
+                "add r13, 16",
+                *dispatch,
+            ],
+        ),
+        (
+            "perm3",
+            "JS_Win64Perm3",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-32]",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-48], xmm0",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                *dispatch,
+            ],
+        ),
+        (
+            "perm4",
+            "JS_Win64Perm4",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-32]",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu xmm2, XMMWORD PTR [r13-64]",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "movdqu XMMWORD PTR [r13-48], xmm2",
+                "movdqu XMMWORD PTR [r13-64], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "perm5",
+            "JS_Win64Perm5",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-32]",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-64]",
+                "movdqu XMMWORD PTR [r13-48], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-80]",
+                "movdqu XMMWORD PTR [r13-64], xmm1",
+                "movdqu XMMWORD PTR [r13-80], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "swap2",
+            "JS_Win64Swap2",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-64]",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu xmm2, XMMWORD PTR [r13-32]",
+                "movdqu xmm3, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-64], xmm2",
+                "movdqu XMMWORD PTR [r13-48], xmm3",
+                "movdqu XMMWORD PTR [r13-32], xmm0",
+                "movdqu XMMWORD PTR [r13-16], xmm1",
+                *dispatch,
+            ],
+        ),
+        (
+            "rot3l",
+            "JS_Win64Rot3l",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-48]",
+                "movdqu xmm1, XMMWORD PTR [r13-32]",
+                "movdqu xmm2, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-48], xmm1",
+                "movdqu XMMWORD PTR [r13-32], xmm2",
+                "movdqu XMMWORD PTR [r13-16], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "rot3r",
+            "JS_Win64Rot3r",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-16]",
+                "movdqu xmm1, XMMWORD PTR [r13-32]",
+                "movdqu xmm2, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-16], xmm1",
+                "movdqu XMMWORD PTR [r13-32], xmm2",
+                "movdqu XMMWORD PTR [r13-48], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "rot4l",
+            "JS_Win64Rot4l",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-64]",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu xmm2, XMMWORD PTR [r13-32]",
+                "movdqu xmm3, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-64], xmm1",
+                "movdqu XMMWORD PTR [r13-48], xmm2",
+                "movdqu XMMWORD PTR [r13-32], xmm3",
+                "movdqu XMMWORD PTR [r13-16], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "rot5l",
+            "JS_Win64Rot5l",
+            [
+                "movdqu xmm0, XMMWORD PTR [r13-80]",
+                "movdqu xmm1, XMMWORD PTR [r13-64]",
+                "movdqu XMMWORD PTR [r13-80], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13-64], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-32]",
+                "movdqu XMMWORD PTR [r13-48], xmm1",
+                "movdqu xmm1, XMMWORD PTR [r13-16]",
+                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "movdqu XMMWORD PTR [r13-16], xmm0",
+                *dispatch,
+            ],
+        ),
+        (
+            "typeof_is_undefined",
+            "JS_Win64TypeofIsUndefined",
+            [
+                "mov eax, DWORD PTR [r13-8]",
+                "cmp eax, -1",
+                "je win64_tiu_obj",
+                "cmp eax, -6",
+                "jg win64_tiu_imm",
+                "cmp eax, -9",
+                "jl interp_slow",
+                "mov r8, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "jmp win64_tiu_false",
+                "win64_tiu_obj:",
+                "mov r8, QWORD PTR [r13-16]",
+                f"test BYTE PTR [r8+{html_byte}], {html_mask}",
+                "jnz interp_slow",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "win64_tiu_false:",
+                "mov QWORD PTR [r13-16], 0",
+                "mov QWORD PTR [r13-8], 1",
+                *dispatch,
+                "win64_tiu_imm:",
+                "cmp eax, 3",
+                "je win64_tiu_true",
+                "jb win64_tiu_false",
+                "cmp eax, 7",
+                "je win64_tiu_false",
+                "cmp eax, 8",
+                "je win64_tiu_false",
+                "jmp interp_slow",
+                "win64_tiu_true:",
+                "mov QWORD PTR [r13-16], 1",
+                "mov QWORD PTR [r13-8], 1",
+                *dispatch,
+            ],
+        ),
+        (
+            "typeof_is_function",
+            "JS_Win64TypeofIsFunction",
+            [
+                "mov eax, DWORD PTR [r13-8]",
+                "cmp eax, -1",
+                "je win64_tif_obj",
+                "cmp eax, -6",
+                "jg win64_tif_imm",
+                "cmp eax, -9",
+                "jl interp_slow",
+                "mov r8, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "win64_tif_false:",
+                "mov QWORD PTR [r13-16], 0",
+                "mov QWORD PTR [r13-8], 1",
+                *dispatch,
+                "win64_tif_obj:",
+                "mov r8, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"movzx ecx, WORD PTR [r8+{obj_class_off}]",
+                "cmp ecx, 13",
+                "je win64_tif_obj_true",
+                "cmp ecx, 12",
+                "je win64_tif_obj_true",
+                "cmp ecx, 1",
+                "je win64_tif_obj_false",
+                "cmp ecx, 2",
+                "je win64_tif_obj_false",
+                "cmp ecx, 5",
+                "jne interp_slow",
+                "win64_tif_obj_false:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "jmp win64_tif_false",
+                "win64_tif_obj_true:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "mov QWORD PTR [r13-16], 1",
+                "mov QWORD PTR [r13-8], 1",
+                *dispatch,
+                "win64_tif_imm:",
+                "cmp eax, 3",
+                "jbe win64_tif_false",
+                "cmp eax, 7",
+                "je win64_tif_false",
+                "cmp eax, 8",
+                "je win64_tif_false",
+                "jmp interp_slow",
+            ],
+        ),
+        (
+            "typeof",
+            "JS_Win64Typeof",
+            [
+                "mov eax, DWORD PTR [r13-8]",
+                "cmp eax, -1",
+                "je win64_to_obj",
+                "cmp eax, -6",
+                "jg win64_to_imm",
+                "cmp eax, -9",
+                "jl interp_slow",
+                "mov r8, QWORD PTR [r13-16]",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                "cmp eax, -7",
+                "je win64_to_str",
+                "cmp eax, -6",
+                "je win64_to_str",
+                "cmp eax, -8",
+                "je win64_to_sym",
+                f"mov ecx, {atom_id['bigint']}",
+                "jmp win64_to_ret",
+                "win64_to_obj:",
+                "mov r8, QWORD PTR [r13-16]",
+                f"test BYTE PTR [r8+{html_byte}], {html_mask}",
+                "jnz interp_slow",
+                f"cmp DWORD PTR [r8{rc_disp}], 1",
+                "jle interp_slow",
+                f"movzx ecx, WORD PTR [r8+{obj_class_off}]",
+                "cmp ecx, 1",
+                "je win64_to_obj_ok",
+                "cmp ecx, 2",
+                "je win64_to_obj_ok",
+                "cmp ecx, 13",
+                "je win64_to_fn_ok",
+                "cmp ecx, 12",
+                "jne interp_slow",
+                "win64_to_fn_ok:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                f"mov ecx, {atom_id['function']}",
+                "jmp win64_to_ret",
+                "win64_to_obj_ok:",
+                f"dec DWORD PTR [r8{rc_disp}]",
+                f"mov ecx, {atom_id['object']}",
+                "jmp win64_to_ret",
+                "win64_to_imm:",
+                "test eax, eax",
+                "jz win64_to_num",
+                "cmp eax, 8",
+                "je win64_to_num",
+                "cmp eax, 3",
+                "je win64_to_undef",
+                "cmp eax, 1",
+                "je win64_to_bool",
+                "cmp eax, 2",
+                "je win64_to_null",
+                "cmp eax, 7",
+                "jne interp_slow",
+                f"mov ecx, {atom_id['bigint']}",
+                "jmp win64_to_ret",
+                "win64_to_str:",
+                f"mov ecx, {atom_id['string']}",
+                "jmp win64_to_ret",
+                "win64_to_sym:",
+                f"mov ecx, {atom_id['symbol']}",
+                "jmp win64_to_ret",
+                "win64_to_num:",
+                f"mov ecx, {atom_id['number']}",
+                "jmp win64_to_ret",
+                "win64_to_bool:",
+                f"mov ecx, {atom_id['boolean']}",
+                "jmp win64_to_ret",
+                "win64_to_null:",
+                f"mov ecx, {atom_id['object']}",
+                "jmp win64_to_ret",
+                "win64_to_undef:",
+                f"mov ecx, {atom_id['undefined']}",
+                "win64_to_ret:",
+                "mov r8, QWORD PTR [rbx+56]",
+                f"mov r8, QWORD PTR [r8+{rt_atom_off}]",
+                "mov r8, QWORD PTR [r8+rcx*8]",
+                f"inc DWORD PTR [r8{rc_disp}]",
+                "mov QWORD PTR [r13-16], r8",
+                "mov QWORD PTR [r13-8], -7",
+                *dispatch,
+            ],
+        ),
+    ]
+
+    masm_tbl = masm_lines.index("interp_table LABEL QWORD") + 1
+    gas_tbl = gas_lines.index("interp_table:") + 1
+    for op_name, fn_name, _ in extra_ops:
+        op_idx = opcodes.index(op_name)
+        if masm_lines[masm_tbl + op_idx].strip() != "DQ interp_slow":
+            raise ValueError(f"Unexpected MASM {op_name} slot: {masm_lines[masm_tbl + op_idx]}")
+        masm_lines[masm_tbl + op_idx] = f"DQ {fn_name}"
+        if gas_lines[gas_tbl + op_idx].strip() != ".quad interp_slow":
+            raise ValueError(f"Unexpected GAS {op_name} slot: {gas_lines[gas_tbl + op_idx]}")
+        gas_lines[gas_tbl + op_idx] = f".quad {fn_name}"
+
+    def masm_inst(inst):
+        m = re.match(r"^(j\w+)\s+(interp_slow|interp_exit|interp_reload)$", inst)
+        if m:
+            return f"{m.group(1)} NEAR PTR {m.group(2)}"
+        return inst
+
+    cold_helpers = [
+        (
+            "JS_Win64AddLocalStringCold",
+            [
+                "mov eax, DWORD PTR [r8+8]",
+                "sub eax, -7",
+                "cmp eax, 1",
+                "ja interp_slow",
+                "mov eax, DWORD PTR [r13-8]",
+                "sub eax, -7",
+                "cmp eax, 1",
+                "ja interp_slow",
+                "mov QWORD PTR [rbx], rbp",
+                "mov QWORD PTR [rbx+16], r12",
+                "mov QWORD PTR [rbx+24], r13",
+                "mov rcx, rbx",
+                "call JS_Win64AddLocalString",
+                "cmp eax, 2",
+                "je win64_add_local_done",
+                "test eax, eax",
+                "jne interp_exit",
+                "jmp interp_reload",
+                "win64_add_local_done:",
+                "mov r12, QWORD PTR [rbx+16]",
+                "mov r13, QWORD PTR [rbx+24]",
+                "movzx eax, BYTE PTR [r12]",
+                "jmp QWORD PTR [rdi+rax*8]",
+            ],
+        ),
+    ]
+
     assert masm_lines[-1].strip() == "END", "Unexpected MASM trailer"
     masm_lines.pop()
-    masm_lines += [
-        ".qjscold SEGMENT ALIGN(16) 'CODE'",
-        "PUBLIC JS_Win64PushBigIntI32",
-        "PUBLIC JS_Win64PushBigIntI32_end",
-        "JS_Win64PushBigIntI32 PROC",
-        *body,
-        "JS_Win64PushBigIntI32_end LABEL BYTE",
-        "JS_Win64PushBigIntI32 ENDP",
-        ".qjscold ENDS",
-        ".pdata$zzqjscold SEGMENT ALIGN(4) READONLY 'DATA'",
-        "DD IMAGEREL JS_Win64PushBigIntI32, IMAGEREL JS_Win64PushBigIntI32_end, IMAGEREL JS_FrameInterpPropertyCold_unwind",
-        ".pdata$zzqjscold ENDS",
-        "END",
-    ]
-    gas_lines += [
-        '.section .qjscold,"xr"',
-        ".globl JS_Win64PushBigIntI32, JS_Win64PushBigIntI32_end",
-        ".def JS_Win64PushBigIntI32; .scl 2; .type 32; .endef",
-        "JS_Win64PushBigIntI32:",
-        *body,
-        "JS_Win64PushBigIntI32_end:",
-        '.section .pdata$zzqjscold,"dr"',
-        ".p2align 2",
-        ".rva JS_Win64PushBigIntI32, JS_Win64PushBigIntI32_end, JS_FrameInterpPropertyCold_unwind",
-    ]
+    masm_code = [".qjscold SEGMENT ALIGN(16) 'CODE'"]
+    masm_pdata = [".pdata$zzqjscold SEGMENT ALIGN(4) READONLY 'DATA'"]
+    gas_code = ['.section .qjscold,"xr"']
+    gas_pdata = ['.section .pdata$zzqjscold,"dr"', ".p2align 2"]
+    for fn_name, body in [(fn, b) for _, fn, b in extra_ops] + cold_helpers:
+        masm_code += [
+            f"PUBLIC {fn_name}",
+            f"PUBLIC {fn_name}_end",
+            f"{fn_name} PROC",
+            *(masm_inst(inst) for inst in body),
+            f"{fn_name}_end LABEL BYTE",
+            f"{fn_name} ENDP",
+        ]
+        masm_pdata.append(
+            f"DD IMAGEREL {fn_name}, IMAGEREL {fn_name}_end, IMAGEREL JS_FrameInterpPropertyCold_unwind"
+        )
+        gas_code += [
+            f".globl {fn_name}, {fn_name}_end",
+            f".def {fn_name}; .scl 2; .type 32; .endef",
+            f"{fn_name}:",
+            *body,
+            f"{fn_name}_end:",
+        ]
+        gas_pdata.append(f".rva {fn_name}, {fn_name}_end, JS_FrameInterpPropertyCold_unwind")
+    masm_code.append(".qjscold ENDS")
+    masm_pdata.append(".pdata$zzqjscold ENDS")
+    masm_lines += masm_code + masm_pdata + ["END"]
+    gas_lines += gas_code + gas_pdata
     return masm_lines, gas_lines
 
 
@@ -528,8 +1165,22 @@ def _build_foundation_c(core_path, output_dir, layout, source):
     _prepare_win64_admission(source, output_dir, layout)
     _prepare_win64_json(source, output_dir)
     _prepare_win64_locale(source, output_dir)
+    _prepare_win64_sort(source, output_dir)
     original = _wire_win64_inline_properties(
         core_path.read_text(encoding="utf-8"), bool(layout.get("property_ic"))
+    )
+    original = replace_once(
+        original,
+        "    rqsort(array, pos, sizeof(*array), js_array_cmp_generic, &asc);",
+        "    JS_ArrayDefaultStringSortDispatch(array, pos, sizeof(*array), js_array_cmp_generic, &asc);",
+        "Win64 default string radix sort dispatch",
+    )
+    original = replace_once(
+        original,
+        "static JSValue js_array_sort(JSContext *ctx, JSValueConst this_val,",
+        '#include "quickjs-win64-sort.h"\n'
+        "static JSValue js_array_sort(JSContext *ctx, JSValueConst this_val,",
+        "Win64 default string radix sort include",
     )
     for old_api, new_api in (
         ("JS_ParseJSON", "JS_LegacyParseJSON"),
@@ -943,7 +1594,7 @@ def main():
         masm_lines, gas_lines = _inject_property_ic_win64(
             masm_lines, gas_lines, build, layout, source
         )
-    masm_lines, gas_lines = _inject_push_bigint_i32_win64(masm_lines, gas_lines, upstream)
+    masm_lines, gas_lines = _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout)
 
     masm_text = "\n".join(masm_lines) + "\n"
     gas_text = "\n".join(gas_lines) + "\n"

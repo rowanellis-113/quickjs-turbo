@@ -75,10 +75,7 @@
     add x10, x5, w8, uxtw #3
     ldur w11, [x10, #-4]
     cmp w11, w9
-    b.eq .Lindexed_get_array_el_found
-    ldur w8, [x10, #-8]
-    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
-    b .Lindexed_get_array_el_probe
+    b.ne .Lindexed_get_array_el_probe_next
 .Lindexed_get_array_el_found:
     ldur w11, [x10, #-8]
     tst w11, #ARM_PROPERTY_DESC_TMASK
@@ -107,6 +104,10 @@
     sub x21, x21, #16
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
+.Lindexed_get_array_el_probe_next:
+    ldur w8, [x10, #-8]
+    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
+    b .Lindexed_get_array_el_probe
 .Lindexed_get_array_el_typed:
     cmp w4, #ARM_CONST_JS_CLASS_INT32_ARRAY
     b.eq .Lindexed_get_array_el_i32
@@ -334,10 +335,7 @@
     add x10, x5, w8, uxtw #3
     ldur w11, [x10, #-4]
     cmp w11, w9
-    b.eq .Lindexed_get_array_el2_found
-    ldur w8, [x10, #-8]
-    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
-    b .Lindexed_get_array_el2_probe
+    b.ne .Lindexed_get_array_el2_probe_next
 .Lindexed_get_array_el2_found:
     ldur w11, [x10, #-8]
     tst w11, #ARM_PROPERTY_DESC_TMASK
@@ -362,6 +360,10 @@
     stp x6, x7, [x21, #-16]
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
+.Lindexed_get_array_el2_probe_next:
+    ldur w8, [x10, #-8]
+    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
+    b .Lindexed_get_array_el2_probe
 .Lindexed_get_array_el2_typed:
     cmp w4, #ARM_CONST_JS_CLASS_INT32_ARRAY
     b.eq .Lindexed_get_array_el2_i32
@@ -565,10 +567,7 @@
     add x10, x5, w8, uxtw #3
     ldur w11, [x10, #-4]
     cmp w11, w9
-    b.eq .Lindexed_put_array_el_found
-    ldur w8, [x10, #-8]
-    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
-    b .Lindexed_put_array_el_probe
+    b.ne .Lindexed_put_array_el_probe_next
 .Lindexed_put_array_el_found:
     ldur w11, [x10, #-8]
     mov w10, #ARM_PROPERTY_DESC_WRITE_MASK
@@ -597,6 +596,10 @@
     sub x21, x21, #48
     add x20, x20, #1
     ARM_DISPATCH_NEXT 1
+.Lindexed_put_array_el_probe_next:
+    ldur w8, [x10, #-8]
+    and w8, w8, #ARM_PROPERTY_DESC_NEXT_MASK
+    b .Lindexed_put_array_el_probe
 .Lindexed_put_array_el_typed:
     cmp w4, #ARM_CONST_JS_CLASS_INT32_ARRAY
     b.eq .Lindexed_put_array_el_i32

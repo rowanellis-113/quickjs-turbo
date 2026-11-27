@@ -26,17 +26,20 @@ typedef struct FastCtorMeta {
     uint32_t proto_slot;
     uint32_t init_slot;
     uint32_t apply_slot;
+    JSShape *cached_shape;
+    uint64_t cached_shape_epoch;
     uint8_t init_depth;
     uint8_t tier;
     uint8_t n_fields;
     uint8_t need_undef_varref0;
     uint8_t ret_this;
+    uint8_t want_inline;
     uint8_t src_kind[16];
     int32_t src_imm[16];
     JSAtom atoms[16];
 } FastCtorMeta;
 
-static _Thread_local FastCtorMeta fast_ctor_cache[64];
+static _Thread_local FastCtorMeta fast_ctor_cache[256];
 
 extern int JS_LinuxVirtualArgumentsFastOk(void);
 extern int JS_FrameArgumentsConstructFastOk(void);
@@ -671,9 +674,7 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             js_frame_finish_c(state);
             return JS_FrameInterpSlow(state);
         }
-        JSProperty dummy_prop;
-        dummy_prop.u.value = JS_UNDEFINED;
-        JSValue this_obj = JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, &dummy_prop);
+        JSValue this_obj = JS_NewObjectFromShape(ctx, sh, JS_CLASS_OBJECT, NULL);
         if (JS_IsException(this_obj)) {
             state->pc = pc + 3;
             state->exception_pending = true;
@@ -725,7 +726,7 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
 
     uint32_t slot =
         (uint32_t)((((uintptr_t)callee >> 4) ^ ((uintptr_t)callee >> 10) ^ ((uintptr_t)b >> 4)) &
-                   63u);
+                   255u);
     FastCtorMeta *m = &fast_ctor_cache[slot];
     JSObject *proto_obj = NULL;
     JSFunctionBytecode *init_b = NULL;
@@ -810,10 +811,13 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
         m->apply_id = 0;
         m->init_slot = 0;
         m->apply_slot = 0;
+        m->cached_shape = NULL;
+        m->cached_shape_epoch = 0;
         m->tier = is_va_wrapper ? 4 : 2;
         m->n_fields = 0;
         m->need_undef_varref0 = 0;
         m->ret_this = 0;
+        m->want_inline = 0;
 
         const uint8_t *buf = b->byte_code_buf;
         uint32_t len = b->byte_code_len;
@@ -972,6 +976,26 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
                 m->ret_this = ret_this;
             }
         }
+        if (m->tier == 2) {
+            uint8_t puts = 0;
+            bool has_call = false;
+            for (uint32_t pos = 0; pos < len && puts <= 4;) {
+                uint8_t op = buf[pos];
+                uint8_t sz = op < countof(js_frame_opcode_sizes) ? js_frame_opcode_sizes[op] : 0;
+                if (unlikely(!sz))
+                    break;
+                if (op == OP_put_field || op == OP_define_field)
+                    puts++;
+                else if (op == OP_call || op == OP_tail_call || op == OP_call_method ||
+                         op == OP_tail_call_method || op == OP_apply ||
+                         (op >= OP_call0 && op <= OP_call3)) {
+                    has_call = true;
+                    break;
+                }
+                pos += sz;
+            }
+            m->want_inline = (!has_call && puts >= 1 && puts <= 4) ? 1 : 0;
+        }
     }
 
     if (is_va_wrapper) {
@@ -1005,18 +1029,46 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             if (n_f)
                 memcpy(m->atoms, out_atoms, (size_t)n_f * sizeof(JSAtom));
         }
-        JSShape *sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, n_f, out_atoms);
-        if (!sh) {
-            state->pc = pc + 3;
-            state->exception_pending = true;
-            js_frame_finish_c(state);
-            return JS_FrameInterpSlow(state);
+        JSShape *sh = site->new_shape;
+        bool atoms_ok = (n_f == m->n_fields && sh && sh == m->cached_shape &&
+                         m->cached_shape_epoch == rt->property_ic_epoch && sh->proto == proto_obj &&
+                         sh->is_hashed && !sh->deleted_prop_count && sh->prop_count == n_f);
+        if (atoms_ok) {
+            for (uint8_t f = 0; f < n_f; f++) {
+                if (out_atoms[f] != m->atoms[f]) {
+                    atoms_ok = false;
+                    break;
+                }
+            }
+        }
+        if (unlikely(!atoms_ok)) {
+            sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, n_f, out_atoms);
+            if (!sh) {
+                state->pc = pc + 3;
+                state->exception_pending = true;
+                js_frame_finish_c(state);
+                return JS_FrameInterpSlow(state);
+            }
+            if (n_f == m->n_fields) {
+                bool match_m = true;
+                for (uint8_t f = 0; f < n_f; f++) {
+                    if (out_atoms[f] != m->atoms[f]) {
+                        match_m = false;
+                        break;
+                    }
+                }
+                if (match_m) {
+                    m->cached_shape = sh;
+                    m->cached_shape_epoch = rt->property_ic_epoch;
+                }
+            }
         }
         JSProperty props[16];
         props[0].u.value = JS_UNDEFINED;
         for (unsigned f = 0; f < n_f; f++)
             props[f].u.value = js_dup(out_vals[f]);
-        JSValue this_obj = JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, props);
+        JSValue this_obj =
+            JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, n_f ? props : NULL);
         if (JS_IsException(this_obj)) {
             state->pc = pc + 3;
             state->exception_pending = true;
@@ -1042,7 +1094,13 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
         for (int i = 0; i < incoming_argc; i++) {
             JSValue a = argv[i];
             argv[i] = JS_UNDEFINED;
-            JS_FreeValue(ctx, a);
+            if (JS_VALUE_HAS_REF_COUNT(a)) {
+                void *ap = JS_VALUE_GET_PTR(a);
+                if (likely(JS_REF_COUNT(ap) > 1))
+                    --JS_REF_COUNT(ap);
+                else
+                    JS_FreeValue(ctx, a);
+            }
         }
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
@@ -1066,22 +1124,41 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             js_frame_finish_c(state);
             return fast_ctor_decline(state);
         }
-        JSShape *sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, m->n_fields, m->atoms);
-        if (!sh) {
-            state->pc = pc + 3;
-            state->exception_pending = true;
-            js_frame_finish_c(state);
-            return JS_FrameInterpSlow(state);
+        JSShape *sh = site->new_shape;
+        if (unlikely(!(sh && sh == m->cached_shape &&
+                       m->cached_shape_epoch == rt->property_ic_epoch && sh->proto == proto_obj &&
+                       sh->is_hashed && !sh->deleted_prop_count &&
+                       sh->prop_count == m->n_fields))) {
+            sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, m->n_fields, m->atoms);
+            if (!sh) {
+                state->pc = pc + 3;
+                state->exception_pending = true;
+                js_frame_finish_c(state);
+                return JS_FrameInterpSlow(state);
+            }
+            m->cached_shape = sh;
+            m->cached_shape_epoch = rt->property_ic_epoch;
         }
         JSProperty props[16];
+        uint32_t moved_mask = 0;
         props[0].u.value = JS_UNDEFINED;
         for (unsigned f = 0; f < m->n_fields; f++) {
             JSValue v;
             switch (m->src_kind[f]) {
-            case FAST_CTOR_SRC_ARG:
-                v = (uint32_t)m->src_imm[f] < incoming_argc ? js_dup(argv[m->src_imm[f]])
-                                                            : JS_UNDEFINED;
+            case FAST_CTOR_SRC_ARG: {
+                uint32_t aidx = (uint32_t)m->src_imm[f];
+                if (aidx < incoming_argc) {
+                    if (likely(aidx < 32u && !(moved_mask & (1u << aidx)))) {
+                        moved_mask |= (1u << aidx);
+                        v = argv[aidx];
+                    } else {
+                        v = js_dup(argv[aidx]);
+                    }
+                } else {
+                    v = JS_UNDEFINED;
+                }
                 break;
+            }
             case FAST_CTOR_SRC_I32:
                 v = js_int32(m->src_imm[f]);
                 break;
@@ -1100,8 +1177,13 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             }
             props[f].u.value = v;
         }
-        JSValue this_obj = JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, props);
-        if (JS_IsException(this_obj)) {
+        JSValue this_obj = JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT,
+                                                 m->n_fields ? props : NULL);
+        if (unlikely(JS_IsException(this_obj))) {
+            for (uint32_t i = 0; i < incoming_argc && i < 32u; i++) {
+                if (moved_mask & (1u << i))
+                    argv[i] = JS_UNDEFINED;
+            }
             state->pc = pc + 3;
             state->exception_pending = true;
             js_frame_finish_c(state);
@@ -1117,16 +1199,26 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
         frame->saved_sp = new_sp;
         frame->sf.cur_sp = new_sp;
         frame->sf.cur_pc = pc + 3;
-        if (JS_REF_COUNT(callee) > 2) {
+        if (likely(JS_REF_COUNT(callee) > 2)) {
             JS_REF_COUNT(callee) -= 2;
         } else {
             JS_FreeValue(ctx, old_f0);
             JS_FreeValue(ctx, old_f1);
         }
         for (int i = 0; i < incoming_argc; i++) {
-            JSValue a = argv[i];
-            argv[i] = JS_UNDEFINED;
-            JS_FreeValue(ctx, a);
+            if (likely((uint32_t)i < 32u && (moved_mask & (1u << (uint32_t)i)))) {
+                argv[i] = JS_UNDEFINED;
+            } else {
+                JSValue a = argv[i];
+                argv[i] = JS_UNDEFINED;
+                if (JS_VALUE_HAS_REF_COUNT(a)) {
+                    void *ap = JS_VALUE_GET_PTR(a);
+                    if (likely(JS_REF_COUNT(ap) > 1))
+                        --JS_REF_COUNT(ap);
+                    else
+                        JS_FreeValue(ctx, a);
+                }
+            }
         }
         if (!FRAME_CHECKPOINT(frame))
             frame->sf.cur_sp = NULL;
@@ -1179,7 +1271,8 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
     frame->pending = (uint16_t)(incoming_argc + 2);
     JSProperty dummy_prop;
     dummy_prop.u.value = JS_UNDEFINED;
-    JSValue this_obj = JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, &dummy_prop);
+    JSValue this_obj = JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT,
+                                             m->want_inline ? &dummy_prop : NULL);
     if (JS_IsException(this_obj)) {
         state->pc = pc + 3;
         state->sp = sp;

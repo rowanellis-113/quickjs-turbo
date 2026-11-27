@@ -120,7 +120,7 @@ def render_native(source, layout):
         f"sub DWORD PTR [rsi{rc_disp}], 1",
         "jg linux_bigint_release_return",
         "mov rdi, QWORD PTR [rdi+" + str(ctxrt) + "]",
-        "jmp js_free_rt",
+        "jmp JS_FrameBigIntPoolFree",
         "linux_bigint_release_return:",
         "ret",
         "linux_bigint_release_generic:",
@@ -133,6 +133,7 @@ def render_native(source, layout):
         ".size " + name + ",.-" + name,
         ".hidden JS_FrameBigIntReleaseControl",
         ".hidden JS_FrameBigIntReleaseSlow",
+        ".hidden JS_FrameBigIntPoolFree",
         '.section .rodata.qjs_linux_add_local,"a",@progbits',
         ".globl JS_FrameAddLocalDisable",
         ".hidden JS_FrameAddLocalDisable",
@@ -237,6 +238,12 @@ _Static_assert(offsetof(JSRuntime,u)>offsetof(JSRuntime,module_loader_has_attr)+
 _Static_assert(sizeof(_Atomic unsigned char)==1,"one-byte release policy");
 _Static_assert(__builtin_types_compatible_p(__typeof__(&js_free_rt),void (*)(JSRuntime *,void *)),"actual original final BigInt allocator ABI");
 _Static_assert(__builtin_types_compatible_p(__typeof__(&JS_FreeValue),void (*)(JSContext *,JSValue)),"actual original generic release ABI");
+__attribute__((visibility("hidden"), section(".text.qjs_linux_bigint_release"), noipa))
+void JS_FrameBigIntPoolFree(JSRuntime *rt, void *p)
+{{
+    qjs_bigint_pool_put(rt, (JSBigInt *)p);
+}}
+_Static_assert(__builtin_types_compatible_p(__typeof__(&JS_FrameBigIntPoolFree),void (*)(JSRuntime *,void *)),"actual pooled BigInt release ABI");
 """
     path = output / "quickjs-linux-numeric.h"
     path.write_text(

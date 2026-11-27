@@ -39,6 +39,26 @@ static JSShapeProperty *js_regexp_empty_property(JSProperty **property, JSObject
     return NULL;
 }
 
+#ifdef QJS_PROPERTY_IC
+typedef struct js_regexp_empty_proto_cache {
+    JSContext *ctx;
+    uint64_t epoch;
+    JSObject *proto;
+    JSShape *proto_shape;
+    uint32_t proto_prop_count;
+    uint32_t ctor_slot;
+    uint32_t exec_slot;
+    uint32_t flags_slot;
+    uint32_t flag_slots[8];
+} js_regexp_empty_proto_cache_t;
+
+#if defined(_MSC_VER)
+static __declspec(thread) js_regexp_empty_proto_cache_t js_regexp_empty_cache;
+#else
+static _Thread_local js_regexp_empty_proto_cache_t js_regexp_empty_cache;
+#endif
+#endif
+
 static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValueConst input,
                                   JSValueConst replacement, int *regexp_flags,
                                   JSProperty **last_index)
@@ -59,7 +79,7 @@ static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValue
         {"unicodeSets", 11, LRE_FLAG_UNICODE_SETS, 0x0c91f478u},
         {"sticky", 6, LRE_FLAG_STICKY, 0x0694e038u},
     };
-    JSObject *object, *getter;
+    JSObject *object, *getter, *proto;
     JSProperty *property;
     JSShapeProperty *shape;
     int bits;
@@ -71,13 +91,68 @@ static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValue
         !js_regexp_empty_enabled())
         return false;
     object = JS_VALUE_GET_OBJ(receiver);
-    if (object->class_id != JS_CLASS_REGEXP || object->is_exotic ||
-        object->shape->proto != JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_REGEXP]) ||
+    proto = JS_VALUE_GET_OBJ(ctx->class_proto[JS_CLASS_REGEXP]);
+    if (object->class_id != JS_CLASS_REGEXP || object->is_exotic || object->shape->proto != proto ||
         !object->u.regexp.bytecode)
         return false;
     bits = lre_get_flags(str8(object->u.regexp.bytecode));
     if (bits & LRE_FLAG_STICKY)
         return false;
+
+#ifdef QJS_PROPERTY_IC
+    {
+        uint64_t epoch = ctx->rt->property_ic_epoch;
+        JSShape *osh = object->shape;
+        JSShape *psh = proto->shape;
+        js_regexp_empty_proto_cache_t *c = &js_regexp_empty_cache;
+        if (likely(epoch && osh->prop_count == 1 && !osh->deleted_prop_count && !proto->is_exotic &&
+                   proto->is_prototype && c->ctx == ctx && c->epoch == epoch && c->proto == proto &&
+                   c->proto_shape == psh && c->proto_prop_count == (uint32_t)psh->prop_count &&
+                   !psh->deleted_prop_count)) {
+            JSShapeProperty *own0 = get_shape_prop(osh);
+            if (likely(own0->atom == JS_ATOM_lastIndex &&
+                       (own0->flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+                       JS_VALUE_GET_TAG(object->prop[0].u.value) == JS_TAG_INT &&
+                       (!(bits & LRE_FLAG_GLOBAL) || (own0->flags & JS_PROP_WRITABLE)))) {
+                JSProperty *pprop = proto->prop;
+                JSValue exec_v = pprop[c->exec_slot].u.value;
+                JSObject *fg = pprop[c->flags_slot].u.getset.getter;
+#ifdef QJS_REGEXP_EMPTY_NATIVE
+                bool exec_ok = JS_IsCFunction(ctx, exec_v, JS_FrameRegExpExec, 0);
+                bool fg_ok = fg && fg->class_id == JS_CLASS_C_FUNCTION &&
+                             fg->u.cfunc.cproto == JS_CFUNC_getter && fg->u.cfunc.realm == ctx &&
+                             (fg->u.cfunc.c_function.getter == js_regexp_get_flags ||
+                              fg->u.cfunc.c_function.getter == JS_RegExpOwnedFlags);
+#else
+                bool exec_ok = JS_IsCFunction(ctx, exec_v, js_regexp_exec, 0);
+                bool fg_ok = fg && fg->class_id == JS_CLASS_C_FUNCTION &&
+                             fg->u.cfunc.cproto == JS_CFUNC_getter && fg->u.cfunc.realm == ctx &&
+                             fg->u.cfunc.c_function.getter == js_regexp_get_flags;
+#endif
+                if (likely(js_same_value(ctx, pprop[c->ctor_slot].u.value, ctx->regexp_ctor) &&
+                           exec_ok && JS_VALUE_GET_OBJ(exec_v)->u.cfunc.realm == ctx && fg_ok)) {
+                    bool ok = true;
+                    for (unsigned i = 0; i < countof(flags); i++) {
+                        JSObject *g = pprop[c->flag_slots[i]].u.getset.getter;
+                        if (unlikely(!g || g->class_id != JS_CLASS_C_FUNCTION ||
+                                     g->u.cfunc.cproto != JS_CFUNC_getter_magic ||
+                                     g->u.cfunc.realm != ctx ||
+                                     g->u.cfunc.c_function.getter_magic != js_regexp_get_flag ||
+                                     g->u.cfunc.magic != flags[i].mask)) {
+                            ok = false;
+                            break;
+                        }
+                    }
+                    if (likely(ok)) {
+                        *last_index = &object->prop[0];
+                        *regexp_flags = bits;
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+#endif
 
     /* Even nonglobal native exec performs ToLength(lastIndex) before ignoring
      * it. Admit only an own integer data value; coercible objects must run JS.
@@ -130,6 +205,45 @@ static bool js_regexp_empty_guard(JSContext *ctx, JSValueConst receiver, JSValue
             getter->u.cfunc.magic != flags[i].mask)
             return false;
     }
+#ifdef QJS_PROPERTY_IC
+    if (ctx->rt->property_ic_epoch && !proto->is_exotic && !proto->shape->deleted_prop_count) {
+        JSProperty *p_ctor, *p_exec, *p_flags;
+        JSShapeProperty *s_ctor = find_own_property(&p_ctor, proto, JS_ATOM_constructor);
+        JSShapeProperty *s_exec = find_own_property(&p_exec, proto, JS_ATOM_exec);
+        JSShapeProperty *s_flags = find_own_property(&p_flags, proto, JS_ATOM_flags);
+        if (s_ctor && s_exec && s_flags && (s_ctor->flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+            (s_exec->flags & JS_PROP_TMASK) == JS_PROP_NORMAL &&
+            (s_flags->flags & JS_PROP_TMASK) == JS_PROP_GETSET) {
+            uint32_t fslots[8];
+            bool all_on_proto = true;
+            for (unsigned i = 0; i < countof(flags); i++) {
+                JSProperty *pf;
+                JSAtom atom = js_regexp_borrow_flag_atom(ctx->rt, flags[i].name, flags[i].length,
+                                                         flags[i].hash);
+                JSShapeProperty *sf =
+                    atom != JS_ATOM_NULL ? find_own_property(&pf, proto, atom) : NULL;
+                if (!sf || (sf->flags & JS_PROP_TMASK) != JS_PROP_GETSET) {
+                    all_on_proto = false;
+                    break;
+                }
+                fslots[i] = (uint32_t)(pf - proto->prop);
+            }
+            if (all_on_proto) {
+                js_regexp_empty_proto_cache_t *c = &js_regexp_empty_cache;
+                proto->is_prototype = true;
+                c->ctx = ctx;
+                c->epoch = ctx->rt->property_ic_epoch;
+                c->proto = proto;
+                c->proto_shape = proto->shape;
+                c->proto_prop_count = (uint32_t)proto->shape->prop_count;
+                c->ctor_slot = (uint32_t)(p_ctor - proto->prop);
+                c->exec_slot = (uint32_t)(p_exec - proto->prop);
+                c->flags_slot = (uint32_t)(p_flags - proto->prop);
+                memcpy(c->flag_slots, fslots, sizeof(fslots));
+            }
+        }
+    }
+#endif
     *regexp_flags = bits;
     return true;
 }

@@ -219,13 +219,18 @@ def generate(
     # Linux's measured global-cell emitter is separate from the PE inline
     # metadata probe selected by binding_index. Enable only the shared borrowed
     # load here; its normal output directory is not the PE CMake root.
-    borrowed_field_index = binding_index or linux_borrowed_field
+    win64_borrowed_field = bool(win64_native and layout.get("property_ic"))
+    borrowed_field_index = binding_index or linux_borrowed_field or win64_borrowed_field
 
     def dup_value(borrow_field=False):
         # RAX/RDX are the payload/tag; the measured ABI supplies the RC address.
         ready = "interp_dup_ready_" + str(len(labels))
         emit("test edx, edx", "jns " + ready)
-        if borrow_field and borrowed_field_index and (native_slice or linux_borrowed_field):
+        if (
+            borrow_field
+            and borrowed_field_index
+            and (native_slice or linux_borrowed_field or win64_borrowed_field)
+        ):
             ordinary = ready + "_ordinary"
             emit(
                 "cmp edx, -1",
@@ -596,10 +601,31 @@ def generate(
             "mov rax, QWORD PTR [r10+rcx]",
             "mov rdx, QWORD PTR [r10+rcx+8]",
             "test edx, edx",
-            "jns interp_" + name + "_ready",
-            f"inc DWORD PTR [rax{rc:+d}]",
-            "jmp interp_" + name + "_ready",
+            "js interp_" + name + "_inc_rc",
         )
+        label("interp_" + name + "_ready")
+        if name == "get_array_el":
+            emit(
+                f"dec DWORD PTR [r8{rc:+d}]",
+                "mov QWORD PTR [r13-32], rax",
+                "mov QWORD PTR [r13-24], rdx",
+                "sub r13, 16",
+            )
+        else:
+            emit("mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], rdx")
+        next_()
+        label("interp_" + name + "_inc_rc")
+        emit(f"inc DWORD PTR [rax{rc:+d}]")
+        if name == "get_array_el":
+            emit(
+                f"dec DWORD PTR [r8{rc:+d}]",
+                "mov QWORD PTR [r13-32], rax",
+                "mov QWORD PTR [r13-24], rdx",
+                "sub r13, 16",
+            )
+        else:
+            emit("mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], rdx")
+        next_()
         label("interp_" + name + "_typed")
         emit(f"cmp WORD PTR [r8+{obj_class}], 27", "je interp_" + name + "_typed_int32")
         for class_id, kind in (
@@ -622,7 +648,6 @@ def generate(
             "mov eax, DWORD PTR [r10+rcx*4]",
             "xor edx, edx",
         )
-        label("interp_" + name + "_ready")
         if name == "get_array_el":
             emit(
                 f"dec DWORD PTR [r8{rc:+d}]",
@@ -840,6 +865,7 @@ def generate(
         op(name)
         numeric = name in ("add", "sub", "mul")
         fallback = "interp_" + name + "_number" if numeric else "interp_slow"
+        mixed = "interp_" + name + "_mixed" if numeric else "interp_slow"
         emit(
             "mov eax, DWORD PTR [r13-24]",
             "or eax, DWORD PTR [r13-8]",
@@ -848,7 +874,7 @@ def generate(
             f"{inst} eax, DWORD PTR [r13-16]",
         )
         if numeric:
-            emit("jo " + fallback)
+            emit("jo " + mixed)
         if name == "mul":
             # A negative operand multiplied by zero produces IEEE -0.
             emit(
@@ -856,18 +882,29 @@ def generate(
                 "jnz interp_mul_store",
                 "mov ecx, DWORD PTR [r13-32]",
                 "or ecx, DWORD PTR [r13-16]",
-                "js " + fallback,
+                "js " + mixed,
             )
             label("interp_mul_store")
         emit("mov QWORD PTR [r13-32], rax", "sub r13, 16")
         next_()
         if numeric:
             label(fallback)
-            # Preserve this established instruction stream. Only the two
-            # existing non-number branch targets change for add/mul.
             slow = (
                 "interp_short_big_" + name if name in ("add", "mul") else "interp_op_slow_" + name
             )
+            emit(
+                "cmp DWORD PTR [r13-24], 8",
+                "jne " + mixed,
+                "cmp DWORD PTR [r13-8], 8",
+                "jne " + mixed,
+                "movq xmm0, QWORD PTR [r13-32]",
+                name + "sd xmm0, QWORD PTR [r13-16]",
+                "movq QWORD PTR [r13-32], xmm0",
+                "sub r13, 16",
+            )
+            next_()
+            saved_num_code, code = code, cold_stage3
+            label(mixed)
             number_to_xmm("interp_" + name + "_lhs", "r13-32", "r13-24", "xmm0", slow)
             number_to_xmm("interp_" + name + "_rhs", "r13-16", "r13-8", "xmm1", slow)
             emit(
@@ -877,6 +914,7 @@ def generate(
                 "sub r13, 16",
             )
             next_()
+            code = saved_num_code
     op("add_loc")
     emit(
         "movzx ecx, BYTE PTR [r12+1]",
@@ -893,12 +931,24 @@ def generate(
     )
     next_(2)
     label("interp_add_loc_number")
+    emit(
+        "cmp DWORD PTR [r8+8], 8",
+        "jne interp_add_loc_mixed",
+        "cmp DWORD PTR [r13-8], 8",
+        "jne interp_add_loc_mixed",
+        "movq xmm0, QWORD PTR [r8]",
+        "addsd xmm0, QWORD PTR [r13-16]",
+        "jmp interp_add_loc_store_fp",
+    )
+    label("interp_add_loc_mixed")
     add_local_slow = (
         "JS_FrameAddLocalBigCold" if internal_entry and not foundation_only else "interp_slow"
     )
     number_to_xmm("interp_add_loc_lhs", "r8", "r8+8", "xmm0", add_local_slow)
     number_to_xmm("interp_add_loc_rhs", "r13-16", "r13-8", "xmm1", add_local_slow)
-    emit("addsd xmm0, xmm1", "movq QWORD PTR [r8], xmm0", "mov QWORD PTR [r8+8], 8", "sub r13, 16")
+    emit("addsd xmm0, xmm1", "mov QWORD PTR [r8+8], 8")
+    label("interp_add_loc_store_fp")
+    emit("movq QWORD PTR [r8], xmm0", "sub r13, 16")
     next_(2)
     op("mod")
     emit(
@@ -1641,9 +1691,53 @@ def generate(
         "strict_eq",
         "strict_neq",
     )
-    # Division already used a C operation; give it the same explicit boundary.
+    # Native IEEE-754 SSE2 division: FLOAT64/FLOAT64 stays straight-line in hot
+    # code; INT/INT and mixed numeric divisions run in cold_stage3 and demote
+    # exact int32 quotients (excluding -0.0) to JS_TAG_INT, matching js_number().
     op("div")
-    emit("jmp interp_op_slow_div")
+    emit(
+        "cmp DWORD PTR [r13-24], 8",
+        "jne interp_div_other",
+        "cmp DWORD PTR [r13-8], 8",
+        "jne interp_div_other",
+        "movq xmm0, QWORD PTR [r13-32]",
+        "divsd xmm0, QWORD PTR [r13-16]",
+        "movq QWORD PTR [r13-32], xmm0",
+        "sub r13, 16",
+    )
+    next_()
+    saved_div_code, code = code, cold_stage3
+    label("interp_div_other")
+    number_to_xmm("interp_div_lhs", "r13-32", "r13-24", "xmm0", "interp_op_slow_div")
+    number_to_xmm("interp_div_rhs", "r13-16", "r13-8", "xmm1", "interp_op_slow_div")
+    emit(
+        "divsd xmm0, xmm1",
+        "cvttsd2si eax, xmm0",
+        "cvtsi2sd xmm1, eax",
+        "ucomisd xmm0, xmm1",
+        "jne interp_div_float",
+        "jp interp_div_float",
+        "test eax, eax",
+        "jnz interp_div_int",
+        "movq rcx, xmm0",
+        "test rcx, rcx",
+        "js interp_div_float",
+    )
+    label("interp_div_int")
+    emit(
+        "mov QWORD PTR [r13-32], rax",
+        "mov QWORD PTR [r13-24], 0",
+        "sub r13, 16",
+    )
+    next_()
+    label("interp_div_float")
+    emit(
+        "movq QWORD PTR [r13-32], xmm0",
+        "mov QWORD PTR [r13-24], 8",
+        "sub r13, 16",
+    )
+    next_()
+    code = saved_div_code
     for name in numeric_ops:
         label("interp_op_slow_" + name)
         if diagnostics:
@@ -1765,11 +1859,11 @@ def generate(
         label("interp_insert3_copy")
         emit(
             "movdqu xmm0, XMMWORD PTR [r13-16]",
-            "movdqu XMMWORD PTR [r13], xmm0",
             "movdqu xmm1, XMMWORD PTR [r13-32]",
+            "movdqu xmm2, XMMWORD PTR [r13-48]",
+            "movdqu XMMWORD PTR [r13], xmm0",
             "movdqu XMMWORD PTR [r13-16], xmm1",
-            "movdqu xmm1, XMMWORD PTR [r13-48]",
-            "movdqu XMMWORD PTR [r13-32], xmm1",
+            "movdqu XMMWORD PTR [r13-32], xmm2",
             "movdqu XMMWORD PTR [r13-48], xmm0",
             "add r13, 16",
         )
@@ -2142,11 +2236,11 @@ def generate(
             label("interp_win64_insert3_copy")
             emit(
                 "movdqu xmm0, XMMWORD PTR [r13-16]",
-                "movdqu XMMWORD PTR [r13], xmm0",
                 "movdqu xmm1, XMMWORD PTR [r13-32]",
+                "movdqu xmm2, XMMWORD PTR [r13-48]",
+                "movdqu XMMWORD PTR [r13], xmm0",
                 "movdqu XMMWORD PTR [r13-16], xmm1",
-                "movdqu xmm1, XMMWORD PTR [r13-48]",
-                "movdqu XMMWORD PTR [r13-32], xmm1",
+                "movdqu XMMWORD PTR [r13-32], xmm2",
                 "movdqu XMMWORD PTR [r13-48], xmm0",
                 "add r13, 16",
             )
@@ -2406,6 +2500,8 @@ def generate(
             ]
     if binding_index and native_slice:
         masm.insert(3, "EXTERN JS_FrameBorrowedField:PROC")
+    elif win64_borrowed_field:
+        masm.insert(3, "JS_FrameBorrowedField PROTO")
     masm[3:3] = ["EXTERN JS_FrameInterpOp_" + name + ":PROC" for name in numeric_ops]
     masm[3:3] = ["EXTERN JS_FrameInterpBig_" + name + ":PROC" for name in ("add", "mul")]
     masm[3:3] = ["EXTERN JS_FrameInterpProperty_" + name + ":PROC" for name in property_ops]
@@ -2435,6 +2531,7 @@ def generate(
             .replace(
                 "js JS_FramePropertyReferenceStore", "js NEAR PTR JS_FramePropertyReferenceStore"
             )
+            .replace("jmp JS_FrameBorrowedField", "jmp NEAR PTR JS_FrameBorrowedField")
         )
         if updated != line:
             return updated

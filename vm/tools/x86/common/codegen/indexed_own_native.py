@@ -63,12 +63,8 @@ def append(name, layout, rc, emit, label, next_):
         "jz interp_slow",
         "lea r11, [r10+rcx*8-8]",
         "cmp DWORD PTR [r11+4], r9d",
-        "je " + p + "_found",
-        "mov ecx, DWORD PTR [r11]",
-        "and ecx, 67108863",
-        "jmp " + p + "_probe",
+        "jne " + p + "_probe_next",
     )
-    label(p + "_found")
     if writing:
         # Same writable ordinary-data / non-length proof as the existing by-id
         # native store. A reference-valued old slot retains the original C
@@ -78,34 +74,47 @@ def append(name, layout, rc, emit, label, next_):
             "and edx, 3892314112",
             "cmp edx, 134217728",
             "jne interp_slow",
-        )
-    else:
-        emit("test DWORD PTR [r11], 3221225472", "jnz interp_slow")
-    emit(
-        "dec ecx",
-        "shl rcx, 4",
-        f"mov r10, QWORD PTR [r8+{fields['JSObject.prop']}]",
-        "add r10, rcx",
-    )
-    if writing:
-        emit(
-            "cmp DWORD PTR [r10+8], 0",
+            f"mov r10, QWORD PTR [r8+{fields['JSObject.prop']}]",
+            "dec ecx",
+            "shl rcx, 4",
+            "cmp DWORD PTR [r10+rcx+8], 0",
             "jl interp_slow",
             "mov rax, QWORD PTR [r13-16]",
             "mov rdx, QWORD PTR [r13-8]",
-            "mov QWORD PTR [r10], rax",
-            "mov QWORD PTR [r10+8], rdx",
+            "mov QWORD PTR [r10+rcx], rax",
+            "mov QWORD PTR [r10+rcx+8], rdx",
             f"dec DWORD PTR [r8{rc:+d}]",
             "sub r13, 48",
         )
         next_()
     else:
         emit(
-            "mov rax, QWORD PTR [r10]",
-            "mov rdx, QWORD PTR [r10+8]",
+            "test DWORD PTR [r11], 3221225472",
+            "jnz interp_slow",
+            f"mov r10, QWORD PTR [r8+{fields['JSObject.prop']}]",
+            "dec ecx",
+            "shl rcx, 4",
+            "mov rax, QWORD PTR [r10+rcx]",
+            "mov rdx, QWORD PTR [r10+rcx+8]",
             "test edx, edx",
-            "jns " + p + "_value",
-            f"inc DWORD PTR [rax{rc:+d}]",
+            "js " + p + "_inc_rc",
         )
-        label(p + "_value")
-        emit("jmp interp_" + name + "_ready")
+        label(p + "_commit")
+        if name == "get_array_el":
+            emit(
+                f"dec DWORD PTR [r8{rc:+d}]",
+                "mov QWORD PTR [r13-32], rax",
+                "mov QWORD PTR [r13-24], rdx",
+                "sub r13, 16",
+            )
+        else:
+            emit("mov QWORD PTR [r13-16], rax", "mov QWORD PTR [r13-8], rdx")
+        next_()
+        label(p + "_inc_rc")
+        emit(f"inc DWORD PTR [rax{rc:+d}]", "jmp " + p + "_commit")
+    label(p + "_probe_next")
+    emit(
+        "mov ecx, DWORD PTR [r11]",
+        "and ecx, 67108863",
+        "jmp " + p + "_probe",
+    )

@@ -6,7 +6,7 @@
     "tools/common/elf/property_family_c.py": "3dc608ee9b29fc4df3226a55e6f6d1caf3aeadd06e54217524ee63d0847fca19",
     "tools/arm64/workers/property_hints.py": "a2e1bcb769efb3fc7efb288293a3fe14168ee235b0d6215b8b6cda342cf38657",
     "asm/arm64/common/register-property-hints.inc": "28a79ad79fa55ef14a8179c914471c50062cead87ea4c2b7a4270fe73d2f8d73",
-    "asm/arm64/common/register-property-ic.inc": "3c3f85e0a251a8ce040c5757cf703d3d5d1acd43468282a9f6ea3353851893e9",
+    "asm/arm64/common/register-property-ic.inc": "3e72a13af5436e09b0061a7b0cf8166351dc3aa64c2051fe4edb040556ae704d",
     "asm/arm64/common/register-ops.inc": "90a544912a6fa446407980bc6d45494760f9cb74484c5b4b7fdeae7635eb9f72",
     "src/common/property/property-ic.h": "a180621decb2b0734abc0cfa86fa2b36b4337be00a2ef85a596413503f3dbce1",
     "src/common/property/property-ic.inc": "8ff357127665e36492e24956a9001bb561d387997a3ad7537bb52be700df60a2"

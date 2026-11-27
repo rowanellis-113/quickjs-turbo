@@ -20,6 +20,7 @@ def replace_exact_lines(text, old, new):
 
 def map_keys(text):
     before_lines = text.count("\n")
+    has_ptr_hash = "/* float64 mixed */" in text
     text = replace_exact_lines(
         text,
         "    if (JS_REF_COUNT(p1) == 1 && p1->is_wide_char == p2->is_wide_char\n"
@@ -29,11 +30,19 @@ def map_keys(text):
         "    &&  js_malloc_usable_size(ctx, p1) >= sizeof(*p1) + ((p1->len + p2->len) << p2->is_wide_char) + 1 - p1->is_wide_char) {\n"
         "        if (unlikely(p1->hash)) p1->hash = 0; /* Invalidate cached Map hash before in-place concat */",
     )
+    ptr_def = "#define QJS_MAP_POINTER_HASH 1\n" if has_ptr_hash else ""
     text = replace_exact_lines(
         text,
-        "/* XXX: better hash ? */\nstatic uint32_t map_hash_key(JSContext *ctx, JSValueConst key)",
-        '#include "src/common/value/map-string-keys.inc"\n'
+        "static JSValueConst map_normalize_key_const(JSContext *ctx, JSValueConst key)\n"
+        "{\n"
+        "    return safe_const(map_normalize_key(ctx, unsafe_unconst(key)));\n"
+        "}\n\n"
+        "/* XXX: better hash ? */\n"
         "static uint32_t map_hash_key(JSContext *ctx, JSValueConst key)",
+        "static inline JSValueConst map_normalize_key_const(JSContext *ctx, JSValueConst key) { return safe_const(map_normalize_key(ctx, unsafe_unconst(key))); }\n"
+        + ptr_def
+        + '#include "src/common/value/map-string-keys.inc"\n'
+        + "static uint32_t map_hash_key(JSContext *ctx, JSValueConst key)",
     )
     text = replace_exact_lines(
         text,
@@ -51,23 +60,128 @@ def map_keys(text):
     )
     text = replace_exact_lines(
         text,
+        "static JSMapRecord *map_find_record(JSContext *ctx, JSMapState *s,\n"
+        "                                    JSValueConst key)\n"
+        "{\n"
+        "    struct list_head *el;\n"
+        "    JSMapRecord *mr;\n"
+        "    uint32_t h;\n"
         "    h = map_hash_key(ctx, key) & (s->hash_size - 1);\n"
-        "    list_for_each(el, &s->hash_table[h]) {",
-        "    if (JS_VALUE_GET_TAG(key) == JS_TAG_STRING) { h = js_map_flat_string_hash(JS_VALUE_GET_STRING(key)); return js_map_find_string_record(ctx, &s->hash_table[(h ^ ctx->hash_seed ^ hash32((uint32_t)JS_TAG_STRING)) & (s->hash_size - 1)], key, h); }\n"
-        "    h = map_hash_key(ctx, key) & (s->hash_size - 1); list_for_each(el, &s->hash_table[h]) {",
+        "    list_for_each(el, &s->hash_table[h]) {\n"
+        "        mr = list_entry(el, JSMapRecord, hash_link);\n"
+        "        if (js_same_value_zero(ctx, mr->key, key))\n"
+        "            return mr;\n"
+        "    }\n"
+        "    return NULL;\n"
+        "}",
+        "static inline JSMapRecord *map_find_record(JSContext *ctx, JSMapState *s, JSValueConst key)\n"
+        "{\n"
+        "    uint32_t raw_h;\n"
+        "    return js_map_find_record_hash(ctx, s, key, &raw_h);\n"
+        "}",
     )
     text = replace_exact_lines(
         text,
+        "    if (s->hash_size == 1)\n"
+        "        new_hash_size = 4;\n"
+        "    else\n"
+        "        new_hash_size = s->hash_size * 2;",
+        "    new_hash_size = (s->hash_size == 1) ? 8 : (s->hash_size * 2);",
+    )
+    text = replace_exact_lines(
+        text,
+        "        if (!mr->empty) {\n"
+        "            h = map_hash_key(ctx, mr->key) & (new_hash_size - 1);\n"
+        "            list_add_tail(&mr->hash_link, &new_hash_table[h]);\n"
+        "        }\n"
+        "    }\n"
+        "    s->hash_table = new_hash_table;\n"
+        "    s->hash_size = new_hash_size;\n"
+        "    s->record_count_threshold = new_hash_size * 2;",
+        "        if (!mr->empty) {\n"
+        "            h = js_map_hash_key_fast(ctx, mr->key) & (new_hash_size - 1);\n"
+        "            list_add_tail(&mr->hash_link, &new_hash_table[h]);\n"
+        "        }\n"
+        "    }\n"
+        "    s->hash_table = new_hash_table;\n"
+        "    s->hash_size = new_hash_size;\n"
+        "    s->record_count_threshold = new_hash_size;",
+    )
+    text = replace_exact_lines(
+        text,
+        "static JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s,\n"
+        "                                   JSValueConst key)\n"
+        "{\n"
+        "    uint32_t h;\n"
+        "    JSMapRecord *mr;\n"
+        "\n"
+        "    mr = js_malloc(ctx, sizeof(*mr));\n"
+        "    if (!mr)\n"
+        "        return NULL;\n"
+        "    mr->ref_count = 1;\n"
+        "    mr->map = s;\n"
+        "    mr->empty = false;\n"
+        "    if (s->is_weak) {\n"
+        "        JSWeakRefRecord *wr = js_malloc(ctx, sizeof(*wr));\n"
+        "        if (!wr) {\n"
+        "            js_free(ctx, mr);\n"
+        "            return NULL;\n"
+        "        }\n"
+        "        wr->kind = JS_WEAK_REF_KIND_MAP;\n"
+        "        wr->u.map_record = mr;\n"
+        "        insert_weakref_record(key, wr);\n"
         "        mr->key = unsafe_unconst(key);\n"
         "    } else {\n"
         "        mr->key = js_dup(key);\n"
         "    }\n"
-        "    h = map_hash_key(ctx, key) & (s->hash_size - 1);",
-        "        mr->key = unsafe_unconst(key);\n"
+        "    h = map_hash_key(ctx, key) & (s->hash_size - 1);\n"
+        "    list_add_tail(&mr->hash_link, &s->hash_table[h]);\n"
+        "    list_add_tail(&mr->link, &s->records);\n"
+        "    s->record_count++;\n"
+        "    if (s->record_count >= s->record_count_threshold) {\n"
+        "        map_hash_resize(ctx, s);\n"
+        "    }\n"
+        "    return mr;\n"
+        "}",
+        "static JSMapRecord *map_add_record_hashed(JSContext *ctx, JSMapState *s, JSValueConst key, uint32_t raw_h)\n"
+        "{\n"
+        "    uint32_t h; JSMapRecord *mr = js_malloc(ctx, sizeof(*mr));\n"
+        "    if (unlikely(!mr)) return NULL;\n"
+        "    mr->ref_count = 1; mr->map = s; mr->empty = false;\n"
+        "    if (s->is_weak) {\n"
+        "        JSWeakRefRecord *wr = js_malloc(ctx, sizeof(*wr));\n"
+        "        if (unlikely(!wr)) { js_free(ctx, mr); return NULL; }\n"
+        "        wr->kind = JS_WEAK_REF_KIND_MAP; wr->u.map_record = mr; insert_weakref_record(key, wr); mr->key = unsafe_unconst(key);\n"
         "    } else if (JS_VALUE_GET_TAG(key) == JS_TAG_STRING_ROPE && string_rope_get_len(key) <= 4096) {\n"
         "        mr->key = js_linearize_string_rope(ctx, key); if (unlikely(JS_IsException(mr->key))) { js_free(ctx, mr); return NULL; }\n"
         "    } else { mr->key = js_dup(key); }\n"
-        "    h = map_hash_key(ctx, mr->key) & (s->hash_size - 1);",
+        "    h = raw_h & (s->hash_size - 1);\n"
+        "    list_add_tail(&mr->hash_link, &s->hash_table[h]);\n"
+        "    list_add_tail(&mr->link, &s->records);\n"
+        "    s->record_count++;\n"
+        "    if (unlikely(s->record_count >= s->record_count_threshold)) map_hash_resize(ctx, s);\n"
+        "    return mr;\n"
+        "}\n"
+        "static JSMapRecord *map_add_record(JSContext *ctx, JSMapState *s, JSValueConst key)\n"
+        "{ return map_add_record_hashed(ctx, s, key, js_map_hash_key_fast(ctx, key)); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    mr = map_find_record(ctx, s, key);\n"
+        "    if (mr) {\n"
+        "        JS_FreeValue(ctx, mr->value);\n"
+        "    } else {\n"
+        "        mr = map_add_record(ctx, s, key);\n"
+        "        if (!mr)\n"
+        "            return JS_EXCEPTION;\n"
+        "    }",
+        "    { uint32_t raw_h; mr = js_map_find_record_hash(ctx, s, key, &raw_h);\n"
+        "    if (mr) {\n"
+        "        JS_FreeValue(ctx, mr->value);\n"
+        "    } else {\n"
+        "        mr = map_add_record_hashed(ctx, s, key, raw_h);\n"
+        "        if (unlikely(!mr)) return JS_EXCEPTION;\n"
+        "    } }",
     )
     if text.count("\n") != before_lines:
         raise ValueError("map_keys overlay changed logical line count")
@@ -207,7 +321,7 @@ def value_fast_paths(text):
     text = replace_exact_lines(
         text,
         "\n\nvoid JS_FreeRuntime(JSRuntime *rt)",
-        "\ntypedef struct QJSFastValuePools { JSBigInt *bigint_pool[9][8]; uint8_t bigint_count[9]; JSString *small_int_strings[90]; } QJSFastValuePools; static void qjs_runtime_drain_fast_pools(JSRuntime *rt);\nvoid JS_FreeRuntime(JSRuntime *rt)",
+        "\ntypedef struct QJSFastValuePools { JSBigInt *bigint_pool[19][8]; uint8_t bigint_count[19]; JSString *small_int_strings[90]; } QJSFastValuePools; static void qjs_runtime_drain_fast_pools(JSRuntime *rt);\nvoid JS_FreeRuntime(JSRuntime *rt)",
     )
     text = replace_exact_lines(
         text,
@@ -225,7 +339,7 @@ def value_fast_paths(text):
         "    case JS_TAG_BIG_INT: {\n"
         "        JSBigInt *p = JS_VALUE_GET_PTR(v);\n"
         "#ifndef FORCE_GC_AT_MALLOC\n"
-        "        if ((uint32_t)(p->len - 1u) < 8u && rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit && (rt->fast_pools || (rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools))) != NULL) && rt->fast_pools->bigint_count[p->len] < 8u) { rt->fast_pools->bigint_pool[p->len][rt->fast_pools->bigint_count[p->len]++] = p; break; }\n"
+        "        if ((uint32_t)(p->len - 1u) < 18u && rt->fast_pool_ok && !rt->in_free && !rt->malloc_state.malloc_limit && (rt->fast_pools || (rt->fast_pools = js_mallocz_rt(rt, sizeof(QJSFastValuePools))) != NULL) && rt->fast_pools->bigint_count[p->len] < 8u) { rt->fast_pools->bigint_pool[p->len][rt->fast_pools->bigint_count[p->len]++] = p; break; }\n"
         "#endif\n"
         "        js_free_rt(rt, p); } break;",
     )
@@ -345,6 +459,112 @@ def value_fast_paths(text):
         "        len = i32toa(buf, v); return js_new_string8_len(ctx, buf, len); }",
         "    case JS_TAG_INT:\n"
         "        { (void)buf; (void)len; return qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(val)); }",
+    )
+    text = replace_exact_lines(
+        text,
+        "    if (JS_VALUE_GET_TAG(val) == JS_TAG_INT) {\n"
+        "        char buf1[70];\n"
+        "        int len;\n"
+        "        len = i64toa_radix(buf1, JS_VALUE_GET_INT(val), base);\n"
+        "        return js_new_string8_len(ctx, buf1, len);\n"
+        "    }",
+        "    if (JS_VALUE_GET_TAG(val) == JS_TAG_INT) {\n"
+        "        char buf1[70]; int len;\n"
+        "        if (likely(base == 10)) return qjs_int_to_string_fast(ctx, JS_VALUE_GET_INT(val));\n"
+        "        len = i64toa_radix(buf1, JS_VALUE_GET_INT(val), base);\n"
+        "        return js_new_string8_len(ctx, buf1, len);\n"
+        "    }",
+    )
+    text = replace_exact_lines(
+        text,
+        "        return 0;\n"
+        "    }\n"
+        "    op1 = JS_ToNumericFree(ctx, op1);\n"
+        "    if (JS_IsException(op1)) {\n"
+        "        JS_FreeValue(ctx, op2);\n"
+        "        goto exception;\n"
+        "    }\n"
+        "    op2 = JS_ToNumericFree(ctx, op2);\n"
+        "    if (JS_IsException(op2)) {\n"
+        "        JS_FreeValue(ctx, op1);\n"
+        "        goto exception;\n"
+        "    }\n"
+        "    tag1 = JS_VALUE_GET_NORM_TAG(op1);",
+        "        return 0;\n"
+        "    }\n"
+        "    if (unlikely((tag1 == JS_TAG_BIG_INT || tag1 == JS_TAG_SHORT_BIG_INT) && (tag2 == JS_TAG_BIG_INT || tag2 == JS_TAG_SHORT_BIG_INT))) {\n"
+        "        int _br = qjs_binary_arith_bigint_fast(ctx, sp, op, op1, op2);\n"
+        "        if (likely(_br > 0)) return 0;\n"
+        "        if (unlikely(_br < 0)) goto exception;\n"
+        "        goto slow_big_int;\n"
+        "    }\n"
+        "    op1 = JS_ToNumericFree(ctx, op1); if (JS_IsException(op1)) { JS_FreeValue(ctx, op2); goto exception; }\n"
+        "    op2 = JS_ToNumericFree(ctx, op2); if (JS_IsException(op2)) { JS_FreeValue(ctx, op1); goto exception; }\n"
+        "    \n"
+        "    \n"
+        "    tag1 = JS_VALUE_GET_NORM_TAG(op1);",
+    )
+    text = replace_exact_lines(
+        text,
+        "        sp[-2] = __JS_NewShortBigInt(ctx, v);\n"
+        "        return 0;\n"
+        "    }\n"
+        "    op1 = JS_ToNumericFree(ctx, op1);\n"
+        "    if (JS_IsException(op1)) {\n"
+        "        JS_FreeValue(ctx, op2);\n"
+        "        goto exception;\n"
+        "    }\n"
+        "    op2 = JS_ToNumericFree(ctx, op2);\n"
+        "    if (JS_IsException(op2)) {\n"
+        "        JS_FreeValue(ctx, op1);\n"
+        "        goto exception;\n"
+        "    }\n"
+        "\n"
+        "    tag1 = JS_VALUE_GET_TAG(op1);",
+        "        sp[-2] = __JS_NewShortBigInt(ctx, v);\n"
+        "        return 0;\n"
+        "    }\n"
+        "    if (unlikely((tag1 == JS_TAG_BIG_INT || tag1 == JS_TAG_SHORT_BIG_INT) && (tag2 == JS_TAG_BIG_INT || tag2 == JS_TAG_SHORT_BIG_INT))) {\n"
+        "        int _br = qjs_binary_logic_bigint_fast(ctx, sp, op, op1, op2);\n"
+        "        if (likely(_br > 0)) return 0;\n"
+        "        if (unlikely(_br < 0)) goto exception;\n"
+        "        goto slow_big_int;\n"
+        "    }\n"
+        "    op1 = JS_ToNumericFree(ctx, op1); if (JS_IsException(op1)) { JS_FreeValue(ctx, op2); goto exception; }\n"
+        "    op2 = JS_ToNumericFree(ctx, op2); if (JS_IsException(op2)) { JS_FreeValue(ctx, op1); goto exception; }\n"
+        "    \n"
+        "    \n"
+        "    \n"
+        "    tag1 = JS_VALUE_GET_TAG(op1);",
+    )
+    text = replace_exact_lines(
+        text,
+        "    tag1 = JS_VALUE_GET_NORM_TAG(op1);\n"
+        "    tag2 = JS_VALUE_GET_NORM_TAG(op2);\n"
+        "\n"
+        "    op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NUMBER);\n"
+        "    if (JS_IsException(op1)) {\n"
+        "        JS_FreeValue(ctx, op2);\n"
+        "        goto exception;\n"
+        "    }\n"
+        "    op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NUMBER);\n"
+        "    if (JS_IsException(op2)) {\n"
+        "        JS_FreeValue(ctx, op1);\n"
+        "        goto exception;\n"
+        "    }",
+        "    tag1 = JS_VALUE_GET_NORM_TAG(op1);\n"
+        "    tag2 = JS_VALUE_GET_NORM_TAG(op2);\n"
+        "    if (unlikely((tag1 == JS_TAG_BIG_INT || tag1 == JS_TAG_SHORT_BIG_INT) && (tag2 == JS_TAG_BIG_INT || tag2 == JS_TAG_SHORT_BIG_INT))) {\n"
+        "        res = js_compare_bigint(ctx, op, op1, op2); if (unlikely(res < 0)) goto exception; goto done;\n"
+        "    }\n"
+        "    op1 = JS_ToPrimitiveFree(ctx, op1, HINT_NUMBER);\n"
+        "    if (JS_IsException(op1)) { JS_FreeValue(ctx, op2); goto exception; }\n"
+        "    op2 = JS_ToPrimitiveFree(ctx, op2, HINT_NUMBER);\n"
+        "    if (JS_IsException(op2)) { JS_FreeValue(ctx, op1); goto exception; }\n"
+        "    \n"
+        "    \n"
+        "    \n"
+        "    ",
     )
     if text.count("\n") != before_lines:
         raise ValueError("value_fast_paths overlay changed logical line count")

@@ -79,7 +79,8 @@ mov rdi, rsp
 call JS_LinuxNumericTrampoline
 scalar_numeric_boxed:
 """.strip().splitlines()
-    pop = """
+    pop_leaf = """
+dec DWORD PTR [rsi+@CTX_INTERRUPT@]
 movq r9, xmm4
 mov ecx, DWORD PTR [r9+@ARRAY_COUNT@]
 test ecx, ecx
@@ -99,6 +100,65 @@ scalar_pop_empty:
 xor eax, eax
 mov edx, @TAG_UNDEFINED@
 scalar_pop_value:
+movq xmm0, rax
+movq xmm1, rdx
+punpcklqdq xmm0, xmm1
+mov BYTE PTR [rbx+160], 0
+xor eax, eax
+ret
+""".strip().splitlines()
+    push_leaf = """
+dec DWORD PTR [rsi+@CTX_INTERRUPT@]
+movq r9, xmm4
+mov ecx, DWORD PTR [r9+@ARRAY_COUNT@]
+mov r10, QWORD PTR [r9+@ARRAY_VALUES@]
+mov rax, QWORD PTR [rdx]
+mov r11, QWORD PTR [rdx+8]
+test r11d, r11d
+jns scalar_push_dup_done
+inc DWORD PTR [rax@RC_DISP@]
+scalar_push_dup_done:
+mov r8, rcx
+shl r8, 4
+mov QWORD PTR [r10+r8], rax
+mov QWORD PTR [r10+r8+8], r11
+inc ecx
+mov DWORD PTR [r9+@ARRAY_COUNT@], ecx
+mov r10, QWORD PTR [r9+@OBJ_PROPERTIES@]
+mov QWORD PTR [r10], rcx
+mov eax, ecx
+movq xmm0, rax
+mov BYTE PTR [rbx+160], 0
+xor eax, eax
+ret
+""".strip().splitlines()
+    imul_leaf = """
+dec DWORD PTR [rsi+@CTX_INTERRUPT@]
+mov eax, DWORD PTR [rdx]
+imul eax, DWORD PTR [rdx+16]
+movq xmm0, rax
+mov BYTE PTR [rbx+160], 0
+xor eax, eax
+ret
+""".strip().splitlines()
+    minmax_leaf = """
+dec DWORD PTR [rsi+@CTX_INTERRUPT@]
+mov r8d, DWORD PTR [rdx]
+mov r9d, DWORD PTR [rdx+16]
+cmp WORD PTR [rax+@OBJ_MAGIC@], 0
+jne scalar_math_max
+cmp r8d, r9d
+cmovg r8d, r9d
+jmp scalar_math_minmax_done
+scalar_math_max:
+cmp r8d, r9d
+cmovl r8d, r9d
+scalar_math_minmax_done:
+mov eax, r8d
+movq xmm0, rax
+mov BYTE PTR [rbx+160], 0
+xor eax, eax
+ret
 """.strip().splitlines()
     packed = [
         "movq xmm0, rax",
@@ -109,10 +169,10 @@ scalar_pop_value:
     lines = [
         ".hidden JS_LinuxNumericControl, JS_LinuxNumericTrampoline",
         ".hidden JS_LinuxDensePopControl, JS_LinuxDensePopLeafControl, JS_FrameDenseArrayPop",
+        ".hidden qjs_linux_core_js_array_push, qjs_linux_core_js_math_imul, qjs_linux_core_js_math_min_max",
     ]
     for name, body in [
         ("qjs_linux_numeric_invoke_private", numeric),
-        ("qjs_linux_dense_pop_private", pop),
     ]:
         lines += [
             '.section .text.qjs_linux_c_special,"ax",@progbits',
@@ -133,6 +193,25 @@ scalar_pop_value:
             "add rsp, 120",
             ".cfi_adjust_cfa_offset -120",
             "ret",
+            ".cfi_endproc",
+            ".size " + name + ", .-" + name,
+        ]
+    for name, leaf_body in [
+        ("qjs_linux_dense_pop_private", pop_leaf),
+        ("qjs_linux_dense_push_private", push_leaf),
+        ("qjs_linux_math_imul_private", imul_leaf),
+        ("qjs_linux_math_minmax_private", minmax_leaf),
+    ]:
+        lines += [
+            '.section .text.qjs_linux_c_special,"ax",@progbits',
+            ".p2align 4",
+            ".globl " + name,
+            ".hidden " + name,
+            ".type " + name + ",@function",
+            name + ":",
+            ".cfi_startproc",
+            "endbr64",
+            *leaf_body,
             ".cfi_endproc",
             ".size " + name + ", .-" + name,
         ]

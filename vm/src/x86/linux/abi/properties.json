@@ -6,11 +6,11 @@
     "tools/x86/common/codegen/proto-load.py": "db10a61d319779eefcbcfd12b2bd312706b85bf9d40e42c0b2c529bf1a4c1233",
     "tools/x86/common/codegen/proto-direct.py": "5efc2f8758f9195593571f69fd069cfc3ccf474675cdabed921bb581b1fcf40b",
     "tools/x86/common/codegen/length.py": "38a60d9a40736fdb065ac735038e0389644a5ad5cd4e430c9a069a8969948637",
-    "tools/x86/common/codegen/property_ic_native.py": "ef4c7f71d687c930c94aa3fb3be1d20028f5ae0d4e2ef87a311295990a3b6144",
+    "tools/x86/common/codegen/property_ic_native.py": "9408762f195124769232e03164aa5a9687aee013012fd90b05f86376deb4a967",
     "src/x86/win64/common/quickjs-interpreter-number-property.inc": "ebdacc6699d09761299be66726886a29f10469b2e192d8cb6b5e7801610352b9",
     "src/x86/win64/common/quickjs-interpreter-proto-load.inc": "119ac89dda95850091e6026fac3f3e2db6e2c4efcee8f3aca334dd03f94b5797",
     "src/x86/win64/common/quickjs-interpreter-proto-persistent.inc": "9781c26444bfa63b61d08686bee78762bdc620c3a6e30e5ea999905ebe9dcc5b",
-    "tools/x86/common/codegen/generate-register.py": "e96b2c88a991ae7354c4e44d1ec0d6e1103955d61f32ce0116773a28cea76f2d"
+    "tools/x86/common/codegen/generate-register.py": "26d5b44eb8c3a5e2832204a06d0256c5a2ce6a6564783f0240bf9c7bea0627ad"
   },
   "frame_growth": 0,
   "state_growth": 0,

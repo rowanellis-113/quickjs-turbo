@@ -369,6 +369,21 @@ QJS_FRAME_SLOW_HOST_CODE int JS_LinuxIterator_for_of_next(JSFrameRegisterState *
             JSObject *method = JS_VALUE_GET_OBJ(sp[offset + 1]);
             if (it->class_id == JS_CLASS_ARRAY_ITERATOR) {
                 if (js_linux_try_dense_next(state)) {
+                    uint8_t *npc = state->pc;
+                    JSContext *ictx = state->frame->bytecode->realm;
+                    if (npc[0] == OP_if_true8 && ictx->interrupt_counter > 1) {
+                        state->sp -= 1;
+                        ictx->interrupt_counter--;
+                        state->pc = npc + 2;
+                        state->frame->saved_sp = state->sp;
+                        state->frame->sf.cur_pc = state->pc;
+                    } else if (npc[0] == OP_if_false8 && ictx->interrupt_counter > 1) {
+                        state->sp -= 1;
+                        ictx->interrupt_counter--;
+                        state->pc = npc + 1 + (int8_t)npc[1];
+                        state->frame->saved_sp = state->sp;
+                        state->frame->sf.cur_pc = state->pc;
+                    }
                     state->frame->sf.cur_sp = NULL;
                     return 0;
                 }

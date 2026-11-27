@@ -140,6 +140,18 @@ def generate(
                 raise ValueError("Review forwarding parent coherence boundary")
             at = cloned.index(store) + 1
             cloned[at:at] = ["lea rdi, [rip+" + CLEAN + "]"]
+        elif name == "JS_FrameOwnBytecodeM2":
+            # Fuse Dirty get_field2 -> 0-arg OP_call_method to eliminate indirect
+            # dispatch mispredictions on obj.method() calls.
+            call_method_op = stream["opcodes"].index("call_method")
+            cloned = once(
+                cloned,
+                "movzx eax, BYTE PTR [r12]\njmp QWORD PTR [rdi+rax*8]",
+                "movzx eax, BYTE PTR [r12]\n"
+                f"cmp al, {call_method_op}\n"
+                f"je {renamed['interp_meta_call_method']}\n"
+                "jmp QWORD PTR [rdi+rax*8]",
+            )
         copies.append((renamed[name], cloned))
 
     # Derive the actual current helper set rather than copying Win-only names.

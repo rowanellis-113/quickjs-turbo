@@ -40,56 +40,18 @@
     lsr x4, x4, #2
     add x3, x3, #ARM_OFF_JSPropertyIC_map
     ldr x5, [x3, x4, lsl #3]
-    cbz x5, .Lproperty_method_legacy
     ldr x6, [x0, #ARM_OFF_JSObject_shape]
+    cbz x5, .Lproperty_method_legacy
     ldr x7, [x5, #ARM_OFF_JSPropertyICWay_shape]
     mov w2, #0
     cmp x7, x6
-    b.eq .Lproperty_matched
-    ldrb w9, [x5, #ARM_OFF_JSPropertyICSite_megamorphic]
-    cbnz w9, .Lproperty_method_legacy
-    ldr x7, [x5, #ARM_OFF_JSPropertyICSite_secondary]
-    cbz x7, .Lproperty_no_cache
-    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
-    cmp x9, x6
-    b.eq .Lproperty_secondary
-    add x7, x7, #ARM_SIZE_JSPropertyICWay
-    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
-    cmp x9, x6
-    b.eq .Lproperty_secondary
-    add x7, x7, #ARM_SIZE_JSPropertyICWay
-    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
-    cmp x9, x6
-    b.ne .Lproperty_no_cache
-.Lproperty_secondary:
-    mov x5, x7
-    mov w2, #1
+    b.ne .Lproperty_site_miss
 .Lproperty_matched:
     cmp w17, #3
     b.eq .Lproperty_put
     ldr w10, [x5, #ARM_OFF_JSPropertyICWay_kind]
     cmp w10, #ARM_CONST_JS_IC_OWN
-    b.eq .Lproperty_own
-    ldr x9, [x19, #ARM_OFF_JSFrameRegisterState_rt]
-    ldr x11, [x9, #ARM_OFF_JSRuntime_property_ic_epoch]
-    cbz x11, .Lproperty_pic_slow
-    ldr x12, [x5, #ARM_OFF_JSPropertyICWay_epoch]
-    cmp x11, x12
-    b.ne .Lproperty_pic_slow
-    cmp w10, #ARM_CONST_JS_IC_UNSET
-    b.eq .Lproperty_unset
-    cmp w10, #ARM_CONST_JS_IC_PROTO
-    b.ne .Lproperty_pic_slow
-    ldr x7, [x5, #ARM_OFF_JSPropertyICWay_holder]
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    mrs x14, tpidr_el0
-    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
-    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
-    ldr x15, [x14, #48]
-    add x15, x15, #1
-    str x15, [x14, #48]
-#endif
-    b .Lproperty_load
+    b.ne .Lproperty_non_own
 .Lproperty_own:
     mov x7, x0
 #ifdef QJS_AARCH64_VM_INSTRUMENT
@@ -109,18 +71,6 @@
     ldur w9, [x8, #ARM_REF_COUNT_OFFSET]
     add w9, w9, #1
     stur w9, [x8, #ARM_REF_COUNT_OFFSET]
-    b .Lproperty_get_commit
-.Lproperty_unset:
-    mov x8, #0
-    mov x16, #ARM_CONST_JS_TAG_UNDEFINED
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    mrs x14, tpidr_el0
-    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
-    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
-    ldr x15, [x14, #56]
-    add x15, x15, #1
-    str x15, [x14, #56]
-#endif
 .Lproperty_get_commit:
     cbz w2, .Lproperty_get_primary
 #ifdef QJS_AARCH64_VM_INSTRUMENT
@@ -180,10 +130,89 @@
 #endif
     add x20, x20, #5
     ARM_DISPATCH_NEXT 1
+.Lproperty_non_own:
+    ldr x9, [x19, #ARM_OFF_JSFrameRegisterState_rt]
+    ldr x11, [x9, #ARM_OFF_JSRuntime_property_ic_epoch]
+    cbz x11, .Lproperty_pic_slow
+    ldr x12, [x5, #ARM_OFF_JSPropertyICWay_epoch]
+    cmp x11, x12
+    b.ne .Lproperty_pic_slow
+    cmp w10, #ARM_CONST_JS_IC_PROTO
+    b.ne .Lproperty_check_unset
+    ldr x7, [x5, #ARM_OFF_JSPropertyICWay_holder]
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    mrs x14, tpidr_el0
+    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
+    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
+    ldr x15, [x14, #48]
+    add x15, x15, #1
+    str x15, [x14, #48]
+#endif
+    b .Lproperty_load
+.Lproperty_check_unset:
+    cmp w10, #ARM_CONST_JS_IC_UNSET
+    b.ne .Lproperty_pic_slow
+.Lproperty_unset:
+    mov x8, #0
+    mov x16, #ARM_CONST_JS_TAG_UNDEFINED
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    mrs x14, tpidr_el0
+    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
+    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
+    ldr x15, [x14, #56]
+    add x15, x15, #1
+    str x15, [x14, #56]
+#endif
+    b .Lproperty_get_commit
 .Lproperty_put:
     ldr w10, [x5, #ARM_OFF_JSPropertyICWay_kind]
     cmp w10, #ARM_CONST_JS_IC_REPLACE
-    b.eq .Lproperty_replace
+    b.ne .Lproperty_transition
+.Lproperty_replace:
+    ldr w10, [x5, #ARM_OFF_JSPropertyICWay_slot]
+    ldr x7, [x0, #ARM_OFF_JSObject_prop]
+    add x7, x7, x10, lsl #4
+    ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
+    tbz x16, #63, .Lproperty_replace_safe
+    ldur w12, [x8, #ARM_REF_COUNT_OFFSET]
+    cmp w12, #1
+    b.le .Lproperty_pic_slow
+    cmp x8, x0
+    b.ne .Lproperty_replace_nonlast
+    cmp w12, #2
+    b.le .Lproperty_pic_slow
+.Lproperty_replace_nonlast:
+    sub w12, w12, #1
+    stur w12, [x8, #ARM_REF_COUNT_OFFSET]
+.Lproperty_replace_safe:
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    mrs x14, tpidr_el0
+    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
+    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
+    ldr x15, [x14, #16]
+    add x15, x15, #1
+    str x15, [x14, #16]
+#endif
+.Lproperty_store:
+    ldp x8, x16, [x21, #-16]
+    stp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
+    ldur w12, [x0, #ARM_REF_COUNT_OFFSET]
+    sub w12, w12, #1
+    stur w12, [x0, #ARM_REF_COUNT_OFFSET]
+    sub x21, x21, #32
+    cbz w2, .Lproperty_put_primary
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    mrs x14, tpidr_el0
+    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
+    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
+    ldr x15, [x14, #32]
+    add x15, x15, #1
+    str x15, [x14, #32]
+#endif
+.Lproperty_put_primary:
+    add x20, x20, #5
+    ARM_DISPATCH_NEXT 1
+.Lproperty_transition:
     cmp w10, #ARM_CONST_JS_IC_TRANSITION
     b.ne .Lproperty_pic_slow
     ldrb w10, [x0, #ARM_BIT_JSObject_extensible_BYTE]
@@ -246,50 +275,26 @@
     ldr x7, [x0, #ARM_OFF_JSObject_prop]
     add x7, x7, x10, lsl #4
     b .Lproperty_store
-.Lproperty_replace:
-    ldr w10, [x5, #ARM_OFF_JSPropertyICWay_slot]
-    ldr x7, [x0, #ARM_OFF_JSObject_prop]
-    add x7, x7, x10, lsl #4
-    ldp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
-    tbz x16, #63, .Lproperty_replace_safe
-    ldur w12, [x8, #ARM_REF_COUNT_OFFSET]
-    cmp w12, #1
-    b.le .Lproperty_pic_slow
-    cmp x8, x0
-    b.ne .Lproperty_replace_nonlast
-    cmp w12, #2
-    b.le .Lproperty_pic_slow
-.Lproperty_replace_nonlast:
-    sub w12, w12, #1
-    stur w12, [x8, #ARM_REF_COUNT_OFFSET]
-.Lproperty_replace_safe:
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    mrs x14, tpidr_el0
-    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
-    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
-    ldr x15, [x14, #16]
-    add x15, x15, #1
-    str x15, [x14, #16]
-#endif
-.Lproperty_store:
-    ldp x8, x16, [x21, #-16]
-    stp x8, x16, [x7, #ARM_OFF_JSProperty_u_value]
-    ldur w12, [x0, #ARM_REF_COUNT_OFFSET]
-    sub w12, w12, #1
-    stur w12, [x0, #ARM_REF_COUNT_OFFSET]
-    sub x21, x21, #32
-    cbz w2, .Lproperty_put_primary
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    mrs x14, tpidr_el0
-    add x14, x14, :tprel_hi12:qjs_aarch64_property_counters
-    add x14, x14, :tprel_lo12_nc:qjs_aarch64_property_counters
-    ldr x15, [x14, #32]
-    add x15, x15, #1
-    str x15, [x14, #32]
-#endif
-.Lproperty_put_primary:
-    add x20, x20, #5
-    ARM_DISPATCH_NEXT 1
+.Lproperty_site_miss:
+    ldrb w9, [x5, #ARM_OFF_JSPropertyICSite_megamorphic]
+    cbnz w9, .Lproperty_method_legacy
+    ldr x7, [x5, #ARM_OFF_JSPropertyICSite_secondary]
+    cbz x7, .Lproperty_no_cache
+    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
+    cmp x9, x6
+    b.eq .Lproperty_secondary
+    add x7, x7, #ARM_SIZE_JSPropertyICWay
+    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
+    cmp x9, x6
+    b.eq .Lproperty_secondary
+    add x7, x7, #ARM_SIZE_JSPropertyICWay
+    ldr x9, [x7, #ARM_OFF_JSPropertyICWay_shape]
+    cmp x9, x6
+    b.ne .Lproperty_no_cache
+.Lproperty_secondary:
+    mov x5, x7
+    mov w2, #1
+    b .Lproperty_matched
 .Lproperty_ic_cold:
     cmp x3, #1
     b.eq .Lproperty_method_legacy

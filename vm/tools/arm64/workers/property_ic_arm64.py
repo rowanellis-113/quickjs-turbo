@@ -10,10 +10,7 @@ def _specialize_property_ic(text):
             "JS_FrameInterpFree" if not p else "qjs_aarch64_publish_before_FrameInterpFree"
         )
         if not p:
-            old_put = """.Lproperty_put:
-    ldr w10, [x5, #ARM_OFF_JSPropertyICWay_kind]
-    cmp w10, #ARM_CONST_JS_IC_REPLACE
-    b.eq .Lproperty_replace
+            old_put = """.Lproperty_transition:
     cmp w10, #ARM_CONST_JS_IC_TRANSITION
     b.ne .Lproperty_pic_slow
     ldrb w10, [x0, #ARM_BIT_JSObject_extensible_BYTE]
@@ -29,10 +26,7 @@ def _specialize_property_ic(text):
     cmp x11, x12
     b.ne .Lproperty_pic_slow
     ldr x7, [x5, #ARM_OFF_JSPropertyICWay_transition]"""
-            new_put = """.Lproperty_put:
-    ldr w10, [x5, #ARM_OFF_JSPropertyICWay_kind]
-    cmp w10, #ARM_CONST_JS_IC_REPLACE
-    b.eq .Lproperty_replace
+            new_put = """.Lproperty_transition:
     cmp w10, #ARM_CONST_JS_IC_TRANSITION
 #ifndef QJS_AARCH64_VM_INSTRUMENT
     b.eq .Lproperty_transition_chk
@@ -117,12 +111,12 @@ def _specialize_property_ic(text):
     lsr x4, x4, #2
     add x3, x3, #ARM_OFF_JSPropertyIC_map
     ldr x5, [x3, x4, lsl #3]
-    cbz x5, .L{p}property_method_legacy
     ldr x6, [x0, #ARM_OFF_JSObject_shape]
+    cbz x5, .L{p}property_method_legacy
     ldr x7, [x5, #ARM_OFF_JSPropertyICWay_shape]
     mov w2, #0
     cmp x7, x6
-    b.eq .L{p}property_matched"""
+    b.ne .L{p}property_site_miss"""
         exotic_branch = (
             "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
             "    b.ne .Lfast_exotic_prop_chk\n"
@@ -147,7 +141,7 @@ def _specialize_property_ic(text):
     ldr x7, [x5, #ARM_OFF_JSPropertyICWay_shape]
     mov w2, #0
     cmp x7, x6
-    b.eq .L{p}property_matched"""
+    b.ne .L{p}property_site_miss"""
         text = _replace_exact(text, old_ready_folded, new_ready, 1, f"{p}property_receiver_ready")
 
         if not p:
