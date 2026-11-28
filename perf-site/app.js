@@ -3,20 +3,17 @@ const QUICKSTART_SNIPPETS = [
     id: "cmake",
     label: "CMake Embed",
     filename: "CMakeLists.txt",
-    code: `# Option 1: vendor directly via add_subdirectory()
+    code: `# Option 1: vendor directly
 add_subdirectory(vendor/quickjs-turbo/vm)
 target_link_libraries(my_app PRIVATE quickjs-turbo::qjs)
 
-# Option 2: link an installed prebuilt SDK
+# Option 2: link prebuilt SDK
 find_package(quickjs-turbo CONFIG REQUIRED)
-target_link_libraries(my_app PRIVATE quickjs-turbo::qjs)
-
-# Host LTO stays enabled — quickjs-turbo::qjs isolates native ASM units locally.
-# Under ASan/UBSan/TSan/MSan/Fuzz, AUTO automatically falls back to PORTABLE.`,
+target_link_libraries(my_app PRIVATE quickjs-turbo::qjs)`,
   },
   {
     id: "capi",
-    label: "C API (quickjs-turbo.h)",
+    label: "C API",
     filename: "embed.c",
     code: `#include "quickjs.h"
 #include "quickjs-turbo.h"
@@ -24,55 +21,49 @@ target_link_libraries(my_app PRIVATE quickjs-turbo::qjs)
 void init_worker_pool(void) {
     QJSTurboOptions opts;
     QJS_TurboOptionsInit(&opts);
-    opts.own_bytecode_tail = QJS_TURBO_OFF; /* PIC-only: zero tail copy overhead */
-    opts.property_ic_warmup = 16;           /* Lazy IC allocation after 16 accesses */
+    opts.own_bytecode_tail = QJS_TURBO_OFF; /* PIC-only: zero tail copy */
+    opts.property_ic_warmup = 16;           /* Lazy IC after 16 hits    */
     QJS_SetTurboDefaults(&opts);
 
     JSRuntime *rt = JS_NewRuntime();
-    QJSTurboInfo info;
-    QJS_GetTurboInfo(rt, &info);            /* Structured backend & IC telemetry */
-
-    /* ... when worker becomes idle, reclaim all IC slabs immediately: */
+    /* ... when worker becomes idle: */
     JS_PurgePropertyIC(rt);
 }`,
   },
   {
     id: "source",
-    label: "Build from Source",
+    label: "Build",
     filename: "build.sh",
-    code: `# Linux x86-64 (native ELF ASM VM)
+    code: `# Linux x86-64
 bash vm/tools/x86/linux/build/product-linux.sh build/linux out/sdk
 
-# macOS x86-64 (native Mach-O ASM VM)
-bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk
-
-# Linux ARM64 (glibc / musl native ELF ASM VM, 161 native opcodes)
+# Linux ARM64
 bash vm/tools/arm64/build/product-linux-aarch64.sh build/arm64 out/sdk
 
-# Windows x86-64 (MSVC / clang-cl / MinGW — AUTO selects WIN_X86_64)
-cmake -S vm -B build/win-x86_64 -G Ninja -DCMAKE_BUILD_TYPE=Release \\
-  -DQJS_FRAME_BACKEND=AUTO -DQJS_PROPERTY_IC=ON
-cmake --build build/win-x86_64 --parallel`,
+# macOS x86-64
+bash vm/tools/x86/macos/build/product-macos.sh build/macos-x86_64 out/sdk
+
+# Windows x86-64 (MSVC / MinGW) or macOS ARM64 (PORTABLE)
+cmake -S vm -B build/release -G Ninja -DCMAKE_BUILD_TYPE=Release
+cmake --build build/release --parallel`,
   },
   {
     id: "pregen",
-    label: "Offline Pregen (No Python)",
+    label: "Offline Pregen",
     filename: "pregen.sh",
-    code: `# 1. Export a SHA256-verified pre-generated assembly bundle once
+    code: `# Export SHA256-verified assembly bundle once
 python3 vm/tools/common/export-pregen.py \\
-  --source vm \\
-  --build build/linux \\
-  --output pregen/linux-x86_64
+  --source vm --build build/linux --output pregen/linux-x86_64
 
-# 2. Build downstream in pure CMake with zero Python dependency
+# Build downstream with zero Python dependency
 cmake -S vm -B build/offline -G Ninja -DCMAKE_BUILD_TYPE=Release \\
-  -DQJS_USE_PREGEN_ASM=ON \\
-  -DQJS_PREGEN_DIR=pregen/linux-x86_64
+  -DQJS_USE_PREGEN_ASM=ON -DQJS_PREGEN_DIR=pregen/linux-x86_64
 cmake --build build/offline --parallel`,
   },
 ];
 
 let DATA = null;
+let selectedHeroMetric = "v8v7";
 let selectedVersionIdx = 0;
 let selectedPlatform = "linux-x86_64";
 let selectedQs = "cmake";
@@ -96,29 +87,47 @@ function updateThemeButton() {
 }
 
 function renderHero() {
-  const hero = DATA.heroComparison;
   document.getElementById("header-version").textContent = DATA.latestVersion;
-  document.getElementById("hero-cohort").textContent = hero.cohort;
-  const maxScore = Math.max(...hero.engines.map((e) => e.score));
-  const baseEngine = hero.engines.find((x) => x.role === "baseline");
-  const baseScore = baseEngine ? baseEngine.score : 1109.03;
+  const metrics = DATA.heroMetrics;
+  const active = metrics.find((m) => m.id === selectedHeroMetric) || metrics[0];
+
+  const tabsEl = document.getElementById("hero-metric-tabs");
+  tabsEl.innerHTML = metrics
+    .map(
+      (m) => `
+      <button type="button" class="metric-tab ${m.id === active.id ? "active" : ""}" data-metric="${m.id}">
+        ${m.tab}
+      </button>
+    `,
+    )
+    .join("");
+  tabsEl.querySelectorAll(".metric-tab").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      selectedHeroMetric = btn.dataset.metric;
+      renderHero();
+    });
+  });
+
+  document.getElementById("hero-title").textContent = active.title;
+  document.getElementById("hero-cohort").textContent = active.subtitle;
+  document.getElementById("hero-badge").textContent = active.badge;
+  document.getElementById("hero-footnote").textContent = active.footnote;
+
+  const maxVal = Math.max(...active.engines.map((e) => e.value));
   const container = document.getElementById("hero-bars");
-  container.innerHTML = hero.engines
+  container.innerHTML = active.engines
     .map((e) => {
-      const pct = ((e.score / maxScore) * 100).toFixed(1);
+      const pct = ((e.value / maxVal) * 100).toFixed(1);
       const cls = e.role === "turbo" ? "is-turbo" : e.role === "reference" ? "is-ref" : "";
-      const ratio = (e.score / baseScore).toFixed(2);
-      const suffix =
-        e.role === "turbo" || e.role === "peer"
-          ? ` (${ratio}×)`
-          : e.role === "baseline"
-            ? " (1.00×)"
-            : "";
+      const formatted = e.value.toLocaleString("en-US", {
+        maximumFractionDigits: e.value < 100 ? 2 : 1,
+      });
+      const tagHtml = e.tag ? `<span class="bar-tag">${e.tag}</span>` : "";
       return `
         <div class="bar-row ${cls}">
           <div class="bar-meta">
             <span class="bar-name">${e.label}</span>
-            <span class="bar-score">${e.score.toLocaleString("en-US", { maximumFractionDigits: 1 })}${suffix}</span>
+            <span class="bar-score">${formatted}${active.unit}${tagHtml}</span>
           </div>
           <div class="bar-track">
             <div class="bar-fill" style="width: ${pct}%"></div>
@@ -135,11 +144,11 @@ function renderHistory() {
   const current = items[selectedVersionIdx];
 
   const W = 640;
-  const H = 250;
-  const padL = 52;
+  const H = 240;
+  const padL = 56;
   const padR = 26;
   const padT = 26;
-  const padB = 38;
+  const padB = 36;
   const innerW = W - padL - padR;
   const innerH = H - padT - padB;
   const yMin = 800;
@@ -205,7 +214,7 @@ function renderHistory() {
             font-weight="${active ? 700 : 500}" font-family="JetBrains Mono, monospace">
             ${Math.round(d.v8Score).toLocaleString("en-US")}
           </text>
-          <text x="${x.toFixed(1)}" y="${H - 12}" text-anchor="middle"
+          <text x="${x.toFixed(1)}" y="${H - 10}" text-anchor="${i === 0 ? "start" : i === items.length - 1 ? "end" : "middle"}"
             fill="${active ? "var(--text)" : "var(--text-muted)"}" font-size="11"
             font-weight="${active ? 700 : 400}" font-family="JetBrains Mono, monospace">
             ${d.shortLabel}
@@ -226,7 +235,7 @@ function renderHistory() {
       ${gridSvg}
       <path d="${areaPath}" fill="url(#turboArea)" />
       <path d="${stockPath}" fill="none" stroke="var(--chart-base-dot)" stroke-width="1.5" stroke-dasharray="4 4" />
-      <text x="${W - padR}" y="${(stockPoints[stockPoints.length - 1][1] - 6).toFixed(1)}" text-anchor="end" fill="var(--chart-base-dot)" font-size="10" font-family="JetBrains Mono, monospace">Stock NG (0.15.1 -> 0.17.0)</text>
+      <text x="${W - padR}" y="${(stockPoints[stockPoints.length - 1][1] - 6).toFixed(1)}" text-anchor="end" fill="var(--chart-base-dot)" font-size="10" font-family="JetBrains Mono, monospace">Stock NG (0.15.1 → 0.17.0)</text>
       <path d="${linePath}" fill="none" stroke="var(--accent)" stroke-width="2.6" stroke-linejoin="round" />
       ${nodesSvg}
     </svg>
@@ -244,7 +253,7 @@ function renderHistory() {
     .map(
       (d, i) => `
       <button type="button" class="ver-pill ${i === selectedVersionIdx ? "active" : ""}" data-idx="${i}">
-        ${d.version}
+        ${d.shortLabel}
       </button>
     `,
     )
@@ -261,7 +270,7 @@ function renderHistory() {
   const pctGain = (((current.v8Score - baseV8Score) / baseV8Score) * 100).toFixed(1);
   document.getElementById("history-gain-badge").textContent = current.isBaseline
     ? `Baseline (NG ${baseVer})`
-    : `+${pctGain}% vs Stock NG ${baseVer}`;
+    : `+${pctGain}% vs NG ${baseVer}`;
 
   const rssLine = current.peakRssKiB ? `${(current.peakRssKiB / 1024).toFixed(1)} MiB` : "—";
 
@@ -271,16 +280,16 @@ function renderHistory() {
         <h3 class="panel-title mono">${current.version}</h3>
         <p class="panel-subtitle">${current.date} · ${current.pool}</p>
       </div>
-      <span class="badge ${current.isBaseline ? "" : "badge-green"}">${current.ratioVsNg.toFixed(2)}× NG ${baseVer}</span>
+      <span class="badge ${current.isBaseline ? "" : "badge-green"}">${current.ratioVsNg.toFixed(2)}× NG</span>
     </div>
     <p style="margin: 0 0 12px; font-size: 13.5px; color: var(--text-muted)">${current.summary}</p>
-    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 12px;">
+    <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:8px; margin-bottom: 10px;">
       <div class="subtest-tile">
         <div class="subtest-name">V8-v7</div>
         <div class="subtest-val mono" style="color:var(--accent-bright)">${current.v8Score.toLocaleString("en-US", { maximumFractionDigits: 1 })}</div>
       </div>
       <div class="subtest-tile">
-        <div class="subtest-name">vs V8 --jitless</div>
+        <div class="subtest-name">vs V8</div>
         <div class="subtest-val mono">${current.ratioVsV8.toFixed(1)}%</div>
       </div>
       <div class="subtest-tile">
@@ -293,10 +302,9 @@ function renderHistory() {
     </ul>
   `;
 
-  document.getElementById("subtest-title").textContent =
-    `V8-v7 Subtest Breakdown — ${current.version}`;
+  document.getElementById("subtest-title").textContent = `V8-v7 Subtests — ${current.version}`;
   document.getElementById("subtest-subtitle").textContent =
-    `Each subtest ratio is computed against same-session Stock QuickJS-NG ${baseVer} on the Reference Linux x86-64 host`;
+    `vs same-session Stock QuickJS-NG ${baseVer}`;
   document.getElementById("subtest-version-badge").textContent = current.version;
 
   const baseSubtests = current.baselineSubtests || baseline.subtests;
@@ -309,7 +317,7 @@ function renderHistory() {
         <div class="subtest-tile">
           <div class="subtest-name">${name}</div>
           <div class="subtest-val">${Math.round(val).toLocaleString("en-US")}</div>
-          <div class="subtest-delta">${ratio}× vs NG ${baseVer} (${Math.round(baseVal)})</div>
+          <div class="subtest-delta">${ratio}× vs NG (${Math.round(baseVal)})</div>
         </div>
       `;
     })
@@ -322,7 +330,7 @@ function renderPlatformTabs() {
     .map(
       ([key, p]) => `
       <button type="button" class="tab-btn ${key === selectedPlatform ? "active" : ""}" data-platform="${key}">
-        ${p.title} <span class="mono" style="opacity:0.7; font-size:11px; margin-left:4px">${p.backend}</span>
+        ${p.title}
       </button>
     `,
     )
@@ -336,10 +344,93 @@ function renderPlatformTabs() {
   });
 }
 
+function renderV8SubtestChart(p) {
+  if (!p.v8SubtestBars) {
+    const rows = p.microHotspots
+      .map(
+        (r) => `
+        <tr>
+          <td>${r.name}</td>
+          <td class="num"><strong>${r.turbo}</strong> <span style="color:var(--text-dim);font-size:11px">${r.unit}</span></td>
+        </tr>
+      `,
+      )
+      .join("");
+    return `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>${p.rightTitle || "V8-v7 Subtests"}</th>
+              <th class="num">Turbo</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  const maxScore = Math.max(...p.v8SubtestBars.map((b) => Math.max(b.turbo, b.stock)));
+  const rowsHtml = p.v8SubtestBars
+    .map((b) => {
+      const turboPct = ((b.turbo / maxScore) * 100).toFixed(1);
+      const stockPct = ((b.stock / maxScore) * 100).toFixed(1);
+      return `
+        <div class="speedup-row">
+          <span class="speedup-name" title="${b.name}">${b.name}</span>
+          <div class="speedup-dual">
+            <div class="dual-track"><div class="dual-fill-turbo" style="width:${turboPct}%"></div></div>
+            <div class="dual-track"><div class="dual-fill-base" style="width:${stockPct}%"></div></div>
+          </div>
+          <span class="speedup-ratio">${b.ratio.toFixed(2)}×</span>
+        </div>
+      `;
+    })
+    .join("");
+
+  return `
+    <div class="panel-card">
+      <div class="panel-header" style="margin-bottom: 12px">
+        <div>
+          <h3 class="panel-title">V8-v7 Subtests (Turbo vs NG 0.17)</h3>
+          <p class="panel-subtitle">Sorted by speedup · higher bar is faster</p>
+        </div>
+        <span class="badge badge-green">8/8 sweep</span>
+      </div>
+      <div class="speedup-bars">${rowsHtml}</div>
+      <div class="legend-inline">
+        <span><span class="legend-dot" style="background:var(--accent)"></span>QuickJS-Turbo</span>
+        <span><span class="legend-dot" style="background:var(--bar-peer)"></span>Stock NG 0.17</span>
+      </div>
+    </div>
+  `;
+}
+
 function renderJetStreamCard(js) {
   if (!js) return "";
   const s = js.summary;
   const hasV8 = Number.isFinite(s.v8BodyMs);
+
+  const topCases = [...js.cases]
+    .sort((a, b) => b.stock / b.turbo - a.stock / a.turbo)
+    .slice(0, 6);
+
+  const highlightTiles = topCases
+    .map((c) => {
+      const ratio = c.stock / c.turbo;
+      return `
+        <div class="js17-tile">
+          <div class="js17-tile-name" title="${c.name}">${c.name}</div>
+          <div class="js17-tile-row">
+            <span class="js17-tile-ms">${c.turbo.toFixed(1)} ms</span>
+            <span class="pill-speed">${ratio.toFixed(2)}× NG</span>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
   const rows = js.cases
     .map((c) => {
       const vsStock = c.stock / c.turbo;
@@ -381,39 +472,46 @@ function renderJetStreamCard(js) {
           <p class="panel-subtitle">${js.subtitle}</p>
         </div>
         <div class="js17-summary">
-          <span class="badge badge-green">Body ${s.turboBodyMs.toFixed(1)} ms (${s.vsStock.toFixed(2)}× NG · ${s.vsBellard.toFixed(2)}× Bel)</span>
-          <span class="badge">Cold ${s.turboColdMs.toFixed(1)} ms · ${s.rssNote}</span>
+          <span class="badge badge-green">${s.turboBodyMs.toFixed(1)} ms (${s.vsStock.toFixed(2)}× NG · ${s.vsBellard.toFixed(2)}× Bel)</span>
+          <span class="badge">${s.rssNote}</span>
         </div>
       </div>
-      <div class="table-wrap" style="box-shadow:none">
-        <table>
-          <thead>
-            <tr>
-              <th>Workload (body ms, lower is better)</th>
-              <th class="num">NG 0.17</th>
-              <th class="num">Bellard</th>
-              <th class="num">Turbo</th>
-              ${hasV8 ? `<th class="num">V8 --jitless</th>` : ""}
-              <th class="num">vs NG</th>
-              <th class="num">vs Bel</th>
-              ${hasV8 ? `<th class="num">vs V8</th>` : ""}
-            </tr>
-          </thead>
-          <tbody>
-            ${rows}
-            <tr class="js17-geomean-row">
-              <td><strong>17-Case Geomean (body ms)</strong></td>
-              <td class="num"><strong>${s.stockBodyMs.toFixed(2)}</strong></td>
-              <td class="num"><strong>${s.bellardBodyMs.toFixed(2)}</strong></td>
-              <td class="num"><strong style="color:var(--accent-bright)">${s.turboBodyMs.toFixed(2)}</strong></td>
-              ${hasV8 ? `<td class="num"><strong>${s.v8BodyMs.toFixed(2)}</strong></td>` : ""}
-              <td class="num"><span class="pill-speed">${s.vsStock.toFixed(2)}×</span></td>
-              <td class="num"><span class="pill-speed">${s.vsBellard.toFixed(2)}×</span></td>
-              ${hasV8 ? `<td class="num"><span class="pill-speed pill-neutral">${s.vsV8Pct.toFixed(1)}%</span></td>` : ""}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <div class="js17-highlights">${highlightTiles}</div>
+      <details class="compact-details">
+        <summary>
+          <span>Full 17-workload breakdown (geomean ${s.turboBodyMs.toFixed(1)} ms vs ${s.stockBodyMs.toFixed(1)} ms NG)</span>
+          <span class="mono details-hint">All 17 cases ▾</span>
+        </summary>
+        <div class="table-wrap" style="border:none; border-radius:0; box-shadow:none">
+          <table>
+            <thead>
+              <tr>
+                <th>Workload (ms ↓)</th>
+                <th class="num">NG 0.17</th>
+                <th class="num">Bellard</th>
+                <th class="num">Turbo</th>
+                ${hasV8 ? `<th class="num">V8 --jitless</th>` : ""}
+                <th class="num">vs NG</th>
+                <th class="num">vs Bel</th>
+                ${hasV8 ? `<th class="num">vs V8</th>` : ""}
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+              <tr class="js17-geomean-row">
+                <td><strong>17-Case Geomean</strong></td>
+                <td class="num"><strong>${s.stockBodyMs.toFixed(1)}</strong></td>
+                <td class="num"><strong>${s.bellardBodyMs.toFixed(1)}</strong></td>
+                <td class="num"><strong style="color:var(--accent-bright)">${s.turboBodyMs.toFixed(1)}</strong></td>
+                ${hasV8 ? `<td class="num"><strong>${s.v8BodyMs.toFixed(1)}</strong></td>` : ""}
+                <td class="num"><span class="pill-speed">${s.vsStock.toFixed(2)}×</span></td>
+                <td class="num"><span class="pill-speed">${s.vsBellard.toFixed(2)}×</span></td>
+                ${hasV8 ? `<td class="num"><span class="pill-speed pill-neutral">${s.vsV8Pct.toFixed(1)}%</span></td>` : ""}
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </details>
     </div>
   `;
 }
@@ -426,8 +524,8 @@ function renderPlatformPanel() {
       (s) => `
       <div class="kpi-card">
         <div class="kpi-value accent">${s.value}</div>
-        <div class="kpi-label"><strong>${s.label}</strong></div>
-        <div class="kpi-label" style="font-size:11.5px">${s.sub}</div>
+        <div class="kpi-title">${s.label}</div>
+        <div class="kpi-label">${s.sub}</div>
       </div>
     `,
     )
@@ -446,37 +544,13 @@ function renderPlatformPanel() {
     )
     .join("");
 
-  const microRows = p.microHotspots
-    .map(
-      (r) => `
-      <tr>
-        <td>${r.name}</td>
-        <td class="num">${r.stock}</td>
-        <td class="num"><strong>${r.turbo}</strong> <span style="color:var(--text-dim);font-size:11px">${r.unit}</span></td>
-        <td class="num">
-          ${
-            r.speedup !== null
-              ? `<span class="pill-speed ${r.speedup < 1.01 ? "pill-neutral" : ""}">${r.speedup.toFixed(2)}×</span>`
-              : `<span class="pill-speed pill-neutral">live</span>`
-          }
-        </td>
-      </tr>
-    `,
-    )
-    .join("");
-
-  const leftTitle = p.leftTitle || "Targeted &amp; Paired Speedups";
-  const rightTitle =
-    p.rightTitle ||
-    (selectedPlatform === "linux-x86_64"
-      ? "Hotspot Wins (vs Same-Host Stock NG)"
-      : "V8-v7 Per-Subtest Breakdown");
+  const leftTitle = p.leftTitle || "Suite Comparisons";
 
   document.getElementById("platform-panel").innerHTML = `
     <div class="cohort-bar">
       <div>
         <strong class="mono">${p.backend}</strong>
-        <span style="color:var(--text-muted); margin-left:10px">${p.toolchain}</span>
+        <span style="color:var(--text-muted); margin-left:8px">${p.toolchain}</span>
       </div>
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
         <span class="badge">${p.baselineLabel}</span>
@@ -489,38 +563,36 @@ function renderPlatformPanel() {
     <div class="platform-stats">${statsHtml}</div>
 
     <div class="two-col">
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>${leftTitle}</th>
-              <th class="num">Baseline</th>
-              <th class="num">Turbo</th>
-              <th class="num">Speedup</th>
-            </tr>
-          </thead>
-          <tbody>${targetedRows}</tbody>
-        </table>
-      </div>
+      ${renderV8SubtestChart(p)}
 
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>${rightTitle}</th>
+              <th>${leftTitle}</th>
               <th class="num">Ref</th>
               <th class="num">Turbo</th>
-              <th class="num">Ratio</th>
+              <th class="num">Gain</th>
             </tr>
           </thead>
-          <tbody>${microRows}</tbody>
+          <tbody>${targetedRows}</tbody>
         </table>
       </div>
     </div>
 
     ${renderJetStreamCard(p.jetstream17)}
 
-    ${p.note ? `<div class="cohort-note">${p.note}</div>` : ""}
+    ${
+      p.note
+        ? `<details class="compact-details" style="margin-top: 14px">
+             <summary>
+               <span>Measurement methodology &amp; binary SHA-256 receipts</span>
+               <span class="mono details-hint">Details ▾</span>
+             </summary>
+             <div class="details-body">${p.note}</div>
+           </details>`
+        : ""
+    }
   `;
 }
 
