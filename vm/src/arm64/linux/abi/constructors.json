@@ -2,7 +2,7 @@
   "schema": 1,
   "target": "Linux AArch64 LE LP64/glibc/GCC",
   "source_owners": {
-    "tools/common/elf/constructors_c.py": "bf1fd246a51de98405458144cb4810065feeb0f6f25dd59da3ef3b4a91cf690d",
+    "tools/common/elf/constructors_c.py": "c8d8a35869ece0e4a90b67d2637a458e3772d9b81a4eecc4ce6256c509b9a935",
     "tools/common/elf/forwarding_c.py": "e9f25448e9748e64f8b7cf563194491fc7fd4361291267ecea7fec3dff06788e",
     "tools/common/c_extract/construct_continuation_c.py": "167d6c501e8379c6947301d3ad0827d6463877b72bb838a6f74a646849f2cc7f",
     "tools/common/c_extract/iterator_c.py": "0554c241dc5c6214a70ba221b6f30ae106bb125403b1b9891488e4bf400cd679",

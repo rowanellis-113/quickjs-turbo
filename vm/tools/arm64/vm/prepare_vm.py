@@ -333,6 +333,9 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
                "Native arithmetic requires IEEE binary64");
 """
     keys, expr = requests(actual.catalogue, actual.receipt["property_ic"])
+    if "drc_ok" in actual.prelude:
+        keys.append(("offsets", "JSRuntime.drc_ok"))
+        expr.append("offsetof(JSRuntime, drc_ok)")
     bits = actual.catalogue["bits"]
     text = actual.prelude + "\n#include <stddef.h>\n" + checks
     text += (
@@ -557,6 +560,7 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
         ),
         ("CONST_JS_ATOM_undefined", "JS_ATOM_undefined"),
         ("CONST_JS_TAG_SYMBOL", "(uint64_t)(int64_t)JS_TAG_SYMBOL"),
+        ("CONST_JS_TAG_CATCH_OFFSET", "(uint64_t)(int64_t)JS_TAG_CATCH_OFFSET"),
     ]
     names += [
         ("SIZE_" + t, "sizeof(" + t + ")")
@@ -706,6 +710,7 @@ _Static_assert(sizeof(double)==8 && FLT_RADIX==2 && DBL_MANT_DIG==53 && DBL_MAX_
     measured["HAS_VARARGS"] = int(varargs_enabled)
     measured["HAS_ARGUMENTS"] = int(arguments_enabled)
     measured["HAS_NULL_PROTO"] = int(null_enabled)
+    measured["HAS_HYBRID_DRC_OK"] = int("JSRuntime.drc_ok" in layout["offsets"])
     measured["HAS_FORWARDING"] = int(forwarding_enabled)
     measured["FORWARD_MODE_OFFSET"] = layout["offsets"]["JSFunctionBytecode.pc2line_len"] + 7
     for name, active in layout["bits"].items():

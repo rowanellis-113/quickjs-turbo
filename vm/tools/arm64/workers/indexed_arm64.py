@@ -1,7 +1,5 @@
 """Indexed, borrow, stack, global, and iterator fast paths for ARM64 Fast VM."""
 
-import re
-
 from arm64.vm.specialize import _replace_exact
 
 
@@ -1801,6 +1799,62 @@ def _specialize_stack_and_globals(text, output, op_ids):
         free_target = (
             "JS_FrameInterpFree" if not p else "qjs_aarch64_publish_before_FrameInterpFree"
         )
+        drop_drc_bypass = (
+            ""
+            if p
+            else """#if ARM_HAS_HYBRID_DRC_OK
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+    add w2, w11, #(-ARM_CONST_JS_TAG_STRING)
+    cmp w2, #1
+    b.hi .Lfast_drop_last_c
+    ldr x0, [x19, #ARM_OFF_JSFrameRegisterState_rt]
+    ldrb w3, [x0, #ARM_OFF_JSRuntime_drc_ok]
+    cmp w3, #1
+    b.ne .Lfast_drop_last_c
+    ldur w3, [x10, #ARM_REF_COUNT_OFFSET]
+    cmp w3, #1
+    b.ne .Lfast_drop_last_c
+    mov x1, x10
+    sub x21, x21, #16
+    mov x14, #ARM_CONST_JS_TAG_UNDEFINED
+    stp xzr, x14, [x21]
+    add x20, x20, #1
+    bl js_hybrid_drop_string1
+    ARM_DISPATCH_NEXT 1
+.Lfast_drop_last_c:
+#endif
+#endif
+"""
+        )
+        nip_drc_bypass = (
+            ""
+            if p
+            else """#if ARM_HAS_HYBRID_DRC_OK
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+    add w2, w11, #(-ARM_CONST_JS_TAG_STRING)
+    cmp w2, #1
+    b.hi .Lfast_nip_last_c
+    ldr x0, [x19, #ARM_OFF_JSFrameRegisterState_rt]
+    ldrb w3, [x0, #ARM_OFF_JSRuntime_drc_ok]
+    cmp w3, #1
+    b.ne .Lfast_nip_last_c
+    ldur w3, [x10, #ARM_REF_COUNT_OFFSET]
+    cmp w3, #1
+    b.ne .Lfast_nip_last_c
+    mov x1, x10
+    ldp x12, x13, [x21, #-16]
+    stp x12, x13, [x21, #-32]
+    sub x21, x21, #16
+    mov x14, #ARM_CONST_JS_TAG_UNDEFINED
+    stp xzr, x14, [x21]
+    add x20, x20, #1
+    bl js_hybrid_drop_string1
+    ARM_DISPATCH_NEXT 1
+.Lfast_nip_last_c:
+#endif
+#endif
+"""
+        )
         islands.append(f"""
 .L{p}fast_to_object:
     ldr x11, [x21, #-8]
@@ -1813,7 +1867,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldr w14, [sp, #ARM_VM_POLICY_OFF]
     tst w14, #1
     b.eq .L{p}slow
-    mov x2, x10
+{drop_drc_bypass}    mov x2, x10
     mov x3, x11
     sub x21, x21, #16
     mov x14, #ARM_CONST_JS_TAG_UNDEFINED
@@ -1852,7 +1906,7 @@ def _specialize_stack_and_globals(text, output, op_ids):
     ldr w14, [sp, #ARM_VM_POLICY_OFF]
     tst w14, #1
     b.eq .L{p}slow
-    mov x2, x10
+{nip_drc_bypass}    mov x2, x10
     mov x3, x11
     ldp x12, x13, [x21, #-16]
     stp x12, x13, [x21, #-32]
@@ -2102,11 +2156,136 @@ def _specialize_stack_and_globals(text, output, op_ids):
         if p:
             islands[-1] = f"#ifdef QJS_AARCH64_VM_INSTRUMENT\n{islands[-1]}\n#endif"
 
+    text = _replace_exact(
+        text,
+        ".Lslot_last_kept:\n"
+        "    add x20, x20, x13\n"
+        "    str x22, [x19, #ARM_OFF_JSFrameRegisterState_frame]\n",
+        ".Lslot_last_kept:\n"
+        "    add x20, x20, x13\n"
+        "#if ARM_HAS_HYBRID_DRC_OK\n"
+        "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
+        "    add w4, w3, #(-ARM_CONST_JS_TAG_STRING)\n"
+        "    cmp w4, #1\n"
+        "    b.hi .Lfast_slot_last_c\n"
+        "    ldr x0, [x19, #ARM_OFF_JSFrameRegisterState_rt]\n"
+        "    ldrb w5, [x0, #ARM_OFF_JSRuntime_drc_ok]\n"
+        "    cmp w5, #1\n"
+        "    b.ne .Lfast_slot_last_c\n"
+        "    ldur w5, [x2, #ARM_REF_COUNT_OFFSET]\n"
+        "    cmp w5, #1\n"
+        "    b.ne .Lfast_slot_last_c\n"
+        "    mov x1, x2\n"
+        "    mov w2, w4\n"
+        "    bl js_hybrid_drop_string1\n"
+        "    ARM_DISPATCH_NEXT 1\n"
+        ".Lfast_slot_last_c:\n"
+        "#endif\n"
+        "#endif\n"
+        "    str x22, [x19, #ARM_OFF_JSFrameRegisterState_frame]\n",
+        1,
+        "slot_last hybrid drop_string1 bypass",
+    )
+
     return text, "\n".join(islands)
 
 
 def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
     islands = []
+    # Native zero-exit Release handlers for catch / gosub / ret / nip_catch / check_object.
+    native_iter_ops = {
+        "catch": (
+            "    ldursw x10, [x20, #1]\n"
+            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
+            "    add x10, x20, x10\n"
+            "    add x10, x10, #1\n"
+            "    sub x10, x10, x11\n"
+            "    mov x11, #ARM_CONST_JS_TAG_CATCH_OFFSET\n"
+            "    stp x10, x11, [x21], #16\n"
+            "    add x20, x20, #5\n"
+            "    ARM_DISPATCH_NEXT 1\n"
+        ),
+        "gosub": (
+            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
+            "    ldursw x12, [x20, #1]\n"
+            "    add x10, x20, #5\n"
+            "    sub x10, x10, x11\n"
+            "    stp x10, xzr, [x21], #16\n"
+            "    add x20, x20, x12\n"
+            "    add x20, x20, #1\n"
+            "    ARM_DISPATCH_NEXT 1\n"
+        ),
+        "ret": (
+            "    ldp x10, x11, [x21, #-16]\n"
+            "    cbnz x11, .Literator_ret_c\n"
+            "    ldr w12, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_len]\n"
+            "    cmp w10, w12\n"
+            "    b.hs .Literator_ret_c\n"
+            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
+            "    sub x21, x21, #16\n"
+            "    add x20, x11, w10, uxtw\n"
+            "    ARM_DISPATCH_NEXT 1\n"
+            ".Literator_ret_c:\n"
+        ),
+        "nip_catch": (
+            "    ldrh w12, [x26, #ARM_OFF_JSFunctionBytecode_var_count]\n"
+            "    add x12, x23, x12, lsl #4\n"
+            "    sub x13, x21, #32\n"
+            "    cmp x13, x12\n"
+            "    b.lo .Literator_nip_catch_c\n"
+            "    ldr x14, [x21, #-24]\n"
+            "    cmp x14, #ARM_CONST_JS_TAG_CATCH_OFFSET\n"
+            "    b.ne .Literator_nip_catch_c\n"
+            "    ldp x10, x11, [x21, #-16]\n"
+            "    stp x10, x11, [x21, #-32]\n"
+            "    sub x21, x21, #16\n"
+            "    add x20, x20, #1\n"
+            "    ARM_DISPATCH_NEXT 1\n"
+            ".Literator_nip_catch_c:\n"
+        ),
+        "check_object": (
+            "    ldr x11, [x21, #-8]\n"
+            "    cmn x11, #1\n"
+            "    b.ne .Literator_check_object_c\n"
+            "    add x20, x20, #1\n"
+            "    ARM_DISPATCH_NEXT 1\n"
+            ".Literator_check_object_c:\n"
+        ),
+    }
+    for op_name, fast_body in native_iter_ops.items():
+        old_blk = f""".Literator_{op_name}:
+    str x20, [x19, #ARM_OFF_JSFrameRegisterState_pc]
+    str x21, [x19, #ARM_OFF_JSFrameRegisterState_sp]
+    mov x0, x19
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    ldr x14, [sp, #128]
+    add x14, x14, #1
+    str x14, [sp, #128]
+#endif
+#ifdef QJS_AARCH64_VM_INSTRUMENT
+    ldr x14, [sp, #136]
+    add x14, x14, #1
+    str x14, [sp, #136]
+#endif
+    bl JS_LinuxIterator_{op_name}
+    cbz w0, .Lreload
+    b .Ldone"""
+        if op_name in ("catch", "gosub"):
+            new_blk = (
+                f".Literator_{op_name}:\n"
+                "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
+                f"{fast_body}"
+                "#else\n" + old_blk.split("\n", 1)[1] + "\n#endif"
+            )
+        else:
+            new_blk = (
+                f".Literator_{op_name}:\n"
+                "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
+                f"{fast_body}"
+                "#endif\n" + old_blk.split("\n", 1)[1]
+            )
+        text = _replace_exact(text, old_blk, new_blk, 1, f"iterator_{op_name} native fast path")
+
     for p in ("", "pub_"):
         helper = (
             "JS_LinuxIterator_for_of_next"
