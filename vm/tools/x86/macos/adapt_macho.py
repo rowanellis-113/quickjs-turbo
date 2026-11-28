@@ -22,11 +22,14 @@ ASM_SECTION_MAP = {
     ".text.qjs_linux_slow_selector": "__TEXT,__qjs_slws,regular,pure_instructions",
     ".text.qjs_linux_bridges": "__TEXT,__qjs_brdg,regular,pure_instructions",
     ".text.qjs_linux_entry": "__TEXT,__qjs_entr,regular,pure_instructions",
+    ".text.qjs_cvm_fast": "__TEXT,__qjs_cvm,regular,pure_instructions",
     ".data.rel.ro.local.qjs_linux_dispatch": "__DATA_CONST,__const",
     ".data.rel.ro.local.qjs_linux_publish": "__DATA_CONST,__const",
+    ".data.rel.ro.local.qjs_cvm_fast": "__DATA_CONST,__const",
     ".qjs_linux_slots_ro": "__TEXT,__const",
     ".rodata.qjs_linux_comparison": "__TEXT,__const",
     ".rodata.qjs_linux_add_local": "__TEXT,__const",
+    ".rodata.qjs_cvm_fast": "__TEXT,__const",
     ".data.qjs_linux_comparison": "__DATA,__data",
     ".data.qjs_linux_global_arithmetic": "__DATA,__data",
 }
@@ -264,7 +267,7 @@ def _scan_asm_symbols(text):
         if m:
             referenced.add(m.group(1))
             continue
-        for m in re.finditer(r"\[rip\+([A-Za-z_]\w*)(?:\+\d+)?\]", line):
+        for m in re.finditer(r"\[rip\s*\+\s*([A-Za-z_]\w*)(?:\s*\+\s*\d+)?\]", line):
             referenced.add(m.group(1))
     undefined = referenced - defined
     return defined, extern_or_global, undefined
