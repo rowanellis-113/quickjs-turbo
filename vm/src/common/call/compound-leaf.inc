@@ -36,8 +36,32 @@ enum {
     CL_SET_GLOBAL_PROP = 7,
 };
 
-static inline int cl_read_own_normal_slot(JSObject *o, JSShape **sh_io, uint32_t *slot_io,
-                                          JSAtom atom, JSValue *out)
+#if defined(__GNUC__)
+#define QJS_CL_ALWAYS_INLINE static __attribute__((always_inline)) inline
+#define QJS_CL_COLD_NOINLINE static __attribute__((noinline, cold))
+#else
+#define QJS_CL_ALWAYS_INLINE static inline
+#define QJS_CL_COLD_NOINLINE static
+#endif
+
+QJS_CL_COLD_NOINLINE int cl_read_own_normal_slot_slow(JSObject *o, JSShape *sh, JSShape **sh_io,
+                                                      uint32_t *slot_io, JSAtom atom, JSValue *out)
+{
+    JSProperty *pr = NULL;
+    JSShapeProperty *ps = find_own_property(&pr, o, atom);
+    if (!ps || (ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL)
+        return 0;
+    JSValue v = pr->u.value;
+    if (JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v))
+        return 0;
+    *sh_io = sh;
+    *slot_io = (uint32_t)(pr - o->prop);
+    *out = v;
+    return 1;
+}
+
+QJS_CL_ALWAYS_INLINE int cl_read_own_normal_slot(JSObject *o, JSShape **sh_io, uint32_t *slot_io,
+                                                 JSAtom atom, JSValue *out)
 {
     if (unlikely(o->is_exotic))
         return 0;
@@ -53,50 +77,14 @@ static inline int cl_read_own_normal_slot(JSObject *o, JSShape **sh_io, uint32_t
             return 1;
         }
     }
-    JSProperty *pr = NULL;
-    JSShapeProperty *ps = find_own_property(&pr, o, atom);
-    if (!ps || (ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL)
-        return 0;
-    JSValue v = pr->u.value;
-    if (JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v))
-        return 0;
-    *sh_io = sh;
-    *slot_io = (uint32_t)(pr - o->prop);
-    *out = v;
-    return 1;
+    return cl_read_own_normal_slot_slow(o, sh, sh_io, slot_io, atom, out);
 }
 
-static inline int cl_read_own_normal_slot2(JSObject *o, JSShape **sh0_io, uint32_t *slot0_io,
-                                           JSShape **sh1_io, uint32_t *slot1_io, JSAtom atom,
-                                           JSValue *out)
+QJS_CL_COLD_NOINLINE int cl_read_own_normal_slot2_slow(JSObject *o, JSShape *sh, JSShape **sh0_io,
+                                                       uint32_t *slot0_io, JSShape **sh1_io,
+                                                       uint32_t *slot1_io, JSAtom atom,
+                                                       JSValue *out)
 {
-    if (unlikely(o->is_exotic))
-        return 0;
-    JSShape *sh = o->shape;
-    if (likely(sh)) {
-        if (*sh0_io == sh) {
-            uint32_t s = *slot0_io;
-            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
-                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
-                JSValue v = o->prop[s].u.value;
-                if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
-                    return 0;
-                *out = v;
-                return 1;
-            }
-        }
-        if (*sh1_io == sh) {
-            uint32_t s = *slot1_io;
-            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
-                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
-                JSValue v = o->prop[s].u.value;
-                if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
-                    return 0;
-                *out = v;
-                return 1;
-            }
-        }
-    }
     JSProperty *pr = NULL;
     JSShapeProperty *ps = find_own_property(&pr, o, atom);
     if (!ps || (ps->flags & JS_PROP_TMASK) != JS_PROP_NORMAL)
@@ -121,28 +109,45 @@ static inline int cl_read_own_normal_slot2(JSObject *o, JSShape **sh0_io, uint32
     return 1;
 }
 
-static inline JSProperty *cl_find_own_writable_normal_slot2(JSObject *o, JSShape **sh0_io,
-                                                            uint32_t *slot0_io, JSShape **sh1_io,
-                                                            uint32_t *slot1_io, JSAtom atom,
-                                                            uint32_t forbid_flags)
+QJS_CL_ALWAYS_INLINE int cl_read_own_normal_slot2(JSObject *o, JSShape **sh0_io, uint32_t *slot0_io,
+                                                  JSShape **sh1_io, uint32_t *slot1_io, JSAtom atom,
+                                                  JSValue *out)
 {
+    if (unlikely(o->is_exotic))
+        return 0;
     JSShape *sh = o->shape;
-    uint32_t req = JS_PROP_NORMAL | JS_PROP_WRITABLE;
-    uint32_t mask = JS_PROP_TMASK | JS_PROP_WRITABLE | forbid_flags;
     if (likely(sh)) {
-        if (*sh0_io == sh) {
+        if (likely(*sh0_io == sh)) {
             uint32_t s = *slot0_io;
             if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
-                       (get_shape_prop(sh)[s].flags & mask) == req))
-                return &o->prop[s];
+                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                JSValue v = o->prop[s].u.value;
+                if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
+                    return 0;
+                *out = v;
+                return 1;
+            }
         }
-        if (*sh1_io == sh) {
+        if (likely(*sh1_io == sh)) {
             uint32_t s = *slot1_io;
             if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
-                       (get_shape_prop(sh)[s].flags & mask) == req))
-                return &o->prop[s];
+                       (get_shape_prop(sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+                JSValue v = o->prop[s].u.value;
+                if (unlikely(JS_VALUE_GET_TAG(v) == JS_TAG_UNINITIALIZED || JS_IsException(v)))
+                    return 0;
+                *out = v;
+                return 1;
+            }
         }
     }
+    return cl_read_own_normal_slot2_slow(o, sh, sh0_io, slot0_io, sh1_io, slot1_io, atom, out);
+}
+
+QJS_CL_COLD_NOINLINE JSProperty *
+cl_find_own_writable_normal_slot2_slow(JSObject *o, JSShape *sh, JSShape **sh0_io,
+                                       uint32_t *slot0_io, JSShape **sh1_io, uint32_t *slot1_io,
+                                       JSAtom atom, uint32_t mask, uint32_t req)
+{
     JSProperty *pr = NULL;
     JSShapeProperty *ps = find_own_property(&pr, o, atom);
     if (!ps || (ps->flags & mask) != req)
@@ -163,37 +168,37 @@ static inline JSProperty *cl_find_own_writable_normal_slot2(JSObject *o, JSShape
     return pr;
 }
 
-static inline int cl_resolve_global(JSContext *ctx, JSShape **sh_io, JSShape **sh_alt_io,
-                                    uint32_t *slot_io, uint8_t *which_io, JSAtom atom, JSValue *out)
+QJS_CL_ALWAYS_INLINE JSProperty *
+cl_find_own_writable_normal_slot2(JSObject *o, JSShape **sh0_io, uint32_t *slot0_io,
+                                  JSShape **sh1_io, uint32_t *slot1_io, JSAtom atom,
+                                  uint32_t forbid_flags)
 {
-    JSObject *gv = JS_VALUE_GET_OBJ(ctx->global_var_obj);
-    JSObject *go = JS_VALUE_GET_OBJ(ctx->global_obj);
-    if (unlikely(gv->is_exotic || go->is_exotic))
-        return 0;
-    JSShape *gv_sh = gv->shape;
-    JSShape *go_sh = go->shape;
-    uint8_t w = *which_io;
-    if (w == 1 && likely(gv_sh == *sh_io)) {
-        uint32_t s = *slot_io;
-        if (likely(s < (uint32_t)gv_sh->prop_size && get_shape_prop(gv_sh)[s].atom == atom &&
-                   (get_shape_prop(gv_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
-            JSValue v = gv->prop[s].u.value;
-            if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
-                *out = v;
-                return 1;
-            }
+    JSShape *sh = o->shape;
+    uint32_t req = JS_PROP_NORMAL | JS_PROP_WRITABLE;
+    uint32_t mask = JS_PROP_TMASK | JS_PROP_WRITABLE | forbid_flags;
+    if (likely(sh)) {
+        if (likely(*sh0_io == sh)) {
+            uint32_t s = *slot0_io;
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & mask) == req))
+                return &o->prop[s];
         }
-    } else if (w == 2 && likely(gv_sh == *sh_io && go_sh == *sh_alt_io)) {
-        uint32_t s = *slot_io;
-        if (likely(s < (uint32_t)go_sh->prop_size && get_shape_prop(go_sh)[s].atom == atom &&
-                   (get_shape_prop(go_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
-            JSValue v = go->prop[s].u.value;
-            if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
-                *out = v;
-                return 1;
-            }
+        if (likely(*sh1_io == sh)) {
+            uint32_t s = *slot1_io;
+            if (likely(s < (uint32_t)sh->prop_size && get_shape_prop(sh)[s].atom == atom &&
+                       (get_shape_prop(sh)[s].flags & mask) == req))
+                return &o->prop[s];
         }
     }
+    return cl_find_own_writable_normal_slot2_slow(o, sh, sh0_io, slot0_io, sh1_io, slot1_io, atom,
+                                                  mask, req);
+}
+
+QJS_CL_COLD_NOINLINE int cl_resolve_global_slow(JSObject *gv, JSObject *go, JSShape *gv_sh,
+                                                JSShape *go_sh, JSShape **sh_io,
+                                                JSShape **sh_alt_io, uint32_t *slot_io,
+                                                uint8_t *which_io, JSAtom atom, JSValue *out)
+{
     JSProperty *pr = NULL;
     JSShapeProperty *ps = find_own_property(&pr, gv, atom);
     if (ps) {
@@ -222,6 +227,42 @@ static inline int cl_resolve_global(JSContext *ctx, JSShape **sh_io, JSShape **s
         return 1;
     }
     return 0;
+}
+
+QJS_CL_ALWAYS_INLINE int cl_resolve_global(JSContext *ctx, JSShape **sh_io, JSShape **sh_alt_io,
+                                           uint32_t *slot_io, uint8_t *which_io, JSAtom atom,
+                                           JSValue *out)
+{
+    JSObject *gv = JS_VALUE_GET_OBJ(ctx->global_var_obj);
+    JSObject *go = JS_VALUE_GET_OBJ(ctx->global_obj);
+    if (unlikely(gv->is_exotic || go->is_exotic))
+        return 0;
+    JSShape *gv_sh = gv->shape;
+    JSShape *go_sh = go->shape;
+    uint8_t w = *which_io;
+    if (likely(w == 2 && gv_sh == *sh_io && go_sh == *sh_alt_io)) {
+        uint32_t s = *slot_io;
+        if (likely(s < (uint32_t)go_sh->prop_size && get_shape_prop(go_sh)[s].atom == atom &&
+                   (get_shape_prop(go_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+            JSValue v = go->prop[s].u.value;
+            if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
+                *out = v;
+                return 1;
+            }
+        }
+    } else if (likely(w == 1 && gv_sh == *sh_io)) {
+        uint32_t s = *slot_io;
+        if (likely(s < (uint32_t)gv_sh->prop_size && get_shape_prop(gv_sh)[s].atom == atom &&
+                   (get_shape_prop(gv_sh)[s].flags & JS_PROP_TMASK) == JS_PROP_NORMAL)) {
+            JSValue v = gv->prop[s].u.value;
+            if (likely(JS_VALUE_GET_TAG(v) != JS_TAG_UNINITIALIZED && !JS_IsException(v))) {
+                *out = v;
+                return 1;
+            }
+        }
+    }
+    return cl_resolve_global_slow(gv, go, gv_sh, go_sh, sh_io, sh_alt_io, slot_io, which_io, atom,
+                                  out);
 }
 
 __attribute__((visibility("hidden"), section(".text.qjs_frame"), noipa)) int
@@ -634,3 +675,5 @@ JS_FastCompoundLeaf(JSFrameRegisterState *state, JSFunctionBytecode *b, JSValue 
 
     return -1;
 }
+#undef QJS_CL_ALWAYS_INLINE
+#undef QJS_CL_COLD_NOINLINE

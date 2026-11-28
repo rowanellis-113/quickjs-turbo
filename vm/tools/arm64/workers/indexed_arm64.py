@@ -2156,136 +2156,117 @@ def _specialize_stack_and_globals(text, output, op_ids):
         if p:
             islands[-1] = f"#ifdef QJS_AARCH64_VM_INSTRUMENT\n{islands[-1]}\n#endif"
 
+    # Zero-shift redirect: keep .Lslot_store and .Lslot_last exact byte layout untouched.
     text = _replace_exact(
         text,
-        ".Lslot_last_kept:\n"
-        "    add x20, x20, x13\n"
-        "    str x22, [x19, #ARM_OFF_JSFrameRegisterState_frame]\n",
-        ".Lslot_last_kept:\n"
-        "    add x20, x20, x13\n"
-        "#if ARM_HAS_HYBRID_DRC_OK\n"
-        "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
-        "    add w4, w3, #(-ARM_CONST_JS_TAG_STRING)\n"
-        "    cmp w4, #1\n"
-        "    b.hi .Lfast_slot_last_c\n"
-        "    ldr x0, [x19, #ARM_OFF_JSFrameRegisterState_rt]\n"
-        "    ldrb w5, [x0, #ARM_OFF_JSRuntime_drc_ok]\n"
-        "    cmp w5, #1\n"
-        "    b.ne .Lfast_slot_last_c\n"
-        "    ldur w5, [x2, #ARM_REF_COUNT_OFFSET]\n"
-        "    cmp w5, #1\n"
-        "    b.ne .Lfast_slot_last_c\n"
-        "    mov x1, x2\n"
-        "    mov w2, w4\n"
-        "    bl js_hybrid_drop_string1\n"
-        "    ARM_DISPATCH_NEXT 1\n"
-        ".Lfast_slot_last_c:\n"
-        "#endif\n"
-        "#endif\n"
-        "    str x22, [x19, #ARM_OFF_JSFrameRegisterState_frame]\n",
+        "    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]\n    cmp w16, #1\n    b.le .Lslot_last\n",
+        "    ldur w16, [x14, #ARM_REF_COUNT_OFFSET]\n"
+        "    cmp w16, #1\n"
+        "#if ARM_HAS_HYBRID_DRC_OK && !defined(QJS_AARCH64_VM_INSTRUMENT)\n"
+        "    b.le .Lfast_slot_last\n"
+        "#else\n"
+        "    b.le .Lslot_last\n"
+        "#endif\n",
         1,
-        "slot_last hybrid drop_string1 bypass",
+        "slot_last zero-shift redirect",
     )
+    islands.append("""#if ARM_HAS_HYBRID_DRC_OK
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+.Lfast_slot_last:
+    add w4, w15, #(-ARM_CONST_JS_TAG_STRING)
+    cmp w4, #1
+    b.hi .Lslot_last
+    ldr x0, [x19, #ARM_OFF_JSFrameRegisterState_rt]
+    ldrb w5, [x0, #ARM_OFF_JSRuntime_drc_ok]
+    cmp w5, #1
+    b.ne .Lslot_last
+    cmp w16, #1
+    b.ne .Lslot_last
+    cbz w17, .Lfast_slot_last_go
+    tbz x11, #63, .Lfast_slot_last_go
+    cmp x10, x14
+    b.eq .Lslot_last
+    ldur w5, [x10, #ARM_REF_COUNT_OFFSET]
+    add w5, w5, #1
+    stur w5, [x10, #ARM_REF_COUNT_OFFSET]
+.Lfast_slot_last_go:
+    stp x10, x11, [x12]
+    cbnz w17, .Lfast_slot_last_kept
+    sub x21, x21, #16
+.Lfast_slot_last_kept:
+    add x20, x20, x13
+    mov x1, x14
+    mov w2, w4
+    bl js_hybrid_drop_string1
+    ARM_DISPATCH_NEXT 1
+#endif
+#endif
+""")
 
     return text, "\n".join(islands)
 
 
 def _specialize_iterators(text, arr_iter_id, cfunc_iter_next):
-    islands = []
-    # Native zero-exit Release handlers for catch / gosub / ret / nip_catch / check_object.
-    native_iter_ops = {
-        "catch": (
-            "    ldursw x10, [x20, #1]\n"
-            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
-            "    add x10, x20, x10\n"
-            "    add x10, x10, #1\n"
-            "    sub x10, x10, x11\n"
-            "    mov x11, #ARM_CONST_JS_TAG_CATCH_OFFSET\n"
-            "    stp x10, x11, [x21], #16\n"
-            "    add x20, x20, #5\n"
-            "    ARM_DISPATCH_NEXT 1\n"
-        ),
-        "gosub": (
-            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
-            "    ldursw x12, [x20, #1]\n"
-            "    add x10, x20, #5\n"
-            "    sub x10, x10, x11\n"
-            "    stp x10, xzr, [x21], #16\n"
-            "    add x20, x20, x12\n"
-            "    add x20, x20, #1\n"
-            "    ARM_DISPATCH_NEXT 1\n"
-        ),
-        "ret": (
-            "    ldp x10, x11, [x21, #-16]\n"
-            "    cbnz x11, .Literator_ret_c\n"
-            "    ldr w12, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_len]\n"
-            "    cmp w10, w12\n"
-            "    b.hs .Literator_ret_c\n"
-            "    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]\n"
-            "    sub x21, x21, #16\n"
-            "    add x20, x11, w10, uxtw\n"
-            "    ARM_DISPATCH_NEXT 1\n"
-            ".Literator_ret_c:\n"
-        ),
-        "nip_catch": (
-            "    ldrh w12, [x26, #ARM_OFF_JSFunctionBytecode_var_count]\n"
-            "    add x12, x23, x12, lsl #4\n"
-            "    sub x13, x21, #32\n"
-            "    cmp x13, x12\n"
-            "    b.lo .Literator_nip_catch_c\n"
-            "    ldr x14, [x21, #-24]\n"
-            "    cmp x14, #ARM_CONST_JS_TAG_CATCH_OFFSET\n"
-            "    b.ne .Literator_nip_catch_c\n"
-            "    ldp x10, x11, [x21, #-16]\n"
-            "    stp x10, x11, [x21, #-32]\n"
-            "    sub x21, x21, #16\n"
-            "    add x20, x20, #1\n"
-            "    ARM_DISPATCH_NEXT 1\n"
-            ".Literator_nip_catch_c:\n"
-        ),
-        "check_object": (
-            "    ldr x11, [x21, #-8]\n"
-            "    cmn x11, #1\n"
-            "    b.ne .Literator_check_object_c\n"
-            "    add x20, x20, #1\n"
-            "    ARM_DISPATCH_NEXT 1\n"
-            ".Literator_check_object_c:\n"
-        ),
-    }
-    for op_name, fast_body in native_iter_ops.items():
-        old_blk = f""".Literator_{op_name}:
-    str x20, [x19, #ARM_OFF_JSFrameRegisterState_pc]
-    str x21, [x19, #ARM_OFF_JSFrameRegisterState_sp]
-    mov x0, x19
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    ldr x14, [sp, #128]
-    add x14, x14, #1
-    str x14, [sp, #128]
-#endif
-#ifdef QJS_AARCH64_VM_INSTRUMENT
-    ldr x14, [sp, #136]
-    add x14, x14, #1
-    str x14, [sp, #136]
-#endif
-    bl JS_LinuxIterator_{op_name}
-    cbz w0, .Lreload
-    b .Ldone"""
-        if op_name in ("catch", "gosub"):
-            new_blk = (
-                f".Literator_{op_name}:\n"
-                "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
-                f"{fast_body}"
-                "#else\n" + old_blk.split("\n", 1)[1] + "\n#endif"
-            )
-        else:
-            new_blk = (
-                f".Literator_{op_name}:\n"
-                "#ifndef QJS_AARCH64_VM_INSTRUMENT\n"
-                f"{fast_body}"
-                "#endif\n" + old_blk.split("\n", 1)[1]
-            )
-        text = _replace_exact(text, old_blk, new_blk, 1, f"iterator_{op_name} native fast path")
+    islands = [
+        """#if ARM_HAS_ITERATORS
+#ifndef QJS_AARCH64_VM_INSTRUMENT
+.Lfast_iter_catch:
+    ldursw x10, [x20, #1]
+    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
+    add x10, x20, x10
+    add x10, x10, #1
+    sub x10, x10, x11
+    mov x11, #ARM_CONST_JS_TAG_CATCH_OFFSET
+    stp x10, x11, [x21], #16
+    add x20, x20, #5
+    ARM_DISPATCH_NEXT 1
 
+.Lfast_iter_gosub:
+    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
+    ldursw x12, [x20, #1]
+    add x10, x20, #5
+    sub x10, x10, x11
+    stp x10, xzr, [x21], #16
+    add x20, x20, x12
+    add x20, x20, #1
+    ARM_DISPATCH_NEXT 1
+
+.Lfast_iter_ret:
+    ldp x10, x11, [x21, #-16]
+    cbnz x11, .Literator_ret
+    ldr w12, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_len]
+    cmp w10, w12
+    b.hs .Literator_ret
+    ldr x11, [x26, #ARM_OFF_JSFunctionBytecode_byte_code_buf]
+    sub x21, x21, #16
+    add x20, x11, w10, uxtw
+    ARM_DISPATCH_NEXT 1
+
+.Lfast_iter_nip_catch:
+    ldrh w12, [x26, #ARM_OFF_JSFunctionBytecode_var_count]
+    add x12, x23, x12, lsl #4
+    sub x13, x21, #32
+    cmp x13, x12
+    b.lo .Literator_nip_catch
+    ldr x14, [x21, #-24]
+    cmp x14, #ARM_CONST_JS_TAG_CATCH_OFFSET
+    b.ne .Literator_nip_catch
+    ldp x10, x11, [x21, #-16]
+    stp x10, x11, [x21, #-32]
+    sub x21, x21, #16
+    add x20, x20, #1
+    ARM_DISPATCH_NEXT 1
+
+.Lfast_iter_check_object:
+    ldr x11, [x21, #-8]
+    cmn x11, #1
+    b.ne .Literator_check_object
+    add x20, x20, #1
+    ARM_DISPATCH_NEXT 1
+#endif
+#endif
+"""
+    ]
     for p in ("", "pub_"):
         helper = (
             "JS_LinuxIterator_for_of_next"

@@ -6,6 +6,7 @@ enum {
     FAST_CTOR_SRC_UNDEF = 4,
     FAST_CTOR_SRC_BOOL = 5,
     FAST_CTOR_SRC_CPOOL = 6,
+    FAST_CTOR_SRC_ARG_OR_DEF = 7,
 };
 
 typedef struct FastCtorMeta {
@@ -35,7 +36,9 @@ typedef struct FastCtorMeta {
     uint8_t ret_this;
     uint8_t want_inline;
     uint8_t src_kind[16];
+    uint8_t def_kind[16];
     int32_t src_imm[16];
+    int32_t def_imm[16];
     JSAtom atoms[16];
 } FastCtorMeta;
 
@@ -228,6 +231,279 @@ static inline int fast_ctor_to_bool(JSValueConst v)
         return !JS_VALUE_GET_OBJ(v)->is_HTMLDDA;
     default:
         return -1;
+    }
+}
+
+static inline bool fast_ctor_parse_arg_idx(const uint8_t *buf, uint32_t len, uint32_t arg_count,
+                                           uint32_t *pk, uint32_t *out_idx)
+{
+    uint32_t k = *pk;
+    if (k >= len)
+        return false;
+    uint8_t op = buf[k];
+    uint32_t idx;
+    if (op >= OP_get_arg0 && op <= OP_get_arg3) {
+        idx = (uint32_t)(op - OP_get_arg0);
+        if (idx >= arg_count || idx >= 8u)
+            return false;
+        *pk = k + 1;
+        *out_idx = idx;
+        return true;
+    }
+    if (op == OP_get_arg && k + 3 <= len) {
+        idx = get_u16(buf + k + 1);
+        if (idx >= arg_count || idx >= 8u)
+            return false;
+        *pk = k + 3;
+        *out_idx = idx;
+        return true;
+    }
+    return false;
+}
+
+static inline bool fast_ctor_parse_put_arg_idx(const uint8_t *buf, uint32_t len, uint32_t arg_count,
+                                               uint32_t *pk, uint32_t *out_idx)
+{
+    uint32_t k = *pk;
+    if (k >= len)
+        return false;
+    uint8_t op = buf[k];
+    uint32_t idx;
+    if (op >= OP_put_arg0 && op <= OP_put_arg3) {
+        idx = (uint32_t)(op - OP_put_arg0);
+        if (idx >= arg_count || idx >= 8u)
+            return false;
+        *pk = k + 1;
+        *out_idx = idx;
+        return true;
+    }
+    if (op == OP_put_arg && k + 3 <= len) {
+        idx = get_u16(buf + k + 1);
+        if (idx >= arg_count || idx >= 8u)
+            return false;
+        *pk = k + 3;
+        *out_idx = idx;
+        return true;
+    }
+    return false;
+}
+
+static inline bool fast_ctor_parse_const(JSFunctionBytecode *b, const uint8_t *buf, uint32_t len,
+                                         uint32_t *pk, uint8_t *kind, int32_t *imm)
+{
+    uint32_t k = *pk;
+    if (!fast_ctor_parse_val(b, buf, len, &k, kind, imm) || *kind == FAST_CTOR_SRC_ARG)
+        return false;
+    *pk = k;
+    return true;
+}
+
+static inline bool fast_ctor_parse_branch(const uint8_t *buf, uint32_t len, uint32_t k,
+                                          bool want_true, uint32_t *next_k, uint32_t *target)
+{
+    if (k >= len)
+        return false;
+    uint8_t op = buf[k];
+    uint32_t ilen;
+    int32_t disp;
+    if (want_true ? (op == OP_if_true8) : (op == OP_if_false8)) {
+        if (k + 2 > len)
+            return false;
+        ilen = 2;
+        disp = (int8_t)buf[k + 1];
+    } else if (want_true ? (op == OP_if_true) : (op == OP_if_false)) {
+        if (k + 5 > len)
+            return false;
+        ilen = 5;
+        disp = (int32_t)get_u32(buf + k + 1);
+    } else {
+        return false;
+    }
+    int32_t tgt = (int32_t)(k + 1) + disp;
+    if (tgt < (int32_t)(k + ilen) || (uint32_t)tgt >= len)
+        return false;
+    *next_k = k + ilen;
+    *target = (uint32_t)tgt;
+    return true;
+}
+
+static inline bool fast_ctor_parse_goto(const uint8_t *buf, uint32_t len, uint32_t k,
+                                        uint32_t *next_k, uint32_t *target)
+{
+    if (k >= len)
+        return false;
+    uint8_t op = buf[k];
+    uint32_t ilen;
+    int32_t disp;
+    if (op == OP_goto8) {
+        if (k + 2 > len)
+            return false;
+        ilen = 2;
+        disp = (int8_t)buf[k + 1];
+    } else if (op == OP_goto16) {
+        if (k + 3 > len)
+            return false;
+        ilen = 3;
+        disp = (int16_t)get_u16(buf + k + 1);
+    } else if (op == OP_goto) {
+        if (k + 5 > len)
+            return false;
+        ilen = 5;
+        disp = (int32_t)get_u32(buf + k + 1);
+    } else {
+        return false;
+    }
+    int32_t tgt = (int32_t)(k + 1) + disp;
+    if (tgt < (int32_t)(k + ilen) || (uint32_t)tgt >= len)
+        return false;
+    *next_k = k + ilen;
+    *target = (uint32_t)tgt;
+    return true;
+}
+
+static bool fast_ctor_compile_init(JSFunctionBytecode *ib, JSObject *proto_obj, FastCtorMeta *m)
+{
+    const uint8_t *buf = ib->byte_code_buf;
+    uint32_t len = ib->byte_code_len;
+    if (ib->arg_count > 8)
+        return false;
+    if (ib->var_count == 0) {
+        if (len == 1 && buf[0] == OP_return_undef) {
+            m->tier = 5;
+            m->n_fields = 0;
+            return true;
+        }
+        return false;
+    }
+    if (ib->var_count != 1 || len < 3 || buf[0] != OP_push_this || buf[1] != OP_put_loc0)
+        return false;
+
+    uint8_t arg_def_kind[8] = {0};
+    int32_t arg_def_imm[8] = {0};
+    uint32_t k = 2;
+
+    /* Optional prefix: if (!argK) argK = <const>; */
+    while (k < len) {
+        uint32_t k0 = k, aidx = 0, k1 = 0, tgt = 0, put_idx = 0;
+        uint8_t dk = 0;
+        int32_t di = 0;
+        if (!fast_ctor_parse_arg_idx(buf, len, ib->arg_count, &k, &aidx) ||
+            arg_def_kind[aidx] != 0) {
+            k = k0;
+            break;
+        }
+        bool br_ok = false;
+        if (fast_ctor_parse_branch(buf, len, k, true, &k1, &tgt)) {
+            br_ok = true;
+        } else if (k < len && buf[k] == OP_lnot &&
+                   fast_ctor_parse_branch(buf, len, k + 1, false, &k1, &tgt)) {
+            br_ok = true;
+        }
+        if (!br_ok || !fast_ctor_parse_const(ib, buf, len, &k1, &dk, &di) ||
+            !fast_ctor_parse_put_arg_idx(buf, len, ib->arg_count, &k1, &put_idx) ||
+            put_idx != aidx || k1 != tgt) {
+            k = k0;
+            break;
+        }
+        arg_def_kind[aidx] = dk;
+        arg_def_imm[aidx] = di;
+        k = k1;
+    }
+
+    uint8_t n_f = 0;
+    while (k < len && buf[k] == OP_get_loc0) {
+        if (n_f >= 16)
+            return false;
+        k++;
+        uint32_t ke = k;
+        uint8_t kind = 0, dk = 0;
+        int32_t imm = 0, di = 0;
+        bool matched = false;
+
+        /* Pattern A: arg ? arg : <const> */
+        uint32_t a1 = 0, a2 = 0, k1 = 0, t_def = 0, k2 = 0, t_end = 0;
+        if (fast_ctor_parse_arg_idx(buf, len, ib->arg_count, &k, &a1) && arg_def_kind[a1] == 0 &&
+            fast_ctor_parse_branch(buf, len, k, false, &k1, &t_def) &&
+            fast_ctor_parse_arg_idx(buf, len, ib->arg_count, &k1, &a2) && a2 == a1 &&
+            fast_ctor_parse_goto(buf, len, k1, &k2, &t_end) && k2 == t_def &&
+            fast_ctor_parse_const(ib, buf, len, &k2, &dk, &di) && k2 == t_end) {
+            kind = FAST_CTOR_SRC_ARG_OR_DEF;
+            imm = (int32_t)a1;
+            k = k2;
+            matched = true;
+        }
+
+        /* Pattern B: arg || <const> */
+        if (!matched) {
+            k = ke;
+            if (fast_ctor_parse_arg_idx(buf, len, ib->arg_count, &k, &a1) &&
+                arg_def_kind[a1] == 0 && k < len && buf[k] == OP_dup &&
+                fast_ctor_parse_branch(buf, len, k + 1, true, &k1, &t_end) && k1 < len &&
+                buf[k1] == OP_drop) {
+                uint32_t kc = k1 + 1;
+                if (fast_ctor_parse_const(ib, buf, len, &kc, &dk, &di) && kc == t_end) {
+                    kind = FAST_CTOR_SRC_ARG_OR_DEF;
+                    imm = (int32_t)a1;
+                    k = kc;
+                    matched = true;
+                }
+            }
+        }
+
+        /* Pattern C: direct arg (possibly defaulted in prefix) or constant */
+        if (!matched) {
+            k = ke;
+            if (!fast_ctor_parse_val(ib, buf, len, &k, &kind, &imm))
+                return false;
+            if (kind == FAST_CTOR_SRC_ARG) {
+                if ((uint32_t)imm >= ib->arg_count)
+                    return false;
+                if ((uint32_t)imm < 8u && arg_def_kind[imm] != 0) {
+                    kind = FAST_CTOR_SRC_ARG_OR_DEF;
+                    dk = arg_def_kind[imm];
+                    di = arg_def_imm[imm];
+                }
+            }
+        }
+
+        if (k + 5 > len || buf[k] != OP_put_field)
+            return false;
+        JSAtom atom = get_u32(buf + k + 1);
+        k += 5;
+        for (uint8_t j = 0; j < n_f; j++) {
+            if (m->atoms[j] == atom)
+                return false;
+        }
+        if (!fast_ctor_proto_ok(proto_obj, atom))
+            return false;
+        m->src_kind[n_f] = kind;
+        m->src_imm[n_f] = imm;
+        m->def_kind[n_f] = dk;
+        m->def_imm[n_f] = di;
+        m->atoms[n_f] = atom;
+        n_f++;
+    }
+
+    if (k + 1 != len || buf[k] != OP_return_undef)
+        return false;
+    m->tier = 5;
+    m->n_fields = n_f;
+    return true;
+}
+
+static inline JSValue fast_ctor_eval_const(JSFunctionBytecode *b, uint8_t kind, int32_t imm)
+{
+    switch (kind) {
+    case FAST_CTOR_SRC_I32:
+        return js_int32(imm);
+    case FAST_CTOR_SRC_NULL:
+        return JS_NULL;
+    case FAST_CTOR_SRC_UNDEF:
+        return JS_UNDEFINED;
+    case FAST_CTOR_SRC_BOOL:
+        return JS_MKVAL(JS_TAG_BOOL, imm);
+    default:
+        return js_dup(b->cpool[imm]);
     }
 }
 
@@ -749,12 +1025,14 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
         if (m->tier == 4)
             return fast_ctor_decline(state);
         JSObject *cur = proto_obj;
-        for (uint8_t d = 1; d < m->init_depth && cur; d++) {
-            if (cur->is_exotic || !cur->is_prototype) {
-                cur = NULL;
-                break;
+        if (unlikely(m->init_depth != 1)) {
+            for (uint8_t d = 1; d < m->init_depth && cur; d++) {
+                if (cur->is_exotic || !cur->is_prototype) {
+                    cur = NULL;
+                    break;
+                }
+                cur = cur->shape->proto;
             }
-            cur = cur->shape->proto;
         }
         if (cur && (uintptr_t)cur == m->init_holder_id && !cur->is_exotic && cur->is_prototype &&
             (uintptr_t)cur->shape == m->init_holder_shape_id &&
@@ -908,6 +1186,7 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             m->apply_slot = (uint32_t)(proto_apply - fn_proto->prop);
             m->tier = 3;
             m->n_fields = 0xFF;
+            fast_ctor_compile_init(init_b, proto_obj, m);
         } else if (len == 1 && buf[0] == OP_return_undef && b->var_count == 0 &&
                    b->var_ref_count == 0 && b->closure_var_count == 0) {
             m->tier = 1;
@@ -999,6 +1278,148 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
     }
 
     if (is_va_wrapper) {
+        if (likely(m->tier == 5 && init_b)) {
+            uint8_t n_f = m->n_fields;
+            uint8_t truthy[16];
+            for (unsigned f = 0; f < n_f; f++) {
+                if (m->src_kind[f] == FAST_CTOR_SRC_ARG_OR_DEF) {
+                    uint32_t aidx = (uint32_t)m->src_imm[f];
+                    if (aidx < incoming_argc) {
+                        JSValue a = argv[aidx];
+                        int64_t tag = JS_VALUE_GET_TAG(a);
+                        int bval;
+                        if (tag == JS_TAG_FLOAT64) {
+                            double d = JS_VALUE_GET_FLOAT64(a);
+                            bval = (!isnan(d) && d != 0.0);
+                        } else if (tag == JS_TAG_INT) {
+                            bval = (JS_VALUE_GET_INT(a) != 0);
+                        } else {
+                            bval = fast_ctor_to_bool(a);
+                            if (unlikely(bval < 0))
+                                return fast_ctor_decline(state);
+                        }
+                        truthy[f] = (uint8_t)bval;
+                    } else {
+                        truthy[f] = 0;
+                    }
+                }
+            }
+            frame->saved_sp = sp;
+            frame->sf.cur_sp = sp;
+            frame->sf.cur_pc = pc + 3;
+            state->pc = pc;
+            state->sp = sp;
+            js_frame_begin_c(state);
+            OrdSite *site = ord_ctor_site(state, mode, ((uintptr_t)callee) | 1u, ~((uintptr_t)b));
+            if (unlikely(!site)) {
+                if (!FRAME_CHECKPOINT(frame))
+                    frame->sf.cur_sp = NULL;
+                js_frame_finish_c(state);
+                return fast_ctor_decline(state);
+            }
+            JSShape *sh = site->new_shape;
+            if (unlikely(!(sh && sh == m->cached_shape &&
+                           m->cached_shape_epoch == rt->property_ic_epoch &&
+                           sh->proto == proto_obj && sh->is_hashed && !sh->deleted_prop_count &&
+                           sh->prop_count == n_f))) {
+                sh = fast_ctor_ensure_shape(ctx, rt, site, proto_obj, n_f, m->atoms);
+                if (unlikely(!sh)) {
+                    state->pc = pc + 3;
+                    state->exception_pending = true;
+                    js_frame_finish_c(state);
+                    return JS_FrameInterpSlow(state);
+                }
+                m->cached_shape = sh;
+                m->cached_shape_epoch = rt->property_ic_epoch;
+            }
+            JSProperty props[16];
+            uint32_t moved_mask = 0;
+            uint32_t owned_mask = 0;
+            props[0].u.value = JS_UNDEFINED;
+            for (unsigned f = 0; f < n_f; f++) {
+                uint8_t sk = m->src_kind[f];
+                JSValue v;
+                if (sk == FAST_CTOR_SRC_ARG_OR_DEF) {
+                    if (truthy[f]) {
+                        uint32_t aidx = (uint32_t)m->src_imm[f];
+                        if (likely(aidx < 32u && !(moved_mask & (1u << aidx)))) {
+                            moved_mask |= (1u << aidx);
+                            v = argv[aidx];
+                        } else {
+                            v = js_dup(argv[aidx]);
+                            owned_mask |= (1u << f);
+                        }
+                    } else {
+                        v = fast_ctor_eval_const(init_b, m->def_kind[f], m->def_imm[f]);
+                        owned_mask |= (1u << f);
+                    }
+                } else if (sk == FAST_CTOR_SRC_ARG) {
+                    uint32_t aidx = (uint32_t)m->src_imm[f];
+                    if (aidx < incoming_argc) {
+                        if (likely(aidx < 32u && !(moved_mask & (1u << aidx)))) {
+                            moved_mask |= (1u << aidx);
+                            v = argv[aidx];
+                        } else {
+                            v = js_dup(argv[aidx]);
+                            owned_mask |= (1u << f);
+                        }
+                    } else {
+                        v = JS_UNDEFINED;
+                    }
+                } else {
+                    v = fast_ctor_eval_const(init_b, sk, m->src_imm[f]);
+                    owned_mask |= (1u << f);
+                }
+                props[f].u.value = v;
+            }
+            JSValue this_obj =
+                JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, n_f ? props : NULL);
+            if (unlikely(JS_IsException(this_obj))) {
+                for (unsigned f = 0; f < n_f; f++) {
+                    if (owned_mask & (1u << f))
+                        JS_FreeValue(ctx, props[f].u.value);
+                }
+                state->pc = pc + 3;
+                state->exception_pending = true;
+                js_frame_finish_c(state);
+                return JS_FrameInterpSlow(state);
+            }
+            ctx->interrupt_counter -= 4;
+            JSValue old_f0 = argv[-2], old_f1 = argv[-1];
+            JSValue *new_sp = argv - 1;
+            argv[-2] = this_obj;
+            argv[-1] = JS_UNDEFINED;
+            state->pc = pc + 3;
+            state->sp = new_sp;
+            frame->saved_sp = new_sp;
+            frame->sf.cur_sp = new_sp;
+            frame->sf.cur_pc = pc + 3;
+            if (likely(JS_REF_COUNT(callee) > 2)) {
+                JS_REF_COUNT(callee) -= 2;
+            } else {
+                JS_FreeValue(ctx, old_f0);
+                JS_FreeValue(ctx, old_f1);
+            }
+            for (int i = 0; i < incoming_argc; i++) {
+                if (likely((uint32_t)i < 32u && (moved_mask & (1u << (uint32_t)i)))) {
+                    argv[i] = JS_UNDEFINED;
+                } else {
+                    JSValue a = argv[i];
+                    argv[i] = JS_UNDEFINED;
+                    if (JS_VALUE_HAS_REF_COUNT(a)) {
+                        void *ap = JS_VALUE_GET_PTR(a);
+                        if (likely(JS_REF_COUNT(ap) > 1))
+                            --JS_REF_COUNT(ap);
+                        else
+                            JS_FreeValue(ctx, a);
+                    }
+                }
+            }
+            if (!FRAME_CHECKPOINT(frame))
+                frame->sf.cur_sp = NULL;
+            js_frame_finish_c(state);
+            return 2;
+        }
         if (m->tier != 3 || !init_b)
             return fast_ctor_decline(state);
         JSAtom out_atoms[16];

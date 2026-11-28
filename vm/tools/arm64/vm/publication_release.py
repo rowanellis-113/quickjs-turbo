@@ -100,6 +100,21 @@ def _unify_publication_release(text, output, op_ids):
         "    .word .Lfast_push_bigint_i32 - qjs_aarch64_publish_clean\n"
         "#endif"
     )
+    iter_fast_ops = ("catch", "gosub", "ret", "nip_catch", "check_object")
+    for op_name in iter_fast_ops:
+        slot = op_ids[op_name]
+        if (
+            f".Literator_{op_name} - qjs_aarch64_publish_clean"
+            in clean_prefix[clean_idx + 1 + slot]
+        ):
+            clean_prefix[clean_idx + 1 + slot] = (
+                "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+                f"    .word .Literator_{op_name} - qjs_aarch64_publish_clean\n"
+                "#else\n"
+                f"    .word .Lfast_iter_{op_name} - qjs_aarch64_publish_clean\n"
+                "#endif"
+            )
+            rel_dirty_words[slot] = f"    .word .Lfast_iter_{op_name} - qjs_aarch64_publish_dirty"
     new_ptab = (
         clean_prefix
         + ["#ifdef QJS_AARCH64_VM_INSTRUMENT"]
@@ -133,6 +148,20 @@ def _unify_publication_release(text, output, op_ids):
         1,
         "push_bigint_i32 instrument dispatch",
     )
+    for op_name in iter_fast_ops:
+        old_disp = f".word .Literator_{op_name} - .Ldispatch_table"
+        if old_disp in disp_text:
+            disp_text = _replace_exact(
+                disp_text,
+                old_disp,
+                "#ifdef QJS_AARCH64_VM_INSTRUMENT\n"
+                f"{old_disp}\n"
+                "#else\n"
+                f".word .Lfast_iter_{op_name} - .Ldispatch_table\n"
+                "#endif",
+                1,
+                f"{op_name} fast dispatch",
+            )
     disp_path.write_text(disp_text)
 
     # 3. Rewrite non-pub_ `bl JS_<stem>` (for 29 proxy stems) after `.Lpublication_selected:`
@@ -420,7 +449,6 @@ def _unify_publication_release(text, output, op_ids):
                     raise ValueError(f"Stale 4-byte ldrsw dispatch in Release code: {st}")
     if stack:
         raise ValueError(f"Unbalanced #if/#endif stack after Release unification: {stack}")
-    rel_joined = "\n".join(rel_asm)
     # Strip comments and collect GAS macro definitions to avoid false positives on \.L\name templates
     no_macro_lines = []
     macro_defs = {}
