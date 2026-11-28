@@ -67,6 +67,8 @@ extern void JS_CVMRunSegment(JSCVMSegmentState *state);
 #endif
 #if defined(_MSC_VER)
 #define QJS_CVM_COLD_CODE __declspec(code_seg(".qjscold")) __declspec(noinline)
+#elif defined(__APPLE__)
+#define QJS_CVM_COLD_CODE __attribute__((section("__TEXT,__qjs_text"), noinline))
 #elif defined(__GNUC__)
 #define QJS_CVM_COLD_CODE __attribute__((section(".text.qjs_cvm_cold"), noinline))
 #else

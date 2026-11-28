@@ -168,10 +168,11 @@ cl_find_own_writable_normal_slot2_slow(JSObject *o, JSShape *sh, JSShape **sh0_i
     return pr;
 }
 
-QJS_CL_ALWAYS_INLINE JSProperty *
-cl_find_own_writable_normal_slot2(JSObject *o, JSShape **sh0_io, uint32_t *slot0_io,
-                                  JSShape **sh1_io, uint32_t *slot1_io, JSAtom atom,
-                                  uint32_t forbid_flags)
+QJS_CL_ALWAYS_INLINE JSProperty *cl_find_own_writable_normal_slot2(JSObject *o, JSShape **sh0_io,
+                                                                   uint32_t *slot0_io,
+                                                                   JSShape **sh1_io,
+                                                                   uint32_t *slot1_io, JSAtom atom,
+                                                                   uint32_t forbid_flags)
 {
     JSShape *sh = o->shape;
     uint32_t req = JS_PROP_NORMAL | JS_PROP_WRITABLE;

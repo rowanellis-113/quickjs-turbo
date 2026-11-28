@@ -29,7 +29,7 @@
     "src/common/property/fast-get-field.inc": "84c8ea4068e322c1019ee24eb688049a2450b66490bb21d70619404a1c680a31",
     "src/common/value/instanceof-fast.inc": "802baf0c4702b7a6e4b2d55600338363e4b50504dba8490a1f4ef1a196c6e141",
     "src/common/value/bigint-divrem-fast.inc": "06d8b368fc685f548fa4c8cb1e01fc2c8bcd22e980f779051706be8a1e8235ff",
-    "src/common/call/compound-leaf.inc": "325fc0451d44b3ec14dc9992de9fd91a2a4e58c0194df6999c4eedacb2442246",
+    "src/common/call/compound-leaf.inc": "e4e391b94e0b8fc44cf635e96b151185a408259acf4ab57384fe06ea9c33f489",
     "src/common/call/fast-for-of-next.inc": "dd87940c3bec648d92d950eb6c4bfd0121788bc607987cdc1a232c7cffdaeea7",
     "src/common/kernel/fast-construct.inc": "754c917e0349440cc0f3b85f31a64fbd0dd34ecdd489370e1ae072a30baa829e",
     "src/common/kernel/fast-array-from.inc": "998c6c39e22f82656797184d7885550b534097cad1f596170100dac60733232e",
