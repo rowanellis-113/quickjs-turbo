@@ -118,7 +118,8 @@ def write_sdk_metadata(sdk_dir: Path, info: ReleaseInfo, *, platform: str, git_s
         "git_sha": git_sha,
     }
     out_path = sdk_dir / "quickjs-turbo-version.json"
-    out_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8", newline="\n")
+    with out_path.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(payload, indent=2) + "\n")
     return out_path
 
 
@@ -154,7 +155,8 @@ def write_release_notes(md_path: Path, info: ReleaseInfo, *, git_sha: str) -> Pa
         "",
     ]
     md_path.parent.mkdir(parents=True, exist_ok=True)
-    md_path.write_text("\n".join(lines), encoding="utf-8", newline="\n")
+    with md_path.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(lines))
     return md_path
 
 

@@ -495,6 +495,17 @@ if(QJS_ENABLE_INTERP_FRAME)
         endif()
     endforeach()
 endif()
+if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "MACOS_X86_64" AND CMAKE_C_COMPILER_ID MATCHES "Clang")
+    foreach(_qjs_macos_target IN ITEMS qjs-core qjs)
+        if(TARGET ${_qjs_macos_target})
+            target_compile_options(
+                ${_qjs_macos_target}
+                PRIVATE
+                    "$<$<AND:$<COMPILE_LANGUAGE:C>,$<CONFIG:Release,MinSizeRel>>:-fomit-frame-pointer>"
+            )
+        endif()
+    endforeach()
+endif()
 if(QJS_FRAME_BACKEND_EFFECTIVE STREQUAL "LINUX_AARCH64")
     add_dependencies(qjs qjs-aarch64-vm-inputs)
     if(QJS_INTERP_FRAME_SCALAR_OPS)

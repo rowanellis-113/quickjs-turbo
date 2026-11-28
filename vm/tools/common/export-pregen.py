@@ -42,6 +42,41 @@ def detect_property_ic(build_dir: Path) -> str:
     return "OFF"
 
 
+def _load_macos_adapt_filter(
+    effective: str, generated_dir: Path
+) -> tuple[set[str], dict[str, str]] | None:
+    """Return allowed (root_files, adapted_include_hashes) from MACOS-ADAPT.json when present."""
+    if effective != "MACOS_X86_64":
+        return None
+    adapt_path = generated_dir / "macos-native/MACOS-ADAPT.json"
+    if not adapt_path.is_file():
+        raise FileNotFoundError(f"Missing macOS adapt receipt: {adapt_path}")
+    adapt = json.loads(adapt_path.read_text(encoding="utf-8"))
+    for field, expected_type in (
+        ("c_files", dict),
+        ("asm_files", dict),
+        ("adapted_includes", list),
+        ("adapted_include_files", dict),
+    ):
+        if field not in adapt or not isinstance(adapt[field], expected_type):
+            raise ValueError(f"Missing or invalid {field} in {adapt_path}")
+    expected_inc = {"macos-inc/" + rel for rel in adapt["adapted_includes"]}
+    actual_inc = set(adapt["adapted_include_files"].keys())
+    if actual_inc != expected_inc:
+        raise ValueError(
+            f"adapted_include_files mismatch in {adapt_path}: "
+            f"missing={sorted(expected_inc - actual_inc)[:5]}, "
+            f"extra={sorted(actual_inc - expected_inc)[:5]}"
+        )
+    allowed_root = set(adapt["c_files"].keys()) | set(adapt["asm_files"].keys())
+    expected_hashes = {
+        **adapt["c_files"],
+        **adapt["asm_files"],
+        **adapt["adapted_include_files"],
+    }
+    return allowed_root, expected_hashes
+
+
 def export_bundle(source_root: Path, build_dir: Path, out_root: Path) -> Path:
     source_root = source_root.resolve()
     build_dir = build_dir.resolve()
@@ -60,6 +95,8 @@ def export_bundle(source_root: Path, build_dir: Path, out_root: Path) -> Path:
     if not generated_dir.is_dir():
         raise FileNotFoundError(f"Missing generated directory: {generated_dir}")
 
+    macos_filter = _load_macos_adapt_filter(effective, generated_dir)
+
     bundle_dir = out_root / slug
     if bundle_dir.exists():
         shutil.rmtree(bundle_dir)
@@ -74,6 +111,15 @@ def export_bundle(source_root: Path, build_dir: Path, out_root: Path) -> Path:
         if src.suffix not in INCLUDED_SUFFIXES:
             continue
         rel = src.relative_to(build_dir).as_posix()
+        if macos_filter is not None and rel.startswith("generated/macos-native/"):
+            allowed_root, expected_hashes = macos_filter
+            sub_rel = rel[len("generated/macos-native/") :]
+            if sub_rel.startswith("macos-inc/"):
+                if sub_rel not in expected_hashes:
+                    continue
+            elif "/" not in sub_rel and src.suffix != ".json":
+                if sub_rel not in allowed_root:
+                    continue
         dst = bundle_dir / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         raw = src.read_bytes()
@@ -82,6 +128,17 @@ def export_bundle(source_root: Path, build_dir: Path, out_root: Path) -> Path:
             raw = raw.replace(b"\r\n", b"\n")
         dst.write_bytes(raw)
         files_manifest[rel] = hashlib.sha256(raw).hexdigest()
+
+    if macos_filter is not None:
+        _, expected_hashes = macos_filter
+        for sub_rel, expected_sha in sorted(expected_hashes.items()):
+            manifest_key = "generated/macos-native/" + sub_rel
+            actual_sha = files_manifest.get(manifest_key)
+            if actual_sha != expected_sha:
+                raise RuntimeError(
+                    f"macOS pregen receipt mismatch for {manifest_key}: "
+                    f"expected {expected_sha}, got {actual_sha}"
+                )
 
     if not files_manifest:
         raise RuntimeError(f"No generated assembly/C artifacts found under {generated_dir}")
@@ -96,9 +153,8 @@ def export_bundle(source_root: Path, build_dir: Path, out_root: Path) -> Path:
         "files": files_manifest,
     }
     manifest_path = bundle_dir / "PREGEN-MANIFEST.json"
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, sort_keys=False) + "\n", encoding="utf-8", newline="\n"
-    )
+    with manifest_path.open("w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(manifest, indent=2, sort_keys=False) + "\n")
     print(f"PREGEN EXPORTED: {bundle_dir} ({len(files_manifest)} files, backend={effective})")
     return bundle_dir
 

@@ -10,6 +10,25 @@ set(qjs_macos_int_expr "${qjs_macos_native_dir}/quickjs-macos-integer-expression
 set(qjs_macos_vm "${qjs_macos_native_dir}/quickjs-linux-vm.S")
 set(qjs_macos_bridges "${qjs_macos_native_dir}/quickjs-linux-bridges.S")
 set(qjs_macos_entry "${qjs_macos_native_dir}/quickjs-linux-entry.S")
+# Apple Clang / LLVM's pre-RA early tail duplication expands the shared
+# indirectbr dispatch block into ~300 blocks in both JS_LegacyCallInternal and
+# JS_CVMResumeInternal, causing RAGreedy to emit ~10x-16x stack-to-stack copies
+# across every opcode boundary. Cap early indirectbr duplication and let post-RA
+# placement tail duplication emit clean zero-spill direct-threaded dispatches.
+if(CMAKE_C_COMPILER_ID MATCHES "Clang")
+    include(CheckCSourceCompiles)
+    set(_qjs_saved_req_flags "${CMAKE_REQUIRED_FLAGS}")
+    set(CMAKE_REQUIRED_FLAGS
+        "-mllvm -tail-dup-indirect-size=4 -mllvm -tail-dup-placement-threshold=8")
+    check_c_source_compiles("int main(void){return 0;}" QJS_MACOS_CLANG_TAIL_DUP_FLAGS)
+    set(CMAKE_REQUIRED_FLAGS "${_qjs_saved_req_flags}")
+    if(QJS_MACOS_CLANG_TAIL_DUP_FLAGS)
+        set_source_files_properties(
+            "${qjs_macos_core}"
+            PROPERTIES COMPILE_OPTIONS
+                       "-mllvm;-tail-dup-indirect-size=4;-mllvm;-tail-dup-placement-threshold=8")
+    endif()
+endif()
 if(QJS_USE_PREGEN_ASM)
     include("${CMAKE_CURRENT_SOURCE_DIR}/cmake/common/Pregen.cmake")
     qjs_load_pregen_bundle("macos_x86_64")

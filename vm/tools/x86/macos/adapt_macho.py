@@ -4,6 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 import re
+import shutil
 
 ASM_SECTION_MAP = {
     ".text.qjs_linux_vm": "__TEXT,__qjs_vm,regular,pure_instructions",
@@ -114,7 +115,35 @@ def _rewrite_alias(match):
     )
 
 
-def adapt_c_text(text, *, is_foundation=False, is_arguments=False):
+HOT_INLINE_REWRITES = (
+    (
+        "js_str_key_cache_probe",
+        "static inline bool js_str_key_cache_probe(",
+        "static inline __attribute__((always_inline)) bool js_str_key_cache_probe(",
+        1,
+    ),
+    (
+        "js_linux_regexp_empty_guard",
+        "static QJS_LINUX_REGEXP_CODE bool js_linux_regexp_empty_guard(",
+        "static inline __attribute__((always_inline)) bool js_linux_regexp_empty_guard(",
+        1,
+    ),
+    (
+        "js_linux_regexp_split_guard",
+        "static QJS_LINUX_REGEXP_CODE bool js_linux_regexp_split_guard(",
+        "static inline __attribute__((always_inline)) bool js_linux_regexp_split_guard(",
+        1,
+    ),
+    (
+        "js_linux_try_dense_next",
+        "static bool js_linux_try_dense_next(",
+        "static inline __attribute__((always_inline)) bool js_linux_try_dense_next(",
+        2,
+    ),
+)
+
+
+def adapt_c_text(text, *, is_foundation=False, is_arguments=False, inline_counts=None):
     text = ALIAS_DECL_RE.sub(_rewrite_alias, text)
     text = ATTR_BLOCK_RE.sub(_rewrite_attr_block, text)
     text = LEAQ_RIP_RE.sub(lambda m: f"{m.group(1)}_{m.group(2)}{m.group(3)}", text)
@@ -133,6 +162,14 @@ def adapt_c_text(text, *, is_foundation=False, is_arguments=False):
     # exact single-instruction cvtsi2sdq across all IEEE-754 rounding modes.
     text = text.replace("result.d = (double)mantissa;", "result.d = (double)(int64_t)mantissa;")
     text = text.replace("result.d /= (double)scale;", "result.d /= (double)(int64_t)scale;")
+    # Restore inlining of small hot internal static helpers that Apple Clang
+    # leaves out-of-line due to noipa->noinline conversion or forward decls.
+    for key, old_sig, new_sig, _expected in HOT_INLINE_REWRITES:
+        n = text.count(old_sig)
+        if n:
+            text = text.replace(old_sig, new_sig)
+            if inline_counts is not None:
+                inline_counts[key] = inline_counts.get(key, 0) + n
     if is_foundation:
         # Expose js_function_apply and js_function_call with hidden linkage so
         # Mach-O symbol aliases (_qjs_linux_core_js_function_{apply,call}) resolve
@@ -160,8 +197,12 @@ def adapt_c_text(text, *, is_foundation=False, is_arguments=False):
 def adapt_c_tree(source, output):
     """Adapt generated C/headers and transitively copy+adapt included ELF .inc files."""
     inc_root = output / "macos-inc"
+    if inc_root.exists():
+        shutil.rmtree(inc_root)
     inc_root.mkdir(parents=True, exist_ok=True)
     adapted_inc = {}
+    adapted_inc_hashes = {}
+    inline_counts = {}
 
     def adapt_included_rel(rel_path):
         if rel_path in adapted_inc:
@@ -172,7 +213,7 @@ def adapt_c_tree(source, output):
         raw = src_path.read_text(encoding="utf-8")
         # Reserve slot before recursing to avoid cycles
         adapted_inc[rel_path] = None
-        transformed = adapt_c_text(raw)
+        transformed = adapt_c_text(raw, inline_counts=inline_counts)
         transformed = _rewrite_includes(transformed, src_path.parent)
         if transformed == raw:
             return None
@@ -181,6 +222,7 @@ def adapt_c_tree(source, output):
         dest = output / out_rel
         dest.parent.mkdir(parents=True, exist_ok=True)
         dest.write_text(transformed, encoding="utf-8")
+        adapted_inc_hashes[out_rel] = sha(dest)
         return out_rel
 
     def _rewrite_includes(text, current_dir):
@@ -216,11 +258,19 @@ def adapt_c_tree(source, output):
             raw,
             is_foundation=(path.name == "quickjs-linux-foundation.c"),
             is_arguments=(path.name == "quickjs-linux-arguments.h"),
+            inline_counts=inline_counts,
         )
         new_text = _rewrite_includes(new_text, None)
         if new_text != raw:
             path.write_text(new_text, encoding="utf-8")
         adapted_files[path.name] = sha(path)
+
+    for key, _old_sig, _new_sig, expected in HOT_INLINE_REWRITES:
+        actual = inline_counts.get(key, 0)
+        if actual != expected:
+            raise ValueError(
+                f"Hot inline anchor count mismatch for {key}: expected {expected}, got {actual}"
+            )
 
     # Also adapt src/x86/linux/integer-expression.c into generated output
     int_expr_src = source / "src/x86/linux/integer-expression.c"
@@ -229,7 +279,11 @@ def adapt_c_tree(source, output):
         adapt_c_text(int_expr_src.read_text(encoding="utf-8")), encoding="utf-8"
     )
     adapted_files[int_expr_dst.name] = sha(int_expr_dst)
-    return adapted_files, sorted(k for k, v in adapted_inc.items() if v is not None)
+    return (
+        adapted_files,
+        sorted(k for k, v in adapted_inc.items() if v is not None),
+        dict(sorted(adapted_inc_hashes.items())),
+    )
 
 
 def _scan_asm_symbols(text):
@@ -481,13 +535,14 @@ def adapt_asm_files(output):
 
 def adapt_all(source, output):
     source, output = Path(source).resolve(), Path(output).resolve()
-    c_hashes, copied_incs = adapt_c_tree(source, output)
+    c_hashes, copied_incs, inc_hashes = adapt_c_tree(source, output)
     asm_hashes, prefixed_syms = adapt_asm_files(output)
     record = dict(
         schema=1,
         target="macos-x86_64-macho",
         c_files=c_hashes,
         adapted_includes=copied_incs,
+        adapted_include_files=inc_hashes,
         asm_files=asm_hashes,
         prefixed_symbol_count=len(prefixed_syms),
     )
