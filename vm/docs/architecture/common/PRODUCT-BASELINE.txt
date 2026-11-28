@@ -1,12 +1,16 @@
-QuickJS-Turbo Product Baseline, 2026-11-28 (v0.17.0-turbo.4)
+QuickJS-Turbo Product Baseline, 2026-11-28 (v0.17.0-turbo.5)
 ============================================================
-Release version: `v0.17.0-turbo.4` (`vm/VERSION`: `0.17.0-turbo.4`, engine commit `6ed860a` verified across all native backends).
+Release version: `v0.17.0-turbo.5` (`vm/VERSION`: `0.17.0-turbo.5`; Linux x86-64, Win64, and ARM64 hardware cohorts verified on `v0.17.0-turbo.4` / `6ed860a`; `v0.17.0-turbo.5` adds `MACOS_X86_64` native optimization, shared CVM DWARF unwind hardening, and Python 3.9 receipt-driven pregen).
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`; all 19 source pins verified).
 Host runtime alignment: verified drop-in on unmodified `txiki.js v26.11.0` (`5133e8a`, `BC_VERSION 29`).
 ABI & proposed Baseline JIT design: see `ABI-AND-BASELINE-JIT.txt`.
 
-Key v0.17.0-turbo.4 Capabilities & Audit Hardening
---------------------------------------------------
+Key v0.17.0-turbo.4 / turbo.5 Capabilities & Audit Hardening
+------------------------------------------------------------
+- `v0.17.0-turbo.5` (`MACOS_X86_64` optimization, CVM DWARF unwind hardening & pregen):
+  1. Apple Clang 15 `indirectbr` spill mitigation (probed `-mllvm -tail-dup-indirect-size=4 -mllvm -tail-dup-placement-threshold=8` on `qjs_macos_core`, cutting `_JS_LegacyCallInternal` stack-addressing ops `16.1x` [`21,742 -> 1,352`] and `_JS_CVMResumeInternal` `6.87x` [`10,310 -> 1,501`]), `Release`/`MinSizeRel` `-fomit-frame-pointer` (preserving frame pointers in `Debug`/`RelWithDebInfo`), and anchor-verified hot static helper inlining (`adapt_macho.py`).
+  2. `cvm_fast_native.py`: added `.cfi_offset rsi, -32` / `.cfi_offset rdi, -40` and all 8 epilogue `.cfi_restore` directives in `JS_CVMRunFastSegment` (eliminating Apple assembler's corrupt 8B `0x02011860` compact unwind in favor of an exact full-span `CFA=RSP+72` DWARF FDE), backed by exact machine-code push/pop boundary checks in `record-native.py` and Darwin `libunwind` recovery in `test_cvm_unwind.c`.
+  3. Receipt-driven `MACOS_X86_64` pregen export (`export-pregen.py` + `adapt_macho.py` `macos-inc/` cleanup, deterministic `133` files across clean and incremental builds) and Python 3.9 compatibility in `export-pregen.py` and `release_version.py`.
 - Major throughput & architecture waves over `v0.17.0-turbo.3` (Waves 1–18 + ARM64 Waves A1–A3):
   1. Zero-spill native CVM coroutine executors (`JS_CVMRunFastSegment`) with expanded multi-segment resume across `LINUX_X86_64`, `WIN_X86_64`, and `LINUX_AARCH64` (with `139/139` Linux CET-IBT `endbr64` indirect jump targets verified).
   2. Tier-5 straight-line VA constructor compiler (`fast-construct.inc`), inline compound-leaf hot paths, and zero-shift ARM64 ASM island layout.
@@ -71,23 +75,27 @@ Cold-Worker Heap (`cold_heap_probe_t4` on `6ed860a` `libqjs.a`, exact binary KiB
     - V8-v7: `1,313.85` vs `1,375.09` (`95.5%` at `1.67x` lower RSS [`157.4` vs `262.7 MiB`]; beats `V8 --jitless` on 4/8 subtests: `NavierStokes 1.48x`, `Crypto 1.27x`, `Splay 1.19x`, `RayTrace 1.04x`).
     - `micro56`: `65.975` vs `63.946 ns/op` (`96.9%`, `26/57` wins, `sort_bench` `0.99` vs `1.33 sum_us` [`1.34x` faster], `1.26x` lower RSS).
     - `JetStream-17`: `218.67` vs `183.12 ms` body (`83.7%` body / `90.3%` cold at `8.10x` lower median RSS [`11.0` vs `88.8 MiB`]; beats `V8 --jitless` on 5/17 workloads: `lazy-collections 1.51x`, `crypto 1.29x`, `bigint-noble-ed25519 1.08x`, `json-stringify-inspector 1.07x`, `js-tokens 1.02x`).
-- macOS x86-64 `MACOS_X86_64` (`v0.15.1-turbo.6–.8` i5-7360U hardware cohort):
-  - V8-v7 `1,741.5` (`1.45x` vs Bellard `-O3` `1,202.0`, `1.47x` vs `PORTABLE` `1,185.0`); JetStream `1.34x` (`13/17`); `microbench.js` `1.17x` (`39/72`).
+- macOS x86-64 `MACOS_X86_64` (`v0.17.0-turbo.5`, MacBookPro14,1 Intel Core i5-7360U, Darwin 22.6.0, Apple Clang 15.0.0, same-host cohorts, 2026-11-28; benchmarked SHA-256 `c013c6bbdc37...`, CFI-unwind-hardened final binary `2da16defd795...` has identical executable code across all 21 instruction sections):
+  - V8-v7 (5-engine 2-ABBA): `2,054.5` (`1.96x` vs Stock NG `0.17.0` `1,049.5` [`8/8`], `1.69x` vs Bellard `2026-06-04 -O3` `1,215.5` [`8/8`], `1.44x` vs `PORTABLE` `1,427.5` [`8/8`], `92.9%` of Node `v26.4.0 --jitless` `2,211.5` at `2.26x` lower RSS [`179.3` vs `405.1 MiB`]; `+18.0%` vs `v0.15.1` `1,741.5`; beats Node on `NavierStokes 1.93x` & `Crypto 1.50x`).
+  - `micro56` (4-engine 2-ABBA): `45.49 ns/op` (`sort_bench 0.83 sum_us`, `1.66x` vs Stock NG `75.59` [`55/57`, `sort 3.52x`], `1.59x` vs Bellard `-O3` `72.48` [`49/57`], `1.34x` vs `PORTABLE` `60.90` [`46/57`]); separate paired 2-ABBA vs Node `v26.4 --jitless`: `45.53` vs `42.17 ns/op` (`92.6%`, `25/57` wins, `sort 1.28x`, RSS `6.17` vs `166.12 MiB` [`26.9x` lower]).
+  - `JetStream-17` (5-engine same-session per-workload aggregate): `152.40 ms` body (`1.68x` vs Stock NG `256.50 ms` [`16/17`], `1.52x` vs Bellard `-O3` `232.17 ms` [`16/17`], `1.36x` vs `PORTABLE` `207.49 ms` [`13/17`], `80.3%` of Node `122.40 ms` [`5/17` wins vs Node] at `6.00x` lower median RSS [`12.45` vs `74.66 MiB`]).
+  - Includes Apple Clang 15 `indirectbr` spill mitigation (probed `-mllvm -tail-dup-indirect-size=4 -mllvm -tail-dup-placement-threshold=8`, cutting `_JS_LegacyCallInternal` stack ops `16.1x` [`21,742 -> 1,352`] and `_JS_CVMResumeInternal` `6.87x` [`10,310 -> 1,501`]), `Release`/`MinSizeRel` `-fomit-frame-pointer` (preserving `Debug`/`RelWithDebInfo`), hot static helper `always_inline` with anchor assertions and complete `adapted_include_files` SHA-256 receipts, exact full-span `__TEXT,__qjs_cvm` DWARF FDE + 24-bit compact-unwind offset + exact push/pop machine-code boundary row checks (`CFA=RSP+72`, `0x04xxxxxx`) + runtime Darwin `libunwind` recovery test using independent Mach-O `getsectiondata` bounds, and Python 3.9 receipt-driven `133`-file pregen/release compatibility (`962/962` CTest + zero-Python pregen + dual-prefix SDK C/C++11 consumer verified).
 - macOS ARM64 `PORTABLE`: cross-compiled on `macos-15-intel` CI with `lipo -archs` slice verification and consumer link checks; Apple Silicon native runtime validation pending.
 
-3. Verification & Contract Qualification (v0.17.0-turbo.4, 2026-11-28)
-----------------------------------------------------------------------
+3. Verification & Contract Qualification (v0.17.0-turbo.4 / turbo.5, 2026-11-28)
+--------------------------------------------------------------------------------
 - Full Test262:
   - Linux x86-64 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% identity match with stock `0.17.0`).
   - Native AWS Neoverse-N1 Linux ARM64 (`81,924`-case corpus): `39/81,924` errors (`4,785` excluded, `5,708` skipped, `0` crashes, `0` engine regressions vs stock `0.17.0`).
-- Cross-Platform CTests (`4,718 / 4,718` passed on `6ed860a`):
-  - Linux x86-64 Release: `963/963` (`139/139` CVM CET-IBT `endbr64` targets verified in `qjs` and `qjsc`).
+- Cross-Platform CTests (`5,680 / 5,680` passed):
+  - Linux x86-64 Release (`6ed860a`): `963/963` (`139/139` CVM CET-IBT `endbr64` targets verified in `qjs` and `qjsc`).
+  - macOS x86-64 Release (`v0.17.0-turbo.5`): `962/962` (exact push/pop CVM DWARF FDE + Darwin `libunwind` recovery, `133`-file receipt-driven pregen, dual-prefix C/C++11 SDK consumer).
   - Linux `ASan+UBSan` (`PORTABLE` `RelWithDebInfo`, `UBSAN_OPTIONS=halt_on_error=1`): `218/218` + 50-case BigInt shift boundary matrix (`INT32_MIN`).
   - Windows MSVC `/MT`: `222/222` (`KERNEL32.dll`-only PE imports on `qjs.exe` and `qjsc.exe`).
   - Windows MinGW: `222/222`.
   - Linux ARM64 QEMU Release `1,267/1,267` & Instrumented `1,826/1,826` (`check_vm.py`: `AARCH64_VM_ELF_OK native_opcodes=161 full-FDE PIE NX no-WX`).
 - Targeted audit proofs: Tier-5 constructor OOM exact-byte-limit fault injection (`47` OOM hits, `0` leaks / `0` double-frees on Linux x86-64 & ARM64 QEMU), `$262.IsHTMLDDA` `typeof` parity (`0/4` errors across MSVC, MinGW, Linux x86-64, ARM64 QEMU), and clean `git archive 6ed860a` pure-LF ARM64 reproducible build verification (`CRLF_MISMATCH_COUNT=0`).
-- Contracts: `contracts.py` (`511` receipts, `0` stale), `test_arch_boundaries.py`, `validate_layout.py --require-native`, `test_format_contract.py` (`12/12`), `test_macho_x86.py`, and `release_version.py --tag v0.17.0-turbo.4` all pass.
+- Contracts: `contracts.py` (`511` receipts, `0` stale), `test_arch_boundaries.py`, `validate_layout.py --require-native`, `test_format_contract.py` (`12/12`), `test_macho_x86.py`, and `release_version.py --tag v0.17.0-turbo.5` all pass.
 
 4. Prior 0.15.1–0.17.0 Milestone Trajectory (Linux x86-64 Reference Host)
 -------------------------------------------------------------------------
@@ -100,3 +108,4 @@ v0.15.1-turbo.3     2026-11-20  2,031.2   2.04x (0.15.1)   Hybrid RC + Generatio
 v0.15.1-turbo.4-.8  2026-11-23  2,101.4   2.09x (0.15.1)   Cross-platform fast paths, quickjs-turbo.h, WIN_X86_64, musl/GCC14
 v0.17.0-turbo.3     2026-11-26  1,865.9   1.73x (0.17.0)   Monotonic 0.17.0 rebase, txiki.js v26.11.0, fast slice, audit fixes
 v0.17.0-turbo.4     2026-11-28  2,159.8   1.95x (0.17.0)   Waves 1–18 + ARM64 A1–A3: native CVM, Tier-5 VA ctor, RegExp, BigInt, PE TLS, CET endbr64 (99.2% Def / 100.1% Dens V8 --jitless)
+v0.17.0-turbo.5     2026-11-28  2,159.8   1.95x (0.17.0)   MACOS_X86_64 Clang spill tuning (2,054.5 V8-v7, 1.96x NG), CVM DWARF unwind hardening, 133-file Py3.9 pregen

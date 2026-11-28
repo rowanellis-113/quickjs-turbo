@@ -555,7 +555,7 @@ function renderPlatformPanel() {
       <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap">
         <span class="badge">${p.baselineLabel}</span>
         <a class="mono" style="font-size:12px; color:var(--cyan)"
-           href="https://github.com/rowanellis-113/quickjs-turbo/blob/${DATA.latestVersion}/${p.sourceDoc}"
+           href="https://github.com/rowanellis-113/quickjs-turbo/blob/${p.sourceRef || DATA.sourceRef || DATA.latestVersion}/${p.sourceDoc}"
            target="_blank" rel="noopener">${p.sourceDoc.split("/").pop()} ↗</a>
       </div>
     </div>

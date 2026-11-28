@@ -1,6 +1,6 @@
 macOS x86-64 native Mach-O ASM VM (MACOS_X86_64)
 ==============================================
-Release: v0.17.0-turbo.4 (2026-11-28, commit `6ed860a`; pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
+Release: v0.17.0-turbo.5 (2026-11-28; pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
 
 Overview
 --------
@@ -15,27 +15,111 @@ Build and mechanism
 
 - Source translation: `vm/tools/x86/macos/adapt_macho.py` translates the generated
   Linux x86-64 SysV/ELF runtime and assembly outputs to Mach-O ABI/section directives
-  (`_symbol` prefixes, `__TEXT/__DATA` segments, RIP-relative addressing, DWARF EH frames).
-- Offline verification (`v0.17.0-turbo.4`): `adapt_macho.py` adapts `35` C/H files,
-  `29` includes, and `3` assembly files (including CVM fast-segment sections
-  `__TEXT,__qjs_cvm`); `vm/tests/x86/macos/test_macho_x86.py`
-  (`MACHO_X86_POLICY_OK cputype=0x01000007`) and `test_arch_boundaries.py` pass.
-- Darwin CI contracts verify Mach-O PIE, non-executable stack, `W^X` section hygiene,
-  and complete DWARF FDE unwind coverage before packaging `macos-x86_64-sdk.tar.gz`.
+  (`_symbol` prefixes, `__TEXT/__DATA` segments, RIP-relative addressing, DWARF EH frames),
+  records per-file SHA-256 receipts for all adapted includes in `MACOS-ADAPT.json`,
+  and restores `always_inline` with exact anchor-count assertions on small hot helpers
+  (`js_linux_try_dense_next`, `js_linux_regexp_empty_guard`,
+  `js_linux_regexp_split_guard`, `js_str_key_cache_probe`) that Apple Clang otherwise
+  leaves out-of-line after `noipa -> noinline` translation.
+- Apple Clang indirectbr codegen mitigation (`vm/cmake/x86/macos/Interpreter.cmake`,
+  `vm/CMakeLists.txt`): when `quickjs-linux-foundation.c` defines both
+  `JS_LegacyCallInternal` and `JS_CVMResumeInternal` in the same TU, Apple Clang 15's
+  pre-RA early tail duplication expands the shared `indirectbr` block across ~300 opcode
+  blocks, causing `RAGreedy` to emit stack-to-stack copies across every opcode boundary
+  (`21,742` vs `1,352` [`16.1x`] stack-addressing instructions in `_JS_LegacyCallInternal`;
+  `10,310` vs `1,501` [`6.87x`] in `_JS_CVMResumeInternal`, measured over exact linked
+  function boundaries). Combined compiler-flag probing enables
+  `-mllvm -tail-dup-indirect-size=4` and `-mllvm -tail-dup-placement-threshold=8` on
+  `qjs_macos_core`, while `Release`/`MinSizeRel` builds enable `-fomit-frame-pointer` on
+  `qjs-core`/`qjs` (preserving frame pointers in `Debug` and `RelWithDebInfo`).
+- Verification (`v0.17.0-turbo.5`, Apple Clang 15.0.0.15000100, Darwin 22.6.0):
+  - `adapt_macho.py` adapts `35` C/H files, `30` includes (SHA-256 verified), and `3`
+    assembly files (placing `JS_CVMRunFastSegment` exclusively in `__TEXT,__qjs_cvm`
+    and the read-only `JS_CVMFastEligible` table in `__TEXT,__const`).
+  - `cvm_fast_native.py` emits full SysV DWARF CFI (`.cfi_offset` for `rbx, rbp, rsi, rdi,
+    r12..r15` and epilogue `.cfi_restore`) so `_JS_CVMRunFastSegment` retains an exact
+    DWARF FDE (`0x04xxxxxx` compact-unwind DWARF mode, `CFA=RSP+72`) spanning its full
+    11,554-byte body rather than a truncated compact-unwind encoding.
+  - `record-native.py` verifies Mach-O PIE, non-executable stack, `W^X` section hygiene,
+    actual `__TEXT` RX permissions (`0x5`), symbol-to-section containment (`__qjs_cvm`,
+    `__qjs_varg`, `__TEXT,__const` for `JS_CVMFastEligible`), exclusive `__TEXT,__qjs_cvm`
+    full-span FDE coverage with exact 24-bit compact-unwind FDE offset matching, exact
+    machine-code push/pop boundaries (start `+12`, or `+16` with an entry ENDBR64,
+    first pop complete at `-11`) and step-by-step
+    decoded rows (`CFA=RSP+72`, all 8 saved registers, `RIP=[CFA-8]`), separate
+    `cvm_asm_linked` vs `cvm_fast_segments` flags in `BUILD.json`, and complete
+    `adapted_include_files` SHA-256 receipt parity with `adapted_includes`.
+  - Full native CTest (`-DQJS_FRAME_BUILD_TESTS=ON`): `962/962` passed (including
+    `macos-x86-cvm-unwind` runtime Darwin `libunwind` recovery at the first, middle
+    and last bytes of the body rule, using non-signal PCs `+13` (`+17` with ENDBR64),
+    midpoint, and `-11` relative to the FDE end for the final probe. The probe range is
+    checked against independent Mach-O `getsectiondata("__TEXT", "__qjs_cvm")` bounds); `test_macho_x86.py`
+    (`MACHO_X86_POLICY_OK cputype=0x01000007`, including negative tests for truncated
+    FDEs, `+18`/`-20` edge shifts, compact-unwind offset mismatches, missing adapt
+    receipts, and stale incremental pregen files), `test_arch_boundaries.py`,
+    `validate_layout.py --require-native`, `contracts.py` (`511` receipts, `0` stale),
+    Python 3.9-compatible receipt-driven `export-pregen.py` + zero-Python
+    `QJS_USE_PREGEN_ASM=ON` build (`133` files), and installed SDK C & C++11 consumer
+    tests (`2/2`) all pass.
 - macOS ARM64 (`macos-arm64-sdk.tar.gz`, `PORTABLE` backend) is cross-compiled on
   `macos-15-intel` CI with `lipo -archs` architecture verification and downstream
   CMake consumer link validation; native Apple Silicon runtime execution tests are
   not yet run in CI.
 
-Verified real-hardware cohort (v0.15.1-turbo.6-.8, i5-7360U)
-------------------------------------------------------------
-Real-hardware Darwin benchmarks were collected on MacBookPro14,1 (Intel i5-7360U,
-Darwin 22.6, Apple Clang 15.0, FramePool 256) prior to the `0.17.0` port:
-- V8-v7: `1,741.5` (`1.45x` vs Bellard 2026-06-04 `-O3` `1,202.0`, `1.47x` vs Turbo
-  `PORTABLE` `1,185.0`; stock NG 0.15.1 scores `362.0` due to Apple Clang computed-goto codegen).
-- JetStream 3.0 subset (17 cases): `1.34x` geomean vs Bellard `-O3` (`13/17` wins),
-  `1.41x` vs `PORTABLE`.
-- `microbench.js` (72 cases): `1.17x` geomean vs Bellard `-O3` (`39/72` wins),
-  `1.37x` vs `PORTABLE`.
-- Darwin 0.17.0 CI execution (`macos-x86_64` Release CTest + Test262) runs via
-  `.github/workflows/ci.yml` and `.github/workflows/test262.yml`.
+Verified real-hardware same-host cohorts (v0.17.0-turbo.5, i5-7360U, 2026-11-28)
+--------------------------------------------------------------------------------
+Host: MacBookPro14,1 (Intel Core i5-7360U, Darwin 22.6.0, Apple Clang 15.0.0.15000100).
+Benchmarked binary: `build/macos-x86_64-native/qjs`
+  SHA-256 `c013c6bbdc3731d5bacbd4fa6a1d83aa432ce325ad233b499fd62eed00206486`.
+CFI-unwind-hardened final binary (metadata-only `.cfi_offset`/`.cfi_restore` fix;
+  executable machine code identical):
+  SHA-256 `2da16defd7958e133ae23f2f8df455720fc2524a3f1fa0b54cef24c83bdf5693`.
+Peers (same host, same session, serial under `caffeinate -ims`):
+  - Turbo `PORTABLE` (`0.17.0`, SHA-256 `7df02c14d31b...`)
+  - Stock QuickJS-NG `0.17.0` (`-DQJS_ENABLE_TURBO=OFF`, SHA-256 `d738fc7f2f18...`)
+  - Bellard QuickJS `2026-06-04` (`-O3 -DNDEBUG`, SHA-256 `ecbec474f9b4...`)
+  - Node `v26.4.0 --jitless`
+
+1. V8-v7 (2 balanced ABBA rounds, higher is better):
+   - Node `v26.4.0 --jitless`: `2,211.5` (Peak RSS `405.1 MiB`)
+   - Turbo `MACOS_X86_64`:     `2,054.5` (`1.96x` NG `1,049.5` [8/8], `1.69x` Bellard `-O3`
+     `1,215.5` [8/8], `1.44x` PORTABLE `1,427.5` [8/8], `92.9%` of Node at `2.26x` lower RSS
+     [`179.3 MiB`]; `+18.0%` vs `v0.15.1` cohort `1,741.5`; beats Node on `NavierStokes 1.93x`
+     and `Crypto 1.50x`).
+   - Subtests (Turbo / NG / Bellard `-O3` / PORTABLE / Node):
+     `Richards 1179.5 / 768.5 / 803.5 / 839.5 / 1258.0`,
+     `DeltaBlue 1112.0 / 717.5 / 745.0 / 796.0 / 1364.5`,
+     `Crypto 1631.5 / 759.5 / 948.0 / 809.0 / 1088.0`,
+     `RayTrace 3013.0 / 1354.5 / 1572.0 / 1567.5 / 3209.5`,
+     `EarleyBoyer 2611.0 / 1851.5 / 2010.5 / 2131.0 / 4887.5`,
+     `RegExp 1667.5 / 286.5 / 370.0 / 1662.5 / 2594.0` (`5.82x` vs NG),
+     `Splay 4111.0 / 2816.5 / 3449.0 / 3240.5 / 5293.0`,
+     `NavierStokes 2750.0 / 1741.0 / 2082.5 / 1771.0 / 1422.5`.
+
+2. `micro56` + `sort_bench` (4-engine 2-ABBA cohort + separate paired 2-ABBA vs Node, lower is better):
+   - Turbo `MACOS_X86_64`: `45.49 ns/op` (`sort_bench 0.83 sum_us`, RSS `6.1 MiB`) —
+     `1.66x` vs Stock NG `75.59 ns/op` (`55/57` wins, `sort 3.52x`), `1.59x` vs Bellard `-O3`
+     `72.48 ns/op` (`49/57`, `sort 3.10x`), `1.34x` vs PORTABLE `60.90 ns/op` (`46/57`,
+     `sort 3.60x`).
+   - Separate paired 2-ABBA vs Node `v26.4.0 --jitless`: `45.53` vs `42.17 ns/op` (`92.6%`, `25/57` wins,
+     `sort_bench 0.825` vs `1.055 sum_us` [`1.28x` faster], RSS `6.17` vs `166.12 MiB` [`26.9x` lower]).
+
+3. `JetStream-17` (5-engine same-session per-workload aggregate, body latency ms geomean, lower is better):
+   - Node `v26.4.0 --jitless`: `122.40 ms` (median RSS `74.66 MiB`)
+   - Turbo `MACOS_X86_64`:     `152.40 ms` (median RSS `12.45 MiB`, `6.00x` lower vs Node) —
+     `1.68x` vs Stock NG `256.50 ms` (`16/17` wins; `json-stringify-inspector 6.53x`,
+     `crypto 2.27x`, `async-fs 2.07x`), `1.52x` vs Bellard `-O3` `232.17 ms` (`16/17`),
+     `1.36x` vs PORTABLE `207.49 ms` (`13/17`), `80.3%` of Node (`5/17` wins vs Node:
+     `crypto 1.54x`, `bigint-noble-ed25519 1.31x`, `lazy-collections 1.30x`, `cdjs 1.08x`,
+     `js-tokens 1.03x`).
+   - Impact of Apple Clang spill + inline + omit-FP tuning vs unoptimized `v0.17.0-turbo.4` on
+     the same Mac: `lazy-collections` `96.20 -> 76.39 ms` (`+26%`), `Air` `59.26 -> 53.18 ms`
+     (`+11%`), `js-tokens` `125.93 -> 115.13 ms` (`+9.4%`), `async-fs` `138.80 -> 126.24 ms`
+     (`+9.9%`), `JetStream-17` geomean `160.13 -> 152.40 ms` (`+5.1%`), V8-v7 `2,035 -> 2,054.5`
+     (`RegExp` `1,539.5 -> 1,667.5`, `+8.3%`), `micro56` `46.21 -> 45.49 ns/op`.
+
+Historical cohort (v0.15.1-turbo.6-.8, i5-7360U)
+------------------------------------------------
+Prior to the `0.17.0` rebase (FramePool 256): V8-v7 `1,741.5` (`1.45x` vs Bellard `-O3`
+`1,202.0`, `1.47x` vs `PORTABLE` `1,185.0`); JetStream 3.0 subset `1.34x` vs Bellard `-O3`;
+`microbench.js` `1.17x` vs Bellard `-O3`.

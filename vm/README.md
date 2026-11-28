@@ -10,9 +10,9 @@ documentation layered cleanly over unmodified QuickJS-NG `0.17.0` (`7b5f588e0f`)
 See the repository root [README.md](../README.md) for the project overview,
 cross-platform benchmark comparisons (V8-v7, `micro56`/`sort_bench`, and
 `JetStream-17` across QuickJS-NG `0.17.0`, Bellard QuickJS `2026-06-04`,
-QuickJS-Turbo, and `V8 --jitless` on Linux x86-64, Windows x86-64, and AWS
-Neoverse-N1 Linux ARM64), ABI & proposed Baseline JIT overview, and embedding
-quick start.
+QuickJS-Turbo, and `V8 --jitless` on Linux x86-64, Windows x86-64, macOS x86-64,
+and AWS Neoverse-N1 Linux ARM64), ABI & proposed Baseline JIT overview, and
+embedding quick start.
 
 ## Getting Started
 
@@ -21,7 +21,7 @@ product configuration (`-S vm`) automatically selects the native register-frame
 ASM VM on supported platforms via `-DQJS_FRAME_BACKEND=AUTO`:
 
 - **Linux `x86-64`** (`LINUX_X86_64`, `glibc` & `musl`, GCC 13/14+, native ASM VM + CET-IBT `endbr64` CVM)
-- **macOS `x86-64`** (`MACOS_X86_64`, Apple Clang 15+, Mach-O)
+- **macOS `x86-64`** (`MACOS_X86_64`, Apple Clang 15+, Mach-O ASM VM + CVM, full DWARF CFI + Clang `indirectbr` spill tuning)
 - **Windows `x86-64`** (`WIN_X86_64`, MSVC / `clang-cl` + `ml64` with zero GNU binutils, or MinGW GCC 13+ with native PE TLS)
 - **Linux `ARM64`** (`LINUX_AARCH64`, `glibc` & `musl`, GCC 13/14+, `161` native opcodes + zero-spill AArch64 CVM + Tier-5 VA constructors)
 - **`PORTABLE` fallback**: auto-selected on macOS ARM64 *(cross-compiled and link-checked on Intel CI; Apple Silicon native runtime validation pending)*, shared builds, Sanitizers, and `FORCE_GC_AT_MALLOC`.

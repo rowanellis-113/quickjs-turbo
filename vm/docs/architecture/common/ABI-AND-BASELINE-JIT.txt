@@ -1,14 +1,14 @@
 QuickJS-Turbo ABI Contract & Proposed Baseline JIT Architecture
 ===============================================================
-Updated: 2026-11-28 (v0.17.0-turbo.4 / QuickJS-NG 0.17.0 verified baseline)
+Updated: 2026-11-28 (v0.17.0-turbo.5 / QuickJS-NG 0.17.0 verified baseline)
 
 Status Note
 -----------
-QuickJS-Turbo `v0.17.0-turbo.4` ships exclusively as a **Zero-JIT, `0 RWX`
+QuickJS-Turbo `v0.17.0-turbo.5` ships exclusively as a **Zero-JIT, `0 RWX`
 register-frame assembly interpreter** (Section 1). Section 2 documents a
 **proposed future roadmap** for an optional, opt-in bytecode-driven Baseline
 JIT built on top of the shipping ABI; no runtime code generation is present in
-`v0.17.0-turbo.4`.
+`v0.17.0-turbo.5`.
 
 1. Two-Layer ABI Contract (Shipping Production Invariant)
 ---------------------------------------------------------

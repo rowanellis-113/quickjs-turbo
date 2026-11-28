@@ -10,12 +10,12 @@ the proposed future bytecode-driven Baseline JIT roadmap.
 Component                          Main owner / documentation
 -----------------------------------------------------------------------------
 Call frames and dispatch           src/common/call ({fast-root-leaf,core-spread-call}.inc), src/x86/win64, tools/x86/{linux,macos,win64}, asm/{x86,arm64}
-Native CVM coroutine executors     tools/x86/common/codegen/cvm_fast_native.py (Linux CET-IBT endbr64 + Win64), tools/arm64/workers/cvm_fast_arm64.py; subsystems/COROUTINES.txt
+Native CVM coroutine executors     tools/x86/common/codegen/cvm_fast_native.py (Linux CET-IBT endbr64, macOS full DWARF CFI, + Win64), tools/arm64/workers/cvm_fast_arm64.py; subsystems/COROUTINES.txt
 Tier-5 VA constructor compiler     src/common/kernel/fast-construct.inc (x86-64, Win64, ARM64)
 Property get/set and method caches src/common/property ({property-ic,property-ic-getter,string-key-lookup}.inc; PIC-only, tagged warmup, JS_PurgePropertyIC)
 Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
 Win64 source-level native ASM VM   tools/x86/win64/, src/x86/win64/internal/win64-native-supplements.inc (native PE TLS on MinGW); x86/win64/WIN-X86-64.txt
-macOS Mach-O native ASM VM         tools/x86/macos/{adapt_macho,macho64,prepare-native}.py; x86/macos/MACOS-X86-64.txt
+macOS Mach-O native ASM VM         tools/x86/macos/{adapt_macho,macho64,prepare-native,record-native}.py; x86/macos/MACOS-X86-64.txt
 Pre-generated assembly bundles     tools/common/export-pregen.py, cmake/common/Pregen.cmake
 Strings, slice & JSArena append    src/common/string ({locale-compare}.inc), src/common/kernel/slice-native.inc, asm/arm64/common/register-string-append.inc
 Fast numeric dtoa / atod           src/common/value/dtoa-fast.inc, tools/common/elf/json_workers.py (`JS_FrameAtod`)

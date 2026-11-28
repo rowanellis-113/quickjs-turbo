@@ -1,7 +1,8 @@
 {
   "schema": 1,
   "updatedAt": "2026-11-28",
-  "latestVersion": "v0.17.0-turbo.4",
+  "latestVersion": "v0.17.0-turbo.5",
+  "sourceRef": "v0.17.0-turbo.5",
   "upstream": {
     "name": "QuickJS-NG",
     "version": "0.17.0",
@@ -621,51 +622,98 @@
     "macos-x86_64": {
       "title": "macOS x86-64",
       "backend": "MACOS_X86_64",
-      "toolchain": "Apple Clang 15+ · Darwin x86-64 · i5-7360U",
-      "baselineLabel": "v0.15.1 hardware cohort · v0.17.0 CI verified",
-      "leftTitle": "Cohort Comparisons",
-      "rightTitle": "V8-v7 Subtest Scores",
+      "toolchain": "MacBookPro14,1 i5-7360U · Darwin 22.6 · Apple Clang 15.0",
+      "baselineLabel": "v0.17.0-turbo.5",
+      "leftTitle": "Same-Host Benchmark Comparisons",
+      "rightTitle": "V8-v7 Subtests (macOS x86-64 vs NG 0.17)",
       "sourceDoc": "vm/docs/architecture/x86/macos/MACOS-X86-64.txt",
       "headlineStats": [
         {
           "label": "V8-v7 Score",
-          "value": "1,741.5",
-          "sub": "1.45× Bellard -O3 · 1.47× PORTABLE"
+          "value": "2,054.5",
+          "sub": "1.96× NG (8/8) · 92.9% V8 --jitless"
         },
         {
-          "label": "JetStream 3.0",
-          "value": "1.34×",
-          "sub": "vs Bellard -O3 · 1.41× PORTABLE"
+          "label": "micro56 Geomean",
+          "value": "45.49 ns",
+          "sub": "1.66× NG (55/57) · sort 3.52×"
         },
         {
-          "label": "microbench.js",
-          "value": "1.17×",
-          "sub": "72 cases vs Bellard · 1.37× PORTABLE"
+          "label": "JetStream-17",
+          "value": "152.4 ms",
+          "sub": "1.68× NG · 6.0× less RSS vs V8"
         },
         {
           "label": "Mach-O Hygiene",
-          "value": "961 / 961",
-          "sub": "PIE · 0 RWX · 298 DWARF FDEs"
+          "value": "962 / 962",
+          "sub": "PIE · 0 RWX · CVM DWARF FDE + 133 Pregen"
         }
       ],
+      "v8SubtestBars": [
+        { "name": "RegExp", "stock": 286.5, "turbo": 1667.5, "ratio": 5.82 },
+        { "name": "RayTrace", "stock": 1354.5, "turbo": 3013.0, "ratio": 2.22 },
+        { "name": "Crypto", "stock": 759.5, "turbo": 1631.5, "ratio": 2.15 },
+        { "name": "NavierStokes", "stock": 1741.0, "turbo": 2750.0, "ratio": 1.58 },
+        { "name": "DeltaBlue", "stock": 717.5, "turbo": 1112.0, "ratio": 1.55 },
+        { "name": "Richards", "stock": 768.5, "turbo": 1179.5, "ratio": 1.53 },
+        { "name": "Splay", "stock": 2816.5, "turbo": 4111.0, "ratio": 1.46 },
+        { "name": "EarleyBoyer", "stock": 1851.5, "turbo": 2611.0, "ratio": 1.41 }
+      ],
       "targetedSpeedups": [
-        { "name": "V8-v7 vs Bellard 2026 (-O3)", "before": "1,202.0", "after": "1,741.5", "speedup": 1.45 },
-        { "name": "V8-v7 vs Turbo PORTABLE", "before": "1,185.0", "after": "1,741.5", "speedup": 1.47 },
-        { "name": "JetStream 3.0 vs PORTABLE", "before": "1.00×", "after": "1.41×", "speedup": 1.41 },
-        { "name": "microbench.js vs PORTABLE", "before": "1.00×", "after": "1.37×", "speedup": 1.37 },
-        { "name": "JetStream 3.0 vs Bellard", "before": "1.00×", "after": "1.34×", "speedup": 1.34 }
+        { "name": "V8-v7 vs Stock NG 0.17 (8/8)", "before": "1,049.5", "after": "2,054.5", "speedup": 1.96 },
+        { "name": "V8-v7 vs Bellard 2026 -O3 (8/8)", "before": "1,215.5", "after": "2,054.5", "speedup": 1.69 },
+        { "name": "V8-v7 vs Turbo PORTABLE (8/8)", "before": "1,427.5", "after": "2,054.5", "speedup": 1.44 },
+        { "name": "micro56 vs Stock NG 0.17 (55/57)", "before": "75.59 ns", "after": "45.49 ns", "speedup": 1.66 },
+        { "name": "micro56 vs Bellard -O3 (49/57)", "before": "72.48 ns", "after": "45.49 ns", "speedup": 1.59 },
+        { "name": "JetStream-17 vs NG (16/17)", "before": "256.5 ms", "after": "152.4 ms", "speedup": 1.68 },
+        { "name": "NavierStokes vs V8 --jitless", "before": "1,422.5", "after": "2,750.0", "speedup": 1.93 },
+        { "name": "sort_bench vs Stock NG 0.17", "before": "2.92 us", "after": "0.83 us", "speedup": 3.52 }
       ],
       "microHotspots": [
-        { "name": "Richards", "stock": "—", "turbo": "1,166", "unit": "score", "speedup": null },
-        { "name": "DeltaBlue", "stock": "—", "turbo": "1,048", "unit": "score", "speedup": null },
-        { "name": "Crypto", "stock": "—", "turbo": "1,554", "unit": "score", "speedup": null },
-        { "name": "RayTrace", "stock": "—", "turbo": "1,732", "unit": "score", "speedup": null },
-        { "name": "EarleyBoyer", "stock": "—", "turbo": "2,209", "unit": "score", "speedup": null },
-        { "name": "RegExp", "stock": "—", "turbo": "1,167", "unit": "score", "speedup": null },
-        { "name": "Splay", "stock": "—", "turbo": "3,472", "unit": "score", "speedup": null },
-        { "name": "NavierStokes", "stock": "—", "turbo": "2,311", "unit": "score", "speedup": null }
+        { "name": "RegExp (V8-v7)", "stock": "286.5", "turbo": "1,667.5", "unit": "score", "speedup": 5.82 },
+        { "name": "float_to_string", "stock": "378.4", "turbo": "83.5", "unit": "ns", "speedup": 4.53 },
+        { "name": "float_toString", "stock": "401.0", "turbo": "102.6", "unit": "ns", "speedup": 3.91 },
+        { "name": "sort_bench", "stock": "2.92", "turbo": "0.83", "unit": "us", "speedup": 3.52 },
+        { "name": "string_build1", "stock": "130.7", "turbo": "40.3", "unit": "ns", "speedup": 3.25 },
+        { "name": "string_to_float", "stock": "183.4", "turbo": "60.3", "unit": "ns", "speedup": 3.04 },
+        { "name": "prop_write", "stock": "21.2", "turbo": "7.48", "unit": "ns", "speedup": 2.83 },
+        { "name": "bigint256_arith", "stock": "158.3", "turbo": "69.3", "unit": "ns", "speedup": 2.28 }
       ],
-      "note": "Hardware benchmark numbers are from MacBookPro14,1 (i5-7360U, Darwin 22.6, Apple Clang 15, v0.15.1-turbo.6–.8). On v0.17.0-turbo.4, MACOS_X86_64 native VM + CVM builds, CTest, and SDK consumer tests run green on GitHub Actions macos-15-intel; the macOS ARM64 PORTABLE SDK is cross-compiled and link-checked on CI (native Apple Silicon runtime benchmarks pending)."
+      "jetstream17": {
+        "title": "JetStream-17 Workloads (macOS x86-64 · i5-7360U)",
+        "subtitle": "Body latency (ms, lower is better) · 12.45 MiB Turbo vs 74.66 MiB V8 --jitless (6.0× less RSS)",
+        "summary": {
+          "turboBodyMs": 152.4,
+          "turboColdMs": null,
+          "stockBodyMs": 256.5,
+          "bellardBodyMs": 232.17,
+          "v8BodyMs": 122.4,
+          "vsStock": 1.68,
+          "vsBellard": 1.52,
+          "vsV8Pct": 80.3,
+          "rssNote": "12.5 vs 74.7 MiB V8"
+        },
+        "cases": [
+          { "name": "json-stringify-inspector", "stock": 158.73, "bellard": 112.65, "turbo": 24.29, "v8": 18.11 },
+          { "name": "crypto", "stock": 165.1, "bellard": 126.99, "turbo": 72.74, "v8": 111.7 },
+          { "name": "async-fs", "stock": 260.76, "bellard": 337.12, "turbo": 126.24, "v8": 81.97 },
+          { "name": "json-parse-inspector", "stock": 95.45, "bellard": 101.68, "turbo": 51.66, "v8": 37.52 },
+          { "name": "cdjs", "stock": 539.66, "bellard": 488.56, "turbo": 293.95, "v8": 317.05 },
+          { "name": "pdfjs", "stock": 357.25, "bellard": 304.36, "turbo": 194.37, "v8": 137.05 },
+          { "name": "FlightPlanner", "stock": 71.48, "bellard": 59.34, "turbo": 42.13, "v8": 24.06 },
+          { "name": "js-tokens", "stock": 193.36, "bellard": 160.48, "turbo": 115.13, "v8": 118.95 },
+          { "name": "delta-blue", "stock": 189.67, "bellard": 177.71, "turbo": 117.43, "v8": 98.44 },
+          { "name": "richards", "stock": 239.78, "bellard": 218.71, "turbo": 149.47, "v8": 144.76 },
+          { "name": "acorn-wtb", "stock": 3018.31, "bellard": 2874.69, "turbo": 1901.44, "v8": 1230.17 },
+          { "name": "bigint-noble-ed25519", "stock": 279.51, "bellard": 211.79, "turbo": 184.95, "v8": 243.16 },
+          { "name": "Babylon", "stock": 95.49, "bellard": 92.59, "turbo": 71.12, "v8": 47.89 },
+          { "name": "Air", "stock": 69.1, "bellard": 61.28, "turbo": 53.18, "v8": 29.81 },
+          { "name": "typescript-octane", "stock": 2769.42, "bellard": 2647.44, "turbo": 2449.28, "v8": 1553.79 },
+          { "name": "lazy-collections", "stock": 84.83, "bellard": 81.94, "turbo": 76.39, "v8": 98.95 },
+          { "name": "prettier-wtb", "stock": 871.1, "bellard": 818.05, "turbo": 925.68, "v8": 429.19 }
+        ]
+      },
+      "note": "Measured 2026-11-28 on real MacBookPro14,1 hardware (v0.17.0-turbo.5 · Intel Core i5-7360U, Darwin 22.6.0, Apple Clang 15.0.0; benchmarked binary SHA-256 c013c6bbdc37; CFI-unwind-hardened final binary 2da16defd795 has identical executable code across all 21 instruction sections) with MACOS_X86_64 Clang indirectbr spill mitigation (-mllvm -tail-dup-indirect-size=4 / -tail-dup-placement-threshold=8), Release/MinSizeRel -fomit-frame-pointer, and anchor-verified hot static helper inlining. Same-host suites (retained aggregate JSON): V8-v7 (5-engine 2-ABBA cohort) 2,054.5 (1.96× NG, 1.69× Bellard -O3, 1.44× PORTABLE [8/8 sweep vs all three], 92.9% of Node v26.4 --jitless 2,211.5 at 2.26× lower RSS [179.3 vs 405.1 MiB]); micro56 (4-engine 2-ABBA cohort) 45.49 ns/op (1.66× NG [55/57], 1.59× Bellard -O3 72.48 ns/op, 1.34× PORTABLE 60.90 ns/op, sort 3.52×) plus separate paired 2-ABBA vs Node v26.4 --jitless (45.53 vs 42.17 ns/op [92.6%, 25/57], 26.9× lower RSS [6.17 vs 166.12 MiB]); JetStream-17 (5-engine same-session per-workload aggregate) 152.40 ms (1.68× NG [16/17], 1.52× Bellard -O3 [16/17], 1.36× PORTABLE [13/17], 80.3% of Node 122.40 ms [5/17 wins vs Node] at 6.00× lower median RSS [12.45 vs 74.66 MiB]). 962/962 CTest (incl. exact push/pop DWARF FDE & Darwin libunwind recovery), 133-file receipt-driven zero-Python pregen, and dual-prefix C/C++11 SDK consumer tests pass."
     }
   }
 }
