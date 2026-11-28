@@ -10,41 +10,46 @@ the proposed future bytecode-driven Baseline JIT roadmap.
 Component                          Main owner / documentation
 -----------------------------------------------------------------------------
 Call frames and dispatch           src/common/call ({fast-root-leaf,core-spread-call}.inc), src/x86/win64, tools/x86/{linux,macos,win64}, asm/{x86,arm64}
+Native CVM coroutine executors     tools/x86/common/codegen/cvm_fast_native.py (Linux CET-IBT endbr64 + Win64), tools/arm64/workers/cvm_fast_arm64.py; subsystems/COROUTINES.txt
+Tier-5 VA constructor compiler     src/common/kernel/fast-construct.inc (x86-64, Win64, ARM64)
 Property get/set and method caches src/common/property ({property-ic,property-ic-getter,string-key-lookup}.inc; PIC-only, tagged warmup, JS_PurgePropertyIC)
 Runtime config & diagnostics API   quickjs-turbo.h, src/common/internal/turbo-config.{h,c}, turbo-runtime.inc
-Win64 source-level native ASM VM   tools/x86/win64/, src/x86/win64/internal/win64-native-supplements.inc; x86/win64/WIN-X86-64.txt
+Win64 source-level native ASM VM   tools/x86/win64/, src/x86/win64/internal/win64-native-supplements.inc (native PE TLS on MinGW); x86/win64/WIN-X86-64.txt
 macOS Mach-O native ASM VM         tools/x86/macos/{adapt_macho,macho64,prepare-native}.py; x86/macos/MACOS-X86-64.txt
 Pre-generated assembly bundles     tools/common/export-pregen.py, cmake/common/Pregen.cmake
 Strings, slice & JSArena append    src/common/string ({locale-compare}.inc), src/common/kernel/slice-native.inc, asm/arm64/common/register-string-append.inc
 Fast numeric dtoa / atod           src/common/value/dtoa-fast.inc, tools/common/elf/json_workers.py (`JS_FrameAtod`)
 JSON parse/stringify               src/common/json, tools/common/elf/json_workers.py
-RegExp and Unicode                 src/common/regexp ({exec,regexp-vm}.inc, libregexp.c), src/common/wire; subsystems/REGEXP.txt
-Arrays and sort                    src/common/array; subsystems/ARRAY-SORT.txt
-Async generator & async output     src/common/promise; subsystems/ASYNC-GENERATORS.txt
+RegExp and Unicode                 src/common/regexp ({exec,regexp-vm}.inc, libregexp.c: zero-JIT range/sticky/greedy scan), src/common/wire; subsystems/REGEXP.txt
+Arrays, splice & sort              src/common/array (copy-grow splice, DataView, iterator-result shape); subsystems/ARRAY-SORT.txt
+Async generator & async output     src/common/promise (zero-alloc ready await); subsystems/ASYNC-GENERATORS.txt
 Ordinary literal capacity reserve  src/common/kernel/ordinary-literal.c; arm64/workers/LINUX-AARCH64-LITERALS.txt
 Map/Set string-key fast paths      src/common/value/map-string-keys.inc, tools/common/backports/keyed_async.py
-Coroutine native segments          subsystems/COROUTINES.txt (MSVC WIN_X86_64; GNU keeps its C path)
 Compiler lexical planning          src/common/bytecode; subsystems/COMPILER-PLAN.txt
 Resolved Symbol conditions         subsystems/SYMBOL-CONDITIONS.txt
-Memory, Hybrid RC + Cycle GC       src/common/memory, HYBRID-GC.txt (Windows 1.5x post-full threshold)
+Memory, Hybrid RC + Cycle GC       src/common/memory, HYBRID-GC.txt (large-heap hybrid GC tuning)
 
 Cross-architecture fast-path matrix:
 Optimization                       ARM64 Linux     x86_64 Linux    x86_64 Win64
 --------------------------------------------------------------------------------
-Hybrid RC & partial cycle GC       common/memory   common/memory   common/memory (1.5x full threshold + supplements)
-Float32Array / Float64Array VM     tools/arm64     tools/x86/linux eq_code cold-split
+Native CVM coroutine executor      cvm_fast_arm64  cvm_fast_native (CET endbr64)  cvm_fast_native (MSVC/MinGW)
+Tier-5 VA constructor compiler     fast-construct  fast-construct  fast-construct
+Fused cmp-branch / pre-dec loops   native ASM      fused ASM       fused ASM (MinGW PE TLS)
+Hybrid RC & partial cycle GC       common/memory   common/memory   common/memory (large-heap tuning + supplements)
+Float32Array / Float64Array / DV   tools/arm64     tools/x86/linux eq_code split + DataView
 Flat Latin-1 relational compare    eq_code split   eq_code split   shared C
 Epoch IC instanceof leaf           common/value/instanceof-fast.inc (all targets)
 Fast dtoa / atod & JSON number     dtoa-fast + JS_FrameAtod (Linux x86-64 & ARM64); dtoa-fast (Win64)
-Native String.prototype.slice      slice-native.inc fast string/int32 receiver & bounds (Linux x86-64 & ARM64)
+Zero-JIT RegExp range/sticky/tail  common/regexp   common/regexp   common/regexp (+ owned replace/flags)
+Native String.prototype.slice      slice-native.inc fast string/int32 receiver & bounds (all native targets)
 Native C for_of_next + if_false8   common/call/fast-for-of-next.inc + Win64 native
-OP_array_from dense leaf           common/kernel/fast-array-from.inc (all targets)
+OP_array_from & splice copy-grow   common/kernel/fast-array-from.inc + common/array (all targets)
 Inline property storage            common/property/inline-*.{h,inc} (ARM64 + x86_64 Linux)
 Property IC getter & string keys   common/property/{property-ic-getter,string-key-lookup}.inc (all targets)
 Ordinary literal capacity reserve  common/kernel/ordinary-literal.c (ARM64 + x86_64 Linux + Win64 MinGW/MSVC)
 Map/Set string-key hash & flatten  common/value/map-string-keys.inc (all native & PORTABLE targets)
-Capability-free async & Promise    common/promise/async-output.inc (all native & PORTABLE targets)
-BigInt stack/PM mod & native ops   common/value/bigint-divrem-fast.inc; ARM64 `OP_push_bigint_i32` / `add_loc` / short loop
+Zero-alloc ready await & Promise   common/promise/async-output.inc (all native & PORTABLE targets)
+256-bit/Curve25519 BigInt & ops    common/value/bigint-divrem-fast.inc (all targets); ARM64 `OP_push_bigint_i32` / short loop
 
 Component controls (`QJS_DISABLE_*`, `quickjs-turbo.h`) and automatic `PORTABLE`
 fallbacks support diagnostics, sanitizers, and high-density multi-tenant hosts.

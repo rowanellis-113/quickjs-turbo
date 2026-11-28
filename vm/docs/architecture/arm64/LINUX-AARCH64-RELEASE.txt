@@ -1,6 +1,7 @@
 Linux/glibc & musl AArch64 implementation and release boundaries
 ================================================================
-Current release: `v0.17.0-turbo.3` (2026-11-26, release candidate `ecd84cd3`).
+Current release: `v0.17.0-turbo.4` (2026-11-28, commit `6ed860a`).
+Measured ARM64 binary SHA-256: `91c2ed014d0fcbc854ea3edd8e886cb8b52c66b61618f20b248e80fe6670416f`.
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`;
 all 19 upstream source pins exact).
 
@@ -12,30 +13,38 @@ Build & Architecture
 - CMake `AUTO` automatically selects `LINUX_AARCH64` on supported Linux AArch64 (`glibc`
   & `musl`) hosts with GCC 13/14+ and falls back to `PORTABLE` under sanitizers, fuzzers,
   shared libraries, or BTI/PAC-default toolchains. `JS_FrameInterp` is strictly 64-byte aligned
-  via `check_vm.py` (`161` native opcodes including `OP_push_bigint_i32`, full FDE, PIE, NX, `no-WX`).
+  via `check_vm.py` (`161` native opcodes, full FDE, PIE, NX, `no-WX`).
+- Waves A1–A3 (`v0.17.0-turbo.4`) add: zero-spill native AArch64 `JS_CVMRunFastSegment`
+  coroutine executor (`cvm_fast_arm64.py`, with TypedArray `class_id` and `is_HTMLDDA`
+  guards), widened modern-JS extra-op admission + zero-exit try/catch ASM + direct hybrid
+  string1 drop, Tier-5 straight-line VA constructor compiler (`fast-construct.inc`), inline
+  compound-leaf hot paths, and zero-shift ASM island layout.
 - Public `quickjs.h` ABI, installed `quickjs-turbo::qjs` CMake consumers, and
-  `QJS_USE_PREGEN_ASM=ON` Python-free builds (`linux_aarch64`: 137 pregen files)
-  are fully supported. See `../common/ABI-AND-BASELINE-JIT.txt` for the pinned
-  register-frame ABI contract (`x19..x27`) and proposed optional Baseline JIT design.
+  `QJS_USE_PREGEN_ASM=ON` Python-free builds (`linux_aarch64`) are fully supported.
+  See `../common/ABI-AND-BASELINE-JIT.txt` for the pinned register-frame ABI contract
+  (`x19..x27`) and proposed optional Baseline JIT design.
 
-Qualification (v0.17.0-turbo.3, 2026-11-26)
+Qualification (v0.17.0-turbo.4, 2026-11-28)
 -------------------------------------------
-- QEMU Release CTests: `1,267/1,267` passed (including long-exponent `atod` and nested-getter
-  `Error.stack` regressions in `test_property_ic.js`); `3,175`-case `Array/String.prototype.slice`
-  differential check (`hash 1372709702`) passes; `check_vm.py` reports
-  `AARCH64_VM_ELF_OK native_opcodes=161 full-FDE PIE NX no-WX` (both Release and Instrumented);
-  `STRING-WORKERS.json` confirms `native_byte_append_complete = True` (`JSArena`).
-- QEMU Instrumented CTests: `1,826/1,826` passed (`api-test`, `lre-test`,
-  `wave3_stress_and_atod_diff.mjs`, `wave12_stress.js` also pass under QEMU `pregen-arm`).
+- Native AWS Graviton2 Neoverse-N1 Test262 (`81,924`-case corpus): `39/81,924` errors
+  (`4,785` excluded, `5,708` skipped, `0` crashes, `0` engine regressions — 100% matching
+  same-host Stock QuickJS-NG `0.17.0`).
+- QEMU Release CTests: `1,267/1,267` passed; QEMU Instrumented CTests: `1,826/1,826` passed;
+  Tier-5 constructor exact-byte-limit OOM fault injection (`47` OOM hits, `0` leaks / `0`
+  double-frees) and `$262.IsHTMLDDA` `typeof` parity (`0/4` errors) pass under QEMU.
+- ELF & ABI hygiene: `check_vm.py` reports `AARCH64_VM_ELF_OK native_opcodes=161 full-FDE PIE NX no-WX`;
+  all ARM64 JSON receipts normalized to pure LF (`CRLF_MISMATCH_COUNT=0`), verified via fresh
+  clean-checkout Linux ARM64 build producing byte-for-byte identical `qjs` (`91c2ed014d0f...`).
 - Native Linux ARM64 CI (`ubuntu-24.04-arm`): Release CTest + full Test262 (`82,220` cases)
   run via `.github/workflows/ci.yml` and `.github/workflows/test262.yml`.
-- Real AWS Graviton2 Neoverse-N1 hardware benchmarks (`v0.17.0-turbo.2` / Wave 6c cohort,
-  2026-11-25): V8-v7 `1,258.52` (`1.76x` vs Stock NG `0.17.0`, `1.48x` vs Bellard `2026-06-04`),
-  `micro57` `61.97` dimensionless index (`1.50x` vs Stock, `1.46x` vs Bellard), and `JetStream-17`
-  `228.95 ms` body / `226.50 ms` cold (`1.50x` / `1.54x` vs Stock, `1.34x` / `1.36x` vs Bellard)
-  — see `LINUX-AARCH64-HARDWARE.txt`.
-- Contracts & Boundaries: `vm/src/arm64/linux/abi/c-entry.json` updated for `slice-native.inc`;
-  `contracts.py` (`511` receipts, `0` stale) and `test_arch_boundaries.py` (`ARCH_BOUNDARIES_OK`) pass.
-- Historical `0.15.1` full Test262 (`81,152` cases, `65` inherited / `31` fixed / `0` new) and
-  per-worker ABI contracts are catalogued in `LINUX-AARCH64-MECHANISMS.json` and `workers/LINUX-AARCH64-*.txt`.
+- Real AWS Graviton2 Neoverse-N1 hardware benchmarks (`v0.17.0-turbo.4`, 2026-11-28):
+  - 4-engine cohort: V8-v7 `1,320.47` (`1.86x` Stock, `1.57x` Bellard, `+4.5%` vs `turbo.3`),
+    `micro56` `66.16 ns/op` (`1.50x` Stock, `1.45x` Bellard, `sort_bench` `0.98 sum_us`),
+    `JetStream-17` `220.48 ms` body / `218.16 ms` cold (`1.57x` / `1.60x` Stock, `1.37x` Bellard,
+    TypeScript RSS `169.82 MiB` [`-24.1%` vs `turbo.3`]).
+  - Paired vs Node `v24.13.0 --jitless`: `95.5%` V8-v7 (`1.67x` lower RSS, beats V8 on 4/8
+    subtests), `96.9%` `micro56` (`sort_bench` `1.34x` faster), and `83.7%` body / `90.3%` cold
+    `JetStream-17` (`8.10x` lower median RSS, beats V8 on 5/17) — see `LINUX-AARCH64-HARDWARE.txt`.
+- Contracts & Boundaries: `contracts.py` (`511` receipts, `0` stale) and
+  `test_arch_boundaries.py` (`ARCH_BOUNDARIES_OK`) pass.
 - Portable cross/native fallback guide: `LINUX-AARCH64.txt`.

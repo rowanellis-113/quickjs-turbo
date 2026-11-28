@@ -1,14 +1,14 @@
 QuickJS-Turbo ABI Contract & Proposed Baseline JIT Architecture
 ===============================================================
-Updated: 2026-11-26 (v0.17.0-turbo.3 / QuickJS-NG 0.17.0 verified baseline)
+Updated: 2026-11-28 (v0.17.0-turbo.4 / QuickJS-NG 0.17.0 verified baseline)
 
 Status Note
 -----------
-QuickJS-Turbo `v0.17.0-turbo.3` ships exclusively as a **Zero-JIT, `0 RWX`
+QuickJS-Turbo `v0.17.0-turbo.4` ships exclusively as a **Zero-JIT, `0 RWX`
 register-frame assembly interpreter** (Section 1). Section 2 documents a
 **proposed future roadmap** for an optional, opt-in bytecode-driven Baseline
 JIT built on top of the shipping ABI; no runtime code generation is present in
-`v0.17.0-turbo.3`.
+`v0.17.0-turbo.4`.
 
 1. Two-Layer ABI Contract (Shipping Production Invariant)
 ---------------------------------------------------------
@@ -21,22 +21,25 @@ the internal register-frame execution ABI:
 - Zero changes to public struct sizes, `JSValue` representation (`16 B`, tag at
   offset `8`), or `JSRuntime`/`JSContext` public API semantics.
 - Verified drop-in compatibility with unmodified `txiki.js v26.11.0` (`5133e8a`)
-  and full `82,220`-case Test262 (`0` new regressions).
+  and full `82,220`-case x86-64 + `81,924`-case native ARM64 Test262 (`0` new regressions).
 - All Turbo-specific controls (`quickjs-turbo.h`: `QJS_TurboOptionsInit`,
   `QJS_SetTurboDefaults`, `JS_SetRuntimeTurboOptions`, `JS_PurgePropertyIC`,
   `QJS_GetTurboInfo`) are strictly additive.
 
-1.2 Internal Native Register-Frame ABI (Shipping Execution Substrate)
+1.2 Internal Native Register-Frame & CVM ABI (Shipping Execution Substrate)
 - Pinned hardware register contracts across tier-1 native backends:
-  - `LINUX_AARCH64` (`vm/asm/arm64/linux/interpreter.S`):
+  - `LINUX_AARCH64` (`vm/asm/arm64/linux/interpreter.S` + `cvm_fast_arm64.py`):
     `x19` `JSFrameRegisterState*`, `x20` bytecode `pc`, `x21` operand `sp`,
     `x22` `JSStackFrame*`, `x23` `var_buf` (locals), `x24` `arg_buf` (args),
     `x25` relative dispatch table; `JS_FrameInterp` strictly 64B-aligned
-    (`161` native opcodes, PIE, NX stack, `0 RWX`, full DWARF FDE coverage).
+    (`161` native opcodes, zero-spill native `JS_CVMRunFastSegment` coroutine
+    executor, Tier-5 VA constructor compiler, PIE, NX stack, `0 RWX`, full DWARF
+    FDE coverage).
   - `LINUX_X86_64` / `MACOS_X86_64` / `WIN_X86_64`:
     Equivalent callee-saved register pinning over the shared `JSFrame` segment
-    arena, with SysV/Mach-O DWARF CFI and Win64 SEH `.pdata`/`.xdata` unwind
-    metadata.
+    arena and native `JS_CVMRunFastSegment` coroutine executors, with SysV/Mach-O
+    DWARF CFI, Linux CET-IBT `endbr64` on all `139/139` CVM indirect jump targets,
+    native PE TLS on Win64 MinGW, and Win64 SEH `.pdata`/`.xdata` unwind metadata.
 - Bounded bytecode admission (`FRAME_KIND(b)` + jump-target `boundaries` bitmap):
   Pre-validates stack bounds, arity, and branch targets per `JSFunctionBytecode`
   before entering native execution.

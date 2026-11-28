@@ -1,7 +1,7 @@
-Linux x86-64 Release Qualification, 2026-11-26 (v0.17.0-turbo.3)
+Linux x86-64 Release Qualification, 2026-11-28 (v0.17.0-turbo.4)
 ================================================================
-Current release: `v0.17.0-turbo.3` (release candidate `ecd84cd3`; Linux binary
-SHA-256 `d5aeb542a3c54107f2f766f1d8bac9157118329b5234ee08f5db39883a6954ad`).
+Current release: `v0.17.0-turbo.4` (engine commit `6ed860a`; Linux binary
+SHA-256 `d039a99a9b8d801d29b9c6dd51780d7ca06a969082c660a19545c6bd43f13015`).
 Pinned upstream: QuickJS-NG `0.17.0` (`7b5f588e0f9b643e2996f291bfc861abeaceddc2`;
 all 19 source pins verified intact).
 
@@ -15,17 +15,19 @@ Build & Toolchain Scope
 - Build & install wrapper:
     bash vm/tools/x86/linux/build/product-linux.sh build/linux-native out/sdk-linux-native
 
-Verification Matrix (v0.17.0-turbo.3, 2026-11-26)
+Verification Matrix (v0.17.0-turbo.4, 2026-11-28)
 -------------------------------------------------
-- Linux x86-64 Release (`LINUX_X86_64`): `963/963` CTests (including permanent
-  long-exponent `atod` and nested-getter `Error.stack` regressions in
-  `vm/tests/common/test_property_ic.js`); `3,175`-case `Array/String.prototype.slice`
-  differential check (`hash 1372709702`, identical across Linux x86-64, ARM64,
-  Win64 MinGW, and Win64 MSVC) and `1,010,234` dtoa/atod vectors pass.
-- Linux `ASan+UBSan` (`PORTABLE` auto-fallback): `218/218` CTests (`ASAN_OPTIONS=detect_leaks=0`
-  in CI; explicit LSan `detect_leaks=1` also passed locally on `test_property_ic.js`).
-- Cold-heap zero-bloat gate (`cold_heap_probe_t3rc`): `COLD_HEAP_MATCH_EXACT_ZERO_BLOAT`
-  (`empty_malloc = 98,600 B` = `96.29 KiB` exact binary KiB).
+- Linux x86-64 Release (`LINUX_X86_64`): `963/963` CTests; CET-IBT audit confirms
+  `139/139` distinct CVM indirect jump-table targets emit `endbr64` (`missing=0`)
+  in both `qjs` and `qjsc`; Tier-5 VA constructor exact-byte-limit OOM fault
+  injection (`47` OOM hits, `0` leaks / `0` double-frees); `$262.IsHTMLDDA`
+  `typeof` parity (`0/4` errors).
+- Linux `ASan+UBSan` (`PORTABLE` auto-fallback, `RelWithDebInfo`,
+  `UBSAN_OPTIONS=halt_on_error=1`): `218/218` CTests + 50-case BigInt shift
+  boundary matrix including `(1n << 64n) >> -2147483648n`.
+- Cold-heap zero-bloat gate (`cold_heap_probe_t4` on `6ed860a` `libqjs.a`):
+  exact match (`empty_malloc = 98,600 B` = `96.29 KiB` exact binary KiB;
+  500-fn props Default `450.13 KiB` -> purged `333.07 KiB` -> Density `333.05 KiB`).
 - Full Test262 (`5ef1e5723be9`, `82,220` cases): `40/82,220` inherited failures
   (`4,802` excluded, `5,736` skipped, `0` new, `0` changed, 100% matching stock `0.17.0`).
 - `txiki.js v26.11.0` (`5133e8a`) host integration (verified on `0.17.0` `BC_VERSION 29` baseline):
@@ -35,11 +37,14 @@ Verification Matrix (v0.17.0-turbo.3, 2026-11-26)
   - `BUILD_WITH_GC_STRESS=ON` (`PORTABLE`, `TJS_GC_STRESS=1`, `TJS_TEST_TIMEOUT=120000`):
     `466/468` batch + standalone `test-tls-gc-pending-write.js` pass (`467/468` functional;
     only WSL2 DNS `test-lookup.js` `EAI_AGAIN`).
-- Cross-platform parity: Windows `WIN_X86_64` MSVC (`222/222` CTest, `/MT` `KERNEL32.dll`
-  only, `37`-file pregen) and MinGW (`222/222` CTest, `37`-file pregen);
-  Linux ARM64 (`1,267/1,267` Release, `1,826/1,826` Instrumented, `137`-file pregen, `161` native
-  opcodes); `contracts.py` (`511` receipts, `0` stale), `test_format_contract.py` (`12/12`),
-  `test_arch_boundaries.py`, `validate_layout.py --require-native`, and `release_version.py` pass.
+- Cross-platform parity (`4,718/4,718` CTests): Windows `WIN_X86_64` MSVC `/MT`
+  (`222/222` CTest, `KERNEL32.dll`-only PE imports) and MinGW (`222/222` CTest);
+  Linux ARM64 (`1,267/1,267` Release, `1,826/1,826` Instrumented, native AWS
+  Neoverse-N1 Test262 `81,924` cases with `0` engine regressions, `161` native
+  opcodes + zero-spill AArch64 CVM); `contracts.py` (`511` receipts, `0` stale,
+  `CRLF_MISMATCH_COUNT=0`), `test_format_contract.py` (`12/12`),
+  `test_arch_boundaries.py`, `validate_layout.py --require-native`,
+  `test_macho_x86.py`, and `release_version.py --tag v0.17.0-turbo.4` pass.
 
 Performance scores and hotspot tables: `LINUX-FINAL-REVIEW.txt` and `PRODUCT-BASELINE.txt`.
 ABI contracts & proposed Baseline JIT design: `../../common/ABI-AND-BASELINE-JIT.txt`.

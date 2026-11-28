@@ -101,7 +101,7 @@ function renderHero() {
   document.getElementById("hero-cohort").textContent = hero.cohort;
   const maxScore = Math.max(...hero.engines.map((e) => e.score));
   const baseEngine = hero.engines.find((x) => x.role === "baseline");
-  const baseScore = baseEngine ? baseEngine.score : 1081.56;
+  const baseScore = baseEngine ? baseEngine.score : 1109.03;
   const container = document.getElementById("hero-bars");
   container.innerHTML = hero.engines
     .map((e) => {
@@ -149,7 +149,7 @@ function renderHistory() {
   const yAt = (v) => padT + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
 
   const refEngine = DATA.heroComparison.engines.find((e) => e.role === "reference");
-  const refScore = Math.round(refEngine ? refEngine.score : 2164);
+  const refScore = Math.round(refEngine ? refEngine.score : 2178);
   const gridVals = [1000, 1500, 2000, refScore];
   const gridSvg = gridVals
     .map((v) => {
@@ -165,7 +165,7 @@ function renderHistory() {
         </text>
         ${
           isV8
-            ? `<text x="${W - padR}" y="${Number(y) - 6}" text-anchor="end" fill="var(--cyan)" font-size="10.5" font-family="JetBrains Mono, monospace">V8 --jitless (${refScore.toLocaleString("en-US")})</text>`
+            ? `<text x="${padL + 8}" y="${Number(y) - 6}" text-anchor="start" fill="var(--cyan)" font-size="10.5" font-family="JetBrains Mono, monospace">V8 --jitless (${refScore.toLocaleString("en-US")})</text>`
             : ""
         }
       `;

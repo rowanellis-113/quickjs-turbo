@@ -1,6 +1,6 @@
 macOS x86-64 native Mach-O ASM VM (MACOS_X86_64)
 ==============================================
-Release: v0.17.0-turbo.3 (2026-11-26, pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
+Release: v0.17.0-turbo.4 (2026-11-28, commit `6ed860a`; pinned QuickJS-NG 0.17.0 / 7b5f588e0f)
 
 Overview
 --------
@@ -16,8 +16,10 @@ Build and mechanism
 - Source translation: `vm/tools/x86/macos/adapt_macho.py` translates the generated
   Linux x86-64 SysV/ELF runtime and assembly outputs to Mach-O ABI/section directives
   (`_symbol` prefixes, `__TEXT/__DATA` segments, RIP-relative addressing, DWARF EH frames).
-- Offline verification (`adapt_macho.py`): `35` C/H files, `27` includes, and `3`
-  assembly files adapt cleanly; `test_macho_x86.py` Mach-O contract check passes.
+- Offline verification (`v0.17.0-turbo.4`): `adapt_macho.py` adapts `35` C/H files,
+  `29` includes, and `3` assembly files (including CVM fast-segment sections
+  `__TEXT,__qjs_cvm`); `vm/tests/x86/macos/test_macho_x86.py`
+  (`MACHO_X86_POLICY_OK cputype=0x01000007`) and `test_arch_boundaries.py` pass.
 - Darwin CI contracts verify Mach-O PIE, non-executable stack, `W^X` section hygiene,
   and complete DWARF FDE unwind coverage before packaging `macos-x86_64-sdk.tar.gz`.
 - macOS ARM64 (`macos-arm64-sdk.tar.gz`, `PORTABLE` backend) is cross-compiled on

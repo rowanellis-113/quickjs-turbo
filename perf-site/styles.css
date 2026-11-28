@@ -350,14 +350,22 @@ a {
   border-radius: var(--radius);
   padding: 22px 24px;
   box-shadow: var(--shadow-card);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel-header {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: flex-start;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.panel-header > * {
+  min-width: 0;
+  max-width: 100%;
 }
 
 .panel-title {
@@ -444,6 +452,14 @@ a {
   flex-wrap: wrap;
   gap: 8px;
   justify-content: flex-end;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.js17-summary .badge {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  max-width: 100%;
 }
 
 .js17-geomean-row td {
@@ -798,6 +814,10 @@ th.num {
   gap: 16px;
 }
 
+.two-col > * {
+  min-width: 0;
+}
+
 .cohort-bar {
   display: flex;
   flex-wrap: wrap;
@@ -996,6 +1016,14 @@ pre {
   }
   .panel-card {
     padding: 16px;
+  }
+  .panel-header .badge {
+    white-space: normal;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
+  .js17-summary {
+    justify-content: flex-start;
   }
   .feature-grid {
     grid-template-columns: 1fr;

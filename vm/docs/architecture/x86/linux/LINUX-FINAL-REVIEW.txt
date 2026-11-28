@@ -1,86 +1,90 @@
-Linux x86-64 6-engine benchmark review, 2026-11-26 (v0.17.0-turbo.3)
+Linux x86-64 6-engine benchmark review, 2026-11-28 (v0.17.0-turbo.4)
 ====================================================================
 Simultaneous 6-engine comparison on the Reference Linux x86-64 Host (AMD Ryzen 3
 3300X, Ubuntu 24.04 / WSL2, GCC 13.3, CPU2 serial, normal ASLR) comparing Stock
 QuickJS-NG 0.17.0 (`7b5f588e0f`), Bellard QuickJS 2026-06-04 (`-O2`),
-`v0.17.0-turbo.1` (`ref_turbo1`), `v0.17.0-turbo.3` (Default & Density
+`v0.17.0-turbo.3` (`turbo3_def`), `v0.17.0-turbo.4` (Default & Density
 `tail=OFF, w=16`), and Node.js v24.13.0 `--jitless`.
 
-Measured `v0.17.0-turbo.3` Linux binary SHA-256:
-  `d5aeb542a3c54107f2f766f1d8bac9157118329b5234ee08f5db39883a6954ad`
+Measured `v0.17.0-turbo.4` (`6ed860a`) Linux binary SHA-256:
+  `d039a99a9b8d801d29b9c6dd51780d7ca06a969082c660a19545c6bd43f13015`
 
 1. Official V8-v7 (4 balanced ABBA rounds across all 6 engines, monotonic-clock
    recomputed from `performance.now()` on identical iterations to eliminate
    WSL2 periodic wall-clock backward jumps; higher is better):
-   Case          Stock NG 0.17  Bellard 26.06  Turbo Def  Node --jitless  T/NG   T/Bel  T/V8
-   Richards             667.50         960.24   1,177.53        1,243.16  1.76x  1.23x   94.7%
-   DeltaBlue            735.35         925.45   1,154.72        1,399.71  1.57x  1.25x   82.5%
-   Crypto               833.84       1,073.78   1,391.93        1,085.46  1.67x  1.30x  128.2%
-   RayTrace           1,299.03       1,553.04   1,878.69        3,067.26  1.45x  1.21x   61.2%
-   EarleyBoyer        1,823.20       2,196.71   2,579.86        5,136.87  1.42x  1.17x   50.2%
-   RegExp               351.47         402.78   1,643.53        3,050.57  4.68x  4.08x   53.9%
-   Splay              2,905.73       3,353.09   3,502.17        3,328.60  1.21x  1.04x  105.2%
-   NavierStokes       1,893.34       2,408.78   2,632.68        1,622.45  1.39x  1.09x  162.3%
-   Overall (Def)      1,081.56       1,346.64   1,865.85        2,164.37  1.73x  1.39x   86.2%
-   Overall (Dens)           --             --   1,865.71              --  1.73x  1.39x   86.2%
-   Peak RSS KiB        159,038        150,294    161,190         473,648  --     --     2.94x lower
-   (Same-session `ref_turbo1` monotonic = 1,903.58; raw `turbo3_def` monotonic rounds = [1869.90, 1872.26, 1861.80, 1848.98];
-    separate dual-clock cohort vs `v0.15.1-turbo.8` measured 1,907.04 vs 1,912.22 [-0.27% parity].)
+   Case          Stock NG 0.17  Bellard 26.06  Turbo t.3  Turbo t.4  Node --jitless  T4/NG  T4/Bel  T4/T3   T4/V8
+   Richards             705.06         959.98   1,316.02   1,280.30        1,231.48  1.82x   1.33x  0.97x  104.0%
+   DeltaBlue            762.05         902.83   1,239.97   1,252.21        1,399.52  1.64x   1.39x  1.01x   89.5%
+   Crypto               863.65       1,069.71   1,401.82   1,582.71        1,110.05  1.83x   1.48x  1.13x  142.6%
+   RayTrace           1,372.07       1,621.25   1,852.98   2,830.64        3,241.18  2.06x   1.75x  1.53x   87.3%
+   EarleyBoyer        1,862.81       2,281.89   2,659.91   2,833.64        5,305.60  1.52x   1.24x  1.07x   53.4%
+   RegExp               363.36         414.02   1,665.91   2,059.61        3,080.26  5.67x   4.97x  1.24x   66.9%
+   Splay              2,967.81       3,190.12   3,551.73   3,812.04        3,102.76  1.28x   1.19x  1.07x  122.9%
+   NavierStokes       1,962.36       2,415.63   2,694.91   2,967.05        1,619.55  1.51x   1.23x  1.10x  183.2%
+   Overall (Def)      1,109.03       1,348.01   1,913.11   2,159.80        2,177.85  1.95x   1.60x  1.13x   99.2%
+   Overall (Dens)           --             --         --   2,180.93              --  1.97x   1.62x  1.14x  100.1%
+   Peak RSS KiB        159,154        150,358    161,120    161,222         473,904  --      --     --     2.94x lower
+   (Raw `turbo4_def` monotonic rounds = [2167.03, 2192.57, 2107.26, 2152.57];
+    `turbo4_dens` monotonic rounds = [2191.99, 2199.56, 2169.88, 2127.13];
+    `node_jitless` monotonic rounds = [2198.05, 2157.66, 2246.96, 2120.55].)
 
 2. micro56 (56 uniform ns/op cases) + sort_bench (sum_us) + dimensionless micro57 index
    (6 balanced ABBA rounds across all 6 engines, CPU2, lower is better):
-   - Stock NG 0.17.0: 61.756 ns/op (sort 1.805 sum_us · micro57 idx 58.033)
-   - Bellard 2026:    58.498 ns/op (sort 1.925 sum_us · micro57 idx 55.102)
-   - `ref_turbo1`:    43.747 ns/op (sort 0.750 sum_us · micro57 idx 40.729)
-   - Node --jitless:  40.914 ns/op (sort 0.750 sum_us · micro57 idx 38.133)
-   - Turbo Default:   40.329 ns/op (sort 0.730 sum_us · micro57 idx 37.588) — 1.531x vs NG [55/57 wins] · 1.451x vs Bellard [48/57 wins] · 1.085x vs `turbo.1` · 1.015x vs Node [27/57 wins]
-   - Turbo Density:   40.085 ns/op (sort 0.750 sum_us · micro57 idx 37.383) — 1.541x vs NG · 1.021x vs Node
+   - Stock NG 0.17.0: 61.840 ns/op (sort 1.840 sum_us · micro57 idx 58.145)
+   - Bellard 2026:    58.382 ns/op (sort 1.915 sum_us · micro57 idx 54.979)
+   - Node --jitless:  40.794 ns/op (sort 0.740 sum_us · micro57 idx 38.023 · RSS 278,212 KiB)
+   - `turbo.3` Def:   40.525 ns/op (sort 0.750 sum_us · micro57 idx 37.777)
+   - Turbo t.4 Dens:  40.325 ns/op (sort 0.730 sum_us · micro57 idx 37.597) — 1.534x vs NG · 1.012x vs Node
+   - Turbo t.4 Def:   40.037 ns/op (sort 0.770 sum_us · micro57 idx 37.360 · RSS 141,644 KiB) — 1.545x vs NG [54/57 wins] · 1.458x vs Bellard [49/57 wins] · 1.012x vs `turbo.3` · 1.019x vs Node [27/57 wins, 1.96x lower RSS]
 
    Selected micro hotspots (ns/op except `sort_bench` in sum_us, lower is better):
-   Case                Stock NG 0.17  Turbo Def  T/NG
-   float_to_string            350.25      71.55  4.90x
-   float_toString             370.73      88.05  4.21x
-   prop_read                   19.98       6.03  3.32x
-   typed_array_read            16.46       5.80  2.84x
-   string_to_float            160.53      58.06  2.76x
-   string_to_int              126.25      48.15  2.62x
-   string_build1               82.64      32.78  2.52x
-   typed_array_write           12.86       5.14  2.50x
-   sort_bench (sum_us)          1.81       0.73  2.47x
-   empty_loop                  13.38       5.61  2.38x
-   array_read                  13.14       5.96  2.21x
-   prop_write                  13.11       6.14  2.13x
-   string_slice1               78.63      58.19  1.35x
-   string_slice3               71.04      54.45  1.30x
-   string_slice2              140.49     122.49  1.15x
-   prop_delete                108.34     134.79  0.80x  (only notable slower case vs Stock)
+   Case                Stock NG 0.17  Turbo t.4  T4/NG
+   float_to_string            349.80      82.37  4.25x
+   float_toString             379.75      96.80  3.92x
+   prop_read                   19.96       6.16  3.24x
+   typed_array_read            16.44       5.83  2.82x
+   string_to_float            165.43      60.61  2.73x
+   string_to_int              135.82      50.31  2.70x
+   typed_array_write           12.85       5.28  2.43x
+   sort_bench (sum_us)          1.84       0.77  2.39x
+   string_build1               83.07      36.22  2.29x
+   empty_loop                  13.61       6.01  2.26x
+   array_read                  13.14       5.98  2.20x
+   prop_write                  13.11       6.26  2.09x
+   array_pop                   88.71      44.86  1.98x
+   weak_map_set               160.29      81.38  1.97x
+   bigint256_arith            138.37      74.25  1.86x  (1.54x vs turbo.3 114.18)
+   bigint64_arith              74.22      48.42  1.53x  (1.51x vs turbo.3 73.27)
+   Remaining slower cases vs Stock NG (3/57): `object_null` (46.92 -> 54.34, 0.86x),
+   `prop_delete` (108.15 -> 139.67, 0.77x), `array_for_in` (81.09 -> 114.01, 0.71x).
 
 3. JetStream-17 (17 real-world JS workloads, 2 reversed blocks x 2 measured iters, body ms, lower is better):
-   Case                       Stock NG  Bellard  Turbo Def  Node --jit   T/NG   T/Bel   T/V8
-   json-stringify-inspector     117.62    93.99      21.47       26.67  5.48x   4.38x  1.24x
-   json-parse-inspector          80.83    86.18      41.96       48.68  1.93x   2.05x  1.16x
-   richards                     252.10   179.70     135.92      139.15  1.85x   1.32x  1.02x
-   cdjs                         526.16   422.50     289.55      251.76  1.82x   1.46x  0.87x
-   crypto                       149.53   112.72      84.63      111.88  1.77x   1.33x  1.32x
-   pdfjs                        318.33   259.03     181.86      142.06  1.75x   1.42x  0.78x
-   FlightPlanner                 67.74    57.64      39.49       24.92  1.72x   1.46x  0.63x
-   delta-blue                   179.68   143.42     107.93       95.08  1.66x   1.33x  0.88x
-   async-fs                     241.57   319.62     153.17       81.78  1.58x   2.09x  0.53x
-   acorn-wtb                  2,875.78 2,604.25   1,929.09    1,354.96  1.49x   1.35x  0.70x
-   Air                           66.96    56.91      50.67       31.11  1.32x   1.12x  0.61x
-   Babylon                      101.78    84.96      77.02       53.90  1.32x   1.10x  0.70x
-   bigint-noble-ed25519         265.51   194.30     222.65      207.08  1.19x   0.87x  0.93x
-   js-tokens                    178.73   151.22     151.86      110.45  1.18x   1.00x  0.73x
-   typescript-octane          2,767.39 2,418.57   2,368.30    1,679.59  1.17x   1.02x  0.71x
-   prettier-wtb                 856.29   755.69     886.80      450.49  0.97x   0.85x  0.51x
-   lazy-collections              74.42    69.95      79.80      110.94  0.93x   0.88x  1.39x
-   Geomean (body ms)            239.94   206.43     153.87      127.36  1.56x   1.34x  0.83x
-   Geomean (cold ms)            247.71   211.93     155.64      137.39  1.59x   1.36x  0.88x
-   Median RSS KiB                9,678    9,490     10,366      81,958  --      --     7.9x lower
-   TypeScript Peak RSS MiB      101.59   128.08     172.83      265.16  --      --     --
-   (Same-session `ref_turbo1` = 160.75 ms body / 162.42 ms cold; Turbo Density = 154.20 ms body, TypeScript 198.26 MiB.)
+   Case                       Stock NG  Bellard  Turbo t.3  Turbo t.4  Node --jit  T4/NG  T4/Bel  T4/V8
+   json-stringify-inspector     118.26    87.41      21.54      21.05       27.53  5.62x   4.15x  1.31x
+   async-fs                     241.68   322.01     154.09     117.62       79.89  2.05x   2.74x  0.68x
+   richards                     257.59   174.46     131.42     127.18      139.70  2.03x   1.37x  1.10x
+   crypto                       144.26   110.78      85.98      74.69      104.41  1.93x   1.48x  1.40x
+   json-parse-inspector          79.55    81.73      40.59      43.76       46.98  1.82x   1.87x  1.07x
+   pdfjs                        308.15   247.89     184.26     172.12      139.98  1.79x   1.44x  0.81x
+   cdjs                         531.69   415.83     294.73     300.21      246.20  1.77x   1.39x  0.82x
+   FlightPlanner                 68.47    56.66      40.58      40.26       24.55  1.70x   1.41x  0.61x
+   delta-blue                   172.50   142.76     107.72     104.21       90.69  1.66x   1.37x  0.87x
+   acorn-wtb                  2,935.69 2,584.59   1,959.87   1,836.82    1,361.82  1.60x   1.41x  0.74x
+   bigint-noble-ed25519         267.52   192.87     214.73     178.87      207.78  1.50x   1.08x  1.16x
+   Air                           69.29    55.74      50.82      48.01       30.82  1.44x   1.16x  0.64x
+   js-tokens                    180.83   148.70     150.94     127.48      112.95  1.42x   1.17x  0.89x
+   Babylon                       98.64    82.39      79.27      70.78       52.50  1.39x   1.16x  0.74x
+   typescript-octane          2,631.98 2,310.25   2,443.64   2,248.49    1,618.58  1.17x   1.03x  0.72x
+   lazy-collections              75.14    69.89      81.29      71.41      111.08  1.05x   0.98x  1.56x
+   prettier-wtb                 848.29   764.81     888.85     818.75      451.81  1.04x   0.93x  0.55x
+   Geomean (body ms)            238.76   202.05     154.53     142.61      125.66  1.67x   1.42x  0.88x
+   Geomean (cold ms)            243.38   207.44     155.49     144.21      136.11  1.69x   1.44x  0.94x
+   Median RSS KiB                9,572    9,450     10,332     10,482      82,022  --      --     7.83x lower
+   TypeScript Peak RSS MiB      101.58   128.08     172.76     170.16      265.15  --      --     --
+   (Turbo t.4 sweeps 17/17 vs Stock NG, wins 15/17 vs Bellard, and beats Node --jitless on 6/17 workloads;
+    Turbo t.4 Density = 143.44 ms body / 145.24 ms cold, median RSS 10,200 KiB.)
 
-4. Cold-worker heap (`cold_heap_probe_t3rc`, exact KiB = bytes / 1,024):
+4. Cold-worker heap (`cold_heap_probe_t4` on `6ed860a`, exact KiB = bytes / 1,024):
    - Initial `JS_NewRuntime` + `JS_NewContext`:       96.29 KiB (98,600 B — zero cold bloat)
    - 500 once-called props fns (Default / purged):   450.13 KiB (460,936 B; 500 IC slabs = 109.31 KiB) -> 333.07 KiB (341,064 B)
    - 500 once-called props fns (Density, tail=0/w16): 333.05 KiB (341,048 B; -26.0%, 0 cold IC slabs)
@@ -88,7 +92,8 @@ Measured `v0.17.0-turbo.3` Linux binary SHA-256:
 
 5. Historical `v0.15.1` reference notes
    On the same Reference Host under the original `Date` harness with Stock
-   QuickJS-NG 0.15.1 (`1,007.04`), `v0.15.1-turbo.8` scored `2,101.40`. Dual-clock
-   monotonic comparison on the same host confirms `v0.17.0-turbo.3` (`1,907.04`)
-   and `v0.15.1-turbo.8` (`1,912.22`) are within `-0.27%`. Prior bring-up worker
-   notes live under `workers/LINUX-*.txt`.
+   QuickJS-NG 0.15.1 (`1,007.04`), `v0.15.1-turbo.8` scored `2,101.40` (monotonic
+   recomputation ~`1,846`–`1,912`). Under monotonic timing, `v0.17.0-turbo.4`
+   (`2,159.80` Default / `2,180.93` Density) surpasses all prior releases and
+   reaches parity with Node 24 `V8 --jitless` (`2,177.85`). Prior bring-up
+   worker notes live under `workers/LINUX-*.txt`.
