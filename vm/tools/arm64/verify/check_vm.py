@@ -758,6 +758,8 @@ def main():
         + tuple(c_entry["retained_entries"])
     )
     names += ("JS_FrameInterpFree",)
+    if expected_fast_vm:
+        names += ("JS_CVMRunFastSegment",)
     if scalar["enabled"]:
         names += ("qjs_aarch64_vm_scalar_policy",)
     if call_leaves["enabled"]:

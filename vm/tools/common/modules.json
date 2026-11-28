@@ -154,6 +154,7 @@
   "aarch64-call-leaves-fast": "arm64/workers/call_leaves_arm64.py",
   "aarch64-constructors-fast": "arm64/workers/constructors_arm64.py",
   "aarch64-indexed-fast": "arm64/workers/indexed_arm64.py",
+  "aarch64-cvm-fast": "arm64/workers/cvm_fast_arm64.py",
   "cvm_segments_c": "common/backports/cvm_segments_c.py",
   "object-adapter-c": "common/c_extract/object_adapter_c.py",
   "add-local-c": "common/c_extract/add_local_c.py",

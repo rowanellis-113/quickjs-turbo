@@ -35,8 +35,14 @@ _Static_assert(sizeof(JSCVMFastState) == 64 && offsetof(JSCVMFastState, pc) == 0
                    offsetof(JSCVMFastState, ctx) == 40 && offsetof(JSCVMFastState, bc) == 48 &&
                    offsetof(JSCVMFastState, rt) == 56,
                "native coroutine fast segment boundary record");
-extern void JS_CVMRunFastSegment(JSCVMFastState *state);
-extern const uint8_t JS_CVMFastEligible[256];
+#if defined(__GNUC__) && !defined(_WIN32)
+#define QJS_CVM_HIDDEN __attribute__((visibility("hidden")))
+#else
+#define QJS_CVM_HIDDEN
+#endif
+QJS_CVM_HIDDEN extern void JS_CVMRunFastSegment(JSCVMFastState *state);
+QJS_CVM_HIDDEN extern const uint8_t JS_CVMFastEligible[256];
+#undef QJS_CVM_HIDDEN
 #endif
 #ifdef QJS_CVM_NATIVE_OPS
 _Static_assert(sizeof(JSCVMSegmentState) == 48 && offsetof(JSCVMSegmentState, pc) == 0 &&
@@ -74,20 +80,17 @@ static QJS_CVM_COLD_CODE JSValue JS_CVMResumeInternal(JSContext *, JSAsyncFuncti
 /* Configuration is process-start policy, like the existing core-spread path.
  * Off and clone-only are independent ablations of this real execution path.
  */
-static unsigned char js_cvm_segment_mode(void)
-{
 #ifdef CONFIG_ATOMICS
 #ifdef _MSC_VER
-    __declspec(allocate(".qjcvmm")) static _Atomic(unsigned char) cached;
+__declspec(allocate(".qjcvmm")) static _Atomic(unsigned char) js_cvm_segment_mode_cache;
 #else
-    static _Atomic(unsigned char) cached;
+static _Atomic(unsigned char) js_cvm_segment_mode_cache;
 #endif
-    unsigned char mode = atomic_load_explicit(&cached, memory_order_relaxed);
-    if (mode)
-        return mode;
-#else
+#endif
+
+static QJS_CVM_COLD_CODE unsigned char js_cvm_segment_mode_init(void)
+{
     unsigned char mode;
-#endif
 #if defined(QJS_CVM_NATIVE_OPS) || defined(QJS_CVM_FAST_NATIVE)
     mode = 1;
 #else
@@ -100,9 +103,19 @@ static unsigned char js_cvm_segment_mode(void)
     else if (getenv("QJS_DISABLE_CVM_NATIVE_SEGMENT_OPS"))
         mode = 3;
 #ifdef CONFIG_ATOMICS
-    atomic_store_explicit(&cached, mode, memory_order_relaxed);
+    atomic_store_explicit(&js_cvm_segment_mode_cache, mode, memory_order_relaxed);
 #endif
     return mode;
+}
+
+static inline unsigned char js_cvm_segment_mode(void)
+{
+#ifdef CONFIG_ATOMICS
+    unsigned char mode = atomic_load_explicit(&js_cvm_segment_mode_cache, memory_order_relaxed);
+    if (likely(mode))
+        return mode;
+#endif
+    return js_cvm_segment_mode_init();
 }
 
 #if defined(QJS_CVM_FAST_NATIVE)
@@ -186,14 +199,13 @@ static JSValue JS_CVMResumeEntry(JSContext *caller_ctx, JSValueConst func, JSVal
             st.bc = b;
             st.rt = caller_ctx->rt;
             JS_CVMRunFastSegment(&st);
-            uint8_t op = *st.pc;
-            if (op == OP_yield && likely(caller_ctx->interrupt_counter > 1)) {
+            if (*st.pc == OP_yield && likely(caller_ctx->interrupt_counter > 1)) {
                 --caller_ctx->interrupt_counter;
                 sf->cur_pc = st.pc + 1;
                 sf->cur_sp = st.sp;
                 return JS_MKVAL(JS_TAG_INT, FUNC_RET_YIELD);
             }
-            if (op == OP_await && likely(caller_ctx->interrupt_counter > 1)) {
+            if (*st.pc == OP_await && likely(caller_ctx->interrupt_counter > 1)) {
                 --caller_ctx->interrupt_counter;
                 sf->cur_pc = st.pc + 1;
                 sf->cur_sp = st.sp;

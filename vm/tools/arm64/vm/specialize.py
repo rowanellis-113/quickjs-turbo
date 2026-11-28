@@ -19,6 +19,7 @@ FAST_VM_MODULES = (
     "workers/call_leaves_arm64.py",
     "workers/constructors_arm64.py",
     "workers/indexed_arm64.py",
+    "workers/cvm_fast_arm64.py",
 )
 
 
@@ -424,7 +425,14 @@ def specialize(source, output, enabled, vm_receipt):
     .zero 128
 #endif
 """
-    text = _replace_exact(text, stack_note, env_sections + stack_note, 1, "GNU-stack anchor")
+    from arm64.workers.cvm_fast_arm64 import emit_arm64_cvm_fast
+
+    cvm_fast_section = emit_arm64_cvm_fast(
+        source, bool(vm_receipt["owned"].get("HAS_PROPERTY_IC", 0))
+    )
+    text = _replace_exact(
+        text, stack_note, env_sections + cvm_fast_section + stack_note, 1, "GNU-stack anchor"
+    )
     text = _unify_publication_release(text, output, op_ids)
     target.write_text(text)
 
