@@ -39,7 +39,7 @@
     "tools/arm64/vm/vm_source.py": "a404ef51dae5f14f15edc6cee4dc83d5e0c71b607f2e0a1db47591913c66152e",
     "tools/arm64/vm/value_flow.py": "8a87de3d9a2f6c6ae9af63798c911267fa0fa411b392f6f662ec589e76fe6fc2",
     "tools/arm64/vm/linear_return.py": "d347a03208785a711f930165d3f8fc77e7c005091d1aeb85febd8fdcca13a1ee",
-    "src/arm64/linux/abi/linear-return.json": "b4aa1f793376c39f8931cf06d6fff6d80eb7b8762d95bcdc53b95a8cb669f5c2"
+    "src/arm64/linux/abi/linear-return.json": "9eef2dabc25e175cbb3a6595c557a082d92660e528796c7462877a21137604c6"
   },
   "scope": "Complete opcode-owned value flow and optional single-pass return; unchanged core C and private compiler input",
   "ABI": "Original measured operands and frame layout; no mirrored structs/offsets/new fields",

@@ -540,7 +540,7 @@ qjs_binary_logic_bigint_fast(JSContext *ctx, JSValue *sp, OPCodeEnum op, JSValue
             sp[-2] = __JS_NewShortBigInt(ctx, rv);
             return 1;
         }
-        if (op == OP_sar && (uint32_t)(sv - 1) < 31u && (bp1->tab[bp1->len - 1] >> 31) == 0u) {
+        if (op == OP_sar && sv > 0 && sv < 32 && (bp1->tab[bp1->len - 1] >> 31) == 0u) {
             JSBigInt *br = qjs_bigint_shr_small(ctx, bp1, (uint32_t)sv);
             if (--JS_REF_COUNT(bp1) <= 0)
                 qjs_bigint_pool_put(ctx->rt, bp1);

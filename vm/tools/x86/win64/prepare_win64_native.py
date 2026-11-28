@@ -1595,6 +1595,8 @@ def _inject_fast_ops_win64(masm_lines, gas_lines, upstream, layout):
                 "mov r8, QWORD PTR [r13-16]",
                 f"cmp DWORD PTR [r8{rc_disp}], 1",
                 "jle interp_slow",
+                f"test BYTE PTR [r8+{html_byte}], {html_mask}",
+                "jnz win64_tif_obj_false",
                 f"movzx ecx, WORD PTR [r8+{obj_class_off}]",
                 "cmp ecx, 13",
                 "je win64_tif_obj_true",

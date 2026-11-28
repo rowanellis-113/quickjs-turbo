@@ -2089,10 +2089,13 @@ def emit_linux_elf(source_root: Path, abi: dict, property_ic: bool, cet: bool = 
     ]
     for name in sorted(handlers):
         lines.append(f"cvm_op_{name}:")
+        if cet:
+            lines.append("endbr64")
         lines.extend(handlers[name])
     lines.extend(shared_tails)
     lines += [
         "cvm_bail:",
+        *(["endbr64"] if cet else []),
         "mov QWORD PTR [r15], r12",
         "mov QWORD PTR [r15+8], r13",
         "pop r15",

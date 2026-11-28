@@ -1334,7 +1334,6 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
             }
             JSProperty props[16];
             uint32_t moved_mask = 0;
-            uint32_t owned_mask = 0;
             props[0].u.value = JS_UNDEFINED;
             for (unsigned f = 0; f < n_f; f++) {
                 uint8_t sk = m->src_kind[f];
@@ -1347,11 +1346,9 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
                             v = argv[aidx];
                         } else {
                             v = js_dup(argv[aidx]);
-                            owned_mask |= (1u << f);
                         }
                     } else {
                         v = fast_ctor_eval_const(init_b, m->def_kind[f], m->def_imm[f]);
-                        owned_mask |= (1u << f);
                     }
                 } else if (sk == FAST_CTOR_SRC_ARG) {
                     uint32_t aidx = (uint32_t)m->src_imm[f];
@@ -1361,23 +1358,22 @@ static inline int js_fast_construct_try_impl(JSFrameRegisterState *state)
                             v = argv[aidx];
                         } else {
                             v = js_dup(argv[aidx]);
-                            owned_mask |= (1u << f);
                         }
                     } else {
                         v = JS_UNDEFINED;
                     }
                 } else {
                     v = fast_ctor_eval_const(init_b, sk, m->src_imm[f]);
-                    owned_mask |= (1u << f);
                 }
                 props[f].u.value = v;
             }
             JSValue this_obj =
                 JS_NewObjectFromShape(ctx, js_dup_shape(sh), JS_CLASS_OBJECT, n_f ? props : NULL);
             if (unlikely(JS_IsException(this_obj))) {
-                for (unsigned f = 0; f < n_f; f++) {
-                    if (owned_mask & (1u << f))
-                        JS_FreeValue(ctx, props[f].u.value);
+                /* JS_NewObjectFromShape already freed every props[0..n_f-1] on failure. */
+                for (uint32_t i = 0; i < incoming_argc && i < 32u; i++) {
+                    if (moved_mask & (1u << i))
+                        argv[i] = JS_UNDEFINED;
                 }
                 state->pc = pc + 3;
                 state->exception_pending = true;
